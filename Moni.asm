@@ -73,11 +73,15 @@ DIG_4       .equ    $9005   ;(1) endereço do digito 4 na memoria RAM
 DIG_5       .equ    $9006   ;(1) endereço do digito 5 na memoria RAM
 DIG_6       .equ    $9007   ;(1) endereço do digito 6 na memoria RAM
 DIG_7       .equ    $9008   ;(1) endereço do digito 7 na memoria RAM
-
 KEY_PRESS   .equ    $9009   ;(1) key atual
 INPUT       .equ    $900A   ;(1) temp input from int
 TMP_KEY     .equ    $900B   ;(1) tmp key
 KEY_TIMEOUT .equ    $900C   ;(1) tempo para retornar a tecla, CKEY_TIMEOUT
+BUZZER      .equ    $900D   ;(1) buzzer state != 0 - Ativo, 0 - Desativado
+
+
+
+TicCounter  .equ    $900E   ;(2) TicCounter inc 1ms
 
 PC_RAM      .equ    $9100   ;(2) save pc to user start $8000
 SYSMODE     .equ    $9102   ;(1) System mode. 
@@ -90,8 +94,18 @@ EXM_COUNT   .equ    $9103   ;(1) Count digits Examine function, 4 digits
 MDF_COUNT   .equ    $9104   ;(1) Count digits moDify function, 2 digits
 USR_PC      .equ    $9105   ;(2) PC 
 REG_INDEX   .equ    $9107   ;(1) Indice do registro que esta na tela
+                            ; 0 - PC
+                            ; 1 - SP
+                            ; 2 - AF
+                            ; 3 - BC
+                            ; 4 - DE
+                            ; 5 - HL
+USR_SP      .equ    $9108   ;(2) SP
 
-
+USR_AF      .equ    $9200   ;(2) AF
+USR_BC      .equ    $9202   ;(2) BC
+USR_DE      .equ    $9204   ;(2) DE
+USR_HL      .equ    $9206   ;(2) HL
 
 ; =========================================================
 ; Start ROM
@@ -118,16 +132,49 @@ REG_INDEX   .equ    $9107   ;(1) Indice do registro que esta na tela
 ; =========================================================
 .org    $38
     DI
+
+    ; save registers ?
+    PUSH  HL
+    PUSH  AF
+    PUSH  BC
+    PUSH  DE
+
+    LD  (USR_HL), HL
+    
+    POP  HL
+    LD  (USR_DE), HL
+
+    POP  HL
+    LD  (USR_BC), HL
+
+    POP  HL
+    LD  (USR_AF), HL
+
+    POP  HL
+
+    ; normal
     EX  AF, AF'
     EXX
 
+    ; Save SP
+    EX (SP), HL
+    LD (USR_SP), HL
+    EX (SP), HL
+
+    ; Save PC
     POP HL
     LD  (USR_PC), HL
+
+    ; TicCounter
+    LD  HL, (TicCounter)
+    INC  HL
+    LD  (TicCounter), HL
 
     CALL    TRATAMENTO_INT38H   
     JP      SYS_MAIN
 
 EXIT_SYS:
+    ; Restore PC
     LD  HL, (USR_PC)
     PUSH  HL
 
@@ -339,10 +386,18 @@ Col7_nextA:
     LD  A, CKEY_TIMEOUT
     LD  (KEY_TIMEOUT), A
 Col7_next:
+    LD  A, (BUZZER)
+    CP  0
+    JP  NZ, LIGA_BUZZER
     LD  A, (DIG_0)           ; Dig_7
     out (Port40), a
     RET
 
+LIGA_BUZZER:
+    LD  A, (DIG_0)
+    OR  $80
+    OUT  (Port40), A
+    RET
 
 ; =========================================================
 ; SYS MAIN
@@ -380,8 +435,6 @@ GET_KEY_A:
     LD  A, (KEY_TIMEOUT)
     CP  0
     JP  NZ, GET_KEY_A_RET
-    LD  A, CKEY_TIMEOUT
-    LD  (KEY_TIMEOUT), A
 
     LD  A, (KEY_PRESS)
     PUSH  AF
@@ -548,30 +601,114 @@ CHOICE_REG:
     JP  Z, GO_MONITOR
 
     LD  A, (TMP_KEY)
-    CP  $01
+    CP  $01                  ; PC
     JP  Z,  SET_SHOW_REG_PC
 
+    LD  A, (TMP_KEY)
+    CP  $02                  ; SP
+    JP  Z,  SET_SHOW_REG_SP
 
+    LD  A, (TMP_KEY)
+    CP  $03                  ; AF
+    JP  Z,  SET_SHOW_REG_AF
+
+    LD  A, (TMP_KEY)
+    CP  $04                  ; BC
+    JP  Z,  SET_SHOW_REG_BC
+
+    LD  A, (TMP_KEY)
+    CP  $05                  ; DE
+    JP  Z,  SET_SHOW_REG_DE
+
+    LD  A, (TMP_KEY)
+    CP  $06                  ; HL
+    JP  Z,  SET_SHOW_REG_HL
 
     JP  EXIT_SYS
 
+; =========================================================
+; SET REGISTER TO SHOW
+; =========================================================
 SET_SHOW_REG_PC:
     LD  A, 4
     LD  (SYSMODE), A
 
-    LD  A, 0
+    LD  A, 0                 ; PC register
+    LD  (REG_INDEX), A
+    JP EXIT_SYS
+
+SET_SHOW_REG_SP:
+    LD  A, 4
+    LD  (SYSMODE), A
+
+    LD  A, 1                 ; SP register
+    LD  (REG_INDEX), A
+    JP EXIT_SYS
+
+SET_SHOW_REG_AF:
+    LD  A, 4
+    LD  (SYSMODE), A
+
+    LD  A, 2                 ; AF register
+    LD  (REG_INDEX), A
+    JP EXIT_SYS
+
+SET_SHOW_REG_BC:
+    LD  A, 4
+    LD  (SYSMODE), A
+
+    LD  A, 3                 ; BC register
+    LD  (REG_INDEX), A
+    JP EXIT_SYS
+
+SET_SHOW_REG_DE:
+    LD  A, 4
+    LD  (SYSMODE), A
+
+    LD  A, 4                 ; DE register
+    LD  (REG_INDEX), A
+    JP EXIT_SYS
+
+SET_SHOW_REG_HL:
+    LD  A, 4
+    LD  (SYSMODE), A
+
+    LD  A, 5                 ; HL register
     LD  (REG_INDEX), A
     JP EXIT_SYS
 
 
+; =========================================================
+; SHOW REGISTERS
+; =========================================================
 SHOW_REGISTERS:
     CALL  GET_KEY_A
     CP 0
     JP  Z, GO_REGISTERS
 
     LD  A, (REG_INDEX)
-    CP  0                    ; PC
+    CP  0                    ; PC register
     JP  Z, SHOW_REG_PC
+
+    LD  A, (REG_INDEX)
+    CP  1                    ; SP register
+    JP  Z, SHOW_REG_SP
+
+    LD  A, (REG_INDEX)
+    CP  2                    ; AF register
+    JP  Z, SHOW_REG_AF
+
+    LD  A, (REG_INDEX)
+    CP  3                    ; BC register
+    JP  Z, SHOW_REG_BC
+
+    LD  A, (REG_INDEX)
+    CP  4                    ; DE register
+    JP  Z, SHOW_REG_DE
+
+    LD  A, (REG_INDEX)
+    CP  5                    ; HL register
+    JP  Z, SHOW_REG_HL
 
     JP EXIT_SYS
 
@@ -579,7 +716,7 @@ SHOW_REGISTERS:
 SHOW_REG_PC:
     CALL  CLEAR_DISPLAY
 
-    LD  A, $50               ; R - register
+    LD  A, $50               ; R
     LD  (DIG_0), A
 
     LD  A, $73               ; P
@@ -592,6 +729,88 @@ SHOW_REG_PC:
     CALL PRINT_END_HL
     JP  EXIT_SYS
 
+
+SHOW_REG_SP:
+    CALL  CLEAR_DISPLAY
+
+    LD  A, $50               ; R
+    LD  (DIG_0), A
+
+    LD  A, $6D               ; S
+    LD  (DIG_1), A
+
+    LD  A, $73               ; P
+    LD  (DIG_2), A
+
+    LD HL, (USR_SP)
+    CALL PRINT_END_HL
+    JP  EXIT_SYS
+
+
+SHOW_REG_AF:
+    CALL  CLEAR_DISPLAY
+
+    LD  A, $50               ; R
+    LD  (DIG_0), A
+
+    LD  A, $77               ; A
+    LD  (DIG_1), A
+
+    LD  A, $71               ; F
+    LD  (DIG_2), A
+
+    LD HL, (USR_AF)
+    CALL PRINT_END_HL
+    JP  EXIT_SYS
+
+
+SHOW_REG_BC:
+    CALL  CLEAR_DISPLAY
+
+    LD  A, $50               ; R
+    LD  (DIG_0), A
+
+    LD  A, $7C               ; B
+    LD  (DIG_1), A
+
+    LD  A, $39               ; C
+    LD  (DIG_2), A
+
+    LD HL, (USR_BC)
+    CALL PRINT_END_HL
+    JP  EXIT_SYS
+
+SHOW_REG_DE:
+    CALL  CLEAR_DISPLAY
+
+    LD  A, $50               ; R
+    LD  (DIG_0), A
+
+    LD  A, $5E               ; D
+    LD  (DIG_1), A
+
+    LD  A, $79               ; E
+    LD  (DIG_2), A
+
+    LD HL, (USR_DE)
+    CALL PRINT_END_HL
+    JP  EXIT_SYS
+
+SHOW_REG_HL:
+    CALL  CLEAR_DISPLAY
+
+    LD  A, $50               ; R
+    LD  (DIG_0), A
+
+    LD  A, $76               ; H
+    LD  (DIG_1), A
+
+    LD  A, $38               ; L
+    LD  (DIG_2), A
+
+    LD HL, (USR_HL)
+    CALL PRINT_END_HL
+    JP  EXIT_SYS
 
 ; =========================================================
 ; MONITOR Mode
@@ -638,6 +857,12 @@ MONITOR_MODE:
     LD  A, (TMP_KEY)
     CP  $00
     JP  Z, GO_REGISTERS
+
+
+    ; BUZZER TOGGLE
+    LD  A, (TMP_KEY)
+    CP  $07
+    JP  Z,  BUZZER_TOGGLE
 
 
     ; Mostra os dados no endereço
@@ -732,6 +957,11 @@ FIRE:
     LD  (USR_PC), HL
     JP  EXIT_SYS
 
+BUZZER_TOGGLE:
+    LD  A, (BUZZER)
+    XOR 1
+    LD  (BUZZER), A
+    JP  EXIT_SYS
 
 ; =========================================================
 ; LIMPA DISPLAY
@@ -971,6 +1201,9 @@ START:
     LD  A, CKEY_TIMEOUT
     LD  (KEY_TIMEOUT), A
 
+    LD  A, 0
+    LD  (BUZZER), A
+
     LD  A, 0                 ; Monitor mode
     LD  (SYSMODE), A
 
@@ -1007,19 +1240,16 @@ START:
 
 
 
-    ;LD  A, 0
+
+
 
 LOOP:
     
-    ;CALL PRINT_A
-    ;call delay
-    ;INC  A
-
-    ;PUSH  af
-    ;LD  A, (KEY_PRESS)
-    ;CALL GET_NUM_FROM_LOW
-    ;LD  (DIG_4), A
-    ;POP  af
+    ;LD  A, (BUZZER)
+    ;XOR 1
+    ;LD  (BUZZER), A
+    ;LD  A, 100
+    ;CALL DELAY_A
 
 
     JP  LOOP
@@ -1042,6 +1272,38 @@ delay_loop:
     jp nz, delay_loop_b           ; true = 3 us, false 1.75 us
     pop bc                        ; 2.50 us
     ret                           ; 2.50 us
+
+
+;============================================================================
+;	Subroutine	Delay_A
+;
+;	Entry:	A = Millisecond count
+;============================================================================
+DELAY_A:	PUSH	HL			; Save count
+		LD	HL,TicCounter
+		ADD	A,(HL)			; A = cycle count
+DlyLp		CP	(HL)			; Wait required TicCounter times
+		JP	NZ,DlyLp		;  loop if not done
+		POP	HL
+		RET
+
+
+DELAY_100mS	LD	C,1
+DELAY_C		PUSH	BC
+		LD	B,0
+DELAY_LP	PUSH	BC
+		DJNZ	$		;13   * 256 / 4 = 832uSec
+		POP	BC
+		DJNZ	DELAY_LP	;~100mSEC
+		DEC	C
+		JR  NZ,	DELAY_LP	;*4 ~= 7mSec
+		POP	BC
+		RET
+
+
+
+
+
 
 
 LED_FONT .db $3F, $06, $5B, $4F, $66, $6D, $7D, $07, $7F, $67 ; 0-9
