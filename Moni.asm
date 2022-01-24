@@ -57,35 +57,29 @@
 
 Port40        .equ    $40
 START_RAM     .equ    $8000
-STACK         .equ    $EEE0  ; Temporario, reorganizar!!!
-CKEY_TIMEOUT  .equ    100  ; 100ms
+STACK         .equ    $FF00  
+CKEY_TIMEOUT  .equ    100  ; 100ms +-
 
 ; ---------------------------------------------------------
-; RAM MAP - Temporario, reorganizar!!!
+; RAM MAP - Monitor | $FF00 - $FF2F
 ; ---------------------------------------------------------
-
 ; Cada digito fica em um ponto da memoria RAM
-DIG_0       .equ    $9001   ;(1) endereço do digito 0 na memoria RAM
-DIG_1       .equ    $9002   ;(1) endereço do digito 1 na memoria RAM
-DIG_2       .equ    $9003   ;(1) endereço do digito 2 na memoria RAM
-DIG_3       .equ    $9004   ;(1) endereço do digito 3 na memoria RAM
-DIG_4       .equ    $9005   ;(1) endereço do digito 4 na memoria RAM
-DIG_5       .equ    $9006   ;(1) endereço do digito 5 na memoria RAM
-DIG_6       .equ    $9007   ;(1) endereço do digito 6 na memoria RAM
-DIG_7       .equ    $9008   ;(1) endereço do digito 7 na memoria RAM
-KEY_PRESS   .equ    $9009   ;(1) key atual
-INPUT       .equ    $900A   ;(1) temp input from int
-TMP_KEY     .equ    $900B   ;(1) tmp key
-KEY_TIMEOUT .equ    $900C   ;(1) tempo para retornar a tecla, CKEY_TIMEOUT
-BUZZER      .equ    $901F   ;(1) buzzer state != 0 - Ativo, 0 - Desativado
+DIG_0       .equ    $FF00   ;(1) endereço do digito 0 na memoria RAM
+DIG_1       .equ    $FF01   ;(1) endereço do digito 1 na memoria RAM
+DIG_2       .equ    $FF02   ;(1) endereço do digito 2 na memoria RAM
+DIG_3       .equ    $FF03   ;(1) endereço do digito 3 na memoria RAM
+DIG_4       .equ    $FF04   ;(1) endereço do digito 4 na memoria RAM
+DIG_5       .equ    $FF05   ;(1) endereço do digito 5 na memoria RAM
+DIG_6       .equ    $FF06   ;(1) endereço do digito 6 na memoria RAM
+DIG_7       .equ    $FF07   ;(1) endereço do digito 7 na memoria RAM
+KEY_PRESS   .equ    $FF08   ;(1) key atual
+INPUT       .equ    $FF09   ;(1) temp input from int
+TMP_KEY     .equ    $FF0A   ;(1) tmp key
+KEY_TIMEOUT .equ    $FF0B   ;(1) tempo para retornar a tecla, CKEY_TIMEOUT
+BUZZER      .equ    $FF0C   ;(1) buzzer state != 0 - Ativo, 0 - Desativado
+PC_RAM      .equ    $FF0D   ;(2) save pc to user start $8000
 
-
-
-
-TicCounter  .equ    $900E   ;(2) TicCounter inc 1ms
-
-PC_RAM      .equ    $9100   ;(2) save pc to user start $8000
-SYSMODE     .equ    $9102   ;(1) System mode. 
+SYSMODE     .equ    $FF0F   ;(1) System mode. 
                             ; 0 - User Mode
                             ; 1 - Monitor
                             ; 2 - Examine Memoria
@@ -96,23 +90,15 @@ SYSMODE     .equ    $9102   ;(1) System mode.
                             ; 7 - Show register BC
                             ; 8 - Show register DE
                             ; 9 - Show register HL
-
-EXM_COUNT   .equ    $9103   ;(1) Count digits Examine function, 4 digits
-MDF_COUNT   .equ    $9104   ;(1) Count digits moDify function, 2 digits
-USR_PC      .equ    $9105   ;(2) PC 
-USR_SP      .equ    $9108   ;(2) SP
-
-USR_AF      .equ    $9200   ;(2) AF
-USR_BC      .equ    $9202   ;(2) BC
-USR_DE      .equ    $9204   ;(2) DE
-USR_HL      .equ    $9206   ;(2) HL
-
-
-
-
-; testes
-DIEGO       .equ    $D1E6   ;(2) timer example
-
+TicCounter  .equ    $FF10   ;(2) TicCounter inc 1ms
+EXM_COUNT   .equ    $FF12   ;(1) Count digits Examine function, 4 digits
+MDF_COUNT   .equ    $FF13   ;(1) Count digits moDify function, 2 digits
+USR_PC      .equ    $FF14   ;(2) PC 
+USR_SP      .equ    $FF16   ;(2) SP
+USR_AF      .equ    $FF18   ;(2) AF
+USR_BC      .equ    $FF1A   ;(2) BC
+USR_DE      .equ    $FF1C   ;(2) DE
+USR_HL      .equ    $FF1E   ;(2) HL
 
 
 
@@ -121,7 +107,6 @@ DIEGO       .equ    $D1E6   ;(2) timer example
 ; Start ROM
 ; =========================================================
 .org    $0000
-
     JP  START
 
 ; =========================================================
@@ -932,6 +917,7 @@ CLEAR_DISPLAY:
     LD  (DIG_7), A
     POP  AF
     RET
+
 ; =========================================================
 ; PEGA LOW NUM EM A E RETORNA CHAR 7SEG EM A
 ; =========================================================
@@ -967,7 +953,6 @@ GET_NUM_FROM_HIGH:
     POP     BC
     POP     HL
     RET
-
 
 ; =========================================================
 ; Mostra o que esta em A nos digitos 6 e 7
@@ -1249,12 +1234,16 @@ DELAY_LP	PUSH	BC
 		POP	BC
 		RET
 
+; Mapa char to display 0-F
 LED_FONT .db $3F, $06, $5B, $4F, $66, $6D, $7D, $07, $7F, $67 ; 0-9
          .DB $77, $7C, $39, $5E, $79, $71                     ; A-F
 
 
 
-
+; ---------------------------------------------------------
+; RAM MAP - Utilitys Program | $FF30 - $FFFF
+; ---------------------------------------------------------
+DIEGO      .equ    $FF30   ;(2) Temp Digits to countDown
 
 
 
