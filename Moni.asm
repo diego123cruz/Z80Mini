@@ -57,7 +57,7 @@
 
 Port40        .equ    $40
 START_RAM     .equ    $8000
-STACK         .equ    $E000  ; Temporario, reorganizar!!!
+STACK         .equ    $EEE0  ; Temporario, reorganizar!!!
 CKEY_TIMEOUT  .equ    100  ; 100ms
 
 ; ---------------------------------------------------------
@@ -77,7 +77,8 @@ KEY_PRESS   .equ    $9009   ;(1) key atual
 INPUT       .equ    $900A   ;(1) temp input from int
 TMP_KEY     .equ    $900B   ;(1) tmp key
 KEY_TIMEOUT .equ    $900C   ;(1) tempo para retornar a tecla, CKEY_TIMEOUT
-BUZZER      .equ    $900D   ;(1) buzzer state != 0 - Ativo, 0 - Desativado
+BUZZER      .equ    $901F   ;(1) buzzer state != 0 - Ativo, 0 - Desativado
+
 
 
 
@@ -85,27 +86,36 @@ TicCounter  .equ    $900E   ;(2) TicCounter inc 1ms
 
 PC_RAM      .equ    $9100   ;(2) save pc to user start $8000
 SYSMODE     .equ    $9102   ;(1) System mode. 
-                            ; 0 - Monitor
-                            ; 1 - Examine Memoria
-                            ; 2 - Change Data(Memory)
-                            ; 3 - Registers - Choice
-                            ; 4 - Register - SHOW (REG_INDEX)
+                            ; 0 - User Mode
+                            ; 1 - Monitor
+                            ; 2 - Examine Memoria
+                            ; 3 - Change Data(Memory)
+                            ; 4 - Show register PC
+                            ; 5 - Show register SP
+                            ; 6 - Show register AF
+                            ; 7 - Show register BC
+                            ; 8 - Show register DE
+                            ; 9 - Show register HL
+
 EXM_COUNT   .equ    $9103   ;(1) Count digits Examine function, 4 digits
 MDF_COUNT   .equ    $9104   ;(1) Count digits moDify function, 2 digits
 USR_PC      .equ    $9105   ;(2) PC 
-REG_INDEX   .equ    $9107   ;(1) Indice do registro que esta na tela
-                            ; 0 - PC
-                            ; 1 - SP
-                            ; 2 - AF
-                            ; 3 - BC
-                            ; 4 - DE
-                            ; 5 - HL
 USR_SP      .equ    $9108   ;(2) SP
 
 USR_AF      .equ    $9200   ;(2) AF
 USR_BC      .equ    $9202   ;(2) BC
 USR_DE      .equ    $9204   ;(2) DE
 USR_HL      .equ    $9206   ;(2) HL
+
+
+
+
+; testes
+DIEGO       .equ    $D1E6   ;(2) timer example
+
+
+
+
 
 ; =========================================================
 ; Start ROM
@@ -141,16 +151,21 @@ USR_HL      .equ    $9206   ;(2) HL
 
     LD  (USR_HL), HL
     
+    ; Save DE
     POP  HL
     LD  (USR_DE), HL
 
+    ; Save BC
     POP  HL
     LD  (USR_BC), HL
 
+    ; Save AF
     POP  HL
     LD  (USR_AF), HL
 
     POP  HL
+
+
 
     ; normal
     EX  AF, AF'
@@ -170,6 +185,15 @@ USR_HL      .equ    $9206   ;(2) HL
     INC  HL
     LD  (TicCounter), HL
 
+    ; Timeout Key
+    LD A, (KEY_TIMEOUT)
+    CP 0
+    JP Z, ENTER_SYS
+    DEC A
+    LD (KEY_TIMEOUT), A
+
+
+ENTER_SYS:
     CALL    TRATAMENTO_INT38H   
     JP      SYS_MAIN
 
@@ -189,15 +213,7 @@ EXIT_SYS:
 ; Tratamento Int 38h
 ; =========================================================
 TRATAMENTO_INT38H:
-
-    ; timeout key
-    LD  A, (KEY_TIMEOUT)
-    CP 0
-    JP  Z, TRATAMENTO_INT38H_IN
-    DEC  A
-    LD (KEY_TIMEOUT), A
-
-TRATAMENTO_INT38H_IN
+ 
     IN A, (Port40)
     LD  (INPUT), A
     AND $07                  ; 00000111b
@@ -217,8 +233,6 @@ TRATAMENTO_INT38H_IN
     JP  Z, Col6
     CP  7
     JP  Z, Col7
-    XOR A
-    out (Port40), A
     RET
 
 Col0:
@@ -227,16 +241,16 @@ Col0:
     JP  NZ, Col0_nextA
     LD  A, $00
     LD  (KEY_PRESS), A
-    LD  A, CKEY_TIMEOUT
-    LD  (KEY_TIMEOUT), A
+    LD A, CKEY_TIMEOUT
+    LD (KEY_TIMEOUT), A
 Col0_nextA:
     LD  A,  (INPUT)
     BIT  4, A
     JP  NZ, Col0_next
     LD  A, $0E
     LD  (KEY_PRESS), A
-    LD  A, CKEY_TIMEOUT
-    LD  (KEY_TIMEOUT), A
+    LD A, CKEY_TIMEOUT
+    LD (KEY_TIMEOUT), A
 Col0_next:
     LD  A, (DIG_1)           ; Dig_0
     out (Port40), a
@@ -249,16 +263,16 @@ Col1:
     JP  NZ, Col1_nextA
     LD  A, $01
     LD  (KEY_PRESS), A
-    LD  A, CKEY_TIMEOUT
-    LD  (KEY_TIMEOUT), A
+    LD A, CKEY_TIMEOUT
+    LD (KEY_TIMEOUT), A
 Col1_nextA:
     LD  A,  (INPUT)
     BIT  4, A
     JP  NZ, Col1_next
     LD  A, $03
     LD  (KEY_PRESS), A
-    LD  A, CKEY_TIMEOUT
-    LD  (KEY_TIMEOUT), A
+    LD A, CKEY_TIMEOUT
+    LD (KEY_TIMEOUT), A
 Col1_next:
     LD  A, (DIG_2)           ; Dig_1
     out (Port40), a
@@ -270,16 +284,16 @@ Col2:
     JP  NZ, Col2_nextA
     LD  A, $04
     LD  (KEY_PRESS), A
-    LD  A, CKEY_TIMEOUT
-    LD  (KEY_TIMEOUT), A
+    LD A, CKEY_TIMEOUT
+    LD (KEY_TIMEOUT), A
 Col2_nextA:
     LD  A,  (INPUT)
     BIT  4, A
     JP  NZ, Col2_next
     LD  A, $06
     LD  (KEY_PRESS), A
-    LD  A, CKEY_TIMEOUT
-    LD  (KEY_TIMEOUT), A
+    LD A, CKEY_TIMEOUT
+    LD (KEY_TIMEOUT), A
 Col2_next:
     LD  A, (DIG_3)           ; Dig_2
     out (Port40), a
@@ -291,16 +305,16 @@ Col3:
     JP  NZ, Col3_nextA
     LD  A, $07
     LD  (KEY_PRESS), A
-    LD  A, CKEY_TIMEOUT
-    LD  (KEY_TIMEOUT), A
+    LD A, CKEY_TIMEOUT
+    LD (KEY_TIMEOUT), A
 Col3_nextA:
     LD  A,  (INPUT)
     BIT  4, A
     JP  NZ, Col3_next
     LD  A, $09
     LD  (KEY_PRESS), A
-    LD  A, CKEY_TIMEOUT
-    LD  (KEY_TIMEOUT), A
+    LD A, CKEY_TIMEOUT
+    LD (KEY_TIMEOUT), A
 Col3_next:
     LD  A, (DIG_4)           ; Dig_3
     out (Port40), a
@@ -312,16 +326,16 @@ Col4:
     JP  NZ, Col4_nextA
     LD  A, $0F
     LD  (KEY_PRESS), A
-    LD  A, CKEY_TIMEOUT
-    LD  (KEY_TIMEOUT), A
+    LD A, CKEY_TIMEOUT
+    LD (KEY_TIMEOUT), A
 Col4_nextA:
     LD  A,  (INPUT)
     BIT  4, A
     JP  NZ, Col4_next
     LD  A, $0D
     LD  (KEY_PRESS), A
-    LD  A, CKEY_TIMEOUT
-    LD  (KEY_TIMEOUT), A
+    LD A, CKEY_TIMEOUT
+    LD (KEY_TIMEOUT), A
 Col4_next:
     LD  A, (DIG_5)           ; Dig_4
     out (Port40), a
@@ -333,16 +347,16 @@ Col5:
     JP  NZ, Col5_nextA
     LD  A, $02
     LD  (KEY_PRESS), A
-    LD  A, CKEY_TIMEOUT
-    LD  (KEY_TIMEOUT), A
+    LD A, CKEY_TIMEOUT
+    LD (KEY_TIMEOUT), A
 Col5_nextA:
     LD  A,  (INPUT)
     BIT  4, A
     JP  NZ, Col5_next
     LD  A, $0C
     LD  (KEY_PRESS), A
-    LD  A, CKEY_TIMEOUT
-    LD  (KEY_TIMEOUT), A
+    LD A, CKEY_TIMEOUT
+    LD (KEY_TIMEOUT), A
 Col5_next:
     LD  A, (DIG_6)           ; Dig_5
     out (Port40), a
@@ -354,16 +368,16 @@ Col6:
     JP  NZ, Col6_nextA
     LD  A, $05
     LD  (KEY_PRESS), A
-    LD  A, CKEY_TIMEOUT
-    LD  (KEY_TIMEOUT), A
+    LD A, CKEY_TIMEOUT
+    LD (KEY_TIMEOUT), A
 Col6_nextA:
     LD  A,  (INPUT)
     BIT  4, A
     JP  NZ, Col6_next
     LD  A, $0B
     LD  (KEY_PRESS), A
-    LD  A, CKEY_TIMEOUT
-    LD  (KEY_TIMEOUT), A
+    LD A, CKEY_TIMEOUT
+    LD (KEY_TIMEOUT), A
 Col6_next:
     LD  A, (DIG_7)           ; Dig_6
     out (Port40), a
@@ -375,16 +389,16 @@ Col7:
     JP  NZ, Col7_nextA
     LD  A, $08
     LD  (KEY_PRESS), A
-    LD  A, CKEY_TIMEOUT
-    LD  (KEY_TIMEOUT), A
+    LD A, CKEY_TIMEOUT
+    LD (KEY_TIMEOUT), A
 Col7_nextA:
     LD  A,  (INPUT)
     BIT  4, A
     JP  NZ, Col7_next
     LD  A, $0A
     LD  (KEY_PRESS), A
-    LD  A, CKEY_TIMEOUT
-    LD  (KEY_TIMEOUT), A
+    LD A, CKEY_TIMEOUT
+    LD (KEY_TIMEOUT), A
 Col7_next:
     LD  A, (BUZZER)
     CP  0
@@ -392,7 +406,6 @@ Col7_next:
     LD  A, (DIG_0)           ; Dig_7
     out (Port40), a
     RET
-
 LIGA_BUZZER:
     LD  A, (DIG_0)
     OR  $80
@@ -404,48 +417,44 @@ LIGA_BUZZER:
 ; =========================================================
 SYS_MAIN:
     LD  A, (SYSMODE)
-    CP  0                    ; monitor
+    CP  1                    ; monitor
     JP  Z, MONITOR_MODE
 
     LD  A,  (SYSMODE)
-    CP  1                    ; Examine RAM
+    CP  2                    ; Examine RAM
     JP  Z, EXAMINE_RAM
 
     LD  A, (SYSMODE)
-    CP  2                    ; Modify Data (Memory)
+    CP  3                    ; Modify Data (Memory)
     JP  Z,  MODIFY_RAM
 
     LD  A, (SYSMODE)
-    CP  3
-    JP  Z,  CHOICE_REG       ; Cheice register to show
+    CP  4                    ; Show register PC
+    JP  Z,  SHOW_REG_PC
 
     LD  A, (SYSMODE)
-    CP  4
-    JP  SHOW_REGISTERS      ; Show registrer in REG_INDEX
+    CP  5                    ; Show register SP
+    JP  Z,  SHOW_REG_SP
+
+    LD  A, (SYSMODE)
+    CP  6                    ; Show register AF
+    JP  Z,  SHOW_REG_AF
+
+    LD  A, (SYSMODE)
+    CP  7                    ; Show register BC
+    JP  Z,  SHOW_REG_BC
+
+    LD  A, (SYSMODE)
+    CP  8                    ; Show register DE
+    JP  Z,  SHOW_REG_DE
+
+    LD  A, (SYSMODE)
+    CP  9                    ; Show register HL
+    JP  Z,  SHOW_REG_HL
 
 
     JP  EXIT_SYS
 
-    RET
-
-; =========================================================
-; GET KEY IN A, IF A == FFh then no KEY
-; =========================================================
-GET_KEY_A:
-    LD  A, (KEY_TIMEOUT)
-    CP  0
-    JP  NZ, GET_KEY_A_RET
-
-    LD  A, (KEY_PRESS)
-    PUSH  AF
-    LD  A, $FF
-    LD  (KEY_PRESS), A
-    POP  AF
-    RET
-
-GET_KEY_A_RET
-    LD  A, $FF
-    RET
 
 ; =========================================================
 ; Examine RAM Mode
@@ -585,135 +594,14 @@ MODIFY_KEY_POS_0:
     CALL GET_NUM_FROM_LOW
     LD  (DIG_7), A
     JP  GO_MONITOR
+    
 
-
-; =========================================================
-; CHOICE REGISTER Mode 
-; 1=PC, 2=SP, 3=AF, 4=BC, 5=DE, 6=HL, 7=IX, 8=IY, 9=IR
-; =========================================================
-CHOICE_REG:
-    CALL GET_KEY_A
-    CP  $FF
-    JP  Z, EXIT_SYS
-
-    LD (TMP_KEY), A
-    CP  0                    ; Back to monitor
-    JP  Z, GO_MONITOR
-
-    LD  A, (TMP_KEY)
-    CP  $01                  ; PC
-    JP  Z,  SET_SHOW_REG_PC
-
-    LD  A, (TMP_KEY)
-    CP  $02                  ; SP
-    JP  Z,  SET_SHOW_REG_SP
-
-    LD  A, (TMP_KEY)
-    CP  $03                  ; AF
-    JP  Z,  SET_SHOW_REG_AF
-
-    LD  A, (TMP_KEY)
-    CP  $04                  ; BC
-    JP  Z,  SET_SHOW_REG_BC
-
-    LD  A, (TMP_KEY)
-    CP  $05                  ; DE
-    JP  Z,  SET_SHOW_REG_DE
-
-    LD  A, (TMP_KEY)
-    CP  $06                  ; HL
-    JP  Z,  SET_SHOW_REG_HL
-
-    JP  EXIT_SYS
-
-; =========================================================
-; SET REGISTER TO SHOW
-; =========================================================
-SET_SHOW_REG_PC:
-    LD  A, 4
-    LD  (SYSMODE), A
-
-    LD  A, 0                 ; PC register
-    LD  (REG_INDEX), A
-    JP EXIT_SYS
-
-SET_SHOW_REG_SP:
-    LD  A, 4
-    LD  (SYSMODE), A
-
-    LD  A, 1                 ; SP register
-    LD  (REG_INDEX), A
-    JP EXIT_SYS
-
-SET_SHOW_REG_AF:
-    LD  A, 4
-    LD  (SYSMODE), A
-
-    LD  A, 2                 ; AF register
-    LD  (REG_INDEX), A
-    JP EXIT_SYS
-
-SET_SHOW_REG_BC:
-    LD  A, 4
-    LD  (SYSMODE), A
-
-    LD  A, 3                 ; BC register
-    LD  (REG_INDEX), A
-    JP EXIT_SYS
-
-SET_SHOW_REG_DE:
-    LD  A, 4
-    LD  (SYSMODE), A
-
-    LD  A, 4                 ; DE register
-    LD  (REG_INDEX), A
-    JP EXIT_SYS
-
-SET_SHOW_REG_HL:
-    LD  A, 4
-    LD  (SYSMODE), A
-
-    LD  A, 5                 ; HL register
-    LD  (REG_INDEX), A
-    JP EXIT_SYS
-
-
-; =========================================================
-; SHOW REGISTERS
-; =========================================================
-SHOW_REGISTERS:
-    CALL  GET_KEY_A
-    CP 0
-    JP  Z, GO_REGISTERS
-
-    LD  A, (REG_INDEX)
-    CP  0                    ; PC register
-    JP  Z, SHOW_REG_PC
-
-    LD  A, (REG_INDEX)
-    CP  1                    ; SP register
-    JP  Z, SHOW_REG_SP
-
-    LD  A, (REG_INDEX)
-    CP  2                    ; AF register
-    JP  Z, SHOW_REG_AF
-
-    LD  A, (REG_INDEX)
-    CP  3                    ; BC register
-    JP  Z, SHOW_REG_BC
-
-    LD  A, (REG_INDEX)
-    CP  4                    ; DE register
-    JP  Z, SHOW_REG_DE
-
-    LD  A, (REG_INDEX)
-    CP  5                    ; HL register
-    JP  Z, SHOW_REG_HL
-
-    JP EXIT_SYS
-
+  
 
 SHOW_REG_PC:
+    CALL  GET_KEY_A
+    CP  0
+    JP Z, GO_MONITOR
     CALL  CLEAR_DISPLAY
 
     LD  A, $50               ; R
@@ -731,6 +619,10 @@ SHOW_REG_PC:
 
 
 SHOW_REG_SP:
+    CALL  GET_KEY_A
+    CP  0
+    JP Z, GO_MONITOR
+
     CALL  CLEAR_DISPLAY
 
     LD  A, $50               ; R
@@ -748,6 +640,9 @@ SHOW_REG_SP:
 
 
 SHOW_REG_AF:
+    CALL  GET_KEY_A
+    CP  0
+    JP Z, GO_MONITOR
     CALL  CLEAR_DISPLAY
 
     LD  A, $50               ; R
@@ -765,6 +660,9 @@ SHOW_REG_AF:
 
 
 SHOW_REG_BC:
+    CALL  GET_KEY_A
+    CP  0
+    JP Z, GO_MONITOR
     CALL  CLEAR_DISPLAY
 
     LD  A, $50               ; R
@@ -781,6 +679,9 @@ SHOW_REG_BC:
     JP  EXIT_SYS
 
 SHOW_REG_DE:
+    CALL  GET_KEY_A
+    CP  0
+    JP Z, GO_MONITOR
     CALL  CLEAR_DISPLAY
 
     LD  A, $50               ; R
@@ -797,6 +698,9 @@ SHOW_REG_DE:
     JP  EXIT_SYS
 
 SHOW_REG_HL:
+    CALL  GET_KEY_A
+    CP  0
+    JP Z, GO_MONITOR
     CALL  CLEAR_DISPLAY
 
     LD  A, $50               ; R
@@ -812,6 +716,29 @@ SHOW_REG_HL:
     CALL PRINT_END_HL
     JP  EXIT_SYS
 
+
+; =========================================================
+; GET KEY IN A, IF A == FFh then no KEY
+; =========================================================
+GET_KEY_A:
+    LD  A, (KEY_TIMEOUT)
+    CP  0
+    JP  Z, RET_KEY
+    LD  A, $FF
+    RET
+
+RET_KEY:
+    LD A, CKEY_TIMEOUT
+    LD (KEY_TIMEOUT), A
+
+    LD  A, (KEY_PRESS)
+    PUSH  AF
+    LD  A, $FF
+    LD  (KEY_PRESS), A
+    POP  AF
+    RET
+
+
 ; =========================================================
 ; MONITOR Mode
 ; =========================================================
@@ -821,8 +748,14 @@ MONITOR_MODE:
     LD  HL, (PC_RAM)
     CALL PRINT_HL
 
+    ; Mostra os dados no endereço
+    LD  HL, (PC_RAM)
+    LD  A, (HL)
+    CALL  PRINT_A
+
 
     CALL  GET_KEY_A
+
     ; Incrementa endereço
     LD (TMP_KEY), A
     CP  $0A
@@ -853,22 +786,37 @@ MONITOR_MODE:
     CP  $0F
     JP  Z,  FIRE
 
-    ; Registers
+
     LD  A, (TMP_KEY)
-    CP  $00
-    JP  Z, GO_REGISTERS
+    CP  $01
+    JP  Z, GO_SHOW_REG_PC
+
+    LD  A, (TMP_KEY)
+    CP  $02
+    JP  Z, GO_SHOW_REG_SP
+
+    LD  A, (TMP_KEY)
+    CP  $03
+    JP  Z, GO_SHOW_REG_AF
+
+    LD  A, (TMP_KEY)
+    CP  $04
+    JP  Z, GO_SHOW_REG_BC
+
+    LD  A, (TMP_KEY)
+    CP  $05
+    JP  Z, GO_SHOW_REG_DE
+
+    LD  A, (TMP_KEY)
+    CP  $06
+    JP  Z, GO_SHOW_REG_HL
+
 
 
     ; BUZZER TOGGLE
     LD  A, (TMP_KEY)
     CP  $07
     JP  Z,  BUZZER_TOGGLE
-
-
-    ; Mostra os dados no endereço
-    LD  HL, (PC_RAM)
-    LD  A, (HL)
-    CALL  PRINT_A
 
     JP  EXIT_SYS
     
@@ -888,7 +836,7 @@ PC_RAM_INC:
 GO_EXAMINE:
     LD  A, 3
     LD (EXM_COUNT), A        ; Set count 4 digits, position display
-    LD  A, 1
+    LD  A, 2
     LD (SYSMODE), A          ; Examine mode
     LD A, 01000000b
     LD (DIG_0), A
@@ -905,55 +853,60 @@ GO_ADD_MODIFY:
 GO_MODIFY:
     LD  A, 1                 ; Set count 2 digits, position display
     LD  (MDF_COUNT), A
-    LD  A, 2                 ; moDify mode (Memory)
+    LD  A, 3                 ; moDify mode (Memory)
     LD  (SYSMODE), A
     LD  A, 01000000b
     LD  (DIG_6), A
     LD  (DIG_7), A
     JP  EXIT_SYS
 
-GO_REGISTERS:
-    LD  A, 3
-    LD  (SYSMODE), A
-    CALL CLEAR_DISPLAY
-
-    LD  A, $39
-    LD  (DIG_0), A           ; C
-
-    LD  A, $76
-    LD  (DIG_1), A           ; H
-
-    LD  A, $3F
-    LD  (DIG_2), A           ; O
-
-    LD  A, $06
-    LD  (DIG_3), A           ; I
-
-    LD  A, $39
-    LD  (DIG_4), A           ; C
-
-    LD  A, $79
-    LD  (DIG_5), A           ; E
-
-    LD  A, $00
-    LD  (DIG_6), A           ; " "
-
-    LD  A, $50
-    LD  (DIG_7), A           ; R
-
-
-    JP  EXIT_SYS
-
 GO_MONITOR:
     CALL  CLEAR_DISPLAY
-    LD  A, 0
+    LD  A, 1
     LD  (SYSMODE), A
     JP  EXIT_SYS
 
+GO_SHOW_REG_PC:
+    CALL CLEAR_DISPLAY
+    LD  A, 4
+    LD  (SYSMODE), A
+    JP  EXIT_SYS
+
+GO_SHOW_REG_SP:
+    CALL CLEAR_DISPLAY
+    LD  A, 5
+    LD  (SYSMODE), A
+    JP  EXIT_SYS
+
+GO_SHOW_REG_AF:
+    CALL CLEAR_DISPLAY
+    LD  A, 6
+    LD  (SYSMODE), A
+    JP  EXIT_SYS
+
+GO_SHOW_REG_BC:
+    CALL CLEAR_DISPLAY
+    LD  A, 7
+    LD  (SYSMODE), A
+    JP  EXIT_SYS
+
+GO_SHOW_REG_DE:
+    CALL CLEAR_DISPLAY
+    LD  A, 8
+    LD  (SYSMODE), A
+    JP  EXIT_SYS
+
+GO_SHOW_REG_HL:
+    CALL CLEAR_DISPLAY
+    LD  A, 9
+    LD  (SYSMODE), A
+    JP  EXIT_SYS
+
+
 FIRE:
-    LD  A, 0
+    LD  A, 1
     LD (SYSMODE), A          ; Monitor mode
-    LD  HL, $8000
+    LD  HL, (PC_RAM)
     LD  (USR_PC), HL
     JP  EXIT_SYS
 
@@ -1204,8 +1157,11 @@ START:
     LD  A, 0
     LD  (BUZZER), A
 
-    LD  A, 0                 ; Monitor mode
+    LD  A, 1                 ; Monitor mode
     LD  (SYSMODE), A
+
+    LD A, $FF
+    LD (KEY_PRESS), A
 
     IM  1
     EI
@@ -1238,21 +1194,14 @@ START:
     LD  A, $00
     LD  (DIG_7), A
 
+START_LOOP:
+
+    JP START_LOOP
 
 
 
 
 
-LOOP:
-    
-    ;LD  A, (BUZZER)
-    ;XOR 1
-    ;LD  (BUZZER), A
-    ;LD  A, 100
-    ;CALL DELAY_A
-
-
-    JP  LOOP
 
 
 
@@ -1300,14 +1249,148 @@ DELAY_LP	PUSH	BC
 		POP	BC
 		RET
 
-
-
-
-
-
-
 LED_FONT .db $3F, $06, $5B, $4F, $66, $6D, $7D, $07, $7F, $67 ; 0-9
          .DB $77, $7C, $39, $5E, $79, $71                     ; A-F
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.org $4000
+
+    ; timer count down
+
+    CALL CLEAR_DISPLAY
+    LD  A, $39
+    LD  (DIG_0), A
+
+    LD  A, $3F
+    LD  (DIG_1), A
+
+    LD  A, $1C
+    LD  (DIG_2), A
+
+    LD  A, $54
+    LD  (DIG_3), A
+
+    LD  A, $78
+    LD  (DIG_4), A
+
+    LD  A, $00
+    LD  (DIG_5), A
+
+
+
+    LD  A, $40
+    LD  (DIG_6), A
+
+    LD  A, $40
+    LD  (DIG_7), A
+
+    LD  A, 0                 ; user mode
+    LD (SYSMODE), A
+
+READ:
+    CALL GET_KEY_A
+    CP  $FF
+    JP  Z, READ
+
+    CALL  MODIFY_KEY_POS_1D
+
+READ2
+    CALL GET_KEY_A
+    CP  $FF
+    JP  Z, READ2
+
+    CALL MODIFY_KEY_POS_0D
+
+    JP  LOOP
+
+
+MODIFY_KEY_POS_1D:
+    LD  HL, DIEGO
+    INC HL
+    LD  (HL), A
+    CALL GET_NUM_FROM_LOW
+    LD  (DIG_6), A
+    RET
+
+MODIFY_KEY_POS_0D:
+    LD  HL, DIEGO
+    LD  (HL), A
+    CALL GET_NUM_FROM_LOW
+    LD  (DIG_7), A
+    RET
+
+LOOP:
+    LD  HL, (DIEGO)
+
+LOOP_DOWN:
+    LD  A, H
+    CALL GET_NUM_FROM_LOW
+    LD  (DIG_6), A
+
+    LD  A, L
+    CALL GET_NUM_FROM_LOW
+    LD  (DIG_7), A
+
+    LD C, 7    ; 10 x 100ms = 1seg
+    CALL DELAY_C
+
+    LD A, L
+    CP 0
+    JP Z, DEC_H
+    DEC A
+    LD L, A
+    JP LOOP_DOWN
+
+DEC_H:
+    LD  A, H
+    CP 0
+    JP Z, CHECK_L
+    DEC A
+    LD H, A
+    LD A, 9
+    LD L, A
+    JP LOOP_DOWN
+
+CHECK_L:
+    LD  A, L
+    CP 0
+    JP Z, BEEP
+
+BEEP:
+    LD  A, (BUZZER)
+    XOR 1
+    LD  (BUZZER), A
+    LD  C, 1
+    CALL DELAY_C
+    JP BEEP
+
+
+
+
+
 
 .end
 
