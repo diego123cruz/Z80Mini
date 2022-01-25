@@ -100,6 +100,16 @@ USR_BC      .equ    $FF1A   ;(2) BC
 USR_DE      .equ    $FF1C   ;(2) DE
 USR_HL      .equ    $FF1E   ;(2) HL
 
+; Copy USER_DISPx to DIG_x WHEN USER_MODE
+USER_DISP0  .equ    $FF20   ; Mode User - Display Dig 0  - 01234567
+USER_DISP1  .equ    $FF21   ; Mode User - Display Dig 1  - 01234567
+USER_DISP2  .equ    $FF22   ; Mode User - Display Dig 2  - 01234567
+USER_DISP3  .equ    $FF23   ; Mode User - Display Dig 3  - 01234567
+USER_DISP4  .equ    $FF24   ; Mode User - Display Dig 4  - 01234567
+USER_DISP5  .equ    $FF25   ; Mode User - Display Dig 5  - 01234567
+USER_DISP6  .equ    $FF26   ; Mode User - Display Dig 6  - 01234567
+USER_DISP7  .equ    $FF27   ; Mode User - Display Dig 7  - 01234567
+
 
 
 
@@ -401,6 +411,10 @@ LIGA_BUZZER:
 ; SYS MAIN
 ; =========================================================
 SYS_MAIN:
+    LD  A, (SYSMODE)
+    CP  0                    ; User mode can back to monitor
+    JP  Z, USER_MODE        
+
     LD  A, (SYSMODE)
     CP  1                    ; monitor
     JP  Z, MONITOR_MODE
@@ -727,11 +741,28 @@ RET_KEY:
 ; =========================================================
 ; MONITOR Mode
 ; =========================================================
+USER_MODE:
+    LD  A, (INPUT)
+    CP  $FB
+    JP  Z, GO_MONITOR
+    
+    ; Copy USER_DISPx to DIG_x
+    LD	HL, USER_DISP0
+	LD	DE, DIG_0
+	LD	BC, $0008
+	LDIR
+
+    JP  EXIT_SYS
 
 MONITOR_MODE:
     ; Mostra o endereço
     LD  HL, (PC_RAM)
     CALL PRINT_HL
+
+    ; Limpa digitos
+    LD  A, 0
+    LD  (DIG_4), A
+    LD  (DIG_5), A
 
     ; Mostra os dados no endereço
     LD  HL, (PC_RAM)
@@ -771,37 +802,45 @@ MONITOR_MODE:
     CP  $0F
     JP  Z,  FIRE
 
-
+    ; Show register PC
     LD  A, (TMP_KEY)
     CP  $01
     JP  Z, GO_SHOW_REG_PC
 
+    ; Show register SP
     LD  A, (TMP_KEY)
     CP  $02
     JP  Z, GO_SHOW_REG_SP
 
+    ; Show register AF
     LD  A, (TMP_KEY)
     CP  $03
     JP  Z, GO_SHOW_REG_AF
 
+    ; Show register BC
     LD  A, (TMP_KEY)
     CP  $04
     JP  Z, GO_SHOW_REG_BC
 
+    ; Show register DE
     LD  A, (TMP_KEY)
     CP  $05
     JP  Z, GO_SHOW_REG_DE
 
+    ; Show register HL
     LD  A, (TMP_KEY)
     CP  $06
     JP  Z, GO_SHOW_REG_HL
-
-
 
     ; BUZZER TOGGLE
     LD  A, (TMP_KEY)
     CP  $07
     JP  Z,  BUZZER_TOGGLE
+
+    ; Back to user mode
+    LD  A, (TMP_KEY)
+    CP  $09
+    JP  Z, GO_USER_MODE
 
     JP  EXIT_SYS
     
@@ -901,6 +940,11 @@ BUZZER_TOGGLE:
     LD  (BUZZER), A
     JP  EXIT_SYS
 
+GO_USER_MODE:
+    LD  A, 0
+    LD  (SYSMODE), A
+    JP  EXIT_SYS
+
 ; =========================================================
 ; LIMPA DISPLAY
 ; =========================================================
@@ -917,6 +961,24 @@ CLEAR_DISPLAY:
     LD  (DIG_7), A
     POP  AF
     RET
+
+; =========================================================
+; LIMPA USER DISPLAY
+; =========================================================
+CLEAR_USER_DISPLAY:
+    PUSH  AF
+    LD  A, 0
+    LD  (USER_DISP0), A
+    LD  (USER_DISP1), A
+    LD  (USER_DISP2), A
+    LD  (USER_DISP3), A
+    LD  (USER_DISP4), A
+    LD  (USER_DISP5), A
+    LD  (USER_DISP6), A
+    LD  (USER_DISP7), A
+    POP  AF
+    RET
+
 
 ; =========================================================
 ; PEGA LOW NUM EM A E RETORNA CHAR 7SEG EM A
@@ -1249,12 +1311,41 @@ DIEGO      .equ    $FF30   ;(2) Temp Digits to countDown
 
 
 
+.org $1000
+    CALL CLEAR_USER_DISPLAY
+    LD  A, 0                 ; user mode
+    LD (SYSMODE), A
 
+    LD  B, $08
+    LD  HL, USER_DISP0
+    LD  A, 8
 
+LEDS_LOOP:
+    CALL CLEAR_USER_DISPLAY
+    LD  (HL), B
+    CALL DELAY_100mS
+    INC HL
+    DEC A
+    CP 0
+    JP NZ, LEDS_LOOP
 
+    LD A, 8
+    LD  HL, USER_DISP7
+    LD  B, $40
 
+LEDS_LOOP2:
+    CALL CLEAR_USER_DISPLAY
+    LD  (HL), B
+    CALL DELAY_100mS
+    DEC HL
+    DEC A
+    CP 0
+    JP NZ, LEDS_LOOP2
 
-
+    LD  A, 8
+    LD  HL, USER_DISP0
+    LD  B, $08
+    JP LEDS_LOOP
 
 
 
@@ -1269,32 +1360,32 @@ DIEGO      .equ    $FF30   ;(2) Temp Digits to countDown
 
     ; timer count down
 
-    CALL CLEAR_DISPLAY
+    CALL CLEAR_USER_DISPLAY
     LD  A, $39
-    LD  (DIG_0), A
+    LD  (USER_DISP0), A
 
     LD  A, $3F
-    LD  (DIG_1), A
+    LD  (USER_DISP1), A
 
     LD  A, $1C
-    LD  (DIG_2), A
+    LD  (USER_DISP2), A
 
     LD  A, $54
-    LD  (DIG_3), A
+    LD  (USER_DISP3), A
 
     LD  A, $78
-    LD  (DIG_4), A
+    LD  (USER_DISP4), A
 
     LD  A, $00
-    LD  (DIG_5), A
+    LD  (USER_DISP5), A
 
 
 
     LD  A, $40
-    LD  (DIG_6), A
+    LD  (USER_DISP6), A
 
     LD  A, $40
-    LD  (DIG_7), A
+    LD  (USER_DISP7), A
 
     LD  A, 0                 ; user mode
     LD (SYSMODE), A
@@ -1321,14 +1412,14 @@ MODIFY_KEY_POS_1D:
     INC HL
     LD  (HL), A
     CALL GET_NUM_FROM_LOW
-    LD  (DIG_6), A
+    LD  (USER_DISP6), A
     RET
 
 MODIFY_KEY_POS_0D:
     LD  HL, DIEGO
     LD  (HL), A
     CALL GET_NUM_FROM_LOW
-    LD  (DIG_7), A
+    LD  (USER_DISP7), A
     RET
 
 LOOP:
@@ -1337,11 +1428,11 @@ LOOP:
 LOOP_DOWN:
     LD  A, H
     CALL GET_NUM_FROM_LOW
-    LD  (DIG_6), A
+    LD  (USER_DISP6), A
 
     LD  A, L
     CALL GET_NUM_FROM_LOW
-    LD  (DIG_7), A
+    LD  (USER_DISP7), A
 
     LD C, 7    ; 10 x 100ms = 1seg
     CALL DELAY_C
@@ -1433,3 +1524,4 @@ BEEP:
 ;   : - $41
 ;   ; - $88
 ;   _ - $08
+;   ~ - $01
