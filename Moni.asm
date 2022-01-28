@@ -1365,6 +1365,36 @@ LED_FONT .db $3F, $06, $5B, $4F, $66, $6D, $7D, $07, $7F, $67 ; 0-9
 ; ---------------------------------------------------------
 DIEGO      .equ    $FF30   ;(2) Temp Digits to countDown
 
+BLINK_TESTE:
+    LD  A, 1
+BLINK_TESTE_LOOP:
+    XOR 1
+    OUT (PortC0), A 
+    JP BLINK_TESTE_LOOP
+
+
+BLINK_DELAY_C:
+    LD  A, 1
+BLINK_DELAY_C_LOOP:
+    XOR 1
+    OUT (PortC0), A
+    CALL DELAY_100mS
+    JP BLINK_DELAY_C_LOOP
+
+
+BLINK_DELAY_A:
+    LD  A, 1
+BLINK_DELAY_A_LOOP:
+    XOR 1
+    OUT (PortC0), A
+    PUSH  AF
+    LD  A, 100
+    CALL DELAY_A
+    POP AF
+    JP BLINK_DELAY_A_LOOP
+
+
+
 TESTE_SOM:
     LD  A, 0
     LD  (SYSMODE), A
