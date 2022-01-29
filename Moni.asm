@@ -164,7 +164,9 @@ USER_DISP7  .equ    $FFD7   ; Mode User - Display Dig 7  - 01234567
     PUSH  HL                 ; Save HL'
     PUSH  DE                 ; Save DE'                
     PUSH  BC                 ; Save BC'
+    EX    AF, AF'
     PUSH  AF                 ; Save AF'
+    EX    AF, AF'
     EXX                      ; Troca HL' e HL,, DE... BC...
     PUSH  IY                 ; Save IY
     PUSH  IX                 ; Save IX
@@ -203,9 +205,20 @@ EXIT_SYS:
     LD HL, (USR_PC)          ; Recupera PC
     PUSH HL                  ; Devolve PC to stack
 
+    LD HL, (USR_AFA)          ; Load AF' in HL
+    PUSH  HL                 ; Push AF'
+    POP AF                   ; Recovery AF'
+    EX AF, AF'
+
+    LD HL, (USR_HLA)          ; Recovery HL'
+    LD DE, (USR_DEA)          ; Recovery DE'
+    LD BC, (USR_BCA)          ; Recovery BC'
+    EXX
+
     LD HL, (USR_AF)          ; Load AF in HL
     PUSH  HL                 ; Push AF
     POP AF                   ; Recovery AF
+
     LD HL, (USR_HL)          ; Recovery HL
     LD DE, (USR_DE)          ; Recovery DE
     LD BC, (USR_BC)          ; Recovery BC
@@ -488,13 +501,26 @@ MODIFY_KEY_POS_0:
     JP  GO_MONITOR
     
 
-  
-
 SHOW_REG_PC:
     CALL  GET_KEY_A
-    CP  0
+    CP  $00
     JP Z, GO_MONITOR
-    CALL  CLEAR_DISPLAY
+    CP  $01
+    JP Z, GO_SHOW_REG_PC
+    CP  $02
+    JP Z, GO_SHOW_REG_SP
+    CP  $03
+    JP Z, GO_SHOW_REG_AF
+    CP  $04
+    JP Z, GO_SHOW_REG_BC
+    CP  $05
+    JP Z, GO_SHOW_REG_DE
+    CP  $06
+    JP Z, GO_SHOW_REG_HL
+    CP  $07
+    JP Z, GO_SHOW_REG_IX
+    CP  $08
+    JP Z, GO_SHOW_REG_IY
 
     LD  A, $50               ; R
     LD  (DIG_0), A
@@ -512,8 +538,24 @@ SHOW_REG_PC:
 
 SHOW_REG_SP:
     CALL  GET_KEY_A
-    CP  0
+    CP  $00
     JP Z, GO_MONITOR
+    CP  $01
+    JP Z, GO_SHOW_REG_PC
+    CP  $02
+    JP Z, GO_SHOW_REG_SP
+    CP  $03
+    JP Z, GO_SHOW_REG_AF
+    CP  $04
+    JP Z, GO_SHOW_REG_BC
+    CP  $05
+    JP Z, GO_SHOW_REG_DE
+    CP  $06
+    JP Z, GO_SHOW_REG_HL
+    CP  $07
+    JP Z, GO_SHOW_REG_IX
+    CP  $08
+    JP Z, GO_SHOW_REG_IY
 
     CALL  CLEAR_DISPLAY
 
@@ -533,10 +575,24 @@ SHOW_REG_SP:
 
 SHOW_REG_AF:
     CALL  GET_KEY_A
-    CP  0
+    CP  $00
     JP Z, GO_MONITOR
+    CP  $01
+    JP Z, GO_SHOW_REG_PC
+    CP  $02
+    JP Z, GO_SHOW_REG_SP
     CP  $03
     JP Z, GO_SHOW_REG_AFaux
+    CP  $04
+    JP Z, GO_SHOW_REG_BC
+    CP  $05
+    JP Z, GO_SHOW_REG_DE
+    CP  $06
+    JP Z, GO_SHOW_REG_HL
+    CP  $07
+    JP Z, GO_SHOW_REG_IX
+    CP  $08
+    JP Z, GO_SHOW_REG_IY
 
     CALL  CLEAR_DISPLAY
 
@@ -556,10 +612,24 @@ SHOW_REG_AF:
 
 SHOW_REG_BC:
     CALL  GET_KEY_A
-    CP  0
+    CP  $00
     JP Z, GO_MONITOR
+    CP  $01
+    JP Z, GO_SHOW_REG_PC
+    CP  $02
+    JP Z, GO_SHOW_REG_SP
+    CP  $03
+    JP Z, GO_SHOW_REG_AF
     CP  $04
     JP Z, GO_SHOW_REG_BCaux
+    CP  $05
+    JP Z, GO_SHOW_REG_DE
+    CP  $06
+    JP Z, GO_SHOW_REG_HL
+    CP  $07
+    JP Z, GO_SHOW_REG_IX
+    CP  $08
+    JP Z, GO_SHOW_REG_IY
 
     CALL  CLEAR_DISPLAY
 
@@ -578,10 +648,24 @@ SHOW_REG_BC:
 
 SHOW_REG_DE:
     CALL  GET_KEY_A
-    CP  0
+    CP  $00
     JP Z, GO_MONITOR
+    CP  $01
+    JP Z, GO_SHOW_REG_PC
+    CP  $02
+    JP Z, GO_SHOW_REG_SP
+    CP  $03
+    JP Z, GO_SHOW_REG_AF
+    CP  $04
+    JP Z, GO_SHOW_REG_BC
     CP  $05
     JP Z, GO_SHOW_REG_DEaux
+    CP  $06
+    JP Z, GO_SHOW_REG_HL
+    CP  $07
+    JP Z, GO_SHOW_REG_IX
+    CP  $08
+    JP Z, GO_SHOW_REG_IY
 
     CALL  CLEAR_DISPLAY
 
@@ -600,10 +684,24 @@ SHOW_REG_DE:
 
 SHOW_REG_HL:
     CALL  GET_KEY_A
-    CP  0
+    CP  $00
     JP Z, GO_MONITOR
+    CP  $01
+    JP Z, GO_SHOW_REG_PC
+    CP  $02
+    JP Z, GO_SHOW_REG_SP
+    CP  $03
+    JP Z, GO_SHOW_REG_AF
+    CP  $04
+    JP Z, GO_SHOW_REG_BC
+    CP  $05
+    JP Z, GO_SHOW_REG_DE
     CP  $06
     JP Z, GO_SHOW_REG_HLaux
+    CP  $07
+    JP Z, GO_SHOW_REG_IX
+    CP  $08
+    JP Z, GO_SHOW_REG_IY
 
     CALL  CLEAR_DISPLAY
 
@@ -622,8 +720,25 @@ SHOW_REG_HL:
 
 SHOW_REG_IX:
     CALL  GET_KEY_A
-    CP  0
+    CP  $00
     JP Z, GO_MONITOR
+    CP  $01
+    JP Z, GO_SHOW_REG_PC
+    CP  $02
+    JP Z, GO_SHOW_REG_SP
+    CP  $03
+    JP Z, GO_SHOW_REG_AF
+    CP  $04
+    JP Z, GO_SHOW_REG_BC
+    CP  $05
+    JP Z, GO_SHOW_REG_DE
+    CP  $06
+    JP Z, GO_SHOW_REG_HL
+    CP  $07
+    JP Z, GO_SHOW_REG_IX
+    CP  $08
+    JP Z, GO_SHOW_REG_IY
+
     CALL  CLEAR_DISPLAY
 
     LD  A, $50               ; R
@@ -641,8 +756,25 @@ SHOW_REG_IX:
 
 SHOW_REG_IY:
     CALL  GET_KEY_A
-    CP  0
+    CP  $00
     JP Z, GO_MONITOR
+    CP  $01
+    JP Z, GO_SHOW_REG_PC
+    CP  $02
+    JP Z, GO_SHOW_REG_SP
+    CP  $03
+    JP Z, GO_SHOW_REG_AF
+    CP  $04
+    JP Z, GO_SHOW_REG_BC
+    CP  $05
+    JP Z, GO_SHOW_REG_DE
+    CP  $06
+    JP Z, GO_SHOW_REG_HL
+    CP  $07
+    JP Z, GO_SHOW_REG_IX
+    CP  $08
+    JP Z, GO_SHOW_REG_IY
+
     CALL  CLEAR_DISPLAY
 
     LD  A, $50               ; R
@@ -660,10 +792,24 @@ SHOW_REG_IY:
 
 SHOW_REG_AFaux:
     CALL  GET_KEY_A
-    CP  0
+    CP  $00
     JP Z, GO_MONITOR
+    CP  $01
+    JP Z, GO_SHOW_REG_PC
+    CP  $02
+    JP Z, GO_SHOW_REG_SP
     CP  $03
     JP Z, GO_SHOW_REG_AF
+    CP  $04
+    JP Z, GO_SHOW_REG_BC
+    CP  $05
+    JP Z, GO_SHOW_REG_DE
+    CP  $06
+    JP Z, GO_SHOW_REG_HL
+    CP  $07
+    JP Z, GO_SHOW_REG_IX
+    CP  $08
+    JP Z, GO_SHOW_REG_IY
 
     CALL  CLEAR_DISPLAY
 
@@ -686,10 +832,24 @@ SHOW_REG_AFaux:
 
 SHOW_REG_BCaux:
     CALL  GET_KEY_A
-    CP  0
+    CP  $00
     JP Z, GO_MONITOR
+    CP  $01
+    JP Z, GO_SHOW_REG_PC
+    CP  $02
+    JP Z, GO_SHOW_REG_SP
+    CP  $03
+    JP Z, GO_SHOW_REG_AF
     CP  $04
     JP Z, GO_SHOW_REG_BC
+    CP  $05
+    JP Z, GO_SHOW_REG_DE
+    CP  $06
+    JP Z, GO_SHOW_REG_HL
+    CP  $07
+    JP Z, GO_SHOW_REG_IX
+    CP  $08
+    JP Z, GO_SHOW_REG_IY
 
     CALL  CLEAR_DISPLAY
 
@@ -711,10 +871,24 @@ SHOW_REG_BCaux:
 
 SHOW_REG_DEaux:
     CALL  GET_KEY_A
-    CP  0
+    CP  $00
     JP Z, GO_MONITOR
+    CP  $01
+    JP Z, GO_SHOW_REG_PC
+    CP  $02
+    JP Z, GO_SHOW_REG_SP
+    CP  $03
+    JP Z, GO_SHOW_REG_AF
+    CP  $04
+    JP Z, GO_SHOW_REG_BC
     CP  $05
     JP Z, GO_SHOW_REG_DE
+    CP  $06
+    JP Z, GO_SHOW_REG_HL
+    CP  $07
+    JP Z, GO_SHOW_REG_IX
+    CP  $08
+    JP Z, GO_SHOW_REG_IY
 
     CALL  CLEAR_DISPLAY
 
@@ -736,10 +910,24 @@ SHOW_REG_DEaux:
 
 SHOW_REG_HLaux:
     CALL  GET_KEY_A
-    CP  0
+    CP  $00
     JP Z, GO_MONITOR
+    CP  $01
+    JP Z, GO_SHOW_REG_PC
+    CP  $02
+    JP Z, GO_SHOW_REG_SP
+    CP  $03
+    JP Z, GO_SHOW_REG_AF
+    CP  $04
+    JP Z, GO_SHOW_REG_BC
+    CP  $05
+    JP Z, GO_SHOW_REG_DE
     CP  $06
     JP Z, GO_SHOW_REG_HL
+    CP  $07
+    JP Z, GO_SHOW_REG_IX
+    CP  $08
+    JP Z, GO_SHOW_REG_IY
 
     CALL  CLEAR_DISPLAY
 
