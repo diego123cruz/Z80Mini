@@ -77,7 +77,7 @@ KEY_PRESS   .equ    $FF08   ;(1) key atual
 INPUT       .equ    $FF09   ;(1) temp input from int
 TMP_KEY     .equ    $FF0A   ;(1) tmp key
 KEY_TIMEOUT .equ    $FF0B   ;(1) tempo para retornar a tecla, CKEY_TIMEOUT
-;BUZZER      .equ    $FF0C   ;(1) LIVRE
+SHOW_DIG    .equ    $FF0C   ;(1) LIVRE
 PC_RAM      .equ    $FF0D   ;(2) save pc to user start $8000
 
 SYSMODE     .equ    $FF0F   ;(1) System mode. 
@@ -175,7 +175,23 @@ USER_DISP7  .equ    $FFD7   ; Mode User - Display Dig 7  - 01234567
     INC  HL
     LD  (TicCounter), HL
 
-    CALL    TRATAMENTO_INT38H; Get key, update display   
+    ; Timeout Key
+     LD A, (KEY_TIMEOUT)
+     CP 0
+     JP Z, ENTER_MAIN
+     DEC A
+     LD (KEY_TIMEOUT), A
+
+    ; Main
+ENTER_MAIN:
+    CALL UPDATE_DISPLAYS
+    CALL UPDATE_KEYS
+
+    ; Show atual digit
+    LD  A, (SHOW_DIG)
+    OUT (Port40), A
+
+    ;CALL    TRATAMENTO_INT38H; Get key, update display   
     JP      SYS_MAIN         ; Execute function monitor
 
 EXIT_SYS:
@@ -194,201 +210,68 @@ EXIT_SYS:
     RETI                     ; Return interrupt
 
 
+; =========================================================
+; Update display - Tratamento Int 38h
+; =========================================================
+UPDATE_DISPLAYS:    
+    IN    A, (Port40)
+    LD    (INPUT), A
+    AND   $07
+    CP    $08
+    JP    NC, UPDATE_DISPLAYS_RET ; IF A > 7 RET
+    INC   A
+    CP    $08
+    JP    NZ, UPDATE_DISPLAYS_OK
+    LD    A, $00
+UPDATE_DISPLAYS_OK:
+    LD    H, $FF
+    LD    L, A
+    LD    A, (HL)
+    LD   (SHOW_DIG), A
+UPDATE_DISPLAYS_RET:
+    RET
 
 ; =========================================================
-; Tratamento Int 38h
+; Update KEY - Tratamento Int 38h
 ; =========================================================
-TRATAMENTO_INT38H:
- 
-    IN A, (Port40)
-    LD  (INPUT), A
-    AND $07                  ; 00000111b
-    CP  0
-    JP  Z, Col0
-    CP  1
-    JP  Z, Col1
-    CP  2
-    JP  Z, Col2
-    CP  3
-    JP  Z, Col3
-    CP  4
-    JP  Z, Col4
-    CP  5
-    JP  Z, Col5
-    CP  6
-    JP  Z, Col6
-    CP  7
-    JP  Z, Col7
-    RET
-
-Col0:
+UPDATE_KEYS:    
+    IN    A, (Port40)
+    LD    (INPUT), A
+    AND   $07
+    CP    $08
+    JP    NC, UPDATE_KEY_RET ; IF A > 7 RET
     LD  A,  (INPUT)
     BIT  3, A
-    JP  NZ, Col0_nextA
-    LD  A, $00
-    LD  (KEY_PRESS), A
-    LD A, CKEY_TIMEOUT
-    LD (KEY_TIMEOUT), A
-Col0_nextA:
+    JP  Z, TRATAB3
     LD  A,  (INPUT)
     BIT  4, A
-    JP  NZ, Col0_next
-    LD  A, $0E
-    LD  (KEY_PRESS), A
+    JP  Z, TRATAB4
+    JP  UPDATE_KEY_RET
+UPDATE_KEY_GET:
+    LD    (INPUT), A
+    AND   $07
+    LD    BC, 0
+    LD    C, A
+    ADD   HL, BC
+    LD    A, (HL)
+    LD   (KEY_PRESS), A
     LD A, CKEY_TIMEOUT
     LD (KEY_TIMEOUT), A
-Col0_next:
-    LD  A, (DIG_1)           ; Dig_0
-    out (Port40), a
+UPDATE_KEY_RET:
     RET
 
+TRATAB3:
+    LD    HL, KEYSB3
+    JP  UPDATE_KEY_GET
 
-Col1:
-    LD  A,  (INPUT)
-    BIT  3, A
-    JP  NZ, Col1_nextA
-    LD  A, $01
-    LD  (KEY_PRESS), A
-    LD A, CKEY_TIMEOUT
-    LD (KEY_TIMEOUT), A
-Col1_nextA:
-    LD  A,  (INPUT)
-    BIT  4, A
-    JP  NZ, Col1_next
-    LD  A, $03
-    LD  (KEY_PRESS), A
-    LD A, CKEY_TIMEOUT
-    LD (KEY_TIMEOUT), A
-Col1_next:
-    LD  A, (DIG_2)           ; Dig_1
-    out (Port40), a
-    RET
+TRATAB4:
+    LD    HL, KEYSB4
+    JP  UPDATE_KEY_GET
 
-Col2:
-    LD  A,  (INPUT)
-    BIT  3, A
-    JP  NZ, Col2_nextA
-    LD  A, $04
-    LD  (KEY_PRESS), A
-    LD A, CKEY_TIMEOUT
-    LD (KEY_TIMEOUT), A
-Col2_nextA:
-    LD  A,  (INPUT)
-    BIT  4, A
-    JP  NZ, Col2_next
-    LD  A, $06
-    LD  (KEY_PRESS), A
-    LD A, CKEY_TIMEOUT
-    LD (KEY_TIMEOUT), A
-Col2_next:
-    LD  A, (DIG_3)           ; Dig_2
-    out (Port40), a
-    RET
+KEYSB3 .db $00, $01, $04, $07, $0F, $02, $05, $08
+KEYSB4 .db $0E, $03, $06, $09, $0D, $0C, $0B, $0A
 
-Col3:
-    LD  A,  (INPUT)
-    BIT  3, A
-    JP  NZ, Col3_nextA
-    LD  A, $07
-    LD  (KEY_PRESS), A
-    LD A, CKEY_TIMEOUT
-    LD (KEY_TIMEOUT), A
-Col3_nextA:
-    LD  A,  (INPUT)
-    BIT  4, A
-    JP  NZ, Col3_next
-    LD  A, $09
-    LD  (KEY_PRESS), A
-    LD A, CKEY_TIMEOUT
-    LD (KEY_TIMEOUT), A
-Col3_next:
-    LD  A, (DIG_4)           ; Dig_3
-    out (Port40), a
-    RET
 
-Col4:
-    LD  A,  (INPUT)
-    BIT  3, A
-    JP  NZ, Col4_nextA
-    LD  A, $0F
-    LD  (KEY_PRESS), A
-    LD A, CKEY_TIMEOUT
-    LD (KEY_TIMEOUT), A
-Col4_nextA:
-    LD  A,  (INPUT)
-    BIT  4, A
-    JP  NZ, Col4_next
-    LD  A, $0D
-    LD  (KEY_PRESS), A
-    LD A, CKEY_TIMEOUT
-    LD (KEY_TIMEOUT), A
-Col4_next:
-    LD  A, (DIG_5)           ; Dig_4
-    out (Port40), a
-    RET
-
-Col5:
-    LD  A,  (INPUT)
-    BIT  3, A
-    JP  NZ, Col5_nextA
-    LD  A, $02
-    LD  (KEY_PRESS), A
-    LD A, CKEY_TIMEOUT
-    LD (KEY_TIMEOUT), A
-Col5_nextA:
-    LD  A,  (INPUT)
-    BIT  4, A
-    JP  NZ, Col5_next
-    LD  A, $0C
-    LD  (KEY_PRESS), A
-    LD A, CKEY_TIMEOUT
-    LD (KEY_TIMEOUT), A
-Col5_next:
-    LD  A, (DIG_6)           ; Dig_5
-    out (Port40), a
-    RET
-
-Col6:
-    LD  A,  (INPUT)
-    BIT  3, A
-    JP  NZ, Col6_nextA
-    LD  A, $05
-    LD  (KEY_PRESS), A
-    LD A, CKEY_TIMEOUT
-    LD (KEY_TIMEOUT), A
-Col6_nextA:
-    LD  A,  (INPUT)
-    BIT  4, A
-    JP  NZ, Col6_next
-    LD  A, $0B
-    LD  (KEY_PRESS), A
-    LD A, CKEY_TIMEOUT
-    LD (KEY_TIMEOUT), A
-Col6_next:
-    LD  A, (DIG_7)           ; Dig_6
-    out (Port40), a
-    RET
-
-Col7:
-    LD  A,  (INPUT)
-    BIT  3, A
-    JP  NZ, Col7_nextA
-    LD  A, $08
-    LD  (KEY_PRESS), A
-    LD A, CKEY_TIMEOUT
-    LD (KEY_TIMEOUT), A
-Col7_nextA:
-    LD  A,  (INPUT)
-    BIT  4, A
-    JP  NZ, Col7_next
-    LD  A, $0A
-    LD  (KEY_PRESS), A
-    LD A, CKEY_TIMEOUT
-    LD (KEY_TIMEOUT), A
-Col7_next:
-    LD  A, (DIG_0)           ; Dig_7
-    out (Port40), a
-    RET
 
 ; =========================================================
 ; SYS MAIN
@@ -751,8 +634,6 @@ GET_KEY_A:
     LD  A, (KEY_TIMEOUT)
     CP  0
     JP  Z, RET_KEY
-    DEC A
-    LD (KEY_TIMEOUT), A
     LD  A, $FF
     RET
 
