@@ -62,7 +62,7 @@ STACK         .equ    $FF00
 CKEY_TIMEOUT  .equ    100  ; 100ms +-
 
 ; ---------------------------------------------------------
-; RAM MAP - Monitor | $FF00 - $FF2F
+; RAM MAP - Monitor | $FF00 - $FFFF
 ; ---------------------------------------------------------
 ; Cada digito fica em um ponto da memoria RAM
 DIG_0       .equ    $FF00   ;(1) endereço do digito 0 na memoria RAM
@@ -98,22 +98,30 @@ EXM_COUNT   .equ    $FF12   ;(1) Count digits Examine function, 4 digits
 MDF_COUNT   .equ    $FF13   ;(1) Count digits moDify function, 2 digits
 USR_PC      .equ    $FF14   ;(2) PC 
 USR_SP      .equ    $FF16   ;(2) SP
-USR_AF      .equ    $FF18   ;(2) AF
+USR_HL      .equ    $FF18   ;(2) HL
 USR_BC      .equ    $FF1A   ;(2) BC
 USR_DE      .equ    $FF1C   ;(2) DE
-USR_HL      .equ    $FF1E   ;(2) HL
+USR_AF      .equ    $FF1E   ;(2) AF
 USR_IX      .equ    $FF20   ;(2) IX
 USR_IY      .equ    $FF22   ;(2) IY
+USR_AFA     .equ    $FF24   ;(2) AF' (Aux)
+USR_BCA     .equ    $FF26   ;(2) BC' (Aux)
+USR_DEA     .equ    $FF28   ;(2) DE' (Aux)
+USR_HLA     .equ    $FF2A   ;(2) HL' (Aux)
+; SP Temp   .equ    $FF2C
+TEMP_HL     .equ    $FF2C   ;(2) Temp HL
+
+
 
 ; Copy USER_DISPx to DIG_x WHEN USER_MODE
-USER_DISP0  .equ    $FF28   ; Mode User - Display Dig 0  - 01234567
-USER_DISP1  .equ    $FF29   ; Mode User - Display Dig 1  - 01234567
-USER_DISP2  .equ    $FF2A   ; Mode User - Display Dig 2  - 01234567
-USER_DISP3  .equ    $FF2B   ; Mode User - Display Dig 3  - 01234567
-USER_DISP4  .equ    $FF2C   ; Mode User - Display Dig 4  - 01234567
-USER_DISP5  .equ    $FF2D   ; Mode User - Display Dig 5  - 01234567
-USER_DISP6  .equ    $FF2E   ; Mode User - Display Dig 6  - 01234567
-USER_DISP7  .equ    $FF2F   ; Mode User - Display Dig 7  - 01234567
+USER_DISP0  .equ    $FFD0   ; Mode User - Display Dig 0  - 01234567
+USER_DISP1  .equ    $FFD1   ; Mode User - Display Dig 1  - 01234567
+USER_DISP2  .equ    $FFD2   ; Mode User - Display Dig 2  - 01234567
+USER_DISP3  .equ    $FFD3   ; Mode User - Display Dig 3  - 01234567
+USER_DISP4  .equ    $FFD4   ; Mode User - Display Dig 4  - 01234567
+USER_DISP5  .equ    $FFD5   ; Mode User - Display Dig 5  - 01234567
+USER_DISP6  .equ    $FFD6   ; Mode User - Display Dig 6  - 01234567
+USER_DISP7  .equ    $FFD7   ; Mode User - Display Dig 7  - 01234567
 
 
 
@@ -142,52 +150,26 @@ USER_DISP7  .equ    $FF2F   ; Mode User - Display Dig 7  - 01234567
 .org    $38
     DI
 
-    ; save registers ?
-    PUSH  HL
-    PUSH  AF
-    PUSH  BC
-    PUSH  DE
-    PUSH  IX
-    PUSH  IY
-
-    LD  (USR_HL), HL
-
-    ; Save IY
-    POP  HL
-    LD  (USR_IY), HL
-
-    ; Save IX
-    POP  HL
-    LD  (USR_IX), HL
-    
-    ; Save DE
-    POP  HL
-    LD  (USR_DE), HL
-
-    ; Save BC
-    POP  HL
-    LD  (USR_BC), HL
-
-    ; Save AF
-    POP  HL
-    LD  (USR_AF), HL
-
-    POP  HL
-
-
-
-    ; normal
-    EX  AF, AF'
-    EXX
-
-    ; Save SP
-    EX (SP), HL
-    LD (USR_SP), HL
-    EX (SP), HL
-
-    ; Save PC
-    POP HL
-    LD  (USR_PC), HL
+    LD (USR_SP), SP          ; Save SP
+    LD (USR_HL), HL          ; Save HL
+    POP  HL                  ; Recupera PC da stack
+    LD (USR_PC), HL          ; Save PC
+    PUSH HL                  ;
+    LD HL, $FF2C             ; Carrega Temp SP to HL
+    LD SP, HL                ; Set temp HL
+    EXX                      ; Inverte HL e HL', DE.... BC....
+    PUSH  HL                 ; Save HL'
+    PUSH  DE                 ; Save DE'                
+    PUSH  BC                 ; Save BC'
+    PUSH  AF                 ; Save AF'
+    EXX                      ; Troca HL' e HL,, DE... BC...
+    PUSH  IY                 ; Save IY
+    PUSH  IX                 ; Save IX
+    PUSH  AF                 ; Save AF
+    PUSH  DE                 ; Save DE
+    PUSH  BC                 ; Save BC
+    LD HL, (USR_SP)          ; Recupera SP
+    LD SP, HL                ; Devolve SP original
 
     ; TicCounter
     LD  HL, (TicCounter)
@@ -207,12 +189,20 @@ ENTER_SYS:
     JP      SYS_MAIN
 
 EXIT_SYS:
-    ; Restore PC
-    LD  HL, (USR_PC)
-    PUSH  HL
+    POP HL                   ; Troca o PC
+    LD HL, (USR_PC)          ; Recupera PC
+    PUSH HL                  ; Devolve PC to stack
 
-    EXX
-    EX  AF, AF'
+    LD HL, (USR_AF)
+    PUSH  HL
+    POP AF
+    LD HL, (USR_HL)
+    LD DE, (USR_DE)
+    LD BC, (USR_BC)
+
+
+    
+
     EI
     RETI
 
@@ -1361,9 +1351,9 @@ LED_FONT .db $3F, $06, $5B, $4F, $66, $6D, $7D, $07, $7F, $67 ; 0-9
 
 
 ; ---------------------------------------------------------
-; RAM MAP - Utilitys Program | $FF30 - $FFFF
+; RAM MAP - Utilitys Program | $FE00 - $FEFF
 ; ---------------------------------------------------------
-DIEGO      .equ    $FF30   ;(2) Temp Digits to countDown
+DIEGO      .equ    $FE00   ;(2) Temp Digits to countDown
 
 BLINK_TESTE:
     LD  A, 1
