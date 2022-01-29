@@ -109,7 +109,6 @@ USR_BCA     .equ    $FF26   ;(2) BC' (Aux)
 USR_DEA     .equ    $FF28   ;(2) DE' (Aux)
 USR_HLA     .equ    $FF2A   ;(2) HL' (Aux)
 ; SP Temp   .equ    $FF2C
-TEMP_HL     .equ    $FF2C   ;(2) Temp HL
 
 
 
@@ -148,7 +147,7 @@ USER_DISP7  .equ    $FFD7   ; Mode User - Display Dig 7  - 01234567
 ; Int 38h
 ; =========================================================
 .org    $38
-    DI
+    DI                       ; Disable interrupt
 
     LD (USR_SP), SP          ; Save SP
     LD (USR_HL), HL          ; Save HL
@@ -172,39 +171,27 @@ USER_DISP7  .equ    $FFD7   ; Mode User - Display Dig 7  - 01234567
     LD SP, HL                ; Devolve SP original
 
     ; TicCounter
-    LD  HL, (TicCounter)
+    LD  HL, (TicCounter)     ; Increment 1ms, used to DELAY_A
     INC  HL
     LD  (TicCounter), HL
 
-    ; Timeout Key
-    LD A, (KEY_TIMEOUT)
-    CP 0
-    JP Z, ENTER_SYS
-    DEC A
-    LD (KEY_TIMEOUT), A
-
-
-ENTER_SYS:
-    CALL    TRATAMENTO_INT38H   
-    JP      SYS_MAIN
+    CALL    TRATAMENTO_INT38H; Get key, update display   
+    JP      SYS_MAIN         ; Execute function monitor
 
 EXIT_SYS:
     POP HL                   ; Troca o PC
     LD HL, (USR_PC)          ; Recupera PC
     PUSH HL                  ; Devolve PC to stack
 
-    LD HL, (USR_AF)
-    PUSH  HL
-    POP AF
-    LD HL, (USR_HL)
-    LD DE, (USR_DE)
-    LD BC, (USR_BC)
+    LD HL, (USR_AF)          ; Load AF in HL
+    PUSH  HL                 ; Push AF
+    POP AF                   ; Recovery AF
+    LD HL, (USR_HL)          ; Recovery HL
+    LD DE, (USR_DE)          ; Recovery DE
+    LD BC, (USR_BC)          ; Recovery BC
 
-
-    
-
-    EI
-    RETI
+    EI                       ; Enable interrupt
+    RETI                     ; Return interrupt
 
 
 
@@ -764,6 +751,8 @@ GET_KEY_A:
     LD  A, (KEY_TIMEOUT)
     CP  0
     JP  Z, RET_KEY
+    DEC A
+    LD (KEY_TIMEOUT), A
     LD  A, $FF
     RET
 
