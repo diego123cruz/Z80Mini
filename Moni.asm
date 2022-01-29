@@ -93,6 +93,10 @@ SYSMODE     .equ    $FF0F   ;(1) System mode.
                             ; 9 - Show register HL
                             ; A - Show register IX
                             ; B - Show register IY
+                            ; C - Show register AF'
+                            ; D - Show register BC'
+                            ; E - Show register DE'
+                            ; F - Show register HL'
 TicCounter  .equ    $FF10   ;(2) TicCounter inc 1ms
 EXM_COUNT   .equ    $FF12   ;(1) Count digits Examine function, 4 digits
 MDF_COUNT   .equ    $FF13   ;(1) Count digits moDify function, 2 digits
@@ -325,6 +329,21 @@ SYS_MAIN:
     CP  $0B                  ; Show register IY
     JP  Z,  SHOW_REG_IY
 
+    LD  A, (SYSMODE)
+    CP  $0C                  ; Show register AF'
+    JP  Z,  SHOW_REG_AFaux
+
+    LD  A, (SYSMODE)
+    CP  $0D                  ; Show register BC'
+    JP  Z,  SHOW_REG_BCaux
+
+    LD  A, (SYSMODE)
+    CP  $0E                  ; Show register DE'
+    JP  Z,  SHOW_REG_DEaux
+
+    LD  A, (SYSMODE)
+    CP  $0F                  ; Show register HL'
+    JP  Z,  SHOW_REG_HLaux
 
     JP  EXIT_SYS
 
@@ -516,6 +535,9 @@ SHOW_REG_AF:
     CALL  GET_KEY_A
     CP  0
     JP Z, GO_MONITOR
+    CP  $03
+    JP Z, GO_SHOW_REG_AFaux
+
     CALL  CLEAR_DISPLAY
 
     LD  A, $50               ; R
@@ -536,6 +558,9 @@ SHOW_REG_BC:
     CALL  GET_KEY_A
     CP  0
     JP Z, GO_MONITOR
+    CP  $04
+    JP Z, GO_SHOW_REG_BCaux
+
     CALL  CLEAR_DISPLAY
 
     LD  A, $50               ; R
@@ -555,6 +580,9 @@ SHOW_REG_DE:
     CALL  GET_KEY_A
     CP  0
     JP Z, GO_MONITOR
+    CP  $05
+    JP Z, GO_SHOW_REG_DEaux
+
     CALL  CLEAR_DISPLAY
 
     LD  A, $50               ; R
@@ -574,6 +602,9 @@ SHOW_REG_HL:
     CALL  GET_KEY_A
     CP  0
     JP Z, GO_MONITOR
+    CP  $06
+    JP Z, GO_SHOW_REG_HLaux
+
     CALL  CLEAR_DISPLAY
 
     LD  A, $50               ; R
@@ -626,6 +657,108 @@ SHOW_REG_IY:
     LD HL, (USR_IY)
     CALL PRINT_END_HL
     JP  EXIT_SYS
+
+SHOW_REG_AFaux:
+    CALL  GET_KEY_A
+    CP  0
+    JP Z, GO_MONITOR
+    CP  $03
+    JP Z, GO_SHOW_REG_AF
+
+    CALL  CLEAR_DISPLAY
+
+    LD  A, $50               ; R
+    LD  (DIG_0), A
+
+    LD  A, $77               ; A
+    LD  (DIG_1), A
+
+    LD  A, $71               ; F
+    LD  (DIG_2), A
+
+    LD  A, $20               ; '
+    LD  (DIG_3), A
+
+    LD HL, (USR_AFA)
+    CALL PRINT_END_HL
+    JP  EXIT_SYS
+
+
+SHOW_REG_BCaux:
+    CALL  GET_KEY_A
+    CP  0
+    JP Z, GO_MONITOR
+    CP  $04
+    JP Z, GO_SHOW_REG_BC
+
+    CALL  CLEAR_DISPLAY
+
+    LD  A, $50               ; R
+    LD  (DIG_0), A
+
+    LD  A, $7C               ; B
+    LD  (DIG_1), A
+
+    LD  A, $39               ; C
+    LD  (DIG_2), A
+
+    LD  A, $20               ; '
+    LD  (DIG_3), A
+
+    LD HL, (USR_BCA)
+    CALL PRINT_END_HL
+    JP  EXIT_SYS
+
+SHOW_REG_DEaux:
+    CALL  GET_KEY_A
+    CP  0
+    JP Z, GO_MONITOR
+    CP  $05
+    JP Z, GO_SHOW_REG_DE
+
+    CALL  CLEAR_DISPLAY
+
+    LD  A, $50               ; R
+    LD  (DIG_0), A
+
+    LD  A, $5E               ; D
+    LD  (DIG_1), A
+
+    LD  A, $79               ; E
+    LD  (DIG_2), A
+
+    LD  A, $20               ; '
+    LD  (DIG_3), A
+
+    LD HL, (USR_DEA)
+    CALL PRINT_END_HL
+    JP  EXIT_SYS
+
+SHOW_REG_HLaux:
+    CALL  GET_KEY_A
+    CP  0
+    JP Z, GO_MONITOR
+    CP  $06
+    JP Z, GO_SHOW_REG_HL
+
+    CALL  CLEAR_DISPLAY
+
+    LD  A, $50               ; R
+    LD  (DIG_0), A
+
+    LD  A, $76               ; H
+    LD  (DIG_1), A
+
+    LD  A, $38               ; L
+    LD  (DIG_2), A
+
+    LD  A, $20               ; '
+    LD  (DIG_3), A
+
+    LD HL, (USR_HLA)
+    CALL PRINT_END_HL
+    JP  EXIT_SYS
+
 
 ; =========================================================
 ; GET KEY IN A, IF A == FFh then no KEY
@@ -851,6 +984,30 @@ GO_SHOW_REG_IX:
 GO_SHOW_REG_IY:
     CALL CLEAR_DISPLAY
     LD  A, $0B
+    LD  (SYSMODE), A
+    JP  EXIT_SYS
+
+GO_SHOW_REG_AFaux:
+    CALL CLEAR_DISPLAY
+    LD  A, $0C
+    LD  (SYSMODE), A
+    JP  EXIT_SYS
+
+GO_SHOW_REG_BCaux:
+    CALL CLEAR_DISPLAY
+    LD  A, $0D
+    LD  (SYSMODE), A
+    JP  EXIT_SYS
+
+GO_SHOW_REG_DEaux:
+    CALL CLEAR_DISPLAY
+    LD  A, $0E
+    LD  (SYSMODE), A
+    JP  EXIT_SYS
+
+GO_SHOW_REG_HLaux:
+    CALL CLEAR_DISPLAY
+    LD  A, $0F
     LD  (SYSMODE), A
     JP  EXIT_SYS
 
@@ -1542,3 +1699,4 @@ BEEP:
 ;   ; - $88
 ;   _ - $08
 ;   ~ - $01
+;   ' - $20
