@@ -1571,322 +1571,322 @@
 1568   0995             ; ---------------------------------------------------------
 1569   0995             ; Utilitys Program .ORG 1000h
 1570   0995             ; ---------------------------------------------------------
-1571   0100             .org 100h
-1572   0100             ; ---------------------------------------------------------
-1573   0100             ; RAM MAP - Utilitys Program | $FE00 - $FEFF
-1574   0100             ; ---------------------------------------------------------
-1575   0100             DIEGO      .equ    $FE00   ;(2) Temp Digits to countDown
-1576   0100             
-1577   0100             
-1578   0100             ; ---------------------------------------------------------
-1579   0100             ; Utilitys Program | CLEAR RAM
-1580   0100             ; ---------------------------------------------------------
-1581   0100             CLEAR_RAM_FF:
-1582   0100 21 00 FE        LD  HL, $FE00
-1583   0103 06 FF           LD  B, $FF
-1584   0105             CLEAR_RAM_FF_LOOP:
-1585   0105 2B              DEC HL
-1586   0106 70              LD (HL), B
-1587   0107 7C              LD A, H
-1588   0108 FE 80           CP $80
-1589   010A CA 10 01        JP Z, CLEAR_RAM_FF_CHECK_L
-1590   010D C3 05 01        JP CLEAR_RAM_FF_LOOP
-1591   0110             
-1592   0110             CLEAR_RAM_FF_CHECK_L:
-1593   0110 7D              LD A, L
-1594   0111 FE 00           CP $00
-1595   0113 CA 19 01        JP Z, CLEAR_RAM_FF_END
-1596   0116 C3 05 01        JP CLEAR_RAM_FF_LOOP
-1597   0119             CLEAR_RAM_FF_END:
-1598   0119 3E C3           LD A, $C3
-1599   011B 32 FD FD        LD ($FDFD), A
-1600   011E AF              XOR A
-1601   011F 32 FE FD        LD ($FDFE), A
-1602   0122 3E 80           LD A, $80
-1603   0124 32 FF FD        LD ($FDFF), A
-1604   0127 CA 58 09        JP Z, START_LOOP
-1605   012A             
-1606   012A             
-1607   012A             ; ---------------------------------------------------------
-1608   012A             ; Utilitys Program | BLINKs (teste tempo monitor)
-1609   012A             ; ---------------------------------------------------------
-1610   012A             BLINK_TESTE:
-1611   012A 3E 01           LD  A, 1
-1612   012C             BLINK_TESTE_LOOP:
-1613   012C EE 01           XOR 1
-1614   012E D3 C0           OUT (PortC0), A 
-1615   0130 C3 2C 01        JP BLINK_TESTE_LOOP
-1616   0133             
-1617   0133             
-1618   0133             BLINK_DELAY_C:
-1619   0133 3E 01           LD  A, 1
-1620   0135             BLINK_DELAY_C_LOOP:
-1621   0135 EE 01           XOR 1
-1622   0137 D3 C0           OUT (PortC0), A
-1623   0139 CD 75 09        CALL DELAY_100mS
-1624   013C C3 35 01        JP BLINK_DELAY_C_LOOP
-1625   013F             
-1626   013F             
-1627   013F             BLINK_DELAY_A:
-1628   013F 3E 01           LD  A, 1
-1629   0141             BLINK_DELAY_A_LOOP:
-1630   0141 EE 01           XOR 1
-1631   0143 D3 C0           OUT (PortC0), A
-1632   0145 F5              PUSH  AF
-1633   0146 3E 64           LD  A, 100
-1634   0148 CD 6A 09        CALL DELAY_A
-1635   014B F1              POP AF
-1636   014C C3 41 01        JP BLINK_DELAY_A_LOOP
-1637   014F             
-1638   014F             
-1639   014F             ; ---------------------------------------------------------
-1640   014F             ; Utilitys Program | TESTE SOM 
-1641   014F             ; 
-1642   014F             ; Key F     = $00 - $FF na saida C0
-1643   014F             ; Key A e B = Incrementa e Decrementa Saida C0
-1644   014F             ; ---------------------------------------------------------
-1645   014F             TESTE_SOM:
-1646   014F 3E 00           LD  A, 0
-1647   0151 32 0F FF        LD  (SYSMODE), A
-1648   0154 3E 00           LD  A, 0
-1649   0156 47              LD  B, A
-1650   0157 CD E6 07        CALL CLEAR_USER_DISPLAY
-1651   015A 3E 6D           LD  A, $6D ; S
-1652   015C 32 D0 FF        LD  (USER_DISP0), A
-1653   015F 3E 3F           LD  A, $3F ; O
-1654   0161 32 D1 FF        LD  (USER_DISP1), A
-1655   0164 3E 1C           LD  A, $1C ; U
-1656   0166 32 D2 FF        LD  (USER_DISP2), A
-1657   0169 3E 54           LD  A, $54 ; N
-1658   016B 32 D3 FF        LD  (USER_DISP3), A
-1659   016E 3E 5E           LD  A, $5E ; D
-1660   0170 32 D4 FF        LD  (USER_DISP4), A
-1661   0173             LOOP_SOM:
-1662   0173 78              LD  A, B
-1663   0174 CD 03 08        CALL GET_NUM_FROM_LOW
-1664   0177 32 D7 FF        LD  (USER_DISP7), A
-1665   017A 78              LD  A, B
-1666   017B CD 13 08        CALL GET_NUM_FROM_HIGH
-1667   017E 32 D6 FF        LD  (USER_DISP6), A
-1668   0181             
-1669   0181 CD 12 06        CALL GET_KEY_A
-1670   0184 FE 0A           CP  $0A
-1671   0186 CA 96 01        JP  Z, SOM_INC
-1672   0189 FE 0B           CP  $0B
-1673   018B CA A1 01        JP  Z, SOM_DEC
-1674   018E FE 0F           CP  $0F
-1675   0190 CA AC 01        JP  Z, SOM_LOOP_INC
-1676   0193 C3 73 01        JP  LOOP_SOM
-1677   0196             
-1678   0196             
-1679   0196             SOM_INC:
-1680   0196 04              INC B
-1681   0197 0E C0           LD  C, $C0
-1682   0199 ED 41           OUT (C), B
-1683   019B CD 75 09        CALL DELAY_100mS
-1684   019E C3 73 01        JP  LOOP_SOM
-1685   01A1             
-1686   01A1             SOM_DEC:
-1687   01A1 05              DEC B
-1688   01A2 0E C0           LD  C, $C0
-1689   01A4 ED 41           OUT (C), B
-1690   01A6 CD 75 09        CALL DELAY_100mS
-1691   01A9 C3 73 01        JP  LOOP_SOM
-1692   01AC             
-1693   01AC             SOM_LOOP_INC:
-1694   01AC 78              LD  A, B
-1695   01AD CD 03 08        CALL GET_NUM_FROM_LOW
-1696   01B0 32 D7 FF        LD  (USER_DISP7), A
-1697   01B3 78              LD  A, B
-1698   01B4 CD 13 08        CALL GET_NUM_FROM_HIGH
-1699   01B7 32 D6 FF        LD  (USER_DISP6), A
-1700   01BA 04              INC B
-1701   01BB 0E C0           LD  C, $C0
-1702   01BD ED 41           OUT (C), B
-1703   01BF CD 75 09        CALL DELAY_100mS
-1704   01C2 CD 75 09        CALL DELAY_100mS
-1705   01C5 C3 AC 01        JP  SOM_LOOP_INC
-1706   01C8             
-1707   01C8             
-1708   01C8             ; ---------------------------------------------------------
-1709   01C8             ; Utilitys Program | Animação led
-1710   01C8             ; ---------------------------------------------------------
-1711   01C8             ANIMATE_LED1:
-1712   01C8 CD E6 07        CALL CLEAR_USER_DISPLAY
-1713   01CB 3E 00           LD  A, 0                 ; user mode
-1714   01CD 32 0F FF        LD (SYSMODE), A
-1715   01D0             
-1716   01D0 06 08           LD  B, $08
-1717   01D2 21 D0 FF        LD  HL, USER_DISP0
-1718   01D5 3E 08           LD  A, 8
-1719   01D7             
-1720   01D7             LEDS_LOOP:
-1721   01D7 CD E6 07        CALL CLEAR_USER_DISPLAY
-1722   01DA 70              LD  (HL), B
-1723   01DB CD 75 09        CALL DELAY_100mS
-1724   01DE 23              INC HL
-1725   01DF 3D              DEC A
-1726   01E0 FE 00           CP 0
-1727   01E2 C2 D7 01        JP NZ, LEDS_LOOP
-1728   01E5             
-1729   01E5 3E 08           LD A, 8
-1730   01E7 21 D7 FF        LD  HL, USER_DISP7
-1731   01EA 06 40           LD  B, $40
-1732   01EC             
-1733   01EC             LEDS_LOOP2:
-1734   01EC CD E6 07        CALL CLEAR_USER_DISPLAY
-1735   01EF 70              LD  (HL), B
-1736   01F0 CD 75 09        CALL DELAY_100mS
-1737   01F3 2B              DEC HL
-1738   01F4 3D              DEC A
-1739   01F5 FE 00           CP 0
-1740   01F7 C2 EC 01        JP NZ, LEDS_LOOP2
-1741   01FA             
-1742   01FA 3E 08           LD  A, 8
-1743   01FC 21 D0 FF        LD  HL, USER_DISP0
-1744   01FF 06 08           LD  B, $08
-1745   0201 C3 D7 01        JP LEDS_LOOP
-1746   0204             
-1747   0204             
-1748   0204             ; ---------------------------------------------------------
-1749   0204             ; Utilitys Program | CountDown XX
-1750   0204             ; OBS: Usa a placa de som para o alarme
-1751   0204             ; ---------------------------------------------------------
-1752   0204             COUNT_DOWN_ALERME:
-1753   0204                 ; timer count down
-1754   0204             
-1755   0204 CD E6 07        CALL CLEAR_USER_DISPLAY
-1756   0207 3E 39           LD  A, $39
-1757   0209 32 D0 FF        LD  (USER_DISP0), A
-1758   020C             
-1759   020C 3E 3F           LD  A, $3F
-1760   020E 32 D1 FF        LD  (USER_DISP1), A
-1761   0211             
-1762   0211 3E 1C           LD  A, $1C
-1763   0213 32 D2 FF        LD  (USER_DISP2), A
-1764   0216             
-1765   0216 3E 54           LD  A, $54
-1766   0218 32 D3 FF        LD  (USER_DISP3), A
-1767   021B             
-1768   021B 3E 78           LD  A, $78
-1769   021D 32 D4 FF        LD  (USER_DISP4), A
-1770   0220             
-1771   0220 3E 00           LD  A, $00
-1772   0222 32 D5 FF        LD  (USER_DISP5), A
-1773   0225             
-1774   0225             
-1775   0225             
-1776   0225 3E 40           LD  A, $40
-1777   0227 32 D6 FF        LD  (USER_DISP6), A
-1778   022A             
-1779   022A 3E 40           LD  A, $40
-1780   022C 32 D7 FF        LD  (USER_DISP7), A
-1781   022F             
-1782   022F 3E 00           LD  A, 0                 ; user mode
-1783   0231 32 0F FF        LD (SYSMODE), A
-1784   0234             
-1785   0234             READ:
-1786   0234 CD 12 06        CALL GET_KEY_A
-1787   0237 FE FF           CP  $FF
-1788   0239 CA 34 02        JP  Z, READ
-1789   023C             
-1790   023C CD 4D 02        CALL  MODIFY_KEY_POS_1D
-1791   023F             
-1792   023F             READ2
-1793   023F CD 12 06        CALL GET_KEY_A
-1794   0242 FE FF           CP  $FF
-1795   0244 CA 3F 02        JP  Z, READ2
-1796   0247             
-1797   0247 CD 59 02        CALL MODIFY_KEY_POS_0D
-1798   024A             
-1799   024A C3 64 02        JP  LOOP
-1800   024D             
-1801   024D             
-1802   024D             MODIFY_KEY_POS_1D:
-1803   024D 21 00 FE        LD  HL, DIEGO
-1804   0250 23              INC HL
-1805   0251 77              LD  (HL), A
-1806   0252 CD 03 08        CALL GET_NUM_FROM_LOW
-1807   0255 32 D6 FF        LD  (USER_DISP6), A
-1808   0258 C9              RET
-1809   0259             
-1810   0259             MODIFY_KEY_POS_0D:
-1811   0259 21 00 FE        LD  HL, DIEGO
-1812   025C 77              LD  (HL), A
-1813   025D CD 03 08        CALL GET_NUM_FROM_LOW
-1814   0260 32 D7 FF        LD  (USER_DISP7), A
-1815   0263 C9              RET
-1816   0264             
-1817   0264             LOOP:
-1818   0264 2A 00 FE        LD  HL, (DIEGO)
-1819   0267             
-1820   0267             LOOP_DOWN:
-1821   0267 7C              LD  A, H
-1822   0268 CD 03 08        CALL GET_NUM_FROM_LOW
-1823   026B 32 D6 FF        LD  (USER_DISP6), A
-1824   026E             
-1825   026E 7D              LD  A, L
-1826   026F CD 03 08        CALL GET_NUM_FROM_LOW
-1827   0272 32 D7 FF        LD  (USER_DISP7), A
-1828   0275             
-1829   0275 0E 07           LD C, 7    ; 10 x 100ms = 1seg
-1830   0277 CD 77 09        CALL DELAY_C
-1831   027A             
-1832   027A 7D              LD A, L
-1833   027B FE 00           CP 0
-1834   027D CA 85 02        JP Z, DEC_H
-1835   0280 3D              DEC A
-1836   0281 6F              LD L, A
-1837   0282 C3 67 02        JP LOOP_DOWN
-1838   0285             
-1839   0285             DEC_H:
-1840   0285 7C              LD  A, H
-1841   0286 FE 00           CP 0
-1842   0288 CA 93 02        JP Z, CHECK_L
-1843   028B 3D              DEC A
-1844   028C 67              LD H, A
-1845   028D 3E 09           LD A, 9
-1846   028F 6F              LD L, A
-1847   0290 C3 67 02        JP LOOP_DOWN
-1848   0293             
-1849   0293             CHECK_L:
-1850   0293 7D              LD  A, L
-1851   0294 FE 00           CP 0
-1852   0296 CA 99 02        JP Z, BEEP
-1853   0299             
-1854   0299             BEEP:
-1855   0299 3E 80           LD  A, $80
-1856   029B D3 C0           OUT  (PortC0), A
-1857   029D CD 75 09        CALL DELAY_100mS
-1858   02A0             
-1859   02A0 3E C0           LD  A, $C0
-1860   02A2 D3 C0           OUT  (PortC0), A
-1861   02A4 CD 75 09        CALL DELAY_100mS
-1862   02A7 C3 99 02        JP BEEP
-1863   02AA             
-1864   02AA             
-1865   02AA             ; ---------------------------------------------------------
-1866   02AA             ; Utilitys Program | PROGRAM X
-1867   02AA             ; ---------------------------------------------------------
-1868   02AA             
-1869   02AA             
-1870   02AA             
-1871   02AA             
-1872   02AA             
-1873   02AA             ; =========================================================
-1874   02AA             ; Tabela display
-1875   02AA             ; =========================================================
-1876   02AA             ; 
-1877   02AA             ;   0 - $3F     A - $77     K - $7A     U - $1C     . - $80
-1878   02AA             ;   1 - $06     B - $7C     L - $38     V - $3E     Ñ - $55
-1879   02AA             ;   2 - $5B     C - $39     M - $37     W - $1D     : - $41
-1880   02AA             ;   3 - $4F     D - $5E     N - $54     X - $70     ; - $88
-1881   02AA             ;   4 - $66     E - $79     O - $3F     Y - $6E     _ - $08
-1882   02AA             ;   5 - $6D     F - $71     P - $73     Z - $49     ~ - $01
-1883   02AA             ;   6 - $7D     G - $6F     Q - $67                 ' - $20
-1884   02AA             ;   7 - $07     H - $76     R - $50     + - $46     
-1885   02AA             ;   8 - $7F     I - $06     S - $6D     , - $04     
-1886   02AA             ;   9 - $67     J - $1E     T - $78     - - $40     
-1887   02AA             
-1888   02AA             .end
+1571   1000             .org 1000h
+1572   1000             ; ---------------------------------------------------------
+1573   1000             ; RAM MAP - Utilitys Program | $FE00 - $FEFF
+1574   1000             ; ---------------------------------------------------------
+1575   1000             DIEGO      .equ    $FE00   ;(2) Temp Digits to countDown
+1576   1000             
+1577   1000             
+1578   1000             ; ---------------------------------------------------------
+1579   1000             ; Utilitys Program | CLEAR RAM
+1580   1000             ; ---------------------------------------------------------
+1581   1000             CLEAR_RAM_FF:
+1582   1000 21 00 FE        LD  HL, $FE00
+1583   1003 06 FF           LD  B, $FF
+1584   1005             CLEAR_RAM_FF_LOOP:
+1585   1005 2B              DEC HL
+1586   1006 70              LD (HL), B
+1587   1007 7C              LD A, H
+1588   1008 FE 80           CP $80
+1589   100A CA 10 10        JP Z, CLEAR_RAM_FF_CHECK_L
+1590   100D C3 05 10        JP CLEAR_RAM_FF_LOOP
+1591   1010             
+1592   1010             CLEAR_RAM_FF_CHECK_L:
+1593   1010 7D              LD A, L
+1594   1011 FE 00           CP $00
+1595   1013 CA 19 10        JP Z, CLEAR_RAM_FF_END
+1596   1016 C3 05 10        JP CLEAR_RAM_FF_LOOP
+1597   1019             CLEAR_RAM_FF_END:
+1598   1019 3E C3           LD A, $C3
+1599   101B 32 FD FD        LD ($FDFD), A
+1600   101E AF              XOR A
+1601   101F 32 FE FD        LD ($FDFE), A
+1602   1022 3E 80           LD A, $80
+1603   1024 32 FF FD        LD ($FDFF), A
+1604   1027 CA 58 09        JP Z, START_LOOP
+1605   102A             
+1606   102A             
+1607   102A             ; ---------------------------------------------------------
+1608   102A             ; Utilitys Program | BLINKs (teste tempo monitor)
+1609   102A             ; ---------------------------------------------------------
+1610   102A             BLINK_TESTE:
+1611   102A 3E 01           LD  A, 1
+1612   102C             BLINK_TESTE_LOOP:
+1613   102C EE 01           XOR 1
+1614   102E D3 C0           OUT (PortC0), A 
+1615   1030 C3 2C 10        JP BLINK_TESTE_LOOP
+1616   1033             
+1617   1033             
+1618   1033             BLINK_DELAY_C:
+1619   1033 3E 01           LD  A, 1
+1620   1035             BLINK_DELAY_C_LOOP:
+1621   1035 EE 01           XOR 1
+1622   1037 D3 C0           OUT (PortC0), A
+1623   1039 CD 75 09        CALL DELAY_100mS
+1624   103C C3 35 10        JP BLINK_DELAY_C_LOOP
+1625   103F             
+1626   103F             
+1627   103F             BLINK_DELAY_A:
+1628   103F 3E 01           LD  A, 1
+1629   1041             BLINK_DELAY_A_LOOP:
+1630   1041 EE 01           XOR 1
+1631   1043 D3 C0           OUT (PortC0), A
+1632   1045 F5              PUSH  AF
+1633   1046 3E 64           LD  A, 100
+1634   1048 CD 6A 09        CALL DELAY_A
+1635   104B F1              POP AF
+1636   104C C3 41 10        JP BLINK_DELAY_A_LOOP
+1637   104F             
+1638   104F             
+1639   104F             ; ---------------------------------------------------------
+1640   104F             ; Utilitys Program | TESTE SOM 
+1641   104F             ; 
+1642   104F             ; Key F     = $00 - $FF na saida C0
+1643   104F             ; Key A e B = Incrementa e Decrementa Saida C0
+1644   104F             ; ---------------------------------------------------------
+1645   104F             TESTE_SOM:
+1646   104F 3E 00           LD  A, 0
+1647   1051 32 0F FF        LD  (SYSMODE), A
+1648   1054 3E 00           LD  A, 0
+1649   1056 47              LD  B, A
+1650   1057 CD E6 07        CALL CLEAR_USER_DISPLAY
+1651   105A 3E 6D           LD  A, $6D ; S
+1652   105C 32 D0 FF        LD  (USER_DISP0), A
+1653   105F 3E 3F           LD  A, $3F ; O
+1654   1061 32 D1 FF        LD  (USER_DISP1), A
+1655   1064 3E 1C           LD  A, $1C ; U
+1656   1066 32 D2 FF        LD  (USER_DISP2), A
+1657   1069 3E 54           LD  A, $54 ; N
+1658   106B 32 D3 FF        LD  (USER_DISP3), A
+1659   106E 3E 5E           LD  A, $5E ; D
+1660   1070 32 D4 FF        LD  (USER_DISP4), A
+1661   1073             LOOP_SOM:
+1662   1073 78              LD  A, B
+1663   1074 CD 03 08        CALL GET_NUM_FROM_LOW
+1664   1077 32 D7 FF        LD  (USER_DISP7), A
+1665   107A 78              LD  A, B
+1666   107B CD 13 08        CALL GET_NUM_FROM_HIGH
+1667   107E 32 D6 FF        LD  (USER_DISP6), A
+1668   1081             
+1669   1081 CD 12 06        CALL GET_KEY_A
+1670   1084 FE 0A           CP  $0A
+1671   1086 CA 96 10        JP  Z, SOM_INC
+1672   1089 FE 0B           CP  $0B
+1673   108B CA A1 10        JP  Z, SOM_DEC
+1674   108E FE 0F           CP  $0F
+1675   1090 CA AC 10        JP  Z, SOM_LOOP_INC
+1676   1093 C3 73 10        JP  LOOP_SOM
+1677   1096             
+1678   1096             
+1679   1096             SOM_INC:
+1680   1096 04              INC B
+1681   1097 0E C0           LD  C, $C0
+1682   1099 ED 41           OUT (C), B
+1683   109B CD 75 09        CALL DELAY_100mS
+1684   109E C3 73 10        JP  LOOP_SOM
+1685   10A1             
+1686   10A1             SOM_DEC:
+1687   10A1 05              DEC B
+1688   10A2 0E C0           LD  C, $C0
+1689   10A4 ED 41           OUT (C), B
+1690   10A6 CD 75 09        CALL DELAY_100mS
+1691   10A9 C3 73 10        JP  LOOP_SOM
+1692   10AC             
+1693   10AC             SOM_LOOP_INC:
+1694   10AC 78              LD  A, B
+1695   10AD CD 03 08        CALL GET_NUM_FROM_LOW
+1696   10B0 32 D7 FF        LD  (USER_DISP7), A
+1697   10B3 78              LD  A, B
+1698   10B4 CD 13 08        CALL GET_NUM_FROM_HIGH
+1699   10B7 32 D6 FF        LD  (USER_DISP6), A
+1700   10BA 04              INC B
+1701   10BB 0E C0           LD  C, $C0
+1702   10BD ED 41           OUT (C), B
+1703   10BF CD 75 09        CALL DELAY_100mS
+1704   10C2 CD 75 09        CALL DELAY_100mS
+1705   10C5 C3 AC 10        JP  SOM_LOOP_INC
+1706   10C8             
+1707   10C8             
+1708   10C8             ; ---------------------------------------------------------
+1709   10C8             ; Utilitys Program | Animação led
+1710   10C8             ; ---------------------------------------------------------
+1711   10C8             ANIMATE_LED1:
+1712   10C8 CD E6 07        CALL CLEAR_USER_DISPLAY
+1713   10CB 3E 00           LD  A, 0                 ; user mode
+1714   10CD 32 0F FF        LD (SYSMODE), A
+1715   10D0             
+1716   10D0 06 08           LD  B, $08
+1717   10D2 21 D0 FF        LD  HL, USER_DISP0
+1718   10D5 3E 08           LD  A, 8
+1719   10D7             
+1720   10D7             LEDS_LOOP:
+1721   10D7 CD E6 07        CALL CLEAR_USER_DISPLAY
+1722   10DA 70              LD  (HL), B
+1723   10DB CD 75 09        CALL DELAY_100mS
+1724   10DE 23              INC HL
+1725   10DF 3D              DEC A
+1726   10E0 FE 00           CP 0
+1727   10E2 C2 D7 10        JP NZ, LEDS_LOOP
+1728   10E5             
+1729   10E5 3E 08           LD A, 8
+1730   10E7 21 D7 FF        LD  HL, USER_DISP7
+1731   10EA 06 40           LD  B, $40
+1732   10EC             
+1733   10EC             LEDS_LOOP2:
+1734   10EC CD E6 07        CALL CLEAR_USER_DISPLAY
+1735   10EF 70              LD  (HL), B
+1736   10F0 CD 75 09        CALL DELAY_100mS
+1737   10F3 2B              DEC HL
+1738   10F4 3D              DEC A
+1739   10F5 FE 00           CP 0
+1740   10F7 C2 EC 10        JP NZ, LEDS_LOOP2
+1741   10FA             
+1742   10FA 3E 08           LD  A, 8
+1743   10FC 21 D0 FF        LD  HL, USER_DISP0
+1744   10FF 06 08           LD  B, $08
+1745   1101 C3 D7 10        JP LEDS_LOOP
+1746   1104             
+1747   1104             
+1748   1104             ; ---------------------------------------------------------
+1749   1104             ; Utilitys Program | CountDown XX
+1750   1104             ; OBS: Usa a placa de som para o alarme
+1751   1104             ; ---------------------------------------------------------
+1752   1104             COUNT_DOWN_ALERME:
+1753   1104                 ; timer count down
+1754   1104             
+1755   1104 CD E6 07        CALL CLEAR_USER_DISPLAY
+1756   1107 3E 39           LD  A, $39
+1757   1109 32 D0 FF        LD  (USER_DISP0), A
+1758   110C             
+1759   110C 3E 3F           LD  A, $3F
+1760   110E 32 D1 FF        LD  (USER_DISP1), A
+1761   1111             
+1762   1111 3E 1C           LD  A, $1C
+1763   1113 32 D2 FF        LD  (USER_DISP2), A
+1764   1116             
+1765   1116 3E 54           LD  A, $54
+1766   1118 32 D3 FF        LD  (USER_DISP3), A
+1767   111B             
+1768   111B 3E 78           LD  A, $78
+1769   111D 32 D4 FF        LD  (USER_DISP4), A
+1770   1120             
+1771   1120 3E 00           LD  A, $00
+1772   1122 32 D5 FF        LD  (USER_DISP5), A
+1773   1125             
+1774   1125             
+1775   1125             
+1776   1125 3E 40           LD  A, $40
+1777   1127 32 D6 FF        LD  (USER_DISP6), A
+1778   112A             
+1779   112A 3E 40           LD  A, $40
+1780   112C 32 D7 FF        LD  (USER_DISP7), A
+1781   112F             
+1782   112F 3E 00           LD  A, 0                 ; user mode
+1783   1131 32 0F FF        LD (SYSMODE), A
+1784   1134             
+1785   1134             READ:
+1786   1134 CD 12 06        CALL GET_KEY_A
+1787   1137 FE FF           CP  $FF
+1788   1139 CA 34 11        JP  Z, READ
+1789   113C             
+1790   113C CD 4D 11        CALL  MODIFY_KEY_POS_1D
+1791   113F             
+1792   113F             READ2
+1793   113F CD 12 06        CALL GET_KEY_A
+1794   1142 FE FF           CP  $FF
+1795   1144 CA 3F 11        JP  Z, READ2
+1796   1147             
+1797   1147 CD 59 11        CALL MODIFY_KEY_POS_0D
+1798   114A             
+1799   114A C3 64 11        JP  LOOP
+1800   114D             
+1801   114D             
+1802   114D             MODIFY_KEY_POS_1D:
+1803   114D 21 00 FE        LD  HL, DIEGO
+1804   1150 23              INC HL
+1805   1151 77              LD  (HL), A
+1806   1152 CD 03 08        CALL GET_NUM_FROM_LOW
+1807   1155 32 D6 FF        LD  (USER_DISP6), A
+1808   1158 C9              RET
+1809   1159             
+1810   1159             MODIFY_KEY_POS_0D:
+1811   1159 21 00 FE        LD  HL, DIEGO
+1812   115C 77              LD  (HL), A
+1813   115D CD 03 08        CALL GET_NUM_FROM_LOW
+1814   1160 32 D7 FF        LD  (USER_DISP7), A
+1815   1163 C9              RET
+1816   1164             
+1817   1164             LOOP:
+1818   1164 2A 00 FE        LD  HL, (DIEGO)
+1819   1167             
+1820   1167             LOOP_DOWN:
+1821   1167 7C              LD  A, H
+1822   1168 CD 03 08        CALL GET_NUM_FROM_LOW
+1823   116B 32 D6 FF        LD  (USER_DISP6), A
+1824   116E             
+1825   116E 7D              LD  A, L
+1826   116F CD 03 08        CALL GET_NUM_FROM_LOW
+1827   1172 32 D7 FF        LD  (USER_DISP7), A
+1828   1175             
+1829   1175 0E 07           LD C, 7    ; 10 x 100ms = 1seg
+1830   1177 CD 77 09        CALL DELAY_C
+1831   117A             
+1832   117A 7D              LD A, L
+1833   117B FE 00           CP 0
+1834   117D CA 85 11        JP Z, DEC_H
+1835   1180 3D              DEC A
+1836   1181 6F              LD L, A
+1837   1182 C3 67 11        JP LOOP_DOWN
+1838   1185             
+1839   1185             DEC_H:
+1840   1185 7C              LD  A, H
+1841   1186 FE 00           CP 0
+1842   1188 CA 93 11        JP Z, CHECK_L
+1843   118B 3D              DEC A
+1844   118C 67              LD H, A
+1845   118D 3E 09           LD A, 9
+1846   118F 6F              LD L, A
+1847   1190 C3 67 11        JP LOOP_DOWN
+1848   1193             
+1849   1193             CHECK_L:
+1850   1193 7D              LD  A, L
+1851   1194 FE 00           CP 0
+1852   1196 CA 99 11        JP Z, BEEP
+1853   1199             
+1854   1199             BEEP:
+1855   1199 3E 80           LD  A, $80
+1856   119B D3 C0           OUT  (PortC0), A
+1857   119D CD 75 09        CALL DELAY_100mS
+1858   11A0             
+1859   11A0 3E C0           LD  A, $C0
+1860   11A2 D3 C0           OUT  (PortC0), A
+1861   11A4 CD 75 09        CALL DELAY_100mS
+1862   11A7 C3 99 11        JP BEEP
+1863   11AA             
+1864   11AA             
+1865   11AA             ; ---------------------------------------------------------
+1866   11AA             ; Utilitys Program | PROGRAM X
+1867   11AA             ; ---------------------------------------------------------
+1868   11AA             
+1869   11AA             
+1870   11AA             
+1871   11AA             
+1872   11AA             
+1873   11AA             ; =========================================================
+1874   11AA             ; Tabela display
+1875   11AA             ; =========================================================
+1876   11AA             ; 
+1877   11AA             ;   0 - $3F     A - $77     K - $7A     U - $1C     . - $80
+1878   11AA             ;   1 - $06     B - $7C     L - $38     V - $3E     Ñ - $55
+1879   11AA             ;   2 - $5B     C - $39     M - $37     W - $1D     : - $41
+1880   11AA             ;   3 - $4F     D - $5E     N - $54     X - $70     ; - $88
+1881   11AA             ;   4 - $66     E - $79     O - $3F     Y - $6E     _ - $08
+1882   11AA             ;   5 - $6D     F - $71     P - $73     Z - $49     ~ - $01
+1883   11AA             ;   6 - $7D     G - $6F     Q - $67                 ' - $20
+1884   11AA             ;   7 - $07     H - $76     R - $50     + - $46     
+1885   11AA             ;   8 - $7F     I - $06     S - $6D     , - $04     
+1886   11AA             ;   9 - $67     J - $1E     T - $78     - - $40     
+1887   11AA             
+1888   11AA             .end
 tasm: Number of errors = 0
