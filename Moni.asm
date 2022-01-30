@@ -1566,10 +1566,47 @@ LED_FONT .db $3F, $06, $5B, $4F, $66, $6D, $7D, $07, $7F, $67 ; 0-9
 
 
 ; ---------------------------------------------------------
+; Utilitys Program .ORG 1000h
+; ---------------------------------------------------------
+.org 100h
+; ---------------------------------------------------------
 ; RAM MAP - Utilitys Program | $FE00 - $FEFF
 ; ---------------------------------------------------------
 DIEGO      .equ    $FE00   ;(2) Temp Digits to countDown
 
+
+; ---------------------------------------------------------
+; Utilitys Program | CLEAR RAM
+; ---------------------------------------------------------
+CLEAR_RAM_FF:
+    LD  HL, $FE00
+    LD  B, $FF
+CLEAR_RAM_FF_LOOP:
+    DEC HL
+    LD (HL), B
+    LD A, H
+    CP $80
+    JP Z, CLEAR_RAM_FF_CHECK_L
+    JP CLEAR_RAM_FF_LOOP
+
+CLEAR_RAM_FF_CHECK_L:
+    LD A, L
+    CP $00
+    JP Z, CLEAR_RAM_FF_END
+    JP CLEAR_RAM_FF_LOOP
+CLEAR_RAM_FF_END:
+    LD A, $C3
+    LD ($FDFD), A
+    XOR A
+    LD ($FDFE), A
+    LD A, $80
+    LD ($FDFF), A
+    JP Z, START_LOOP
+
+
+; ---------------------------------------------------------
+; Utilitys Program | BLINKs (teste tempo monitor)
+; ---------------------------------------------------------
 BLINK_TESTE:
     LD  A, 1
 BLINK_TESTE_LOOP:
@@ -1599,7 +1636,12 @@ BLINK_DELAY_A_LOOP:
     JP BLINK_DELAY_A_LOOP
 
 
-
+; ---------------------------------------------------------
+; Utilitys Program | TESTE SOM 
+; 
+; Key F     = $00 - $FF na saida C0
+; Key A e B = Incrementa e Decrementa Saida C0
+; ---------------------------------------------------------
 TESTE_SOM:
     LD  A, 0
     LD  (SYSMODE), A
@@ -1663,15 +1705,10 @@ SOM_LOOP_INC:
     JP  SOM_LOOP_INC
 
 
-
-
-
-
-
-
-
-
-.org $1000
+; ---------------------------------------------------------
+; Utilitys Program | Animação led
+; ---------------------------------------------------------
+ANIMATE_LED1:
     CALL CLEAR_USER_DISPLAY
     LD  A, 0                 ; user mode
     LD (SYSMODE), A
@@ -1708,16 +1745,11 @@ LEDS_LOOP2:
     JP LEDS_LOOP
 
 
-
-
-
-
-
-
-
-
-.org $4000
-
+; ---------------------------------------------------------
+; Utilitys Program | CountDown XX
+; OBS: Usa a placa de som para o alarme
+; ---------------------------------------------------------
+COUNT_DOWN_ALERME:
     ; timer count down
 
     CALL CLEAR_USER_DISPLAY
@@ -1830,61 +1862,27 @@ BEEP:
     JP BEEP
 
 
+; ---------------------------------------------------------
+; Utilitys Program | PROGRAM X
+; ---------------------------------------------------------
 
 
 
 
-.end
 
 ; =========================================================
 ; Tabela display
 ; =========================================================
 ; 
-;   0 - $3F
-;   1 - $06
-;   2 - $5B
-;   3 - $4F
-;   4 - $66
-;   5 - $6D
-;   6 - $7D
-;   7 - $07
-;   8 - $7F
-;   9 - $67
-; 
-;   A - $77
-;   B - $7C
-;   C - $39
-;   D - $5E
-;   E - $79
-;   F - $71
-;   G - $6F
-;   H - $76
-;   I - $06
-;   J - $1E
-;   K - $7A
-;   L - $38
-;   M - $37
-;   N - $54
-;   O - $3F
-;   P - $73
-;   Q - $67
-;   R - $50
-;   S - $6D
-;   T - $78
-;   U - $1C
-;   V - $3E
-;   W - $1D
-;   X - $70
-;   Y - $6E
-;   Z - $49
+;   0 - $3F     A - $77     K - $7A     U - $1C     . - $80
+;   1 - $06     B - $7C     L - $38     V - $3E     Ñ - $55
+;   2 - $5B     C - $39     M - $37     W - $1D     : - $41
+;   3 - $4F     D - $5E     N - $54     X - $70     ; - $88
+;   4 - $66     E - $79     O - $3F     Y - $6E     _ - $08
+;   5 - $6D     F - $71     P - $73     Z - $49     ~ - $01
+;   6 - $7D     G - $6F     Q - $67                 ' - $20
+;   7 - $07     H - $76     R - $50     + - $46     
+;   8 - $7F     I - $06     S - $6D     , - $04     
+;   9 - $67     J - $1E     T - $78     - - $40     
 
-;   + - $46
-;   , - $04
-;   - - $40
-;   . - $80
-;   Ñ - $55
-;   : - $41
-;   ; - $88
-;   _ - $08
-;   ~ - $01
-;   ' - $20
+.end
