@@ -77,7 +77,7 @@ KEY_PRESS   .equ    $FF08   ;(1) key atual
 INPUT       .equ    $FF09   ;(1) temp input from int
 TMP_KEY     .equ    $FF0A   ;(1) tmp key
 KEY_TIMEOUT .equ    $FF0B   ;(1) tempo para retornar a tecla, CKEY_TIMEOUT
-SHOW_DIG    .equ    $FF0C   ;(1) LIVRE
+SHOW_DIG    .equ    $FF0C   ;(1) Atual digito no display
 PC_RAM      .equ    $FF0D   ;(2) save pc to user start $8000
 
 SYSMODE     .equ    $FF0F   ;(1) System mode. 
@@ -113,6 +113,7 @@ USR_BCA     .equ    $FF26   ;(2) BC' (Aux)
 USR_DEA     .equ    $FF28   ;(2) DE' (Aux)
 USR_HLA     .equ    $FF2A   ;(2) HL' (Aux)
 ; SP Temp   .equ    $FF2C
+CPU_FLAGS   .equ    $FF2C   ;(1) Flags atual (AF ou AF') SYSMODE
 
 
 
@@ -192,6 +193,7 @@ USER_DISP7  .equ    $FFD7   ; Mode User - Display Dig 7  - 01234567
 ENTER_MAIN:
     CALL UPDATE_DISPLAYS
     CALL UPDATE_KEYS
+    CALL UPDATE_FLAGS
 
     ; Show atual digit
     LD  A, (SHOW_DIG)
@@ -289,6 +291,107 @@ KEYSB3 .db $00, $01, $04, $07, $0F, $02, $05, $08
 KEYSB4 .db $0E, $03, $06, $09, $0D, $0C, $0B, $0A
 
 
+; =========================================================
+; Update Flags - Tratamento Int 38h
+; =========================================================
+UPDATE_FLAGS:
+    LD    A, (SYSMODE)
+    CP    $06
+    JP    Z, UPDATE_FLAGS_MAIN
+    CP    $0C
+    JP    Z, UPDATE_FLAGS_MAIN
+UPDATE_FLAGS_RET:
+    RET
+
+UPDATE_FLAGS_MAIN:
+    LD    A, (INPUT)
+    AND   $07
+
+    CP    $07
+    JP    Z, UPDATE_FLAG_S
+    CP    $00
+    JP    Z, UPDATE_FLAG_Z
+    CP    $01
+    JP    Z, UPDATE_FLAG_X1
+    CP    $02
+    JP    Z, UPDATE_FLAG_H
+    CP    $03
+    JP    Z, UPDATE_FLAG_X2
+    CP    $04
+    JP    Z, UPDATE_FLAG_PV
+    CP    $05
+    JP    Z, UPDATE_FLAG_N
+    CP    $06
+    JP    Z, UPDATE_FLAG_C
+    JP    UPDATE_FLAGS_RET
+
+UPDATE_FLAG_S:
+    CALL  SHOW_DIG_FLAG_ON
+    LD  A, (CPU_FLAGS)
+    BIT 7, A
+    CALL Z, SHOW_DIG_FLAG_OFF
+    RET
+
+UPDATE_FLAG_Z:
+    CALL  SHOW_DIG_FLAG_ON
+    LD  A, (CPU_FLAGS)
+    BIT 6, A
+    CALL Z, SHOW_DIG_FLAG_OFF
+    RET
+
+UPDATE_FLAG_X1:
+    CALL  SHOW_DIG_FLAG_ON
+    LD  A, (CPU_FLAGS)
+    BIT 5, A
+    CALL Z, SHOW_DIG_FLAG_OFF
+    RET
+
+UPDATE_FLAG_H:
+    CALL  SHOW_DIG_FLAG_ON
+    LD  A, (CPU_FLAGS)
+    BIT 4, A
+    CALL Z, SHOW_DIG_FLAG_OFF
+    RET
+
+UPDATE_FLAG_X2:
+    CALL  SHOW_DIG_FLAG_ON
+    LD  A, (CPU_FLAGS)
+    BIT 3, A
+    CALL Z, SHOW_DIG_FLAG_OFF
+    RET
+
+UPDATE_FLAG_PV:
+    CALL  SHOW_DIG_FLAG_ON
+    LD  A, (CPU_FLAGS)
+    BIT 2, A
+    CALL Z, SHOW_DIG_FLAG_OFF
+    RET
+
+UPDATE_FLAG_N:
+    CALL  SHOW_DIG_FLAG_ON
+    LD  A, (CPU_FLAGS)
+    BIT 1, A
+    CALL Z, SHOW_DIG_FLAG_OFF
+    RET
+
+UPDATE_FLAG_C:
+    CALL  SHOW_DIG_FLAG_ON
+    LD  A, (CPU_FLAGS)
+    BIT 0, A
+    CALL Z, SHOW_DIG_FLAG_OFF
+    RET
+
+SHOW_DIG_FLAG_ON:
+    LD  A, (SHOW_DIG)
+    OR  $80
+    LD  (SHOW_DIG), A
+    RET
+
+SHOW_DIG_FLAG_OFF:
+    LD  A, (SHOW_DIG)
+    AND  $7F
+    LD  (SHOW_DIG), A 
+    RET
 
 ; =========================================================
 ; SYS MAIN
@@ -605,7 +708,9 @@ SHOW_REG_AF:
     LD  A, $71               ; F
     LD  (DIG_2), A
 
-    LD HL, (USR_AF)
+    LD  HL, (USR_AF)
+    LD  A, L
+    LD (CPU_FLAGS), A
     CALL PRINT_END_HL
     JP  EXIT_SYS
 
@@ -826,6 +931,8 @@ SHOW_REG_AFaux:
     LD  (DIG_3), A
 
     LD HL, (USR_AFA)
+    LD  A, L
+    LD (CPU_FLAGS), A
     CALL PRINT_END_HL
     JP  EXIT_SYS
 
