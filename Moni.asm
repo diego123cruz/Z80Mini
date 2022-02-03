@@ -97,6 +97,7 @@ SYSMODE     .equ    $FF0F   ;(1) System mode.
                             ; D - Show register BC'
                             ; E - Show register DE'
                             ; F - Show register HL'
+                            ; 76 - HALT
 TicCounter  .equ    $FF10   ;(2) TicCounter inc 1ms
 EXM_COUNT   .equ    $FF12   ;(1) Count digits Examine function, 4 digits
 MDF_COUNT   .equ    $FF13   ;(1) Count digits moDify function, 2 digits
@@ -397,6 +398,12 @@ SHOW_DIG_FLAG_OFF:
 ; SYS MAIN
 ; =========================================================
 SYS_MAIN:
+    LD  HL, (USR_PC)        ; Check halt
+    DEC HL
+    LD  A, (HL)
+    CP $76
+    JP Z, GO_HALT
+
     LD  A, (SYSMODE)
     CP  $00                  ; User mode can back to monitor
     JP  Z, USER_MODE        
@@ -460,6 +467,11 @@ SYS_MAIN:
     LD  A, (SYSMODE)
     CP  $0F                  ; Show register HL'
     JP  Z,  SHOW_REG_HLaux
+
+
+    LD  A, (SYSMODE)
+    CP  $76
+    JP  Z, SHOW_HALT
 
     JP  EXIT_SYS
 
@@ -1054,6 +1066,32 @@ SHOW_REG_HLaux:
     CALL PRINT_END_HL
     JP  EXIT_SYS
 
+SHOW_HALT:
+    LD  A, (INPUT)
+    CP  $FB
+    JP  Z, GO_MONITOR
+
+    LD  A, $40               ; -
+    LD  (DIG_0), A
+    LD  (DIG_1), A
+
+    LD  A, $76               ; H
+    LD  (DIG_2), A
+
+    LD  A, $77               ; A
+    LD  (DIG_3), A
+
+    LD  A, $38               ; L
+    LD  (DIG_4), A
+
+    LD  A, $78               ; T
+    LD  (DIG_5), A
+
+    LD  A, $40               ; -
+    LD  (DIG_6), A
+    LD  (DIG_7), A
+
+    JP EXIT_SYS
 
 ; =========================================================
 ; GET KEY IN A, IF A == FFh then no KEY
@@ -1304,6 +1342,13 @@ GO_SHOW_REG_HLaux:
     CALL CLEAR_DISPLAY
     LD  A, $0F
     LD  (SYSMODE), A
+    JP  EXIT_SYS
+
+GO_HALT:
+    LD  A, $76
+    LD  (SYSMODE), A
+    LD  HL, START_LOOP
+    LD  (USR_PC), HL
     JP  EXIT_SYS
 
 FIRE:
@@ -1567,6 +1612,9 @@ PRINT_END_HL:
 ; =========================================================
 START:
     LD  SP, STACK
+    PUSH HL                  ; Save HL
+    PUSH AF                  ; Save AF
+
     LD  HL, START_RAM
     LD  (PC_RAM), HL
 
@@ -1580,37 +1628,25 @@ START:
     LD A, $FF
     LD (KEY_PRESS), A
 
+    LD  A, $00
+    LD  (DIG_0), A
+    LD  (DIG_1), A
+    LD  (DIG_2), A
+    LD  (DIG_3), A
+    LD  (DIG_4), A
+    LD  (DIG_5), A
+    LD  (DIG_6), A
+    LD  (DIG_7), A
+
+
     IM  1
     EI
 
     XOR A
     OUT (Port40), A
 
-
-    LD  A, $00
-    LD  (DIG_0), A
-
-    LD  A, $00
-    LD  (DIG_1), A
-
-    LD  A, $0
-    LD  (DIG_2), A
-
-    LD  A, $00
-    LD  (DIG_3), A
-
-    LD  A, $00
-    LD  (DIG_4), A
-
-    LD  A, $00
-    LD  (DIG_5), A
-
-    LD  A, $00
-    LD  (DIG_6), A
-
-    LD  A, $00
-    LD  (DIG_7), A
-
+    POP AF                   ; Recovery AF
+    POP HL                   ; Recovery HL
 START_LOOP:
 
     JP START_LOOP
@@ -1673,9 +1709,9 @@ LED_FONT .db $3F, $06, $5B, $4F, $66, $6D, $7D, $07, $7F, $67 ; 0-9
 
 
 ; ---------------------------------------------------------
-; Utilitys Program .ORG 1000h
+; Utilitys Program .ORG 2000h
 ; ---------------------------------------------------------
-.org 1000h
+.org 2000h
 ; ---------------------------------------------------------
 ; RAM MAP - Utilitys Program | $FE00 - $FEFF
 ; ---------------------------------------------------------
@@ -1970,9 +2006,48 @@ BEEP:
 
 
 ; ---------------------------------------------------------
+; Utilitys Program | IR Sensor
+; ---------------------------------------------------------
+CONTROLE_IR:
+    LD  A, 0                 ; user mode
+    LD (SYSMODE), A
+
+    CALL CLEAR_USER_DISPLAY
+    LD  HL, 0
+CONTROLE_IR_LOOP:
+    IN A, (Port40)
+    BIT 7, A
+    JP NZ, CONTROLE_IR_LOOP
+CONTROLE_IR_LOOP2:
+    INC HL
+    IN A, (Port40)
+    BIT 7, A
+    JP Z, CONTROLE_IR_LOOP2
+
+    LD A, H
+    CALL GET_NUM_FROM_HIGH
+    LD (USER_DISP4), A
+
+    LD A, H
+    CALL GET_NUM_FROM_LOW
+    LD (USER_DISP5), A
+
+    LD A, L
+    CALL GET_NUM_FROM_HIGH
+    LD (USER_DISP6), A
+
+    LD A, L
+    CALL GET_NUM_FROM_LOW
+    LD (USER_DISP7), A
+    
+CONTROLE_IR_LOOP3:
+    JP CONTROLE_IR_LOOP3
+
+; ---------------------------------------------------------
 ; Utilitys Program | PROGRAM X
 ; ---------------------------------------------------------
-
+    LD  A, 0                 ; user mode
+    LD (SYSMODE), A
 
 
 
