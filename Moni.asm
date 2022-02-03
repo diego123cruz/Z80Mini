@@ -150,9 +150,45 @@ USER_DISP7  .equ    $FFD7   ; Mode User - Display Dig 7  - 01234567
 
 
 ; =========================================================
-; Int 38h
+; Int 38h - Monitor 
 ; =========================================================
 .org    $38
+    JP INT38
+
+; =========================================================
+; Int 66h - HALT (Pin HALT is connected to NMI)
+; =========================================================
+.org    $66
+    DI                       ; Disable interrupt
+
+    LD (USR_SP), SP          ; Save SP
+    LD (USR_HL), HL          ; Save HL
+    POP  HL                  ; Recupera PC da stack
+    LD (USR_PC), HL          ; Save PC
+    PUSH HL                  ;
+    LD HL, $FF2C             ; Carrega Temp SP to HL
+    LD SP, HL                ; Set temp HL
+    EXX                      ; Inverte HL e HL', DE.... BC....
+    PUSH  HL                 ; Save HL'
+    PUSH  DE                 ; Save DE'                
+    PUSH  BC                 ; Save BC'
+    EX    AF, AF'
+    PUSH  AF                 ; Save AF'
+    EX    AF, AF'
+    EXX                      ; Troca HL' e HL,, DE... BC...
+    PUSH  IY                 ; Save IY
+    PUSH  IX                 ; Save IX
+    PUSH  AF                 ; Save AF
+    PUSH  DE                 ; Save DE
+    PUSH  BC                 ; Save BC
+    LD HL, (USR_SP)          ; Recupera SP
+    LD SP, HL                ; Devolve SP original
+
+    JP GO_HALT
+
+
+
+INT38:
     DI                       ; Disable interrupt
 
     LD (USR_SP), SP          ; Save SP
@@ -398,12 +434,6 @@ SHOW_DIG_FLAG_OFF:
 ; SYS MAIN
 ; =========================================================
 SYS_MAIN:
-    LD  HL, (USR_PC)        ; Check halt
-    DEC HL
-    LD  A, (HL)
-    CP $76
-    JP Z, GO_HALT
-
     LD  A, (SYSMODE)
     CP  $00                  ; User mode can back to monitor
     JP  Z, USER_MODE        
@@ -2044,12 +2074,134 @@ CONTROLE_IR_LOOP3:
     JP CONTROLE_IR_LOOP3
 
 ; ---------------------------------------------------------
+; Utilitys Program | PROGRAM CALC XX + XX 
+; ---------------------------------------------------------
+CALC_SUM:
+NUM1     .equ      $8000
+NUM2     .equ      $8001
+RESULT1  .equ      $8002
+RESULT2  .equ      $8003
+
+    LD  A, 0                 ; user mode
+    LD (SYSMODE), A
+
+    CALL CLEAR_USER_DISPLAY
+
+    LD  A, $40
+    LD  (USER_DISP6), A
+
+    LD  A, $40
+    LD  (USER_DISP7), A
+
+    LD A, 0
+    LD (RESULT1), A
+    LD (RESULT2), A
+
+READ01:
+    CALL GET_KEY_A
+    CP  $FF
+    JP  Z, READ01
+    PUSH AF
+    RLC A
+    RLC A
+    RLC A
+    RLC A
+    LD  (NUM1), A
+    POP AF
+    CALL GET_NUM_FROM_LOW
+    LD (USER_DISP6), A
+
+READ02:
+    CALL GET_KEY_A
+    CP  $FF
+    JP  Z, READ02
+    PUSH AF
+    LD B, A
+    LD A, (NUM1)
+    OR B
+    LD (NUM1), A
+
+    POP AF
+    CALL GET_NUM_FROM_LOW
+    LD (USER_DISP7), A
+
+    LD A, $FF
+    CALL DELAY_A
+; NUM2
+    LD  A, $40
+    LD  (USER_DISP6), A
+
+    LD  A, $40
+    LD  (USER_DISP7), A
+
+READ03:
+    CALL GET_KEY_A
+    CP  $FF
+    JP  Z, READ03
+    PUSH AF
+    RLC A
+    RLC A
+    RLC A
+    RLC A
+    LD  (NUM2), A
+    POP AF
+    CALL GET_NUM_FROM_LOW
+    LD (USER_DISP6), A
+
+READ04:
+    CALL GET_KEY_A
+    CP  $FF
+    JP  Z, READ04
+
+    PUSH AF
+    CALL GET_NUM_FROM_LOW
+    LD (USER_DISP7), A
+    POP AF
+    LD B, A
+    LD A, (NUM2)
+    OR B
+    LD (NUM2), A
+
+    LD A, (NUM1)
+    LD B, A
+    LD A, (NUM2)
+    ADD A, B
+    DAA
+    LD (RESULT2), A
+
+    JP NC, CALC_SUM_SHOW
+    LD A, (RESULT1)
+    INC A
+    LD (RESULT1),A
+
+CALC_SUM_SHOW:
+    LD A, $FF
+    CALL DELAY_A
+
+    LD A, (RESULT1)
+    CP 0
+    JP Z, SHOW_NEXT
+    CALL GET_NUM_FROM_LOW
+    LD (USER_DISP5), A
+
+SHOW_NEXT:
+    LD A, (RESULT2)
+    CALL GET_NUM_FROM_HIGH
+    LD (USER_DISP6), A
+
+    LD A, (RESULT2)
+    CALL GET_NUM_FROM_LOW
+    LD (USER_DISP7), A
+
+CALC_SUM_LOOP:
+    JP  CALC_SUM_LOOP
+
+
+; ---------------------------------------------------------
 ; Utilitys Program | PROGRAM X
 ; ---------------------------------------------------------
     LD  A, 0                 ; user mode
     LD (SYSMODE), A
-
-
 
 
 ; =========================================================
