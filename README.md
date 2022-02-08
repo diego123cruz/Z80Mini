@@ -1,5 +1,11 @@
 # Z80Mini
+Circuito - https://github.com/diego123cruz/Z80Mini/blob/main/Circuito/Z80Mini.PDF
 
+Monitor - https://github.com/diego123cruz/Z80Mini/blob/main/Moni.asm
+
+Manual - ???
+
+## Spec
 Z80 @4Hhz
 
 RAM 32kb @62256
