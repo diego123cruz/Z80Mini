@@ -1738,10 +1738,41 @@ LED_FONT .db $3F, $06, $5B, $4F, $66, $6D, $7D, $07, $7F, $67 ; 0-9
 
 
 
+
+; ---------------------------------------------------------
+;   FFFFFFFF      I     MM           MM
+;   F             I     M  M       M  M
+;   F             I     M    M   M    M
+;   FFFFFFF       I     M      M      M
+;   F             I     M             M
+;   F             I     M             M
+;   F             I     M             M
+;
+; ---------------------------------------------------------
+
+
+
+
+
+
 ; ---------------------------------------------------------
 ; Utilitys Program .ORG 2000h
 ; ---------------------------------------------------------
 .org 2000h
+JP_CLEAR_RAM_FF              JP CLEAR_RAM_FF               ; 2000
+JP_TESTE_SOM                 JP TESTE_SOM                  ; 2003
+JP_ANIMATE_LED1              JP ANIMATE_LED1               ; 2006
+JP_COUNT_DOWN_ALERME         JP COUNT_DOWN_ALERME          ; 2009
+JP_CONTROLE_SONY             JP CONTROLE_SONY              ; 200C
+JP_CALC_SUM                  JP CALC_SUM                   ; 200F
+
+
+
+
+
+
+
+
 ; ---------------------------------------------------------
 ; RAM MAP - Utilitys Program | $FE00 - $FEFF
 ; ---------------------------------------------------------
@@ -1775,38 +1806,6 @@ CLEAR_RAM_FF_END:
     LD A, $80
     LD ($FDFF), A
     JP Z, START_LOOP
-
-
-; ---------------------------------------------------------
-; Utilitys Program | BLINKs (teste tempo monitor)
-; ---------------------------------------------------------
-BLINK_TESTE:
-    LD  A, 1
-BLINK_TESTE_LOOP:
-    XOR 1
-    OUT (PortC0), A 
-    JP BLINK_TESTE_LOOP
-
-
-BLINK_DELAY_C:
-    LD  A, 1
-BLINK_DELAY_C_LOOP:
-    XOR 1
-    OUT (PortC0), A
-    CALL DELAY_100mS
-    JP BLINK_DELAY_C_LOOP
-
-
-BLINK_DELAY_A:
-    LD  A, 1
-BLINK_DELAY_A_LOOP:
-    XOR 1
-    OUT (PortC0), A
-    PUSH  AF
-    LD  A, 100
-    CALL DELAY_A
-    POP AF
-    JP BLINK_DELAY_A_LOOP
 
 
 ; ---------------------------------------------------------
