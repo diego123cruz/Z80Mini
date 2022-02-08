@@ -6,7 +6,7 @@ Monitor - https://github.com/diego123cruz/Z80Mini/blob/main/Moni.asm
 Manual - ???
 
 ## Spec
-Z80 @4Hhz
+Z80 @4Mhz
 
 RAM 32kb @62256
 
