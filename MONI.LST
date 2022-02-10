@@ -1762,589 +1762,669 @@
 1759   0AE0             ; Utilitys Program .ORG 2000h
 1760   0AE0             ; ---------------------------------------------------------
 1761   2000             .org 2000h
-1762   2000 C3 12 20    JP_CLEAR_RAM_FF              JP CLEAR_RAM_FF               ; 2000
-1763   2003 C3 3C 20    JP_TESTE_SOM                 JP TESTE_SOM                  ; 2003
-1764   2006 C3 B5 20    JP_ANIMATE_LED1              JP ANIMATE_LED1               ; 2006
-1765   2009 C3 F1 20    JP_COUNT_DOWN_ALERME         JP COUNT_DOWN_ALERME          ; 2009
-1766   200C C3 97 21    JP_CONTROLE_SONY             JP CONTROLE_SONY              ; 200C
-1767   200F C3 9B 22    JP_CALC_SUM                  JP CALC_SUM                   ; 200F
-1768   2012             
-1769   2012             
-1770   2012             
-1771   2012             
-1772   2012             
-1773   2012             
-1774   2012             
-1775   2012             
-1776   2012             ; ---------------------------------------------------------
-1777   2012             ; RAM MAP - Utilitys Program | $FE00 - $FEFF
-1778   2012             ; ---------------------------------------------------------
-1779   2012             DIEGO      .equ    $FE00   ;(2) Temp Digits to countDown
-1780   2012             
-1781   2012             
-1782   2012             ; ---------------------------------------------------------
-1783   2012             ; Utilitys Program | CLEAR RAM
-1784   2012             ; ---------------------------------------------------------
-1785   2012             CLEAR_RAM_FF:
-1786   2012 21 00 FE        LD  HL, $FE00
-1787   2015 06 FF           LD  B, $FF
-1788   2017             CLEAR_RAM_FF_LOOP:
-1789   2017 2B              DEC HL
-1790   2018 70              LD (HL), B
-1791   2019 7C              LD A, H
-1792   201A FE 80           CP $80
-1793   201C CA 22 20        JP Z, CLEAR_RAM_FF_CHECK_L
-1794   201F C3 17 20        JP CLEAR_RAM_FF_LOOP
-1795   2022             
-1796   2022             CLEAR_RAM_FF_CHECK_L:
-1797   2022 7D              LD A, L
-1798   2023 FE 00           CP $00
-1799   2025 CA 2B 20        JP Z, CLEAR_RAM_FF_END
-1800   2028 C3 17 20        JP CLEAR_RAM_FF_LOOP
-1801   202B             CLEAR_RAM_FF_END:
-1802   202B 3E C3           LD A, $C3
-1803   202D 32 FD FD        LD ($FDFD), A
-1804   2030 AF              XOR A
-1805   2031 32 FE FD        LD ($FDFE), A
-1806   2034 3E 80           LD A, $80
-1807   2036 32 FF FD        LD ($FDFF), A
-1808   2039 CA A3 0A        JP Z, START_LOOP
-1809   203C             
-1810   203C             
-1811   203C             ; ---------------------------------------------------------
-1812   203C             ; Utilitys Program | TESTE SOM 
-1813   203C             ; 
-1814   203C             ; Key F     = $00 - $FF na saida C0
-1815   203C             ; Key A e B = Incrementa e Decrementa Saida C0
-1816   203C             ; ---------------------------------------------------------
-1817   203C             TESTE_SOM:
-1818   203C 3E 00           LD  A, 0
-1819   203E 32 0F FF        LD  (SYSMODE), A
-1820   2041 3E 00           LD  A, 0
-1821   2043 47              LD  B, A
-1822   2044 CD 3B 09        CALL CLEAR_USER_DISPLAY
-1823   2047 3E 6D           LD  A, $6D ; S
-1824   2049 32 D0 FF        LD  (USER_DISP0), A
-1825   204C 3E 3F           LD  A, $3F ; O
-1826   204E 32 D1 FF        LD  (USER_DISP1), A
-1827   2051 3E 1C           LD  A, $1C ; U
-1828   2053 32 D2 FF        LD  (USER_DISP2), A
-1829   2056 3E 54           LD  A, $54 ; N
-1830   2058 32 D3 FF        LD  (USER_DISP3), A
-1831   205B 3E 5E           LD  A, $5E ; D
-1832   205D 32 D4 FF        LD  (USER_DISP4), A
-1833   2060             LOOP_SOM:
-1834   2060 78              LD  A, B
-1835   2061 CD 58 09        CALL GET_NUM_FROM_LOW
-1836   2064 32 D7 FF        LD  (USER_DISP7), A
-1837   2067 78              LD  A, B
-1838   2068 CD 68 09        CALL GET_NUM_FROM_HIGH
-1839   206B 32 D6 FF        LD  (USER_DISP6), A
-1840   206E             
-1841   206E CD 59 07        CALL GET_KEY_A
-1842   2071 FE 0A           CP  $0A
-1843   2073 CA 83 20        JP  Z, SOM_INC
-1844   2076 FE 0B           CP  $0B
-1845   2078 CA 8E 20        JP  Z, SOM_DEC
-1846   207B FE 0F           CP  $0F
-1847   207D CA 99 20        JP  Z, SOM_LOOP_INC
-1848   2080 C3 60 20        JP  LOOP_SOM
-1849   2083             
-1850   2083             
-1851   2083             SOM_INC:
-1852   2083 04              INC B
-1853   2084 0E C0           LD  C, $C0
-1854   2086 ED 41           OUT (C), B
-1855   2088 CD C0 0A        CALL DELAY_100mS
-1856   208B C3 60 20        JP  LOOP_SOM
-1857   208E             
-1858   208E             SOM_DEC:
-1859   208E 05              DEC B
-1860   208F 0E C0           LD  C, $C0
-1861   2091 ED 41           OUT (C), B
-1862   2093 CD C0 0A        CALL DELAY_100mS
-1863   2096 C3 60 20        JP  LOOP_SOM
-1864   2099             
-1865   2099             SOM_LOOP_INC:
-1866   2099 78              LD  A, B
-1867   209A CD 58 09        CALL GET_NUM_FROM_LOW
-1868   209D 32 D7 FF        LD  (USER_DISP7), A
-1869   20A0 78              LD  A, B
-1870   20A1 CD 68 09        CALL GET_NUM_FROM_HIGH
-1871   20A4 32 D6 FF        LD  (USER_DISP6), A
-1872   20A7 04              INC B
-1873   20A8 0E C0           LD  C, $C0
-1874   20AA ED 41           OUT (C), B
-1875   20AC CD C0 0A        CALL DELAY_100mS
-1876   20AF CD C0 0A        CALL DELAY_100mS
-1877   20B2 C3 99 20        JP  SOM_LOOP_INC
-1878   20B5             
-1879   20B5             
-1880   20B5             ; ---------------------------------------------------------
-1881   20B5             ; Utilitys Program | Animação led
-1882   20B5             ; ---------------------------------------------------------
-1883   20B5             ANIMATE_LED1:
-1884   20B5 CD 3B 09        CALL CLEAR_USER_DISPLAY
-1885   20B8 3E 00           LD  A, 0                 ; user mode
-1886   20BA 32 0F FF        LD (SYSMODE), A
-1887   20BD             
-1888   20BD 06 08           LD  B, $08
-1889   20BF 21 D0 FF        LD  HL, USER_DISP0
-1890   20C2 3E 08           LD  A, 8
-1891   20C4             
-1892   20C4             LEDS_LOOP:
-1893   20C4 CD 3B 09        CALL CLEAR_USER_DISPLAY
-1894   20C7 70              LD  (HL), B
-1895   20C8 CD C0 0A        CALL DELAY_100mS
-1896   20CB 23              INC HL
-1897   20CC 3D              DEC A
-1898   20CD FE 00           CP 0
-1899   20CF C2 C4 20        JP NZ, LEDS_LOOP
-1900   20D2             
-1901   20D2 3E 08           LD A, 8
-1902   20D4 21 D7 FF        LD  HL, USER_DISP7
-1903   20D7 06 40           LD  B, $40
-1904   20D9             
-1905   20D9             LEDS_LOOP2:
-1906   20D9 CD 3B 09        CALL CLEAR_USER_DISPLAY
-1907   20DC 70              LD  (HL), B
-1908   20DD CD C0 0A        CALL DELAY_100mS
-1909   20E0 2B              DEC HL
-1910   20E1 3D              DEC A
-1911   20E2 FE 00           CP 0
-1912   20E4 C2 D9 20        JP NZ, LEDS_LOOP2
-1913   20E7             
-1914   20E7 3E 08           LD  A, 8
-1915   20E9 21 D0 FF        LD  HL, USER_DISP0
-1916   20EC 06 08           LD  B, $08
-1917   20EE C3 C4 20        JP LEDS_LOOP
-1918   20F1             
-1919   20F1             
-1920   20F1             ; ---------------------------------------------------------
-1921   20F1             ; Utilitys Program | CountDown XX
-1922   20F1             ; OBS: Usa a placa de som para o alarme
-1923   20F1             ; ---------------------------------------------------------
-1924   20F1             COUNT_DOWN_ALERME:
-1925   20F1                 ; timer count down
-1926   20F1             
-1927   20F1 CD 3B 09        CALL CLEAR_USER_DISPLAY
-1928   20F4 3E 39           LD  A, $39
-1929   20F6 32 D0 FF        LD  (USER_DISP0), A
-1930   20F9             
-1931   20F9 3E 3F           LD  A, $3F
-1932   20FB 32 D1 FF        LD  (USER_DISP1), A
-1933   20FE             
-1934   20FE 3E 1C           LD  A, $1C
-1935   2100 32 D2 FF        LD  (USER_DISP2), A
-1936   2103             
-1937   2103 3E 54           LD  A, $54
-1938   2105 32 D3 FF        LD  (USER_DISP3), A
-1939   2108             
-1940   2108 3E 78           LD  A, $78
-1941   210A 32 D4 FF        LD  (USER_DISP4), A
-1942   210D             
-1943   210D 3E 00           LD  A, $00
-1944   210F 32 D5 FF        LD  (USER_DISP5), A
-1945   2112             
-1946   2112             
-1947   2112             
-1948   2112 3E 40           LD  A, $40
-1949   2114 32 D6 FF        LD  (USER_DISP6), A
-1950   2117             
-1951   2117 3E 40           LD  A, $40
-1952   2119 32 D7 FF        LD  (USER_DISP7), A
-1953   211C             
-1954   211C 3E 00           LD  A, 0                 ; user mode
-1955   211E 32 0F FF        LD (SYSMODE), A
-1956   2121             
-1957   2121             READ:
-1958   2121 CD 59 07        CALL GET_KEY_A
-1959   2124 FE FF           CP  $FF
-1960   2126 CA 21 21        JP  Z, READ
-1961   2129             
-1962   2129 CD 3A 21        CALL  MODIFY_KEY_POS_1D
-1963   212C             
-1964   212C             READ2
-1965   212C CD 59 07        CALL GET_KEY_A
-1966   212F FE FF           CP  $FF
-1967   2131 CA 2C 21        JP  Z, READ2
-1968   2134             
-1969   2134 CD 46 21        CALL MODIFY_KEY_POS_0D
-1970   2137             
-1971   2137 C3 51 21        JP  LOOP
-1972   213A             
-1973   213A             
-1974   213A             MODIFY_KEY_POS_1D:
-1975   213A 21 00 FE        LD  HL, DIEGO
-1976   213D 23              INC HL
-1977   213E 77              LD  (HL), A
-1978   213F CD 58 09        CALL GET_NUM_FROM_LOW
-1979   2142 32 D6 FF        LD  (USER_DISP6), A
-1980   2145 C9              RET
-1981   2146             
-1982   2146             MODIFY_KEY_POS_0D:
-1983   2146 21 00 FE        LD  HL, DIEGO
-1984   2149 77              LD  (HL), A
-1985   214A CD 58 09        CALL GET_NUM_FROM_LOW
-1986   214D 32 D7 FF        LD  (USER_DISP7), A
-1987   2150 C9              RET
-1988   2151             
-1989   2151             LOOP:
-1990   2151 2A 00 FE        LD  HL, (DIEGO)
-1991   2154             
-1992   2154             LOOP_DOWN:
-1993   2154 7C              LD  A, H
-1994   2155 CD 58 09        CALL GET_NUM_FROM_LOW
-1995   2158 32 D6 FF        LD  (USER_DISP6), A
-1996   215B             
-1997   215B 7D              LD  A, L
-1998   215C CD 58 09        CALL GET_NUM_FROM_LOW
-1999   215F 32 D7 FF        LD  (USER_DISP7), A
-2000   2162             
-2001   2162 0E 07           LD C, 7    ; 10 x 100ms = 1seg
-2002   2164 CD C2 0A        CALL DELAY_C
-2003   2167             
-2004   2167 7D              LD A, L
-2005   2168 FE 00           CP 0
-2006   216A CA 72 21        JP Z, DEC_H
-2007   216D 3D              DEC A
-2008   216E 6F              LD L, A
-2009   216F C3 54 21        JP LOOP_DOWN
-2010   2172             
-2011   2172             DEC_H:
-2012   2172 7C              LD  A, H
-2013   2173 FE 00           CP 0
-2014   2175 CA 80 21        JP Z, CHECK_L
-2015   2178 3D              DEC A
-2016   2179 67              LD H, A
-2017   217A 3E 09           LD A, 9
-2018   217C 6F              LD L, A
-2019   217D C3 54 21        JP LOOP_DOWN
-2020   2180             
-2021   2180             CHECK_L:
-2022   2180 7D              LD  A, L
-2023   2181 FE 00           CP 0
-2024   2183 CA 86 21        JP Z, BEEP
-2025   2186             
-2026   2186             BEEP:
-2027   2186 3E 80           LD  A, $80
-2028   2188 D3 C0           OUT  (PortC0), A
-2029   218A CD C0 0A        CALL DELAY_100mS
-2030   218D             
-2031   218D 3E C0           LD  A, $C0
-2032   218F D3 C0           OUT  (PortC0), A
-2033   2191 CD C0 0A        CALL DELAY_100mS
-2034   2194 C3 86 21        JP BEEP
-2035   2197             
-2036   2197             
-2037   2197             ; ---------------------------------------------------------
-2038   2197             ; Utilitys Program | IR Sensor
-2039   2197             ; ---------------------------------------------------------
-2040   2197             CONTROLE_SONY:
-2041   2197 3E 00           LD A, 0
-2042   2199 32 00 80        LD ($8000), A            ; BUzzer
-2043   219C             CONTROLE_IR:
-2044   219C F3              DI                       ; deliga monitor (int38)
-2045   219D             
-2046   219D 01 00 00        LD  BC, 0                ; B - time, C - Count
-2047   21A0 16 00           LD  D, 0                 ; D, Data
-2048   21A2             CIR:                         ; aguarda nivel 0
-2049   21A2 DB 40           IN A, (Port40)
-2050   21A4 CB 7F           BIT 7, A
-2051   21A6 C2 A2 21        JP NZ, CIR
-2052   21A9             CIR_START:                   ; Recebe Start (9)
-2053   21A9 04              INC B                    ; B = time, INC B
-2054   21AA CD 90 22        CALL CONTROLE_DELAY
-2055   21AD DB 40           IN  A, (Port40)
-2056   21AF CB 7F           BIT 7, A
-2057   21B1 CA A9 21        JP Z, CIR_START          ; loop até nivel 1
-2058   21B4             
-2059   21B4 78              LD A, B
-2060   21B5 FE 09           CP 9                     ; start time = 9
-2061   21B7 C2 9C 21        JP NZ, CONTROLE_IR       ; se não é start - reinicia
-2062   21BA             
-2063   21BA             ; agora começa a pegar os commandos
-2064   21BA 16 00           LD  D, 0                     ; zera data
-2065   21BC 0E 06           LD  C, 6                     ; data tem 7 bits
-2066   21BE             CONTROLE_IR_LOOP:            ; Aguarda nivel 0
-2067   21BE DB 40           IN A, (Port40)
-2068   21C0 CB 7F           BIT 7, A
-2069   21C2 C2 BE 21        JP NZ, CONTROLE_IR_LOOP
-2070   21C5             
-2071   21C5 06 00           LD  B, 0                ; B = time
-2072   21C7             CONTROLE_IR_LOOP2:           ; Recebeu alguma coisa
-2073   21C7 04              INC B
-2074   21C8 CD 90 22        CALL CONTROLE_DELAY
-2075   21CB DB 40           IN  A, (Port40)
-2076   21CD CB 7F           BIT 7, A
-2077   21CF CA C7 21        JP Z, CONTROLE_IR_LOOP2  ; aguarda nivel 1
-2078   21D2             
-2079   21D2 78              LD A, B
-2080   21D3 FE 05           CP 5                     ; 5 HIGH, 3 LOW
-2081   21D5 C2 DA 21        JP NZ, CIR_ZERO
-2082   21D8 CB C2           SET 0, D
-2083   21DA             
-2084   21DA             CIR_ZERO:
-2085   21DA 79              LD A, C
-2086   21DB FE 00           CP 0
-2087   21DD CA E8 21        JP Z, CONTROLE_OK 
-2088   21E0             
-2089   21E0 CB 02           RLC D
-2090   21E2 06 00           LD B, 0
-2091   21E4 0D              DEC C
-2092   21E5             
-2093   21E5 C3 BE 21        JP CONTROLE_IR_LOOP
-2094   21E8             
-2095   21E8                 
-2096   21E8             
-2097   21E8             CONTROLE_OK:
-2098   21E8 7A              LD  A, D
-2099   21E9 32 00 90        LD ($9000), A           ; Save data $9000
-2100   21EC             
-2101   21EC             ; commando recebido em D
-2102   21EC 7A              LD A, D
-2103   21ED FE 53           CP $53                   ; ok
-2104   21EF CA 74 22        JP Z, CIR_OK
-2105   21F2 FE 63           CP $63                   ; Exit
-2106   21F4 CA 87 22        JP Z, CIR_SAIR
-2107   21F7 FE 54           CP $54                   ; power
-2108   21F9 CA 61 22        JP Z, CIR_TOGGLE_BUZZER
-2109   21FC FE 52           CP $52
-2110   21FE CA 15 22        JP Z, CIR_R              ; red
-2111   2201 FE 32           CP $32
-2112   2203 CA 28 22        JP Z, CIR_G              ; green
-2113   2206 FE 72           CP $72
-2114   2208 CA 3B 22        JP Z, CIR_Y              ; yellow
-2115   220B FE 12           CP $12
-2116   220D CA 4E 22        JP Z, CIR_B              ; blue
-2117   2210             
-2118   2210 D3 40           OUT (Port40), A
-2119   2212 C3 9C 21        JP CONTROLE_IR
-2120   2215             
-2121   2215             
-2122   2215             CIR_R:
-2123   2215 3A 00 80        LD A, ($8000)
-2124   2218 EE 20           XOR $20
-2125   221A D3 C0           OUT (PortC0), A
-2126   221C 32 00 80        LD ($8000), A
-2127   221F CD C0 0A        CALL DELAY_100mS
-2128   2222 CD C0 0A        CALL DELAY_100mS
-2129   2225 C3 9C 21        JP CONTROLE_IR
-2130   2228             
-2131   2228             CIR_G:
-2132   2228 3A 00 80        LD A, ($8000)
-2133   222B EE 80           XOR $80
-2134   222D D3 C0           OUT (PortC0), A
-2135   222F 32 00 80        LD ($8000), A
-2136   2232 CD C0 0A        CALL DELAY_100mS
-2137   2235 CD C0 0A        CALL DELAY_100mS
-2138   2238 C3 9C 21        JP CONTROLE_IR
-2139   223B             
-2140   223B             CIR_Y:
-2141   223B 3A 00 80        LD A, ($8000)
-2142   223E EE 40           XOR $40
-2143   2240 D3 C0           OUT (PortC0), A
-2144   2242 32 00 80        LD ($8000), A
-2145   2245 CD C0 0A        CALL DELAY_100mS
-2146   2248 CD C0 0A        CALL DELAY_100mS
-2147   224B C3 9C 21        JP CONTROLE_IR
-2148   224E             
-2149   224E             CIR_B:
-2150   224E 3A 00 80        LD A, ($8000)
-2151   2251 EE 10           XOR $10
-2152   2253 D3 C0           OUT (PortC0), A
-2153   2255 32 00 80        LD ($8000), A
-2154   2258 CD C0 0A        CALL DELAY_100mS
-2155   225B CD C0 0A        CALL DELAY_100mS
-2156   225E C3 9C 21        JP CONTROLE_IR
-2157   2261             
-2158   2261             
-2159   2261             CIR_TOGGLE_BUZZER:
-2160   2261 3A 00 80        LD A, ($8000)
-2161   2264 EE 08           XOR $08
-2162   2266 D3 C0           OUT (PortC0), A
-2163   2268 32 00 80        LD ($8000), A
-2164   226B CD C0 0A        CALL DELAY_100mS
-2165   226E CD C0 0A        CALL DELAY_100mS
-2166   2271 C3 9C 21        JP CONTROLE_IR
-2167   2274             
-2168   2274             CIR_OK:
-2169   2274 3A 00 80        LD A, ($8000)
-2170   2277 EE 01           XOR $01
-2171   2279 D3 C0           OUT (PortC0), A
-2172   227B 32 00 80        LD ($8000), A
-2173   227E CD C0 0A        CALL DELAY_100mS
-2174   2281 CD C0 0A        CALL DELAY_100mS
-2175   2284 C3 9C 21        JP CONTROLE_IR
-2176   2287             
-2177   2287             CIR_SAIR:
-2178   2287                 ; retorna int
-2179   2287 ED 56           IM  1
-2180   2289 FB              EI
-2181   228A AF              XOR A
-2182   228B D3 40           OUT (Port40), A
-2183   228D                 
-2184   228D             CONTROLE_IR_LOOP3:
-2185   228D C3 8D 22        JP CONTROLE_IR_LOOP3
-2186   2290             
-2187   2290             
-2188   2290             CONTROLE_DELAY:
-2189   2290 F5              PUSH AF
-2190   2291 3E 32           LD A, 50
-2191   2293             CONTROLE_DELAY_LOOP:
-2192   2293 3D              DEC A
-2193   2294 FE 00           CP 0
-2194   2296 C2 93 22        JP NZ, CONTROLE_DELAY_LOOP
-2195   2299 F1              POP AF
-2196   229A C9              RET
-2197   229B             
-2198   229B             
-2199   229B             
-2200   229B             ; ---------------------------------------------------------
-2201   229B             ; Utilitys Program | PROGRAM CALC XX + XX 
-2202   229B             ; ---------------------------------------------------------
-2203   229B             CALC_SUM:
-2204   229B             NUM1     .equ      $8000
-2205   229B             NUM2     .equ      $8001
-2206   229B             RESULT1  .equ      $8002
-2207   229B             RESULT2  .equ      $8003
-2208   229B             
-2209   229B 3E 00           LD  A, 0                 ; user mode
-2210   229D 32 0F FF        LD (SYSMODE), A
-2211   22A0             
-2212   22A0 CD 3B 09        CALL CLEAR_USER_DISPLAY
-2213   22A3             
-2214   22A3 3E 40           LD  A, $40
-2215   22A5 32 D6 FF        LD  (USER_DISP6), A
-2216   22A8             
-2217   22A8 3E 40           LD  A, $40
-2218   22AA 32 D7 FF        LD  (USER_DISP7), A
-2219   22AD             
-2220   22AD 3E 00           LD A, 0
-2221   22AF 32 02 80        LD (RESULT1), A
-2222   22B2 32 03 80        LD (RESULT2), A
-2223   22B5             
-2224   22B5             READ01:
-2225   22B5 CD 59 07        CALL GET_KEY_A
-2226   22B8 FE FF           CP  $FF
-2227   22BA CA B5 22        JP  Z, READ01
-2228   22BD F5              PUSH AF
-2229   22BE CB 07           RLC A
-2230   22C0 CB 07           RLC A
-2231   22C2 CB 07           RLC A
-2232   22C4 CB 07           RLC A
-2233   22C6 32 00 80        LD  (NUM1), A
-2234   22C9 F1              POP AF
-2235   22CA CD 58 09        CALL GET_NUM_FROM_LOW
-2236   22CD 32 D6 FF        LD (USER_DISP6), A
-2237   22D0             
-2238   22D0             READ02:
-2239   22D0 CD 59 07        CALL GET_KEY_A
-2240   22D3 FE FF           CP  $FF
-2241   22D5 CA D0 22        JP  Z, READ02
-2242   22D8 F5              PUSH AF
-2243   22D9 47              LD B, A
-2244   22DA 3A 00 80        LD A, (NUM1)
-2245   22DD B0              OR B
-2246   22DE 32 00 80        LD (NUM1), A
-2247   22E1             
-2248   22E1 F1              POP AF
-2249   22E2 CD 58 09        CALL GET_NUM_FROM_LOW
-2250   22E5 32 D7 FF        LD (USER_DISP7), A
-2251   22E8             
-2252   22E8 3E FF           LD A, $FF
-2253   22EA CD B5 0A        CALL DELAY_A
-2254   22ED             ; NUM2
-2255   22ED 3E 40           LD  A, $40
-2256   22EF 32 D6 FF        LD  (USER_DISP6), A
-2257   22F2             
-2258   22F2 3E 40           LD  A, $40
-2259   22F4 32 D7 FF        LD  (USER_DISP7), A
-2260   22F7             
-2261   22F7             READ03:
-2262   22F7 CD 59 07        CALL GET_KEY_A
-2263   22FA FE FF           CP  $FF
-2264   22FC CA F7 22        JP  Z, READ03
-2265   22FF F5              PUSH AF
-2266   2300 CB 07           RLC A
-2267   2302 CB 07           RLC A
-2268   2304 CB 07           RLC A
-2269   2306 CB 07           RLC A
-2270   2308 32 01 80        LD  (NUM2), A
-2271   230B F1              POP AF
-2272   230C CD 58 09        CALL GET_NUM_FROM_LOW
-2273   230F 32 D6 FF        LD (USER_DISP6), A
-2274   2312             
-2275   2312             READ04:
-2276   2312 CD 59 07        CALL GET_KEY_A
-2277   2315 FE FF           CP  $FF
-2278   2317 CA 12 23        JP  Z, READ04
-2279   231A             
-2280   231A F5              PUSH AF
-2281   231B CD 58 09        CALL GET_NUM_FROM_LOW
-2282   231E 32 D7 FF        LD (USER_DISP7), A
-2283   2321 F1              POP AF
-2284   2322 47              LD B, A
-2285   2323 3A 01 80        LD A, (NUM2)
-2286   2326 B0              OR B
-2287   2327 32 01 80        LD (NUM2), A
-2288   232A             
-2289   232A 3A 00 80        LD A, (NUM1)
-2290   232D 47              LD B, A
-2291   232E 3A 01 80        LD A, (NUM2)
-2292   2331 80              ADD A, B
-2293   2332 27              DAA
-2294   2333 32 03 80        LD (RESULT2), A
-2295   2336             
-2296   2336 D2 40 23        JP NC, CALC_SUM_SHOW
-2297   2339 3A 02 80        LD A, (RESULT1)
-2298   233C 3C              INC A
-2299   233D 32 02 80        LD (RESULT1),A
-2300   2340             
-2301   2340             CALC_SUM_SHOW:
-2302   2340 3E FF           LD A, $FF
-2303   2342 CD B5 0A        CALL DELAY_A
-2304   2345             
-2305   2345 3A 02 80        LD A, (RESULT1)
-2306   2348 FE 00           CP 0
-2307   234A CA 53 23        JP Z, SHOW_NEXT
-2308   234D CD 58 09        CALL GET_NUM_FROM_LOW
-2309   2350 32 D5 FF        LD (USER_DISP5), A
-2310   2353             
-2311   2353             SHOW_NEXT:
-2312   2353 3A 03 80        LD A, (RESULT2)
-2313   2356 CD 68 09        CALL GET_NUM_FROM_HIGH
-2314   2359 32 D6 FF        LD (USER_DISP6), A
-2315   235C             
-2316   235C 3A 03 80        LD A, (RESULT2)
-2317   235F CD 58 09        CALL GET_NUM_FROM_LOW
-2318   2362 32 D7 FF        LD (USER_DISP7), A
-2319   2365             
-2320   2365             CALC_SUM_LOOP:
-2321   2365 C3 65 23        JP  CALC_SUM_LOOP
-2322   2368             
-2323   2368             
-2324   2368             ; ---------------------------------------------------------
-2325   2368             ; Utilitys Program | PROGRAM X
-2326   2368             ; ---------------------------------------------------------
-2327   2368 3E 00           LD  A, 0                 ; user mode
-2328   236A 32 0F FF        LD (SYSMODE), A
-2329   236D             
-2330   236D             
-2331   236D             ; =========================================================
-2332   236D             ; Tabela display
-2333   236D             ; =========================================================
-2334   236D             ; 
-2335   236D             ;   0 - $3F     A - $77     K - $7A     U - $1C     . - $80
-2336   236D             ;   1 - $06     B - $7C     L - $38     V - $3E     Ñ - $55
-2337   236D             ;   2 - $5B     C - $39     M - $37     W - $1D     : - $41
-2338   236D             ;   3 - $4F     D - $5E     N - $54     X - $70     ; - $88
-2339   236D             ;   4 - $66     E - $79     O - $3F     Y - $6E     _ - $08
-2340   236D             ;   5 - $6D     F - $71     P - $73     Z - $49     ~ - $01
-2341   236D             ;   6 - $7D     G - $6F     Q - $67                 ' - $20
-2342   236D             ;   7 - $07     H - $76     R - $50     + - $46     
-2343   236D             ;   8 - $7F     I - $06     S - $6D     , - $04     
-2344   236D             ;   9 - $67     J - $1E     T - $78     - - $40     
-2345   236D             
-2346   236D             .end
+1762   2000 C3 15 20    JP_CLEAR_RAM_FF              JP CLEAR_RAM_FF               ; 2000
+1763   2003 C3 3F 20    JP_LOAD_FROM_IR              JP LOAD_FROM_IR               ; 2003
+1764   2006 C3 A3 20    JP_TESTE_SOM                 JP TESTE_SOM                  ; 2006
+1765   2009 C3 1C 21    JP_ANIMATE_LED1              JP ANIMATE_LED1               ; 2009
+1766   200C C3 58 21    JP_COUNT_DOWN_ALERME         JP COUNT_DOWN_ALERME          ; 200C
+1767   200F C3 FE 21    JP_CONTROLE_SONY             JP CONTROLE_SONY              ; 200F
+1768   2012 C3 02 23    JP_CALC_SUM                  JP CALC_SUM                   ; 2012
+1769   2015             
+1770   2015             
+1771   2015             
+1772   2015             
+1773   2015             
+1774   2015             
+1775   2015             
+1776   2015             
+1777   2015             ; ---------------------------------------------------------
+1778   2015             ; RAM MAP - Utilitys Program | $FE00 - $FEFF
+1779   2015             ; ---------------------------------------------------------
+1780   2015             DIEGO      .equ    $FE00   ;(2) Temp Digits to countDown
+1781   2015             
+1782   2015             
+1783   2015             ; ---------------------------------------------------------
+1784   2015             ; Utilitys Program | CLEAR RAM
+1785   2015             ; ---------------------------------------------------------
+1786   2015             CLEAR_RAM_FF:
+1787   2015 21 00 FE        LD  HL, $FE00
+1788   2018 06 FF           LD  B, $FF
+1789   201A             CLEAR_RAM_FF_LOOP:
+1790   201A 2B              DEC HL
+1791   201B 70              LD (HL), B
+1792   201C 7C              LD A, H
+1793   201D FE 80           CP $80
+1794   201F CA 25 20        JP Z, CLEAR_RAM_FF_CHECK_L
+1795   2022 C3 1A 20        JP CLEAR_RAM_FF_LOOP
+1796   2025             
+1797   2025             CLEAR_RAM_FF_CHECK_L:
+1798   2025 7D              LD A, L
+1799   2026 FE 00           CP $00
+1800   2028 CA 2E 20        JP Z, CLEAR_RAM_FF_END
+1801   202B C3 1A 20        JP CLEAR_RAM_FF_LOOP
+1802   202E             CLEAR_RAM_FF_END:
+1803   202E 3E C3           LD A, $C3
+1804   2030 32 FD FD        LD ($FDFD), A
+1805   2033 AF              XOR A
+1806   2034 32 FE FD        LD ($FDFE), A
+1807   2037 3E 80           LD A, $80
+1808   2039 32 FF FD        LD ($FDFF), A
+1809   203C CA A3 0A        JP Z, START_LOOP
+1810   203F             
+1811   203F             
+1812   203F             ; ---------------------------------------------------------
+1813   203F             ; Utilitys Program | LOAD RAM FROM IR (NanoTac)
+1814   203F             ; ---------------------------------------------------------
+1815   203F             LOAD_FROM_IR:
+1816   203F F3              DI                       ; deliga monitor (int38)
+1817   2040 21 00 80        LD HL, $8000           ; inicio ram
+1818   2043             LFI_START:
+1819   2043 01 00 00        LD  BC, 0                ; B - time, C - Count
+1820   2046 16 00           LD  D, 0                 ; D, Data
+1821   2048             LFI_CK1:                         ; aguarda nivel 0
+1822   2048 DB 40           IN A, (Port40)
+1823   204A CB 7F           BIT 7, A
+1824   204C C2 48 20        JP NZ, LFI_CK1
+1825   204F             LFI_COD_START:               ; Recebe Start (9)
+1826   204F 04              INC B                    ; B = time, INC B
+1827   2050 CD F7 22        CALL CONTROLE_DELAY
+1828   2053 DB 40           IN  A, (Port40)
+1829   2055 CB 7F           BIT 7, A
+1830   2057 CA 4F 20        JP Z, LFI_COD_START      ; loop até nivel 1
+1831   205A             
+1832   205A 78              LD A, B
+1833   205B FE 09           CP 9                     ; start time = 9
+1834   205D C2 43 20        JP NZ, LFI_START         ; se não é start - reinicia
+1835   2060             
+1836   2060             LFI_GET_NEXT:
+1837   2060             ; agora começa a pegar os commandos
+1838   2060 16 00           LD  D, 0                 ; zera data
+1839   2062 0E 07           LD  C, 7                 ; data tem 8 bits
+1840   2064             LFI_LOOP:                    ; Aguarda nivel 0
+1841   2064 DB 40           IN A, (Port40)
+1842   2066 CB 7F           BIT 7, A
+1843   2068 C2 64 20        JP NZ, LFI_LOOP
+1844   206B             
+1845   206B 06 00           LD  B, 0                  ; B = time
+1846   206D             LFI_LOOP2:                    ; Recebeu alguma coisa
+1847   206D 04              INC B
+1848   206E CD 98 20        CALL LFI_DELAY
+1849   2071 DB 40           IN  A, (Port40)
+1850   2073 CB 7F           BIT 7, A
+1851   2075 CA 6D 20        JP Z, LFI_LOOP2  ; aguarda nivel 1
+1852   2078             
+1853   2078 78              LD A, B
+1854   2079 FE 09           CP 9
+1855   207B CA 67 0A        JP Z, START              ; Back to minitor
+1856   207E FE 05           CP 5                     ; 5 HIGH, 3 LOW
+1857   2080 C2 85 20        JP NZ, LFI_ZERO
+1858   2083 CB C2           SET 0, D
+1859   2085             
+1860   2085             LFI_ZERO:
+1861   2085 79              LD A, C
+1862   2086 FE 00           CP 0
+1863   2088 CA 93 20        JP Z, LFI_BYTE_OK 
+1864   208B             
+1865   208B CB 02           RLC D
+1866   208D 06 00           LD B, 0
+1867   208F 0D              DEC C
+1868   2090             
+1869   2090 C3 64 20        JP LFI_LOOP
+1870   2093             
+1871   2093                 
+1872   2093             
+1873   2093             LFI_BYTE_OK:
+1874   2093 72              LD  (HL), D
+1875   2094 23              INC HL
+1876   2095 C3 60 20        JP LFI_GET_NEXT
+1877   2098             
+1878   2098             
+1879   2098             LFI_DELAY:
+1880   2098 F5              PUSH AF
+1881   2099 3E 32           LD A, 50
+1882   209B             LFI_DELAY_LOOP:
+1883   209B 3D              DEC A
+1884   209C FE 00           CP 0
+1885   209E C2 9B 20        JP NZ, LFI_DELAY_LOOP
+1886   20A1 F1              POP AF
+1887   20A2 C9              RET
+1888   20A3             
+1889   20A3             
+1890   20A3             
+1891   20A3             ; ---------------------------------------------------------
+1892   20A3             ; Utilitys Program | TESTE SOM 
+1893   20A3             ; 
+1894   20A3             ; Key F     = $00 - $FF na saida C0
+1895   20A3             ; Key A e B = Incrementa e Decrementa Saida C0
+1896   20A3             ; ---------------------------------------------------------
+1897   20A3             TESTE_SOM:
+1898   20A3 3E 00           LD  A, 0
+1899   20A5 32 0F FF        LD  (SYSMODE), A
+1900   20A8 3E 00           LD  A, 0
+1901   20AA 47              LD  B, A
+1902   20AB CD 3B 09        CALL CLEAR_USER_DISPLAY
+1903   20AE 3E 6D           LD  A, $6D ; S
+1904   20B0 32 D0 FF        LD  (USER_DISP0), A
+1905   20B3 3E 3F           LD  A, $3F ; O
+1906   20B5 32 D1 FF        LD  (USER_DISP1), A
+1907   20B8 3E 1C           LD  A, $1C ; U
+1908   20BA 32 D2 FF        LD  (USER_DISP2), A
+1909   20BD 3E 54           LD  A, $54 ; N
+1910   20BF 32 D3 FF        LD  (USER_DISP3), A
+1911   20C2 3E 5E           LD  A, $5E ; D
+1912   20C4 32 D4 FF        LD  (USER_DISP4), A
+1913   20C7             LOOP_SOM:
+1914   20C7 78              LD  A, B
+1915   20C8 CD 58 09        CALL GET_NUM_FROM_LOW
+1916   20CB 32 D7 FF        LD  (USER_DISP7), A
+1917   20CE 78              LD  A, B
+1918   20CF CD 68 09        CALL GET_NUM_FROM_HIGH
+1919   20D2 32 D6 FF        LD  (USER_DISP6), A
+1920   20D5             
+1921   20D5 CD 59 07        CALL GET_KEY_A
+1922   20D8 FE 0A           CP  $0A
+1923   20DA CA EA 20        JP  Z, SOM_INC
+1924   20DD FE 0B           CP  $0B
+1925   20DF CA F5 20        JP  Z, SOM_DEC
+1926   20E2 FE 0F           CP  $0F
+1927   20E4 CA 00 21        JP  Z, SOM_LOOP_INC
+1928   20E7 C3 C7 20        JP  LOOP_SOM
+1929   20EA             
+1930   20EA             
+1931   20EA             SOM_INC:
+1932   20EA 04              INC B
+1933   20EB 0E C0           LD  C, $C0
+1934   20ED ED 41           OUT (C), B
+1935   20EF CD C0 0A        CALL DELAY_100mS
+1936   20F2 C3 C7 20        JP  LOOP_SOM
+1937   20F5             
+1938   20F5             SOM_DEC:
+1939   20F5 05              DEC B
+1940   20F6 0E C0           LD  C, $C0
+1941   20F8 ED 41           OUT (C), B
+1942   20FA CD C0 0A        CALL DELAY_100mS
+1943   20FD C3 C7 20        JP  LOOP_SOM
+1944   2100             
+1945   2100             SOM_LOOP_INC:
+1946   2100 78              LD  A, B
+1947   2101 CD 58 09        CALL GET_NUM_FROM_LOW
+1948   2104 32 D7 FF        LD  (USER_DISP7), A
+1949   2107 78              LD  A, B
+1950   2108 CD 68 09        CALL GET_NUM_FROM_HIGH
+1951   210B 32 D6 FF        LD  (USER_DISP6), A
+1952   210E 04              INC B
+1953   210F 0E C0           LD  C, $C0
+1954   2111 ED 41           OUT (C), B
+1955   2113 CD C0 0A        CALL DELAY_100mS
+1956   2116 CD C0 0A        CALL DELAY_100mS
+1957   2119 C3 00 21        JP  SOM_LOOP_INC
+1958   211C             
+1959   211C             
+1960   211C             ; ---------------------------------------------------------
+1961   211C             ; Utilitys Program | Animação led
+1962   211C             ; ---------------------------------------------------------
+1963   211C             ANIMATE_LED1:
+1964   211C CD 3B 09        CALL CLEAR_USER_DISPLAY
+1965   211F 3E 00           LD  A, 0                 ; user mode
+1966   2121 32 0F FF        LD (SYSMODE), A
+1967   2124             
+1968   2124 06 08           LD  B, $08
+1969   2126 21 D0 FF        LD  HL, USER_DISP0
+1970   2129 3E 08           LD  A, 8
+1971   212B             
+1972   212B             LEDS_LOOP:
+1973   212B CD 3B 09        CALL CLEAR_USER_DISPLAY
+1974   212E 70              LD  (HL), B
+1975   212F CD C0 0A        CALL DELAY_100mS
+1976   2132 23              INC HL
+1977   2133 3D              DEC A
+1978   2134 FE 00           CP 0
+1979   2136 C2 2B 21        JP NZ, LEDS_LOOP
+1980   2139             
+1981   2139 3E 08           LD A, 8
+1982   213B 21 D7 FF        LD  HL, USER_DISP7
+1983   213E 06 40           LD  B, $40
+1984   2140             
+1985   2140             LEDS_LOOP2:
+1986   2140 CD 3B 09        CALL CLEAR_USER_DISPLAY
+1987   2143 70              LD  (HL), B
+1988   2144 CD C0 0A        CALL DELAY_100mS
+1989   2147 2B              DEC HL
+1990   2148 3D              DEC A
+1991   2149 FE 00           CP 0
+1992   214B C2 40 21        JP NZ, LEDS_LOOP2
+1993   214E             
+1994   214E 3E 08           LD  A, 8
+1995   2150 21 D0 FF        LD  HL, USER_DISP0
+1996   2153 06 08           LD  B, $08
+1997   2155 C3 2B 21        JP LEDS_LOOP
+1998   2158             
+1999   2158             
+2000   2158             ; ---------------------------------------------------------
+2001   2158             ; Utilitys Program | CountDown XX
+2002   2158             ; OBS: Usa a placa de som para o alarme
+2003   2158             ; ---------------------------------------------------------
+2004   2158             COUNT_DOWN_ALERME:
+2005   2158                 ; timer count down
+2006   2158             
+2007   2158 CD 3B 09        CALL CLEAR_USER_DISPLAY
+2008   215B 3E 39           LD  A, $39
+2009   215D 32 D0 FF        LD  (USER_DISP0), A
+2010   2160             
+2011   2160 3E 3F           LD  A, $3F
+2012   2162 32 D1 FF        LD  (USER_DISP1), A
+2013   2165             
+2014   2165 3E 1C           LD  A, $1C
+2015   2167 32 D2 FF        LD  (USER_DISP2), A
+2016   216A             
+2017   216A 3E 54           LD  A, $54
+2018   216C 32 D3 FF        LD  (USER_DISP3), A
+2019   216F             
+2020   216F 3E 78           LD  A, $78
+2021   2171 32 D4 FF        LD  (USER_DISP4), A
+2022   2174             
+2023   2174 3E 00           LD  A, $00
+2024   2176 32 D5 FF        LD  (USER_DISP5), A
+2025   2179             
+2026   2179             
+2027   2179             
+2028   2179 3E 40           LD  A, $40
+2029   217B 32 D6 FF        LD  (USER_DISP6), A
+2030   217E             
+2031   217E 3E 40           LD  A, $40
+2032   2180 32 D7 FF        LD  (USER_DISP7), A
+2033   2183             
+2034   2183 3E 00           LD  A, 0                 ; user mode
+2035   2185 32 0F FF        LD (SYSMODE), A
+2036   2188             
+2037   2188             READ:
+2038   2188 CD 59 07        CALL GET_KEY_A
+2039   218B FE FF           CP  $FF
+2040   218D CA 88 21        JP  Z, READ
+2041   2190             
+2042   2190 CD A1 21        CALL  MODIFY_KEY_POS_1D
+2043   2193             
+2044   2193             READ2
+2045   2193 CD 59 07        CALL GET_KEY_A
+2046   2196 FE FF           CP  $FF
+2047   2198 CA 93 21        JP  Z, READ2
+2048   219B             
+2049   219B CD AD 21        CALL MODIFY_KEY_POS_0D
+2050   219E             
+2051   219E C3 B8 21        JP  LOOP
+2052   21A1             
+2053   21A1             
+2054   21A1             MODIFY_KEY_POS_1D:
+2055   21A1 21 00 FE        LD  HL, DIEGO
+2056   21A4 23              INC HL
+2057   21A5 77              LD  (HL), A
+2058   21A6 CD 58 09        CALL GET_NUM_FROM_LOW
+2059   21A9 32 D6 FF        LD  (USER_DISP6), A
+2060   21AC C9              RET
+2061   21AD             
+2062   21AD             MODIFY_KEY_POS_0D:
+2063   21AD 21 00 FE        LD  HL, DIEGO
+2064   21B0 77              LD  (HL), A
+2065   21B1 CD 58 09        CALL GET_NUM_FROM_LOW
+2066   21B4 32 D7 FF        LD  (USER_DISP7), A
+2067   21B7 C9              RET
+2068   21B8             
+2069   21B8             LOOP:
+2070   21B8 2A 00 FE        LD  HL, (DIEGO)
+2071   21BB             
+2072   21BB             LOOP_DOWN:
+2073   21BB 7C              LD  A, H
+2074   21BC CD 58 09        CALL GET_NUM_FROM_LOW
+2075   21BF 32 D6 FF        LD  (USER_DISP6), A
+2076   21C2             
+2077   21C2 7D              LD  A, L
+2078   21C3 CD 58 09        CALL GET_NUM_FROM_LOW
+2079   21C6 32 D7 FF        LD  (USER_DISP7), A
+2080   21C9             
+2081   21C9 0E 07           LD C, 7    ; 10 x 100ms = 1seg
+2082   21CB CD C2 0A        CALL DELAY_C
+2083   21CE             
+2084   21CE 7D              LD A, L
+2085   21CF FE 00           CP 0
+2086   21D1 CA D9 21        JP Z, DEC_H
+2087   21D4 3D              DEC A
+2088   21D5 6F              LD L, A
+2089   21D6 C3 BB 21        JP LOOP_DOWN
+2090   21D9             
+2091   21D9             DEC_H:
+2092   21D9 7C              LD  A, H
+2093   21DA FE 00           CP 0
+2094   21DC CA E7 21        JP Z, CHECK_L
+2095   21DF 3D              DEC A
+2096   21E0 67              LD H, A
+2097   21E1 3E 09           LD A, 9
+2098   21E3 6F              LD L, A
+2099   21E4 C3 BB 21        JP LOOP_DOWN
+2100   21E7             
+2101   21E7             CHECK_L:
+2102   21E7 7D              LD  A, L
+2103   21E8 FE 00           CP 0
+2104   21EA CA ED 21        JP Z, BEEP
+2105   21ED             
+2106   21ED             BEEP:
+2107   21ED 3E 80           LD  A, $80
+2108   21EF D3 C0           OUT  (PortC0), A
+2109   21F1 CD C0 0A        CALL DELAY_100mS
+2110   21F4             
+2111   21F4 3E C0           LD  A, $C0
+2112   21F6 D3 C0           OUT  (PortC0), A
+2113   21F8 CD C0 0A        CALL DELAY_100mS
+2114   21FB C3 ED 21        JP BEEP
+2115   21FE             
+2116   21FE             
+2117   21FE             ; ---------------------------------------------------------
+2118   21FE             ; Utilitys Program | IR Sensor
+2119   21FE             ; ---------------------------------------------------------
+2120   21FE             CONTROLE_SONY:
+2121   21FE 3E 00           LD A, 0
+2122   2200 32 00 80        LD ($8000), A            ; BUzzer
+2123   2203             CONTROLE_IR:
+2124   2203 F3              DI                       ; deliga monitor (int38)
+2125   2204             
+2126   2204 01 00 00        LD  BC, 0                ; B - time, C - Count
+2127   2207 16 00           LD  D, 0                 ; D, Data
+2128   2209             CIR:                         ; aguarda nivel 0
+2129   2209 DB 40           IN A, (Port40)
+2130   220B CB 7F           BIT 7, A
+2131   220D C2 09 22        JP NZ, CIR
+2132   2210             CIR_START:                   ; Recebe Start (9)
+2133   2210 04              INC B                    ; B = time, INC B
+2134   2211 CD F7 22        CALL CONTROLE_DELAY
+2135   2214 DB 40           IN  A, (Port40)
+2136   2216 CB 7F           BIT 7, A
+2137   2218 CA 10 22        JP Z, CIR_START          ; loop até nivel 1
+2138   221B             
+2139   221B 78              LD A, B
+2140   221C FE 09           CP 9                     ; start time = 9
+2141   221E C2 03 22        JP NZ, CONTROLE_IR       ; se não é start - reinicia
+2142   2221             
+2143   2221             ; agora começa a pegar os commandos
+2144   2221 16 00           LD  D, 0                     ; zera data
+2145   2223 0E 06           LD  C, 6                     ; data tem 7 bits
+2146   2225             CONTROLE_IR_LOOP:            ; Aguarda nivel 0
+2147   2225 DB 40           IN A, (Port40)
+2148   2227 CB 7F           BIT 7, A
+2149   2229 C2 25 22        JP NZ, CONTROLE_IR_LOOP
+2150   222C             
+2151   222C 06 00           LD  B, 0                ; B = time
+2152   222E             CONTROLE_IR_LOOP2:           ; Recebeu alguma coisa
+2153   222E 04              INC B
+2154   222F CD F7 22        CALL CONTROLE_DELAY
+2155   2232 DB 40           IN  A, (Port40)
+2156   2234 CB 7F           BIT 7, A
+2157   2236 CA 2E 22        JP Z, CONTROLE_IR_LOOP2  ; aguarda nivel 1
+2158   2239             
+2159   2239 78              LD A, B
+2160   223A FE 05           CP 5                     ; 5 HIGH, 3 LOW
+2161   223C C2 41 22        JP NZ, CIR_ZERO
+2162   223F CB C2           SET 0, D
+2163   2241             
+2164   2241             CIR_ZERO:
+2165   2241 79              LD A, C
+2166   2242 FE 00           CP 0
+2167   2244 CA 4F 22        JP Z, CONTROLE_OK 
+2168   2247             
+2169   2247 CB 02           RLC D
+2170   2249 06 00           LD B, 0
+2171   224B 0D              DEC C
+2172   224C             
+2173   224C C3 25 22        JP CONTROLE_IR_LOOP
+2174   224F             
+2175   224F                 
+2176   224F             
+2177   224F             CONTROLE_OK:
+2178   224F 7A              LD  A, D
+2179   2250 32 00 90        LD ($9000), A           ; Save data $9000
+2180   2253             
+2181   2253             ; commando recebido em D
+2182   2253 7A              LD A, D
+2183   2254 FE 53           CP $53                   ; ok
+2184   2256 CA DB 22        JP Z, CIR_OK
+2185   2259 FE 63           CP $63                   ; Exit
+2186   225B CA EE 22        JP Z, CIR_SAIR
+2187   225E FE 54           CP $54                   ; power
+2188   2260 CA C8 22        JP Z, CIR_TOGGLE_BUZZER
+2189   2263 FE 52           CP $52
+2190   2265 CA 7C 22        JP Z, CIR_R              ; red
+2191   2268 FE 32           CP $32
+2192   226A CA 8F 22        JP Z, CIR_G              ; green
+2193   226D FE 72           CP $72
+2194   226F CA A2 22        JP Z, CIR_Y              ; yellow
+2195   2272 FE 12           CP $12
+2196   2274 CA B5 22        JP Z, CIR_B              ; blue
+2197   2277             
+2198   2277 D3 40           OUT (Port40), A
+2199   2279 C3 03 22        JP CONTROLE_IR
+2200   227C             
+2201   227C             
+2202   227C             CIR_R:
+2203   227C 3A 00 80        LD A, ($8000)
+2204   227F EE 20           XOR $20
+2205   2281 D3 C0           OUT (PortC0), A
+2206   2283 32 00 80        LD ($8000), A
+2207   2286 CD C0 0A        CALL DELAY_100mS
+2208   2289 CD C0 0A        CALL DELAY_100mS
+2209   228C C3 03 22        JP CONTROLE_IR
+2210   228F             
+2211   228F             CIR_G:
+2212   228F 3A 00 80        LD A, ($8000)
+2213   2292 EE 80           XOR $80
+2214   2294 D3 C0           OUT (PortC0), A
+2215   2296 32 00 80        LD ($8000), A
+2216   2299 CD C0 0A        CALL DELAY_100mS
+2217   229C CD C0 0A        CALL DELAY_100mS
+2218   229F C3 03 22        JP CONTROLE_IR
+2219   22A2             
+2220   22A2             CIR_Y:
+2221   22A2 3A 00 80        LD A, ($8000)
+2222   22A5 EE 40           XOR $40
+2223   22A7 D3 C0           OUT (PortC0), A
+2224   22A9 32 00 80        LD ($8000), A
+2225   22AC CD C0 0A        CALL DELAY_100mS
+2226   22AF CD C0 0A        CALL DELAY_100mS
+2227   22B2 C3 03 22        JP CONTROLE_IR
+2228   22B5             
+2229   22B5             CIR_B:
+2230   22B5 3A 00 80        LD A, ($8000)
+2231   22B8 EE 10           XOR $10
+2232   22BA D3 C0           OUT (PortC0), A
+2233   22BC 32 00 80        LD ($8000), A
+2234   22BF CD C0 0A        CALL DELAY_100mS
+2235   22C2 CD C0 0A        CALL DELAY_100mS
+2236   22C5 C3 03 22        JP CONTROLE_IR
+2237   22C8             
+2238   22C8             
+2239   22C8             CIR_TOGGLE_BUZZER:
+2240   22C8 3A 00 80        LD A, ($8000)
+2241   22CB EE 08           XOR $08
+2242   22CD D3 C0           OUT (PortC0), A
+2243   22CF 32 00 80        LD ($8000), A
+2244   22D2 CD C0 0A        CALL DELAY_100mS
+2245   22D5 CD C0 0A        CALL DELAY_100mS
+2246   22D8 C3 03 22        JP CONTROLE_IR
+2247   22DB             
+2248   22DB             CIR_OK:
+2249   22DB 3A 00 80        LD A, ($8000)
+2250   22DE EE 01           XOR $01
+2251   22E0 D3 C0           OUT (PortC0), A
+2252   22E2 32 00 80        LD ($8000), A
+2253   22E5 CD C0 0A        CALL DELAY_100mS
+2254   22E8 CD C0 0A        CALL DELAY_100mS
+2255   22EB C3 03 22        JP CONTROLE_IR
+2256   22EE             
+2257   22EE             CIR_SAIR:
+2258   22EE                 ; retorna int
+2259   22EE ED 56           IM  1
+2260   22F0 FB              EI
+2261   22F1 AF              XOR A
+2262   22F2 D3 40           OUT (Port40), A
+2263   22F4                 
+2264   22F4             CONTROLE_IR_LOOP3:
+2265   22F4 C3 F4 22        JP CONTROLE_IR_LOOP3
+2266   22F7             
+2267   22F7             
+2268   22F7             CONTROLE_DELAY:
+2269   22F7 F5              PUSH AF
+2270   22F8 3E 32           LD A, 50
+2271   22FA             CONTROLE_DELAY_LOOP:
+2272   22FA 3D              DEC A
+2273   22FB FE 00           CP 0
+2274   22FD C2 FA 22        JP NZ, CONTROLE_DELAY_LOOP
+2275   2300 F1              POP AF
+2276   2301 C9              RET
+2277   2302             
+2278   2302             
+2279   2302             
+2280   2302             ; ---------------------------------------------------------
+2281   2302             ; Utilitys Program | PROGRAM CALC XX + XX 
+2282   2302             ; ---------------------------------------------------------
+2283   2302             CALC_SUM:
+2284   2302             NUM1     .equ      $8000
+2285   2302             NUM2     .equ      $8001
+2286   2302             RESULT1  .equ      $8002
+2287   2302             RESULT2  .equ      $8003
+2288   2302             
+2289   2302 3E 00           LD  A, 0                 ; user mode
+2290   2304 32 0F FF        LD (SYSMODE), A
+2291   2307             
+2292   2307 CD 3B 09        CALL CLEAR_USER_DISPLAY
+2293   230A             
+2294   230A 3E 40           LD  A, $40
+2295   230C 32 D6 FF        LD  (USER_DISP6), A
+2296   230F             
+2297   230F 3E 40           LD  A, $40
+2298   2311 32 D7 FF        LD  (USER_DISP7), A
+2299   2314             
+2300   2314 3E 00           LD A, 0
+2301   2316 32 02 80        LD (RESULT1), A
+2302   2319 32 03 80        LD (RESULT2), A
+2303   231C             
+2304   231C             READ01:
+2305   231C CD 59 07        CALL GET_KEY_A
+2306   231F FE FF           CP  $FF
+2307   2321 CA 1C 23        JP  Z, READ01
+2308   2324 F5              PUSH AF
+2309   2325 CB 07           RLC A
+2310   2327 CB 07           RLC A
+2311   2329 CB 07           RLC A
+2312   232B CB 07           RLC A
+2313   232D 32 00 80        LD  (NUM1), A
+2314   2330 F1              POP AF
+2315   2331 CD 58 09        CALL GET_NUM_FROM_LOW
+2316   2334 32 D6 FF        LD (USER_DISP6), A
+2317   2337             
+2318   2337             READ02:
+2319   2337 CD 59 07        CALL GET_KEY_A
+2320   233A FE FF           CP  $FF
+2321   233C CA 37 23        JP  Z, READ02
+2322   233F F5              PUSH AF
+2323   2340 47              LD B, A
+2324   2341 3A 00 80        LD A, (NUM1)
+2325   2344 B0              OR B
+2326   2345 32 00 80        LD (NUM1), A
+2327   2348             
+2328   2348 F1              POP AF
+2329   2349 CD 58 09        CALL GET_NUM_FROM_LOW
+2330   234C 32 D7 FF        LD (USER_DISP7), A
+2331   234F             
+2332   234F 3E FF           LD A, $FF
+2333   2351 CD B5 0A        CALL DELAY_A
+2334   2354             ; NUM2
+2335   2354 3E 40           LD  A, $40
+2336   2356 32 D6 FF        LD  (USER_DISP6), A
+2337   2359             
+2338   2359 3E 40           LD  A, $40
+2339   235B 32 D7 FF        LD  (USER_DISP7), A
+2340   235E             
+2341   235E             READ03:
+2342   235E CD 59 07        CALL GET_KEY_A
+2343   2361 FE FF           CP  $FF
+2344   2363 CA 5E 23        JP  Z, READ03
+2345   2366 F5              PUSH AF
+2346   2367 CB 07           RLC A
+2347   2369 CB 07           RLC A
+2348   236B CB 07           RLC A
+2349   236D CB 07           RLC A
+2350   236F 32 01 80        LD  (NUM2), A
+2351   2372 F1              POP AF
+2352   2373 CD 58 09        CALL GET_NUM_FROM_LOW
+2353   2376 32 D6 FF        LD (USER_DISP6), A
+2354   2379             
+2355   2379             READ04:
+2356   2379 CD 59 07        CALL GET_KEY_A
+2357   237C FE FF           CP  $FF
+2358   237E CA 79 23        JP  Z, READ04
+2359   2381             
+2360   2381 F5              PUSH AF
+2361   2382 CD 58 09        CALL GET_NUM_FROM_LOW
+2362   2385 32 D7 FF        LD (USER_DISP7), A
+2363   2388 F1              POP AF
+2364   2389 47              LD B, A
+2365   238A 3A 01 80        LD A, (NUM2)
+2366   238D B0              OR B
+2367   238E 32 01 80        LD (NUM2), A
+2368   2391             
+2369   2391 3A 00 80        LD A, (NUM1)
+2370   2394 47              LD B, A
+2371   2395 3A 01 80        LD A, (NUM2)
+2372   2398 80              ADD A, B
+2373   2399 27              DAA
+2374   239A 32 03 80        LD (RESULT2), A
+2375   239D             
+2376   239D D2 A7 23        JP NC, CALC_SUM_SHOW
+2377   23A0 3A 02 80        LD A, (RESULT1)
+2378   23A3 3C              INC A
+2379   23A4 32 02 80        LD (RESULT1),A
+2380   23A7             
+2381   23A7             CALC_SUM_SHOW:
+2382   23A7 3E FF           LD A, $FF
+2383   23A9 CD B5 0A        CALL DELAY_A
+2384   23AC             
+2385   23AC 3A 02 80        LD A, (RESULT1)
+2386   23AF FE 00           CP 0
+2387   23B1 CA BA 23        JP Z, SHOW_NEXT
+2388   23B4 CD 58 09        CALL GET_NUM_FROM_LOW
+2389   23B7 32 D5 FF        LD (USER_DISP5), A
+2390   23BA             
+2391   23BA             SHOW_NEXT:
+2392   23BA 3A 03 80        LD A, (RESULT2)
+2393   23BD CD 68 09        CALL GET_NUM_FROM_HIGH
+2394   23C0 32 D6 FF        LD (USER_DISP6), A
+2395   23C3             
+2396   23C3 3A 03 80        LD A, (RESULT2)
+2397   23C6 CD 58 09        CALL GET_NUM_FROM_LOW
+2398   23C9 32 D7 FF        LD (USER_DISP7), A
+2399   23CC             
+2400   23CC             CALC_SUM_LOOP:
+2401   23CC C3 CC 23        JP  CALC_SUM_LOOP
+2402   23CF             
+2403   23CF             
+2404   23CF             ; ---------------------------------------------------------
+2405   23CF             ; Utilitys Program | PROGRAM X
+2406   23CF             ; ---------------------------------------------------------
+2407   23CF 3E 00           LD  A, 0                 ; user mode
+2408   23D1 32 0F FF        LD (SYSMODE), A
+2409   23D4             
+2410   23D4             
+2411   23D4             ; =========================================================
+2412   23D4             ; Tabela display
+2413   23D4             ; =========================================================
+2414   23D4             ; 
+2415   23D4             ;   0 - $3F     A - $77     K - $7A     U - $1C     . - $80
+2416   23D4             ;   1 - $06     B - $7C     L - $38     V - $3E     Ñ - $55
+2417   23D4             ;   2 - $5B     C - $39     M - $37     W - $1D     : - $41
+2418   23D4             ;   3 - $4F     D - $5E     N - $54     X - $70     ; - $88
+2419   23D4             ;   4 - $66     E - $79     O - $3F     Y - $6E     _ - $08
+2420   23D4             ;   5 - $6D     F - $71     P - $73     Z - $49     ~ - $01
+2421   23D4             ;   6 - $7D     G - $6F     Q - $67                 ' - $20
+2422   23D4             ;   7 - $07     H - $76     R - $50     + - $46     
+2423   23D4             ;   8 - $7F     I - $06     S - $6D     , - $04     
+2424   23D4             ;   9 - $67     J - $1E     T - $78     - - $40     
+2425   23D4             
+2426   23D4             .end
 tasm: Number of errors = 0

@@ -1760,11 +1760,12 @@ LED_FONT .db $3F, $06, $5B, $4F, $66, $6D, $7D, $07, $7F, $67 ; 0-9
 ; ---------------------------------------------------------
 .org 2000h
 JP_CLEAR_RAM_FF              JP CLEAR_RAM_FF               ; 2000
-JP_TESTE_SOM                 JP TESTE_SOM                  ; 2003
-JP_ANIMATE_LED1              JP ANIMATE_LED1               ; 2006
-JP_COUNT_DOWN_ALERME         JP COUNT_DOWN_ALERME          ; 2009
-JP_CONTROLE_SONY             JP CONTROLE_SONY              ; 200C
-JP_CALC_SUM                  JP CALC_SUM                   ; 200F
+JP_LOAD_FROM_IR              JP LOAD_FROM_IR               ; 2003
+JP_TESTE_SOM                 JP TESTE_SOM                  ; 2006
+JP_ANIMATE_LED1              JP ANIMATE_LED1               ; 2009
+JP_COUNT_DOWN_ALERME         JP COUNT_DOWN_ALERME          ; 200C
+JP_CONTROLE_SONY             JP CONTROLE_SONY              ; 200F
+JP_CALC_SUM                  JP CALC_SUM                   ; 2012
 
 
 
@@ -1806,6 +1807,85 @@ CLEAR_RAM_FF_END:
     LD A, $80
     LD ($FDFF), A
     JP Z, START_LOOP
+
+
+; ---------------------------------------------------------
+; Utilitys Program | LOAD RAM FROM IR (NanoTac)
+; ---------------------------------------------------------
+LOAD_FROM_IR:
+    DI                       ; deliga monitor (int38)
+    LD HL, $8000           ; inicio ram
+LFI_START:
+    LD  BC, 0                ; B - time, C - Count
+    LD  D, 0                 ; D, Data
+LFI_CK1:                         ; aguarda nivel 0
+    IN A, (Port40)
+    BIT 7, A
+    JP NZ, LFI_CK1
+LFI_COD_START:               ; Recebe Start (9)
+    INC B                    ; B = time, INC B
+    CALL CONTROLE_DELAY
+    IN  A, (Port40)
+    BIT 7, A
+    JP Z, LFI_COD_START      ; loop até nivel 1
+
+    LD A, B
+    CP 9                     ; start time = 9
+    JP NZ, LFI_START         ; se não é start - reinicia
+
+LFI_GET_NEXT:
+; agora começa a pegar os commandos
+    LD  D, 0                 ; zera data
+    LD  C, 7                 ; data tem 8 bits
+LFI_LOOP:                    ; Aguarda nivel 0
+    IN A, (Port40)
+    BIT 7, A
+    JP NZ, LFI_LOOP
+
+    LD  B, 0                  ; B = time
+LFI_LOOP2:                    ; Recebeu alguma coisa
+    INC B
+    CALL LFI_DELAY
+    IN  A, (Port40)
+    BIT 7, A
+    JP Z, LFI_LOOP2  ; aguarda nivel 1
+
+    LD A, B
+    CP 9
+    JP Z, START              ; Back to minitor
+    CP 5                     ; 5 HIGH, 3 LOW
+    JP NZ, LFI_ZERO
+    SET 0, D
+
+LFI_ZERO:
+    LD A, C
+    CP 0
+    JP Z, LFI_BYTE_OK 
+
+    RLC D
+    LD B, 0
+    DEC C
+
+    JP LFI_LOOP
+
+    
+
+LFI_BYTE_OK:
+    LD  (HL), D
+    INC HL
+    JP LFI_GET_NEXT
+
+
+LFI_DELAY:
+    PUSH AF
+    LD A, 50
+LFI_DELAY_LOOP:
+    DEC A
+    CP 0
+    JP NZ, LFI_DELAY_LOOP
+    POP AF
+    RET
+
 
 
 ; ---------------------------------------------------------
