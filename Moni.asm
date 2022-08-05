@@ -115,6 +115,7 @@ USR_DEA     .equ    $FF28   ;(2) DE' (Aux)
 USR_HLA     .equ    $FF2A   ;(2) HL' (Aux)
 ; SP Temp   .equ    $FF2C
 CPU_FLAGS   .equ    $FF2C   ;(1) Flags atual (AF ou AF') SYSMODE
+INT_VEC     .equ    $FF2D   ;(2) vector int38
 
 
 
@@ -134,6 +135,8 @@ USER_DISP7  .equ    $FFD7   ; Mode User - Display Dig 7  - 01234567
 ; Start ROM
 ; =========================================================
 .org    $0000
+    LD  HL, INT38
+    LD  (INT_VEC), HL
     JP  START
 
 ; =========================================================
@@ -153,46 +156,32 @@ USER_DISP7  .equ    $FFD7   ; Mode User - Display Dig 7  - 01234567
 ; Int 38h - Monitor 
 ; =========================================================
 .org    $38
-    JP INT38
-
-; =========================================================
-; Int 66h - HALT (Pin HALT is connected to NMI)
-; =========================================================
-.org    $66
-    DI                       ; Disable interrupt
-
-    LD (USR_SP), SP          ; Save SP
+    DI
     LD (USR_HL), HL          ; Save HL
-    POP  HL                  ; Recupera PC da stack
-    LD (USR_PC), HL          ; Save PC
-    PUSH HL                  ;
-    LD HL, $FF2C             ; Carrega Temp SP to HL
-    LD SP, HL                ; Set temp HL
-    EXX                      ; Inverte HL e HL', DE.... BC....
-    PUSH  HL                 ; Save HL'
-    PUSH  DE                 ; Save DE'                
-    PUSH  BC                 ; Save BC'
-    EX    AF, AF'
-    PUSH  AF                 ; Save AF'
-    EX    AF, AF'
-    EXX                      ; Troca HL' e HL,, DE... BC...
-    PUSH  IY                 ; Save IY
-    PUSH  IX                 ; Save IX
-    PUSH  AF                 ; Save AF
-    PUSH  DE                 ; Save DE
-    PUSH  BC                 ; Save BC
-    LD HL, (USR_SP)          ; Recupera SP
-    LD SP, HL                ; Devolve SP original
+    LD HL, (INT_VEC)
+    JP (HL)
 
-    JP GO_HALT
 
+INT_HALT:
+    DI
+    PUSH AF
+    PUSH HL
+
+    LD  HL, INT38
+    LD  (INT_VEC), HL
+
+    LD A, $76
+    LD (SYSMODE), A
+
+    POP HL
+    POP AF
+    
+    JP START_WARM
 
 
 INT38:
-    DI                       ; Disable interrupt
-
     LD (USR_SP), SP          ; Save SP
-    LD (USR_HL), HL          ; Save HL
+    ;LD (USR_HL), HL          ; Save HL
     POP  HL                  ; Recupera PC da stack
     LD (USR_PC), HL          ; Save PC
     PUSH HL                  ;
@@ -214,6 +203,48 @@ INT38:
     LD HL, (USR_SP)          ; Recupera SP
     LD SP, HL                ; Devolve SP original
 
+    ; check HALT
+    LD HL, (USR_SP)
+    CALL LD_HL_HL
+    DEC HL
+    LD  A, (HL)
+    CP  $76    ; halt code
+    JP  Z, C_HALT
+    jp SKIP_CHK
+
+C_HALT:
+    LD HL, INT_HALT
+    LD (INT_VEC), HL
+
+    LD A, $76
+    LD  (SYSMODE), A
+
+    POP HL                   ; Troca o PC
+    LD HL, (USR_PC)          ; Recupera PC
+    PUSH HL                  ; Devolve PC to stack
+
+    LD HL, (USR_AFA)          ; Load AF' in HL
+    PUSH  HL                 ; Push AF'
+    POP AF                   ; Recovery AF'
+    EX AF, AF'
+
+    LD HL, (USR_HLA)          ; Recovery HL'
+    LD DE, (USR_DEA)          ; Recovery DE'
+    LD BC, (USR_BCA)          ; Recovery BC'
+    EXX
+
+    LD HL, (USR_AF)          ; Load AF in HL
+    PUSH  HL                 ; Push AF
+    POP AF                   ; Recovery AF
+
+    LD HL, (USR_HL)          ; Recovery HL
+    LD DE, (USR_DE)          ; Recovery DE
+    LD BC, (USR_BC)          ; Recovery BC
+
+    EI
+    HALT                     ; aguarda proxima int
+
+SKIP_CHK:
     ; TicCounter
     LD  HL, (TicCounter)     ; Increment 1ms, used to DELAY_A
     INC  HL
@@ -1374,12 +1405,6 @@ GO_SHOW_REG_HLaux:
     LD  (SYSMODE), A
     JP  EXIT_SYS
 
-GO_HALT:
-    LD  A, $76
-    LD  (SYSMODE), A
-    LD  HL, START_LOOP
-    LD  (USR_PC), HL
-    JP  EXIT_SYS
 
 FIRE:
     LD  A, 1
@@ -1645,15 +1670,16 @@ START:
     PUSH HL                  ; Save HL
     PUSH AF                  ; Save AF
 
+    LD  A, 1                 ; Monitor mode
+    LD  (SYSMODE), A
+
+START_COM:
     LD  HL, START_RAM
     LD  (PC_RAM), HL
 
     ; start vars
     LD  A, CKEY_TIMEOUT
     LD  (KEY_TIMEOUT), A
-
-    LD  A, 1                 ; Monitor mode
-    LD  (SYSMODE), A
 
     LD A, $FF
     LD (KEY_PRESS), A
@@ -1668,7 +1694,6 @@ START:
     LD  (DIG_6), A
     LD  (DIG_7), A
 
-
     IM  1
     EI
 
@@ -1678,16 +1703,24 @@ START:
     POP AF                   ; Recovery AF
     POP HL                   ; Recovery HL
 START_LOOP:
-
     JP START_LOOP
 
+START_WARM:
+    LD  SP, STACK
+    PUSH HL                  ; Save HL
+    PUSH AF                  ; Save AF
+    JP START_COM
 
 
-
-
-
-
-
+; =========================================================
+; HL = (HL)
+; =========================================================
+LD_HL_HL:
+	LD      A,(HL)		;7
+	INC     HL		;6
+	LD      H,(HL)		;7
+	LD      L,A		;4
+	RET			;10
 
 ; =========================================================
 ; Delay
@@ -1756,16 +1789,16 @@ LED_FONT .db $3F, $06, $5B, $4F, $66, $6D, $7D, $07, $7F, $67 ; 0-9
 
 
 ; ---------------------------------------------------------
-; Utilitys Program .ORG 2000h
+; Utilitys Program .ORG 1000h
 ; ---------------------------------------------------------
-.org 2000h
-JP_CLEAR_RAM_FF              JP CLEAR_RAM_FF               ; 2000
-JP_LOAD_FROM_IR              JP LOAD_FROM_IR               ; 2003
-JP_TESTE_SOM                 JP TESTE_SOM                  ; 2006
-JP_ANIMATE_LED1              JP ANIMATE_LED1               ; 2009
-JP_COUNT_DOWN_ALERME         JP COUNT_DOWN_ALERME          ; 200C
-JP_CONTROLE_SONY             JP CONTROLE_SONY              ; 200F
-JP_CALC_SUM                  JP CALC_SUM                   ; 2012
+.org 1000h
+JP_CLEAR_RAM_FF              JP CLEAR_RAM_FF               ; 1000
+JP_LOAD_FROM_IR              JP LOAD_FROM_IR               ; 1003
+JP_TESTE_SOM                 JP TESTE_SOM                  ; 1006
+JP_ANIMATE_LED1              JP ANIMATE_LED1               ; 1009
+JP_COUNT_DOWN_ALERME         JP COUNT_DOWN_ALERME          ; 100C
+JP_CONTROLE_SONY             JP CONTROLE_SONY              ; 100F
+JP_CALC_SUM                  JP CALC_SUM                   ; 1012
 
 
 
