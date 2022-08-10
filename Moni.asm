@@ -61,6 +61,13 @@ START_RAM     .equ    $8000
 STACK         .equ    $FF00  
 CKEY_TIMEOUT  .equ    100  ; 100ms +-
 
+; BAUD RATE CONSTANTS
+B300:	.EQU	0220H	;300 BAUD
+B1200:	.EQU	0080H	;1200 BAUD
+B2400:	.EQU	003FH	;2400 BAUD
+B4800:	.EQU	001BH	;4800 BAUD - Default
+B9600:	.EQU	000BH	;9600 BAUD
+
 ; ---------------------------------------------------------
 ; RAM MAP - Monitor | $FF00 - $FFFF
 ; ---------------------------------------------------------
@@ -117,6 +124,10 @@ USR_HLA     .equ    $FF2A   ;(2) HL' (Aux)
 CPU_FLAGS   .equ    $FF2C   ;(1) Flags atual (AF ou AF') SYSMODE
 INT_VEC     .equ    $FF2D   ;(2) vector int38
 
+; Serial intel hex loader
+BAUD	    .equ	$FF30	;(2) BAUD RATE
+PUTCH       .equ    $FF32   ;(2) OUTPUT A CHARACTER TO SERIAL
+GETCH       .equ    $FF34   ;(2) WAIT FOR A CHARACTER FROM SERIAL
 
 
 ; Copy USER_DISPx to DIG_x WHEN USER_MODE
@@ -161,6 +172,21 @@ USER_DISP7  .equ    $FFD7   ; Mode User - Display Dig 7  - 01234567
     LD HL, (INT_VEC)
     JP (HL)
 
+INT_ERROR:
+    DI
+    PUSH AF
+    PUSH HL
+
+    LD  HL, INT38
+    LD  (INT_VEC), HL
+
+    LD A, $99
+    LD (SYSMODE), A
+
+    POP HL
+    POP AF
+    
+    JP START_WARM
 
 INT_HALT:
     DI
@@ -530,9 +556,13 @@ SYS_MAIN:
     JP  Z,  SHOW_REG_HLaux
 
 
-    LD  A, (SYSMODE)
+    LD  A, (SYSMODE)        ; Show HALT
     CP  $76
     JP  Z, SHOW_HALT
+
+    LD  A, (SYSMODE)        ; Show ERROR
+    CP  $99
+    JP  Z, SHOW_ERROR
 
     JP  EXIT_SYS
 
@@ -1154,6 +1184,33 @@ SHOW_HALT:
 
     JP EXIT_SYS
 
+SHOW_ERROR:
+    LD  A, (INPUT)
+    CP  $FB
+    JP  Z, GO_MONITOR
+
+    LD  A, $79               ; E
+    LD  (DIG_0), A
+
+    LD  A, $50               ; R
+    LD  (DIG_1), A
+
+    LD  A, $50               ; R
+    LD  (DIG_2), A
+
+    LD  A, $3F               ; O
+    LD  (DIG_3), A
+
+    LD  A, $50               ; R
+    LD  (DIG_4), A
+
+    LD  A, $0               ; ''
+    LD  (DIG_5), A           
+    LD  (DIG_6), A
+    LD  (DIG_7), A
+
+    JP EXIT_SYS
+
 ; =========================================================
 ; GET KEY IN A, IF A == FFh then no KEY
 ; =========================================================
@@ -1670,6 +1727,12 @@ START:
     PUSH HL                  ; Save HL
     PUSH AF                  ; Save AF
 
+    ; if Moni Back(Reset + Press), then Loader Intel Hex
+    IN A, (Port40)
+    BIT 5, A
+    CALL NZ, START_INTEL
+
+
     LD  A, 1                 ; Monitor mode
     LD  (SYSMODE), A
 
@@ -1784,662 +1847,329 @@ LED_FONT .db $3F, $06, $5B, $4F, $66, $6D, $7D, $07, $7F, $67 ; 0-9
 ; ---------------------------------------------------------
 
 
-
-
-
-
 ; ---------------------------------------------------------
-; Utilitys Program .ORG 1000h
+;
+;   SERIAL INTEL HEX LOADDER
+;
+;   Serial 4800-N-8-1
+;
 ; ---------------------------------------------------------
-.org 1000h
-JP_CLEAR_RAM_FF              JP CLEAR_RAM_FF               ; 1000
-JP_LOAD_FROM_IR              JP LOAD_FROM_IR               ; 1003
-JP_TESTE_SOM                 JP TESTE_SOM                  ; 1006
-JP_ANIMATE_LED1              JP ANIMATE_LED1               ; 1009
-JP_COUNT_DOWN_ALERME         JP COUNT_DOWN_ALERME          ; 100C
-JP_CONTROLE_SONY             JP CONTROLE_SONY              ; 100F
-JP_CALC_SUM                  JP CALC_SUM                   ; 1012
+START_INTEL:
+    DI
 
+    LD	HL, B4800
+	LD	(BAUD),HL	;DEFAULT SERIAL=4800 BAUD
 
+    LD    HL,TXDATA
+    LD    (PUTCH),HL ;USE THE BITBANG SERIAL TRANSMIT
+    LD    HL,RXDATA
+    LD    (GETCH),HL  ;USE THE BITBANG SERIAL RECEIVE
 
-
-
-
-
-
-; ---------------------------------------------------------
-; RAM MAP - Utilitys Program | $FE00 - $FEFF
-; ---------------------------------------------------------
-DIEGO      .equ    $FE00   ;(2) Temp Digits to countDown
-
-
-; ---------------------------------------------------------
-; Utilitys Program | CLEAR RAM
-; ---------------------------------------------------------
-CLEAR_RAM_FF:
-    LD  HL, $FE00
-    LD  B, $FF
-CLEAR_RAM_FF_LOOP:
-    DEC HL
-    LD (HL), B
-    LD A, H
-    CP $80
-    JP Z, CLEAR_RAM_FF_CHECK_L
-    JP CLEAR_RAM_FF_LOOP
-
-CLEAR_RAM_FF_CHECK_L:
-    LD A, L
-    CP $00
-    JP Z, CLEAR_RAM_FF_END
-    JP CLEAR_RAM_FF_LOOP
-CLEAR_RAM_FF_END:
-    LD A, $C3
-    LD ($FDFD), A
-    XOR A
-    LD ($FDFE), A
-    LD A, $80
-    LD ($FDFF), A
-    JP Z, START_LOOP
-
-
-; ---------------------------------------------------------
-; Utilitys Program | LOAD RAM FROM IR (NanoTac)
-; ---------------------------------------------------------
-LOAD_FROM_IR:
-    DI                       ; deliga monitor (int38)
-    LD HL, $8000           ; inicio ram
-LFI_START:
-    LD  BC, 0                ; B - time, C - Count
-    LD  D, 0                 ; D, Data
-LFI_CK1:                         ; aguarda nivel 0
-    IN A, (Port40)
-    BIT 7, A
-    JP NZ, LFI_CK1
-LFI_COD_START:               ; Recebe Start (9)
-    INC B                    ; B = time, INC B
-    CALL CONTROLE_DELAY
-    IN  A, (Port40)
-    BIT 7, A
-    JP Z, LFI_COD_START      ; loop até nivel 1
-
-    LD A, B
-    CP 9                     ; start time = 9
-    JP NZ, LFI_START         ; se não é start - reinicia
-
-LFI_GET_NEXT:
-; agora começa a pegar os commandos
-    LD  D, 0                 ; zera data
-    LD  C, 7                 ; data tem 8 bits
-LFI_LOOP:                    ; Aguarda nivel 0
-    IN A, (Port40)
-    BIT 7, A
-    JP NZ, LFI_LOOP
-
-    LD  B, 0                  ; B = time
-LFI_LOOP2:                    ; Recebeu alguma coisa
-    INC B
-    CALL LFI_DELAY
-    IN  A, (Port40)
-    BIT 7, A
-    JP Z, LFI_LOOP2  ; aguarda nivel 1
-
-    LD A, B
-    CP 9
-    JP Z, START              ; Back to minitor
-    CP 5                     ; 5 HIGH, 3 LOW
-    JP NZ, LFI_ZERO
-    SET 0, D
-
-LFI_ZERO:
-    LD A, C
-    CP 0
-    JP Z, LFI_BYTE_OK 
-
-    RLC D
-    LD B, 0
-    DEC C
-
-    JP LFI_LOOP
-
+    LD    HL,INITSZ  ;VT100 TERMINAL COMMANDS FOR CLEAR SCREEN,CURSOR HOME
+    CALL  SNDMSG     ;INITIALISE THE TERMINAL
     
+    LD    HL,SIGNON
+    CALL  SNDMSG     ;SEND THE SIGNON
 
-LFI_BYTE_OK:
-    LD  (HL), D
-    INC HL
-    JP LFI_GET_NEXT
-
-
-LFI_DELAY:
-    PUSH AF
-    LD A, 50
-LFI_DELAY_LOOP:
-    DEC A
-    CP 0
-    JP NZ, LFI_DELAY_LOOP
-    POP AF
+    CALL INTELFN
     RET
 
-
-
-; ---------------------------------------------------------
-; Utilitys Program | TESTE SOM 
-; 
-; Key F     = $00 - $FF na saida C0
-; Key A e B = Incrementa e Decrementa Saida C0
-; ---------------------------------------------------------
-TESTE_SOM:
-    LD  A, 0
-    LD  (SYSMODE), A
-    LD  A, 0
-    LD  B, A
-    CALL CLEAR_USER_DISPLAY
-    LD  A, $6D ; S
-    LD  (USER_DISP0), A
-    LD  A, $3F ; O
-    LD  (USER_DISP1), A
-    LD  A, $1C ; U
-    LD  (USER_DISP2), A
-    LD  A, $54 ; N
-    LD  (USER_DISP3), A
-    LD  A, $5E ; D
-    LD  (USER_DISP4), A
-LOOP_SOM:
-    LD  A, B
-    CALL GET_NUM_FROM_LOW
-    LD  (USER_DISP7), A
-    LD  A, B
-    CALL GET_NUM_FROM_HIGH
-    LD  (USER_DISP6), A
-
-    CALL GET_KEY_A
-    CP  $0A
-    JP  Z, SOM_INC
-    CP  $0B
-    JP  Z, SOM_DEC
-    CP  $0F
-    JP  Z, SOM_LOOP_INC
-    JP  LOOP_SOM
-
-
-SOM_INC:
-    INC B
-    LD  C, $C0
-    OUT (C), B
-    CALL DELAY_100mS
-    JP  LOOP_SOM
-
-SOM_DEC:
-    DEC B
-    LD  C, $C0
-    OUT (C), B
-    CALL DELAY_100mS
-    JP  LOOP_SOM
-
-SOM_LOOP_INC:
-    LD  A, B
-    CALL GET_NUM_FROM_LOW
-    LD  (USER_DISP7), A
-    LD  A, B
-    CALL GET_NUM_FROM_HIGH
-    LD  (USER_DISP6), A
-    INC B
-    LD  C, $C0
-    OUT (C), B
-    CALL DELAY_100mS
-    CALL DELAY_100mS
-    JP  SOM_LOOP_INC
-
-
-; ---------------------------------------------------------
-; Utilitys Program | Animação led
-; ---------------------------------------------------------
-ANIMATE_LED1:
-    CALL CLEAR_USER_DISPLAY
-    LD  A, 0                 ; user mode
-    LD (SYSMODE), A
-
-    LD  B, $08
-    LD  HL, USER_DISP0
-    LD  A, 8
-
-LEDS_LOOP:
-    CALL CLEAR_USER_DISPLAY
-    LD  (HL), B
-    CALL DELAY_100mS
-    INC HL
-    DEC A
-    CP 0
-    JP NZ, LEDS_LOOP
-
-    LD A, 8
-    LD  HL, USER_DISP7
-    LD  B, $40
-
-LEDS_LOOP2:
-    CALL CLEAR_USER_DISPLAY
-    LD  (HL), B
-    CALL DELAY_100mS
-    DEC HL
-    DEC A
-    CP 0
-    JP NZ, LEDS_LOOP2
-
-    LD  A, 8
-    LD  HL, USER_DISP0
-    LD  B, $08
-    JP LEDS_LOOP
-
-
-; ---------------------------------------------------------
-; Utilitys Program | CountDown XX
-; OBS: Usa a placa de som para o alarme
-; ---------------------------------------------------------
-COUNT_DOWN_ALERME:
-    ; timer count down
-
-    CALL CLEAR_USER_DISPLAY
-    LD  A, $39
-    LD  (USER_DISP0), A
-
-    LD  A, $3F
-    LD  (USER_DISP1), A
-
-    LD  A, $1C
-    LD  (USER_DISP2), A
-
-    LD  A, $54
-    LD  (USER_DISP3), A
-
-    LD  A, $78
-    LD  (USER_DISP4), A
-
-    LD  A, $00
-    LD  (USER_DISP5), A
-
-
-
-    LD  A, $40
-    LD  (USER_DISP6), A
-
-    LD  A, $40
-    LD  (USER_DISP7), A
-
-    LD  A, 0                 ; user mode
-    LD (SYSMODE), A
-
-READ:
-    CALL GET_KEY_A
-    CP  $FF
-    JP  Z, READ
-
-    CALL  MODIFY_KEY_POS_1D
-
-READ2
-    CALL GET_KEY_A
-    CP  $FF
-    JP  Z, READ2
-
-    CALL MODIFY_KEY_POS_0D
-
-    JP  LOOP
-
-
-MODIFY_KEY_POS_1D:
-    LD  HL, DIEGO
-    INC HL
-    LD  (HL), A
-    CALL GET_NUM_FROM_LOW
-    LD  (USER_DISP6), A
-    RET
-
-MODIFY_KEY_POS_0D:
-    LD  HL, DIEGO
-    LD  (HL), A
-    CALL GET_NUM_FROM_LOW
-    LD  (USER_DISP7), A
-    RET
-
-LOOP:
-    LD  HL, (DIEGO)
-
-LOOP_DOWN:
-    LD  A, H
-    CALL GET_NUM_FROM_LOW
-    LD  (USER_DISP6), A
-
-    LD  A, L
-    CALL GET_NUM_FROM_LOW
-    LD  (USER_DISP7), A
-
-    LD C, 7    ; 10 x 100ms = 1seg
-    CALL DELAY_C
-
-    LD A, L
-    CP 0
-    JP Z, DEC_H
-    DEC A
-    LD L, A
-    JP LOOP_DOWN
-
-DEC_H:
-    LD  A, H
-    CP 0
-    JP Z, CHECK_L
-    DEC A
-    LD H, A
-    LD A, 9
-    LD L, A
-    JP LOOP_DOWN
-
-CHECK_L:
-    LD  A, L
-    CP 0
-    JP Z, BEEP
-
-BEEP:
-    LD  A, $80
-    OUT  (PortC0), A
-    CALL DELAY_100mS
-
-    LD  A, $C0
-    OUT  (PortC0), A
-    CALL DELAY_100mS
-    JP BEEP
-
-
-; ---------------------------------------------------------
-; Utilitys Program | IR Sensor
-; ---------------------------------------------------------
-CONTROLE_SONY:
-    LD A, 0
-    LD ($8000), A            ; BUzzer
-CONTROLE_IR:
-    DI                       ; deliga monitor (int38)
-
-    LD  BC, 0                ; B - time, C - Count
-    LD  D, 0                 ; D, Data
-CIR:                         ; aguarda nivel 0
-    IN A, (Port40)
-    BIT 7, A
-    JP NZ, CIR
-CIR_START:                   ; Recebe Start (9)
-    INC B                    ; B = time, INC B
-    CALL CONTROLE_DELAY
-    IN  A, (Port40)
-    BIT 7, A
-    JP Z, CIR_START          ; loop até nivel 1
-
-    LD A, B
-    CP 9                     ; start time = 9
-    JP NZ, CONTROLE_IR       ; se não é start - reinicia
-
-; agora começa a pegar os commandos
-    LD  D, 0                     ; zera data
-    LD  C, 6                     ; data tem 7 bits
-CONTROLE_IR_LOOP:            ; Aguarda nivel 0
-    IN A, (Port40)
-    BIT 7, A
-    JP NZ, CONTROLE_IR_LOOP
-
-    LD  B, 0                ; B = time
-CONTROLE_IR_LOOP2:           ; Recebeu alguma coisa
-    INC B
-    CALL CONTROLE_DELAY
-    IN  A, (Port40)
-    BIT 7, A
-    JP Z, CONTROLE_IR_LOOP2  ; aguarda nivel 1
-
-    LD A, B
-    CP 5                     ; 5 HIGH, 3 LOW
-    JP NZ, CIR_ZERO
-    SET 0, D
-
-CIR_ZERO:
-    LD A, C
-    CP 0
-    JP Z, CONTROLE_OK 
-
-    RLC D
-    LD B, 0
-    DEC C
-
-    JP CONTROLE_IR_LOOP
-
-    
-
-CONTROLE_OK:
-    LD  A, D
-    LD ($9000), A           ; Save data $9000
-
-; commando recebido em D
-    LD A, D
-    CP $53                   ; ok
-    JP Z, CIR_OK
-    CP $63                   ; Exit
-    JP Z, CIR_SAIR
-    CP $54                   ; power
-    JP Z, CIR_TOGGLE_BUZZER
-    CP $52
-    JP Z, CIR_R              ; red
-    CP $32
-    JP Z, CIR_G              ; green
-    CP $72
-    JP Z, CIR_Y              ; yellow
-    CP $12
-    JP Z, CIR_B              ; blue
-
-    OUT (Port40), A
-    JP CONTROLE_IR
-
-
-CIR_R:
-    LD A, ($8000)
-    XOR $20
-    OUT (PortC0), A
-    LD ($8000), A
-    CALL DELAY_100mS
-    CALL DELAY_100mS
-    JP CONTROLE_IR
-
-CIR_G:
-    LD A, ($8000)
-    XOR $80
-    OUT (PortC0), A
-    LD ($8000), A
-    CALL DELAY_100mS
-    CALL DELAY_100mS
-    JP CONTROLE_IR
-
-CIR_Y:
-    LD A, ($8000)
-    XOR $40
-    OUT (PortC0), A
-    LD ($8000), A
-    CALL DELAY_100mS
-    CALL DELAY_100mS
-    JP CONTROLE_IR
-
-CIR_B:
-    LD A, ($8000)
-    XOR $10
-    OUT (PortC0), A
-    LD ($8000), A
-    CALL DELAY_100mS
-    CALL DELAY_100mS
-    JP CONTROLE_IR
-
-
-CIR_TOGGLE_BUZZER:
-    LD A, ($8000)
-    XOR $08
-    OUT (PortC0), A
-    LD ($8000), A
-    CALL DELAY_100mS
-    CALL DELAY_100mS
-    JP CONTROLE_IR
-
-CIR_OK:
-    LD A, ($8000)
-    XOR $01
-    OUT (PortC0), A
-    LD ($8000), A
-    CALL DELAY_100mS
-    CALL DELAY_100mS
-    JP CONTROLE_IR
-
-CIR_SAIR:
-    ; retorna int
-    IM  1
+INTEL_ERROR:
+    LD HL, INT_ERROR
+    LD (INT_VEC), HL
+    IM 1
     EI
-    XOR A
-    OUT (Port40), A
-    
-CONTROLE_IR_LOOP3:
-    JP CONTROLE_IR_LOOP3
 
+INTEL_ERROR_LOOP:
+    LD A, $0
+    OUT (Port40), a
+    JP INTEL_ERROR_LOOP
 
-CONTROLE_DELAY:
-    PUSH AF
-    LD A, 50
-CONTROLE_DELAY_LOOP:
-    DEC A
-    CP 0
-    JP NZ, CONTROLE_DELAY_LOOP
-    POP AF
+INTEL_SUCCESS:
+    IM 1
+    EI
     RET
 
+;-----------------------------------
+; OUTPUT A CHARACTER TO THE TERMINAL
+;-----------------------------------       
+OUTCH:  LD   IX,(PUTCH)
+       JP   (IX)
+;------------------------------------
+; INPUT A CHARACTER FROM THE TERMINAL
+;------------------------------------
+INCH:  LD   IX,(GETCH)
+      JP   (IX)
+
+;------------
+; ASCII CODES
+;------------
+ESC:    .EQU   1BH
+CR:     .EQU   0DH
+LF:     .EQU   0AH
 
 
-; ---------------------------------------------------------
-; Utilitys Program | PROGRAM CALC XX + XX 
-; ---------------------------------------------------------
-CALC_SUM:
-NUM1     .equ      $8000
-NUM2     .equ      $8001
-RESULT1  .equ      $8002
-RESULT2  .equ      $8003
+;-=========================== INTEL
 
-    LD  A, 0                 ; user mode
-    LD (SYSMODE), A
+;------------------------------------
+; FUNCTION 1 RECEIVE INTEL HEX FORMAT
+;------------------------------------
+INTELFN:
+    CALL  INTELH
+    JP    NZ, INTEL_ERROR      ;SHOW THE ERROR 
 
-    CALL CLEAR_USER_DISPLAY
+    LD    HL,SUCCESS
+    CALL  SNDMSG     ;SEND THE SUCCESS
 
-    LD  A, $40
-    LD  (USER_DISP6), A
+    JP    INTEL_SUCCESS        ;JUST RETURN IF ALL OK
+;-----------------------
+; RECEIVE INTEL HEX FILE
+;-----------------------
+INTELH:	LD	IX,STACK	;POINT TO SYSTEM VARIABLES
+;
+; WAIT FOR RECORD MARK
+;
+INTEL1:	XOR	A
+	LD	(IX+3),A	;CLEAR CHECKSUM
+	CALL	RXDATA	;WAIT FOR THE RECORD MARK
+	CP	':'	;TO BE TRANSMITTED
+	JR	NZ,INTEL1	;NOT RECORD MARK
 
-    LD  A, $40
-    LD  (USER_DISP7), A
+;
+; GET RECORD LENGTH
+;
+	CALL	GETBYT
+	LD	(IX+0),A	;NUMBER OF DATA BYTES
+;
+; GET ADDRESS FIELD
+;
+	CALL	GETBYT
+	LD	(IX+2),A	;LOAD ADDRESS HIGH BYTE
+	CALL	GETBYT
+	LD	(IX+1),A	;LOAD ADDRESS LOW BYTE
+;
+; GET RECORD TYPE
+;
+	CALL	GETBYT
+	JR	NZ,INTEL4	;END OF FILE RECORD
+;
+; READ IN THE DATA
+;
+	LD	B,(IX+0)	;NUMBER OF DATA BYTES
+	LD	H,(IX+2)	;LOAD ADDRESS HIGH BYTE
+	LD	L,(IX+1)	;LOAD ADDRESS LOW BYTE
 
-    LD A, 0
-    LD (RESULT1), A
-    LD (RESULT2), A
+INTEL2:	CALL	GETBYT	;GET DATA BYTE
+	LD	(HL),A	;STORE DATA BYTE
+	INC	HL
+	DJNZ	INTEL2	;LOAD MORE BYTES
+;
+; GET CHECKSUM AND COMPARE
+;
+	LD	A,(IX+3)	;CONVERT CHECKSUM TO
+	NEG		;TWO'S COMPLEMENT
+	LD	(IX+4),A	;SAVE COMPUTED CHECKSUM
+	CALL	GETBYT
+	LD	(IX+3),A	;SAVE RECORD CHECKSUM
+	CP	(IX+4)	;COMPARE CHECKSUM
+	JR	Z,INTEL1	;CHECKSUM OK,NEXT RECORD
+    RET             ;NZ=CHECKSUM ERROR
+;
+; END OF FILE RECORD
+;
+INTEL4:	LD	A,(IX+3)	;CONVERT CHECKSUM TO
+	NEG		;TWO'S COMPLEMENT
+	LD	(IX+4),A	;SAVE COMPUTED CHECKSUM
+	CALL	GETBYT
+	LD	(IX+3),A	;SAVE EOF CHECKSUM
+	CP	(IX+4)	;COMPARE CHECKSUM
+	RET  	    ;NZ=CHECKSUM ERROR
 
-READ01:
-    CALL GET_KEY_A
-    CP  $FF
-    JP  Z, READ01
-    PUSH AF
-    RLC A
-    RLC A
-    RLC A
-    RLC A
-    LD  (NUM1), A
-    POP AF
-    CALL GET_NUM_FROM_LOW
-    LD (USER_DISP6), A
+;--------------------------
+; GET BYTE FROM SERIAL PORT
+;--------------------------
+GETBYT:	PUSH	BC
+	CALL	RXDATA
+	BIT	6,A
+	JR	Z,GETBT1
+	ADD	A,09H
+GETBT1:	AND	0FH
+	SLA 	A
+	SLA	A
+	SLA	A
+	SLA	A
+	LD	C,A
+;
+; GET LOW NYBBLE
+;
+	CALL	RXDATA
+	BIT	6,A
+	JR	Z,GETBT2
+	ADD	A,09H
+GETBT2:	AND	0FH
+	OR	C
+	LD	B,A
+	ADD	A,(IX+3)
+	LD	(IX+3),A	;ADD TO CHECKSUM
+	LD	A,B
+	AND	A	;CLEAR CARRY
+    POP	BC
+	RET
 
-READ02:
-    CALL GET_KEY_A
-    CP  $FF
-    JP  Z, READ02
-    PUSH AF
-    LD B, A
-    LD A, (NUM1)
-    OR B
-    LD (NUM1), A
-
-    POP AF
-    CALL GET_NUM_FROM_LOW
-    LD (USER_DISP7), A
-
-    LD A, $FF
-    CALL DELAY_A
-; NUM2
-    LD  A, $40
-    LD  (USER_DISP6), A
-
-    LD  A, $40
-    LD  (USER_DISP7), A
-
-READ03:
-    CALL GET_KEY_A
-    CP  $FF
-    JP  Z, READ03
-    PUSH AF
-    RLC A
-    RLC A
-    RLC A
-    RLC A
-    LD  (NUM2), A
-    POP AF
-    CALL GET_NUM_FROM_LOW
-    LD (USER_DISP6), A
-
-READ04:
-    CALL GET_KEY_A
-    CP  $FF
-    JP  Z, READ04
-
-    PUSH AF
-    CALL GET_NUM_FROM_LOW
-    LD (USER_DISP7), A
-    POP AF
-    LD B, A
-    LD A, (NUM2)
-    OR B
-    LD (NUM2), A
-
-    LD A, (NUM1)
-    LD B, A
-    LD A, (NUM2)
-    ADD A, B
-    DAA
-    LD (RESULT2), A
-
-    JP NC, CALC_SUM_SHOW
-    LD A, (RESULT1)
-    INC A
-    LD (RESULT1),A
-
-CALC_SUM_SHOW:
-    LD A, $FF
-    CALL DELAY_A
-
-    LD A, (RESULT1)
-    CP 0
-    JP Z, SHOW_NEXT
-    CALL GET_NUM_FROM_LOW
-    LD (USER_DISP5), A
-
-SHOW_NEXT:
-    LD A, (RESULT2)
-    CALL GET_NUM_FROM_HIGH
-    LD (USER_DISP6), A
-
-    LD A, (RESULT2)
-    CALL GET_NUM_FROM_LOW
-    LD (USER_DISP7), A
-
-CALC_SUM_LOOP:
-    JP  CALC_SUM_LOOP
+;=========================== INTEL FIM
 
 
-; ---------------------------------------------------------
-; Utilitys Program | PROGRAM X
-; ---------------------------------------------------------
-    LD  A, 0                 ; user mode
-    LD (SYSMODE), A
+;-----------------------------------------
+; SEND AN ASCII STRING OUT THE SERIAL PORT
+;-----------------------------------------
+; 
+; SENDS A ZERO TERMINATED STRING OR 
+; 128 CHARACTERS MAX. OUT THE SERIAL PORT
+;
+;      ENTRY : HL = POINTER TO 00H TERMINATED STRING
+;      EXIT  : NONE
+;
+;       MODIFIES : A,B,C
+;          
+SNDMSG: LD    B,128         ;128 CHARS MAX
+SDMSG1: LD    A,(HL)        ;GET THE CHAR
+       CP    00H          ;ZERO TERMINATOR?
+       JR    Z,SDMSG2      ;FOUND A ZERO TERMINATOR, EXIT  
+       CALL  OUTCH         ;TRANSMIT THE CHAR
+       INC   HL
+       DJNZ  SDMSG1        ;128 CHARS MAX!    
+SDMSG2: RET
 
+;-----------------
+; ONE SECOND DELAY
+;-----------------
+;
+; ENTRY : NONE
+; EXIT : FLAG REGISTER MODIFIED
+;
+DELONE:	PUSH	BC
+	PUSH	DE
+	PUSH	HL
+	LD	DE,0001H
+	LD	HL,0870H
+DELON1:	LD	B,92H
+DELON2:	DJNZ	DELON2	;INNER LOOP
+	SBC	HL,DE
+	JP	NC,DELON1	;OUTER LOOP
+	POP	HL
+	POP	DE
+	POP	BC
+	RET
+
+;------------------------
+; SERIAL TRANSMIT ROUTINE
+;------------------------
+;TRANSMIT BYTE SERIALLY ON DOUT
+;
+; ENTRY : A = BYTE TO TRANSMIT
+;  EXIT : NO REGISTERS MODIFIED
+;
+TXDATA:	PUSH	AF
+	PUSH	BC
+	PUSH	HL
+	LD	HL,(BAUD)
+	LD	C,A
+;
+; TRANSMIT START BIT
+;
+	XOR	A
+	OUT	(Port40),A
+	CALL	BITIME
+;
+; TRANSMIT DATA
+;
+	LD	B,08H
+	;RRC	C
+NXTBIT:	RRC	C	;SHIFT BITS TO D6,
+	LD	A,C	;LSB FIRST AND OUTPUT
+	AND	80H	;THEM FOR ONE BIT TIME.
+	OUT	(Port40),A
+	CALL	BITIME
+	DJNZ	NXTBIT
+;
+; SEND STOP BITS
+;
+	LD	A,80H
+	OUT	(Port40),A
+	CALL	BITIME
+	CALL	BITIME
+	POP	HL
+	POP	BC
+	POP	AF
+	RET
+
+;-----------------------
+; SERIAL RECEIVE ROUTINE
+;-----------------------
+;RECEIVE SERIAL BYTE FROM DIN
+;
+; ENTRY : NONE
+;  EXIT : A= RECEIVED BYTE IF CARRY CLEAR
+;
+; REGISTERS MODIFIED A AND F
+;
+RXDATA:	PUSH	BC
+	PUSH	HL
+;
+; WAIT FOR START BIT 
+;
+RXDAT1: IN	A,(Port40)
+;        IN	A,(KEYBUF)
+	    BIT	6,A
+	    JR	NZ,RXDAT1	;NO START BIT
+;
+; DETECTED START BIT
+;
+	LD	HL,(BAUD)
+	SRL	H
+	RR	L 	;DELAY FOR HALF BIT TIME
+	CALL 	BITIME
+	IN	A,(Port40)
+;    IN	A,(KEYBUF)
+	BIT	6,A
+	JR	NZ,RXDAT1	;START BIT NOT VALID
+;
+; DETECTED VALID START BIT,READ IN DATA
+;
+	LD	B,08H
+RXDAT2:	LD	HL,(BAUD)
+	CALL	BITIME	;DELAY ONE BIT TIME
+	IN	A,(Port40)
+;    IN	A,(KEYBUF)
+	RL	A
+    RL	A
+	RR	C	;SHIFT BIT INTO DATA REG
+	DJNZ	RXDAT2
+	LD	A,C
+	OR	A	;CLEAR CARRY FLAG
+    POP	HL
+	POP	BC
+	RET
+;---------------
+; BIT TIME DELAY
+;---------------
+;DELAY FOR ONE SERIAL BIT TIME
+;ENTRY : HL = DELAY TIME
+; NO REGISTERS MODIFIED
+;
+BITIME:	PUSH	HL
+	PUSH	DE
+	LD	DE,0001H
+BITIM1:	SBC	HL,DE
+	JP	NC,BITIM1
+	POP	DE
+	POP	HL
+	RET
+
+
+SIGNON:      .DB     CR,LF,"Load intel hex...",CR,LF,00H
+SUCCESS:      .DB    "Load success... ",CR,LF,00H
+INITSZ:      .DB     27,"[H",27,"[2J",00H
 
 ; =========================================================
 ; Tabela display
