@@ -1,0 +1,192 @@
+0001   0000             ;SIMON Game written by Jim Robertson
+0002   0000             ;-----------------------------------
+0003   0000             ; The 4 LED Segments from the right represent keys 0,4,8,C.
+0004   0000             ; The segments light up and the order they light up represents the
+0005   0000             ; keys to press.
+0006   0000             ;
+0007   0000             ; Modified by B Chiha to auto populate random numbers at startup.
+0008   0000             ;
+0009   8000                         .ORG     8000H 
+0010   8000             PORT01      .equ    $70
+0011   8000             PORT02      .equ    $40
+0012   8000             
+0013   8000             SETUP:               
+0014   8000 CD E8 80                CALL    RANGEN      ;Set up random numbers from 9000 to 90FF
+0015   8003 ED 5F                   LD      A,R         ;Get random number for random table lookup
+0016   8005 6F                      LD      L,A         ;at 90xx
+0017   8006             START:
+0018   8006 0E 01                   LD      C,01H
+0019   8008 CD 91 80                CALL    DELAY
+0020   800B 26 90                   LD      H,90H
+0021   800D             GAME:
+0022   800D 41                      LD      B,C         ;Working counter
+0023   800E E5                      PUSH    HL
+0024   800F             LOOP:
+0025   800F 7E                      LD      A,(HL)      ;Get Random value
+0026   8010 CD A5 80                CALL    SOUND
+0027   8013 2C                      INC     L
+0028   8014 CD 91 80                CALL    DELAY       ;Call delay which shortens on each call
+0029   8017 10 F6                   DJNZ    LOOP
+0030   8019 E1                      POP     HL
+0031   801A 41                      LD      B,C
+0032   801B E5                      PUSH    HL
+0033   801C             PLAYER:
+0034   801C CD CD 80                CALL    KEYPRESS
+0035   801F 20 FB                   JR      NZ,PLAYER   ;No key pressed
+0036   8021 0F                      RRCA                ;Check for keys 0,4,8,C by shifting
+0037   8022 0F                      RRCA                ;twice to the right..Clever!
+0038   8023 FE 04                   CP      04H         ;Compare with 4 to see if valid key
+0039   8025 30 F5                   JR      NC,PLAYER
+0040   8027 E5                      PUSH    HL
+0041   8028 21 DA 80                LD      HL,DSPTBL   ;Display Table
+0042   802B 85                      ADD     A,L
+0043   802C 6F                      LD      L,A
+0044   802D 7E                      LD      A,(HL)      ;Get display value based on key press
+0045   802E E1                      POP     HL
+0046   802F BE                      CP      (HL)        ;Complare key pressed with value in lookup
+0047   8030 20 13                   JR      NZ,ERROR
+0048   8032 CD A5 80                CALL    SOUND
+0049   8035 2C                      INC     L
+0050   8036             KEYWAIT:
+0051   8036                         ;CALL    KEYPRESS    ;Get another key
+0052   8036                         ;JR      NZ,KEYWAIT   ;Loop until key released
+0053   8036 DB 40                   IN      A,($40)     ;Check if key is pressed
+0054   8038 CB 77                   BIT     6,A
+0055   803A 20 FA                   JR      NZ, KEYWAIT
+0056   803C 10 DE                   DJNZ    PLAYER
+0057   803E E1                      POP     HL
+0058   803F CD 91 80                CALL    DELAY
+0059   8042 0C                      INC     C
+0060   8043 18 C8                   JR      GAME        ;Jump back to start of game
+0061   8045             ERROR:
+0062   8045 3E 30                   LD      A,30H       ;Incorrect answer
+0063   8047 CD A5 80                CALL    SOUND
+0064   804A 41                      LD      B,C
+0065   804B AF                      XOR     A
+0066   804C             HEXBCD:
+0067   804C 3C                      INC     A
+0068   804D 27                      DAA    
+0069   804E 10 FC                   DJNZ    HEXBCD
+0070   8050 3D                      DEC     A
+0071   8051 27                      DAA
+0072   8052 4F                      LD      C,A
+0073   8053 AF          SCAN:       XOR     A           ;Multiplex
+0074   8054 D3 40                   OUT     (PORT02),A
+0075   8056 3E 04                   LD      A,04H
+0076   8058 D3 70                   OUT     (PORT01),A
+0077   805A 79                      LD      A,C
+0078   805B CD 86 80                CALL    BCDHEX
+0079   805E 06 00                   LD      B,00H
+0080   8060 10 FE       LOOP1:      DJNZ    LOOP1
+0081   8062 AF                      XOR     A
+0082   8063 D3 40                   OUT     (PORT02),A
+0083   8065 3E 08                   LD      A,08H
+0084   8067 D3 70                   OUT     (PORT01),A
+0085   8069 79                      LD      A,C
+0086   806A 0F                      RRCA
+0087   806B 0F                      RRCA
+0088   806C 0F                      RRCA
+0089   806D 0F                      RRCA
+0090   806E CD 86 80                CALL    BCDHEX
+0091   8071 06 00                   LD      B,00H
+0092   8073 10 FE       LOOP2:      DJNZ    LOOP2
+0093   8075 CD CD 80                CALL    KEYPRESS
+0094   8078 14                      INC     D
+0095   8079 FE 12                   CP      12H        ;Check if GO pressed
+0096   807B 20 D6                   JR      NZ,SCAN    ;Keep scanning until GO pressed
+0097   807D 6A                      LD      L,D        ;Put random number in L
+0098   807E AF                      XOR     A
+0099   807F D3 70                   OUT     (PORT01),A
+0100   8081 CD A5 80                CALL    SOUND
+0101   8084 18 80                   JR      START
+0102   8086             BCDHEX:
+0103   8086 E6 0F                   AND     0FH        ;Mask high nibble
+0104   8088 21 DE 80                LD      HL,SEGTBL
+0105   808B 85                      ADD     A,L
+0106   808C 6F                      LD      L,A
+0107   808D 7E                      LD      A,(HL)     ;Get Segment
+0108   808E D3 40                   OUT     (PORT02),A     ;Display number
+0109   8090 C9                      RET
+0110   8091             DELAY:
+0111   8091 11 00 90                LD      DE,9000H
+0112   8094 79                      LD      A,C        ;Frame count
+0113   8095 07                      RLCA
+0114   8096 07                      RLCA
+0115   8097             LOOP3:
+0116   8097 15                      DEC     D
+0117   8098 3D                      DEC     A
+0118   8099 20 FC                   JR      NZ,LOOP3
+0119   809B             LOOP4:
+0120   809B 1B                      DEC     DE
+0121   809C 7A                      LD      A,D
+0122   809D B3                      OR      E
+0123   809E 20 FB                   JR      NZ,LOOP4
+0124   80A0 3E 04                   LD      A,04H
+0125   80A2 D3 40                   OUT     (PORT02),A
+0126   80A4 C9                      RET
+0127   80A5             SOUND:
+0128   80A5 E5                      PUSH    HL
+0129   80A6 D5                      PUSH    DE
+0130   80A7 C5                      PUSH    BC
+0131   80A8 4F                      LD      C,A
+0132   80A9 07                      RLCA
+0133   80AA C6 18                   ADD     A,18H
+0134   80AC 21 E0 01                LD      HL,01E0H
+0135   80AF 47                      LD      B,A
+0136   80B0 79                      LD      A,C
+0137   80B1 11 01 00                LD      DE,0001H
+0138   80B4 48                      LD      C,B
+0139   80B5 E6 0F                   AND     0FH
+0140   80B7             LOOP5:
+0141   80B7 D3 70                   OUT     (PORT01),A     ;Display value
+0142   80B9 41                      LD      B,C
+0143   80BA 10 FE       LOOP6:      DJNZ    LOOP6
+0144   80BC EE 80                   XOR     80H        ;Toggle speaker bit
+0145   80BE ED 52                   SBC     HL,DE
+0146   80C0 20 F5                   JR      NZ,LOOP5
+0147   80C2 C1                      POP     BC
+0148   80C3 D1                      POP     DE
+0149   80C4 E1                      POP     HL
+0150   80C5 3E 04                   LD      A,04H      ;G segment
+0151   80C7 D3 40                   OUT     (PORT02),A
+0152   80C9 AF                      XOR     A
+0153   80CA D3 70                   OUT     (PORT01),A
+0154   80CC C9                      RET
+0155   80CD             KEYPRESS:
+0156   80CD DB 40                   IN      A,($40)     ;Check if key is pressed
+0157   80CF CB 77                   BIT     6,A
+0158   80D1 C8                      RET     Z         ;No key pressed
+0159   80D2 DB 40                   IN      A,($40)     ;Get actual key
+0160   80D4 E6 1F                   AND     1FH        ;Mask upper bits
+0161   80D6 5F                      LD      E,A
+0162   80D7 AF                      XOR     A          ;Clear flags
+0163   80D8 7B                      LD      A,E
+0164   80D9 C9                      RET
+0165   80DA             
+0166   80DA 08 04 02 01 DSPTBL:     .DB      08H,04H,02H,01H
+0167   80DE 3F065B4F666DSEGTBL:     .DB      3FH,06H,5BH,4FH,66H,6DH,7DH,07H,7FH,67H
+0167   80E4 7D077F67
+0168   80E8             
+0169   80E8             ;Here is the random number generator that puts 1,2,4 and 8 in memory
+0170   80E8             ;between 9000 and 90FF.  Call this routine first
+0171   80E8             RANGEN:
+0172   80E8 06 00                   LD      B,00H
+0173   80EA 21 00 90                LD      HL,9000H
+0174   80ED 16 11                   LD      D,00010001B  ;(rotating 1 bits)
+0175   80EF             RG1:
+0176   80EF ED 5F                   LD      A,R
+0177   80F1             RG2:
+0178   80F1 CB 02                   RLC     D
+0179   80F3 3D                      DEC     A
+0180   80F4 20 FB                   JR      NZ,RG2
+0181   80F6 7A                      LD      A,D
+0182   80F7 E6 0F                   AND     0FH
+0183   80F9 77                      LD      (HL),A      ;Store randome number
+0184   80FA 23                      INC     HL
+0185   80FB F5                      PUSH    AF          ;Waste time to move R on a bit
+0186   80FC F1                      POP     AF         
+0187   80FD 10 F0                   DJNZ    RG1
+0188   80FF C9                      RET
+0189   8100             
+0190   8100             .END
+tasm: Number of errors = 0
