@@ -6,10 +6,13 @@
 ;
 ; Modified by B Chiha to auto populate random numbers at startup.
 ;
-            .ORG     8000H 
-PORT01      .equ    $70
-PORT02      .equ    $40
+KEYBUF:      .EQU 40H             ;MM74C923N KEYBOARD ENCODER
+SCAN:        .EQU 70H             ;DISPLAY SCAN LATCH
+DISPLY:      .EQU 40H             ;DISPLAY LATCH
 
+            .ORG     8000H 
+
+SIMON:
 SETUP:               
             CALL    RANGEN      ;Set up random numbers from 9000 to 90FF
             LD      A,R         ;Get random number for random table lookup
@@ -50,7 +53,7 @@ PLAYER:
 KEYWAIT:
             ;CALL    KEYPRESS    ;Get another key
             ;JR      NZ,KEYWAIT   ;Loop until key released
-            IN      A,($40)     ;Check if key is pressed
+            IN      A,(KEYBUF)     ;Check if key is pressed
             BIT     6,A
             JR      NZ, KEYWAIT
             DJNZ    PLAYER
@@ -70,18 +73,18 @@ HEXBCD:
             DEC     A
             DAA
             LD      C,A
-SCAN:       XOR     A           ;Multiplex
-            OUT     (PORT02),A
+SIMON_SCAN:       XOR     A           ;Multiplex
+            OUT     (DISPLY),A
             LD      A,04H
-            OUT     (PORT01),A
+            OUT     (SCAN),A
             LD      A,C
             CALL    BCDHEX
             LD      B,00H
 LOOP1:      DJNZ    LOOP1
             XOR     A
-            OUT     (PORT02),A
+            OUT     (DISPLY),A
             LD      A,08H
-            OUT     (PORT01),A
+            OUT     (SCAN),A
             LD      A,C
             RRCA
             RRCA
@@ -93,10 +96,10 @@ LOOP2:      DJNZ    LOOP2
             CALL    KEYPRESS
             INC     D
             CP      12H        ;Check if GO pressed
-            JR      NZ,SCAN    ;Keep scanning until GO pressed
+            JR      NZ,SIMON_SCAN    ;Keep scanning until GO pressed
             LD      L,D        ;Put random number in L
             XOR     A
-            OUT     (PORT01),A
+            OUT     (SCAN),A
             CALL    SOUND
             JR      START
 BCDHEX:
@@ -105,7 +108,7 @@ BCDHEX:
             ADD     A,L
             LD      L,A
             LD      A,(HL)     ;Get Segment
-            OUT     (PORT02),A     ;Display number
+            OUT     (DISPLY),A     ;Display number
             RET
 DELAY:
             LD      DE,9000H
@@ -121,8 +124,8 @@ LOOP4:
             LD      A,D
             OR      E
             JR      NZ,LOOP4
-            LD      A,04H
-            OUT     (PORT02),A
+            LD      A,80H      ;ponto segment
+            OUT     (DISPLY),A
             RET
 SOUND:
             PUSH    HL
@@ -138,7 +141,7 @@ SOUND:
             LD      C,B
             AND     0FH
 LOOP5:
-            OUT     (PORT01),A     ;Display value
+            OUT     (SCAN),A     ;Display value
             LD      B,C
 LOOP6:      DJNZ    LOOP6
             XOR     80H        ;Toggle speaker bit
@@ -147,16 +150,16 @@ LOOP6:      DJNZ    LOOP6
             POP     BC
             POP     DE
             POP     HL
-            LD      A,04H      ;G segment
-            OUT     (PORT02),A
+            LD      A,80H      ;ponto segment
+            OUT     (DISPLY),A
             XOR     A
-            OUT     (PORT01),A
+            OUT     (SCAN),A
             RET
 KEYPRESS:
-            IN      A,($40)     ;Check if key is pressed
+            IN      A,(KEYBUF)     ;Check if key is pressed
             BIT     6,A
             RET     Z         ;No key pressed
-            IN      A,($40)     ;Get actual key
+            IN      A,(KEYBUF)     ;Get actual key
             AND     1FH        ;Mask upper bits
             LD      E,A
             XOR     A          ;Clear flags
@@ -187,4 +190,4 @@ RG2:
             DJNZ    RG1
             RET
 
-.END
+	   .END
