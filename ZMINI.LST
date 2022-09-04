@@ -1,0 +1,201 @@
+0001   0000             ; ---------------------------------------------------------
+0002   0000             ;   ZMini  -  inicio 08/2022
+0003   0000             ;   Diego Cruz - github.com/diego123cruz
+0004   0000             ;
+0005   0000             ;   Hardware baseado em: http://www.sunrise-ev.com/z80.htm
+0006   0000             ;   Software próprio - em construção
+0007   0000             ; ---------------------------------------------------------
+0008   0000             ;   Z80@4Mhz
+0009   0000             ;   ROM 32k - 28C256
+0010   0000             ;   RAM 32k - 65256
+0011   0000             ;   Display 7 segmentos 8 digitos
+0012   0000             ;   Teclado 16 teclas + Fn (Tecla de função? ou outra coisa?)
+0013   0000             ;   Entrada 40h
+0014   0000             ;   Saida 40h
+0015   0000             ;
+0016   0000             ;
+0017   0000             ; ---------------------------------------------------------
+0018   0000             ;   Display 7 Segmentos - In(Port40) AND 00000111b
+0019   0000             ; ---------------------------------------------------------
+0020   0000             ;
+0021   0000             ;   ------------------------------------------------
+0022   0000             ;   | 00h | 01h | 02h | 03h | 04h | 05h | 06h | 07h |
+0023   0000             ;   ------------------------------------------------
+0024   0000             ;
+0025   0000             ;               A(0)
+0026   0000             ;            ---------
+0027   0000             ;           |         |
+0028   0000             ;      F(5) |         | B(1)
+0029   0000             ;           |   G(6)  |
+0030   0000             ;            ---------
+0031   0000             ;           |         |
+0032   0000             ;      E(4) |         | C(2)
+0033   0000             ;           |         |
+0034   0000             ;            ---------         Ponto(7)
+0035   0000             ;               D(3) 
+0036   0000             ;
+0037   0000             ;
+0038   0000             ;
+0039   0000             ;
+0040   0000             ;
+0041   0000             ; ---------------------------------------------------------
+0042   0000             ; Teclado 
+0043   0000             ; ---------------------------------------------------------
+0044   0000             ;   
+0045   0000             ;   Keys:        
+0046   0000             ;       Fn - In(Port40) AND 00010000b - pulldown
+0047   0000             ;       0 - In(Port40) AND 00000111b
+0048   0000             ;
+0049   0000             ;
+0050   0000             ;
+0051   0000             ;
+0052   0000             
+0053   0000             
+0054   0000             ; ---------------------------------------------------------
+0055   0000             ; Constantes
+0056   0000             ; ---------------------------------------------------------
+0057   0000             
+0058   0000             Port40        .equ    $40    ; System
+0059   0000             PortC0        .equ    $C0    ; User
+0060   0000             START_RAM     .equ    $8000
+0061   0000             STACK_TOP         .equ    $FF00  
+0062   0000             
+0063   0000             
+0064   0000             ; ---------------------------------------------------------
+0065   0000             ; RAM MAP
+0066   0000             ; ---------------------------------------------------------
+0067   0000             DISPLAY_LED   .equ    $FF00 ; (8) 8xDisplay
+0068   0000             
+0069   0000             REG_SP        .equ    $FF09 ; (2) SP
+0070   0000             REG_AF        .equ    $FF0B ; (2) AF
+0071   0000             REG_BC        .equ    $FF0D ; (2) BC
+0072   0000             REG_DE        .equ    $FF0F ; (2) DE
+0073   0000             REG_HL        .equ    $FF11 ; (2) HL
+0074   0000             REG_PC        .equ    $FF13 ; (2) PC
+0075   0000             REG_IX        .equ    $FF15 ; (2) IX
+0076   0000             REG_IY        .equ    $FF17 ; (2) IY
+0077   0000             REG_IR        .equ    $FF19 ; (2) IR
+0078   0000             REG_AF2       .equ    $FF1B ; (2) AF'
+0079   0000             REG_BC2       .equ    $FF1D ; (2) BC'
+0080   0000             REG_DE2       .equ    $FF1F ; (2) DE'
+0081   0000             REG_HL2       .equ    $FF21 ; (2) HL'
+0082   0000             RAMSIGNATURE  .equ    $FF23 ; (8) RAMSIGNATURE
+0083   0000             
+0084   0000             .org $0000
+0085   0000 F3              DI
+0086   0001 C3 38 00        JP RESET_SYS
+0087   0004             
+0088   0038             .org $0038
+0089   0038             
+0090   0038             
+0091   0038             ; Salva registradores
+0092   0038             RESET_SYS:
+0093   0038 ED 56           IM 1                     ; Int mode 1 - reset $38
+0094   003A 22 11 FF        LD (REG_HL), HL          ; Salva HL
+0095   003D E1              POP HL                   ; Recupera o PC da pilha
+0096   003E 22 13 FF        LD (REG_PC), HL          ; Salva PC
+0097   0041 ED 73 09 FF     LD (REG_SP), SP          ; Salva SP
+0098   0045             
+0099   0045 31 11 FF        LD SP, REG_DE+2          ; Nova SP para salvar os registradores
+0100   0048 D5              PUSH DE
+0101   0049 C5              PUSH BC
+0102   004A F5              PUSH AF
+0103   004B             
+0104   004B 08              EX AF, AF'               ; Troca AF e AF'
+0105   004C D9              EXX                      ; Traca os outros registradores
+0106   004D 31 23 FF        LD SP, REG_HL2+2         ; Nova SP para salvar HL', DE', etc...
+0107   0050 E5              PUSH HL                  ; Salva HL'
+0108   0051 D5              PUSH DE                  ; Salva DE'
+0109   0052 C5              PUSH BC                  ; Salva BC'
+0110   0053 F5              PUSH AF                  ; Salva AF'
+0111   0054             
+0112   0054 08              EX AF, AF'               ; Volta AF
+0113   0055 D9              EXX                      ; Volta registradores
+0114   0056             
+0115   0056 ED 57           LD	A,I		             ; Recupera IR
+0116   0058 47          	LD	B,A
+0117   0059 ED 5F       	LD	A,R
+0118   005B 4F          	LD	C,A
+0119   005C C5          	PUSH BC		             ; Salva IR
+0120   005D             
+0121   005D FD E5       	PUSH IY                  ; Salva IY
+0122   005F DD E5       	PUSH IX                  ; Salva IX
+0123   0061             
+0124   0061 31 00 FF        LD SP, STACK_TOP         ; Define Stack Pointer - SP
+0125   0064             
+0126   0064             ; Salva entradas
+0127   0064 0E 40           LD C, Port40
+0128   0066 1E 80           LD E, $80
+0129   0068 06 08           LD B, 8
+0130   006A             RST_SYS1:
+0131   006A ED 59           OUT (C), E
+0132   006C ED 78           IN A, (C)
+0133   006E 57              LD D, A
+0134   006F E6 07           AND 7
+0135   0071 28 02           JR Z, RST_SYS_OK
+0136   0073 10 F5           DJNZ RST_SYS1
+0137   0075             RST_SYS_OK:
+0138   0075             
+0139   0075 21 23 FF    CHK_RESET	LD	HL, RAMSIGNATURE		
+0140   0078 3E F0       		LD	A,$F0		;First signature byte expected
+0141   007A 06 08       		LD	B,8		;#bytes in signature (loop)
+0142   007C BE          RAMSIG_LP	CP	(HL)
+0143   007D 20 07       		JR  NZ,	START_COLD
+0144   007F 2C          		INC	L
+0145   0080 D6 0F       		SUB	$F
+0146   0082 10 F8       		DJNZ	RAMSIG_LP
+0147   0084 18 07       		JR	START_WARM
+0148   0086             
+0149   0086             START_COLD:
+0150   0086 3E 01           LD A, $1
+0151   0088 D3 C0           OUT (PortC0), A
+0152   008A C3 91 00        JP START_SYS
+0153   008D             
+0154   008D             START_WARM:
+0155   008D 3E 02           LD A, $2
+0156   008F D3 C0           OUT (PortC0), A
+0157   0091             
+0158   0091             
+0159   0091             
+0160   0091             
+0161   0091             
+0162   0091             START_SYS:
+0163   0091 21 23 FF        	LD	HL,RAMSIGNATURE
+0164   0094 3E F0       		LD	A,$F0		;First signature byte expected
+0165   0096 06 08       		LD	B,8		;#bytes in signature (loop)
+0166   0098 77          RAMSIGN_LP	LD	(HL),A		;Save Signature
+0167   0099 2C          		INC	L
+0168   009A D6 0F       		SUB	$F
+0169   009C 10 FA       		DJNZ	RAMSIGN_LP
+0170   009E AF          		XOR	A
+0171   009F             
+0172   009F C3 9F 00        JP $
+0173   00A2             
+0174   00A2             
+0175   00A2             
+0176   00A2             
+0177   00A2             
+0178   00A2             
+0179   00A2             
+0180   00A2             
+0181   00A2             
+0182   00A2             
+0183   00A2             
+0184   00A2             
+0185   00A2             ; =========================================================
+0186   00A2             ; Tabela display
+0187   00A2             ; =========================================================
+0188   00A2             ; 
+0189   00A2             ;   0 - $3F     A - $77     K - $7A     U - $1C     . - $80
+0190   00A2             ;   1 - $06     B - $7C     L - $38     V - $3E     Ñ - $55
+0191   00A2             ;   2 - $5B     C - $39     M - $37     W - $1D     : - $41
+0192   00A2             ;   3 - $4F     D - $5E     N - $54     X - $70     ; - $88
+0193   00A2             ;   4 - $66     E - $79     O - $3F     Y - $6E     _ - $08
+0194   00A2             ;   5 - $6D     F - $71     P - $73     Z - $49     ~ - $01
+0195   00A2             ;   6 - $7D     G - $6F     Q - $67                 ' - $20
+0196   00A2             ;   7 - $07     H - $76     R - $50     + - $46     
+0197   00A2             ;   8 - $7F     I - $06     S - $6D     , - $04     
+0198   00A2             ;   9 - $67     J - $1E     T - $78     - - $40     
+0199   00A2             
+0200   00A2             .end
+tasm: Number of errors = 0
