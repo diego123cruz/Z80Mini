@@ -104,6 +104,7 @@ SYSMODE     .equ    $FF0F   ;(1) System mode.
                             ; D - Show register BC'
                             ; E - Show register DE'
                             ; F - Show register HL'
+                            ; 80 - Modify Any
                             ; 76 - HALT
 TicCounter  .equ    $FF10   ;(2) TicCounter inc 1ms
 EXM_COUNT   .equ    $FF12   ;(1) Count digits Examine function, 4 digits
@@ -140,6 +141,9 @@ USER_DISP5  .equ    $FFD5   ; Mode User - Display Dig 5  - 01234567
 USER_DISP6  .equ    $FFD6   ; Mode User - Display Dig 6  - 01234567
 USER_DISP7  .equ    $FFD7   ; Mode User - Display Dig 7  - 01234567
 
+LAST_SYS    .equ    $FFD8   ; (1) Last SYSMODE
+ISR_MD_HL   .equ    $FFDC   ; (2) endereço do registrador para alterar
+ISR_MD_TMP  .equ    $FFDE   ; (2) data register temp
 
 
 ; =========================================================
@@ -149,18 +153,6 @@ USER_DISP7  .equ    $FFD7   ; Mode User - Display Dig 7  - 01234567
     LD  HL, INT38
     LD  (INT_VEC), HL
     JP  START
-
-; =========================================================
-; Livre para colocar funções 0003h - 0037h 
-; =========================================================
-
-; DELAY_100mS
-
-; char7segFromA
-
-; animacaoLeds
-
-; Limpar RAM (FF).... etc
 
 
 ; =========================================================
@@ -310,6 +302,9 @@ EXIT_SYS:
     LD DE, (USR_DEA)          ; Recovery DE'
     LD BC, (USR_BCA)          ; Recovery BC'
     EXX
+
+    LD IX, (USR_IX)          ; Recovery IX
+    LD IY, (USR_IY)          ; Recovery IY
 
     LD HL, (USR_AF)          ; Load AF in HL
     PUSH  HL                 ; Push AF
@@ -560,6 +555,11 @@ SYS_MAIN:
     CP  $76
     JP  Z, SHOW_HALT
 
+    LD  A, (SYSMODE)        ; Modify Any
+    CP  $80
+    JP  Z, MD_HL
+
+
     LD  A, (SYSMODE)        ; Show ERROR
     CP  $99
     JP  Z, SHOW_ERROR
@@ -728,17 +728,26 @@ SHOW_REG_PC:
     CP  $08
     JP Z, GO_SHOW_REG_IY
 
-    LD  A, $50               ; R
-    LD  (DIG_0), A
+    ; RUN
+    CP  $0F
+    JP  Z,  FIRE
+
+    ; Modify
+    CP  $0D
+    JP  Z,  MODIFY_ANY
 
     LD  A, $73               ; P
-    LD  (DIG_1), A
+    LD  (DIG_0), A
 
     LD  A, $39
-    LD  (DIG_2), A           ; C
+    LD  (DIG_1), A           ; C
 
     LD HL, (USR_PC)
     CALL PRINT_END_HL
+
+    LD HL, USR_PC
+    LD (ISR_MD_HL), HL
+
     JP  EXIT_SYS
 
 
@@ -763,16 +772,17 @@ SHOW_REG_SP:
     CP  $08
     JP Z, GO_SHOW_REG_IY
 
+    ; RUN
+    CP  $0F
+    JP  Z,  FIRE
+
     CALL  CLEAR_DISPLAY
 
-    LD  A, $50               ; R
+    LD  A, $6D               ; S
     LD  (DIG_0), A
 
-    LD  A, $6D               ; S
-    LD  (DIG_1), A
-
     LD  A, $73               ; P
-    LD  (DIG_2), A
+    LD  (DIG_1), A
 
     LD HL, (USR_SP)
     CALL PRINT_END_HL
@@ -800,21 +810,30 @@ SHOW_REG_AF:
     CP  $08
     JP Z, GO_SHOW_REG_IY
 
+    ; RUN
+    CP  $0F
+    JP  Z,  FIRE
+
+    ; Modify
+    CP  $0D
+    JP  Z,  MODIFY_ANY
+
     CALL  CLEAR_DISPLAY
 
-    LD  A, $50               ; R
+    LD  A, $77               ; A
     LD  (DIG_0), A
 
-    LD  A, $77               ; A
-    LD  (DIG_1), A
-
     LD  A, $71               ; F
-    LD  (DIG_2), A
+    LD  (DIG_1), A
 
     LD  HL, (USR_AF)
     LD  A, L
     LD (CPU_FLAGS), A
     CALL PRINT_END_HL
+
+    LD HL, USR_AF
+    LD (ISR_MD_HL), HL
+
     JP  EXIT_SYS
 
 
@@ -839,19 +858,30 @@ SHOW_REG_BC:
     CP  $08
     JP Z, GO_SHOW_REG_IY
 
+    ; RUN
+    CP  $0F
+    JP  Z,  FIRE
+
+    ; Modify
+    CP  $0D
+    JP  Z,  MODIFY_ANY
+
+
+
     CALL  CLEAR_DISPLAY
 
-    LD  A, $50               ; R
+    LD  A, $7C               ; B
     LD  (DIG_0), A
 
-    LD  A, $7C               ; B
-    LD  (DIG_1), A
-
     LD  A, $39               ; C
-    LD  (DIG_2), A
+    LD  (DIG_1), A
 
     LD HL, (USR_BC)
     CALL PRINT_END_HL
+
+    LD HL, USR_BC
+    LD (ISR_MD_HL), HL
+
     JP  EXIT_SYS
 
 SHOW_REG_DE:
@@ -875,19 +905,28 @@ SHOW_REG_DE:
     CP  $08
     JP Z, GO_SHOW_REG_IY
 
+    ; RUN
+    CP  $0F
+    JP  Z,  FIRE
+
+    ; Modify
+    CP  $0D
+    JP  Z,  MODIFY_ANY
+
     CALL  CLEAR_DISPLAY
 
-    LD  A, $50               ; R
+    LD  A, $5E               ; D
     LD  (DIG_0), A
 
-    LD  A, $5E               ; D
-    LD  (DIG_1), A
-
     LD  A, $79               ; E
-    LD  (DIG_2), A
+    LD  (DIG_1), A
 
     LD HL, (USR_DE)
     CALL PRINT_END_HL
+
+    LD HL, USR_DE
+    LD (ISR_MD_HL), HL
+
     JP  EXIT_SYS
 
 SHOW_REG_HL:
@@ -911,19 +950,28 @@ SHOW_REG_HL:
     CP  $08
     JP Z, GO_SHOW_REG_IY
 
+    ; RUN
+    CP  $0F
+    JP  Z,  FIRE
+
+    ; Modify
+    CP  $0D
+    JP  Z,  MODIFY_ANY
+
     CALL  CLEAR_DISPLAY
 
-    LD  A, $50               ; R
+    LD  A, $76               ; H
     LD  (DIG_0), A
 
-    LD  A, $76               ; H
-    LD  (DIG_1), A
-
     LD  A, $38               ; L
-    LD  (DIG_2), A
+    LD  (DIG_1), A
 
     LD HL, (USR_HL)
     CALL PRINT_END_HL
+
+    LD HL, USR_HL
+    LD (ISR_MD_HL), HL
+
     JP  EXIT_SYS
 
 SHOW_REG_IX:
@@ -947,19 +995,28 @@ SHOW_REG_IX:
     CP  $08
     JP Z, GO_SHOW_REG_IY
 
+    ; RUN
+    CP  $0F
+    JP  Z,  FIRE
+
+    ; Modify
+    CP  $0D
+    JP  Z,  MODIFY_ANY
+
     CALL  CLEAR_DISPLAY
 
-    LD  A, $50               ; R
+    LD  A, $06               ; I
     LD  (DIG_0), A
 
-    LD  A, $06               ; I
-    LD  (DIG_1), A
-
     LD  A, $70               ; X
-    LD  (DIG_2), A
+    LD  (DIG_1), A
 
     LD HL, (USR_IX)
     CALL PRINT_END_HL
+
+    LD HL, USR_IX
+    LD (ISR_MD_HL), HL
+
     JP  EXIT_SYS
 
 SHOW_REG_IY:
@@ -983,19 +1040,28 @@ SHOW_REG_IY:
     CP  $08
     JP Z, GO_SHOW_REG_IY
 
+    ; RUN
+    CP  $0F
+    JP  Z,  FIRE
+
+    ; Modify
+    CP  $0D
+    JP  Z,  MODIFY_ANY
+
     CALL  CLEAR_DISPLAY
 
-    LD  A, $50               ; R
+    LD  A, $06               ; I
     LD  (DIG_0), A
 
-    LD  A, $06               ; I
-    LD  (DIG_1), A
-
     LD  A, $6E               ; Y
-    LD  (DIG_2), A
+    LD  (DIG_1), A
 
     LD HL, (USR_IY)
     CALL PRINT_END_HL
+
+    LD HL, USR_IY
+    LD (ISR_MD_HL), HL
+
     JP  EXIT_SYS
 
 SHOW_REG_AFaux:
@@ -1019,24 +1085,34 @@ SHOW_REG_AFaux:
     CP  $08
     JP Z, GO_SHOW_REG_IY
 
+    ; RUN
+    CP  $0F
+    JP  Z,  FIRE
+
+    ; Modify
+    CP  $0D
+    JP  Z,  MODIFY_ANY
+
     CALL  CLEAR_DISPLAY
 
-    LD  A, $50               ; R
-    LD  (DIG_0), A
 
     LD  A, $77               ; A
-    LD  (DIG_1), A
+    LD  (DIG_0), A
 
     LD  A, $71               ; F
-    LD  (DIG_2), A
+    LD  (DIG_1), A
 
     LD  A, $20               ; '
-    LD  (DIG_3), A
+    LD  (DIG_2), A
 
     LD HL, (USR_AFA)
     LD  A, L
     LD (CPU_FLAGS), A
     CALL PRINT_END_HL
+
+    LD HL, USR_AFA
+    LD (ISR_MD_HL), HL
+
     JP  EXIT_SYS
 
 
@@ -1061,22 +1137,32 @@ SHOW_REG_BCaux:
     CP  $08
     JP Z, GO_SHOW_REG_IY
 
+    ; RUN
+    CP  $0F
+    JP  Z,  FIRE
+
+    ; Modify
+    CP  $0D
+    JP  Z,  MODIFY_ANY
+
     CALL  CLEAR_DISPLAY
 
-    LD  A, $50               ; R
-    LD  (DIG_0), A
 
     LD  A, $7C               ; B
-    LD  (DIG_1), A
+    LD  (DIG_0), A
 
     LD  A, $39               ; C
-    LD  (DIG_2), A
+    LD  (DIG_1), A
 
     LD  A, $20               ; '
-    LD  (DIG_3), A
+    LD  (DIG_2), A
 
     LD HL, (USR_BCA)
     CALL PRINT_END_HL
+
+    LD HL, USR_BCA
+    LD (ISR_MD_HL), HL
+
     JP  EXIT_SYS
 
 SHOW_REG_DEaux:
@@ -1100,22 +1186,31 @@ SHOW_REG_DEaux:
     CP  $08
     JP Z, GO_SHOW_REG_IY
 
+    ; RUN
+    CP  $0F
+    JP  Z,  FIRE
+
+    ; Modify
+    CP  $0D
+    JP  Z,  MODIFY_ANY
+
     CALL  CLEAR_DISPLAY
 
-    LD  A, $50               ; R
+    LD  A, $5E               ; D
     LD  (DIG_0), A
 
-    LD  A, $5E               ; D
+    LD  A, $79               ; E
     LD  (DIG_1), A
 
-    LD  A, $79               ; E
-    LD  (DIG_2), A
-
     LD  A, $20               ; '
-    LD  (DIG_3), A
+    LD  (DIG_2), A
 
     LD HL, (USR_DEA)
     CALL PRINT_END_HL
+
+    LD HL, USR_DEA
+    LD (ISR_MD_HL), HL
+
     JP  EXIT_SYS
 
 SHOW_REG_HLaux:
@@ -1139,22 +1234,31 @@ SHOW_REG_HLaux:
     CP  $08
     JP Z, GO_SHOW_REG_IY
 
+    ; RUN
+    CP  $0F
+    JP  Z,  FIRE
+
+    ; Modify
+    CP  $0D
+    JP  Z,  MODIFY_ANY
+
     CALL  CLEAR_DISPLAY
 
-    LD  A, $50               ; R
+    LD  A, $76               ; H
     LD  (DIG_0), A
 
-    LD  A, $76               ; H
+    LD  A, $38               ; L
     LD  (DIG_1), A
 
-    LD  A, $38               ; L
-    LD  (DIG_2), A
-
     LD  A, $20               ; '
-    LD  (DIG_3), A
+    LD  (DIG_2), A
 
     LD HL, (USR_HLA)
     CALL PRINT_END_HL
+
+    LD HL, USR_HLA
+    LD (ISR_MD_HL), HL
+
     JP  EXIT_SYS
 
 SHOW_HALT:
@@ -1464,16 +1568,143 @@ GO_SHOW_REG_HLaux:
 
 
 FIRE:
-    LD  A, 1
-    LD (SYSMODE), A          ; Monitor mode
+    ;LD  A, 1
+    ;LD (SYSMODE), A          ; Monitor mode
     LD  HL, (PC_RAM)
     LD  (USR_PC), HL
     JP  EXIT_SYS
+
+MODIFY_ANY:
+    ;;CALL CLEAR_DISPLAY
+
+    LD  A, $03
+    LD (EXM_COUNT), A        ; Set count 4 digits, position display
+
+    LD A, 00000000b
+    LD (DIG_2), A
+    LD (DIG_3), A
+    LD A, 01000000b
+    LD (DIG_4), A
+    LD (DIG_5), A
+    LD (DIG_6), A
+    LD (DIG_7), A
+
+    LD  A, (SYSMODE)
+    LD (LAST_SYS), A
+
+    LD  A, $80
+    LD  (SYSMODE), A
+    JP EXIT_SYS
+
+
 
 GO_USER_MODE:
     LD  A, 0
     LD  (SYSMODE), A
     JP  EXIT_SYS
+
+
+; =========================================================
+; Modify (HL)
+; =========================================================
+MD_HL:
+    CALL GET_KEY_A
+    CP  $FF
+    JP  Z, EXIT_SYS
+
+    PUSH  AF
+    PUSH  AF
+    LD  A, (EXM_COUNT)
+    CP  3
+    JP  Z, MD_HL_KEY_POS_3
+
+    LD  A, (EXM_COUNT)
+    CP  2
+    JP  Z, MD_HL_KEY_POS_2
+
+    LD  A, (EXM_COUNT)
+    CP  1
+    JP  Z, MD_HL_KEY_POS_1
+
+    LD  A, (EXM_COUNT)
+    CP  0
+    JP  Z, MD_HL_KEY_POS_0
+
+    JP  EXIT_SYS
+
+MD_HL_KEY_POS_3:
+    POP  AF
+    RLC  A
+    RLC  A
+    RLC  A
+    RLC  A
+    LD  H, A
+    LD  (ISR_MD_TMP), HL
+    POP  AF
+    CALL GET_NUM_FROM_LOW
+    LD  (DIG_4), A
+    LD  A, (EXM_COUNT)
+    DEC A
+    LD  (EXM_COUNT), A
+    JP  EXIT_SYS
+
+
+MD_HL_KEY_POS_2:
+    POP  AF
+    LD  HL, (ISR_MD_TMP)
+    OR  H
+    LD  H, A
+    LD  (ISR_MD_TMP), HL
+    POP  AF
+    CALL GET_NUM_FROM_LOW
+    LD  (DIG_5), A
+    LD  A, (EXM_COUNT)
+    DEC A
+    LD  (EXM_COUNT), A
+    JP  EXIT_SYS
+
+MD_HL_KEY_POS_1:
+    POP  AF
+    LD  HL, (ISR_MD_TMP)
+    RLC  A
+    RLC  A
+    RLC  A
+    RLC  A
+    LD  L, A
+    LD  (ISR_MD_TMP), HL
+    POP  AF
+    CALL GET_NUM_FROM_LOW
+    LD  (DIG_6), A
+    LD  A, (EXM_COUNT)
+    DEC A
+    LD  (EXM_COUNT), A
+    JP  EXIT_SYS
+
+
+MD_HL_KEY_POS_0:
+    POP  AF
+    LD  HL, (ISR_MD_TMP)
+    OR  L
+    LD  L, A
+    LD  (ISR_MD_TMP), HL
+    POP  AF
+    CALL GET_NUM_FROM_LOW
+    LD  (DIG_7), A
+
+
+    LD DE, (ISR_MD_HL) ; endereço de memoria do registrador
+    LD HL, (ISR_MD_TMP) ; dados
+
+    LD A, L
+    LD (DE), A
+    INC DE
+    LD A, H
+    LD (DE), A
+
+    LD  A, (LAST_SYS)
+    LD  (SYSMODE), A
+    JP  EXIT_SYS
+
 
 ; =========================================================
 ; LIMPA DISPLAY
@@ -1724,8 +1955,6 @@ PRINT_END_HL:
 ; =========================================================
 START:
     LD  SP, STACK
-    PUSH HL                  ; Save HL
-    PUSH AF                  ; Save AF
 
     ; if Moni Back(Reset + Press), then Loader Intel Hex
     IN A, (Port40)
@@ -1735,6 +1964,50 @@ START:
 
     LD  A, 1                 ; Monitor mode
     LD  (SYSMODE), A
+
+
+
+
+
+
+
+;LOOP:
+;   INC A
+;   JP NZ, LOOP
+;   INC BC
+;   JP LOOP
+
+    LD A, $3C
+    LD ($8000), A
+
+    LD A, $C2
+    LD ($8001), A
+
+    LD A, $00
+    LD ($8002), A
+
+    LD A, $80
+    LD ($8003), A
+
+    LD A, $03
+    LD ($8004), A
+
+    LD A, $C3
+    LD ($8005), A
+
+    LD A, $00
+    LD ($8006), A
+
+    LD A, $80
+    LD ($8007), A
+
+
+
+
+
+
+
+
 
 START_COM:
     LD  HL, START_RAM
@@ -1763,15 +2036,12 @@ START_COM:
     XOR A
     OUT (Port40), A
 
-    POP AF                   ; Recovery AF
-    POP HL                   ; Recovery HL
 START_LOOP:
     JP START_LOOP
 
 START_WARM:
     LD  SP, STACK
-    PUSH HL                  ; Save HL
-    PUSH AF                  ; Save AF
+
     JP START_COM
 
 
