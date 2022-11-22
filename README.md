@@ -32,8 +32,12 @@ IN_C0h
 
 
 ## Faces
-### Z80 Mem­ber­ship Card
+### Z80 Mem­ber­ship Card - Face
 ![Z80Mini](https://github.com/diego123cruz/Z80Mini/blob/main/Z80%20Mem%C2%ADber%C2%ADship%20Card%20%20-%20Face/Z80%20Membership%20Card.jpeg)
+Essa placa "Face" foi baseada no "The Z80 Mem­ber­ship Card" - http://www.sunrise-ev.com/z80.htm
+
+O circuito ou código-fonte podem conter partes do projeto original mencionado acima. Para mais detalhes sobre licenças copyright  consulte o autor do projeto original (http://www.sunrise-ev.com/z80.htm)
+
 
 [Schematic - Base](https://github.com/diego123cruz/Z80Mini/blob/main/Z80%20Mem%C2%ADber%C2%ADship%20Card%20%20-%20Face/Schematic/Z80%20Membership%20Card%20-%20Face%201-3.PDF)
 
@@ -46,8 +50,16 @@ IN_C0h
 
 
 
-### Tec 1F (Southen Cross)
+### Tec 1F (Southen Cross) - Face
 ![Z80Mini](https://github.com/diego123cruz/Z80Mini/blob/main/TEC-1(SC)%20-%20Face/Z80Mini-SouthernCross.jpeg)
+Essa placa "Face" foi baseada no "TEC 1 - Talking Electronics" (https://www.talkingelectronics.com/te_interactive_index.html) e tambem em algumas montagens:
+
+Southern Cross Computer - https://github.com/crsjones/Southern-Cross-Computer-z80
+
+The Big (Brian's) Monitor for the TEC-1F - https://github.com/bchiha/BMon
+
+
+O circuito ou código-fonte podem conter partes dos projetos originais mencionado acima. Para mais detalhes sobre licenças copyright consulte os autores dos projetos originais.
 
 [Schematic](https://github.com/diego123cruz/Z80Mini/blob/main/TEC-1(SC)%20-%20Face/Schematic/Tec1-Face.PDF)
 
@@ -55,8 +67,12 @@ IN_C0h
 
 
 
-### Basic LCD
+### Basic LCD - Face
 ![Z80Mini](https://github.com/diego123cruz/Z80Mini/blob/main/Basic%20LCD%20-%20Face/BasicLCD-Face.jpeg)
+Essa placa "Face" foi baseada no "Grant's 7-chip Z80 computer" - http://searle.walesz80.htm e "Z80 SINGLE BOARD COMPUTER" - http://d-fence.sytes.net/z80sbc/
+
+O circuito ou código-fonte podem conter partes do projeto original mencionado acima. Para mais detalhes sobre licenças copyright consulte os autores dos projetos originais.
+
 
 [Schematic](https://github.com/diego123cruz/Z80Mini/blob/main/Basic%20LCD%20-%20Face/Schematic/Basic%20LCD.PDF)
 

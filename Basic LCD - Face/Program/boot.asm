@@ -615,7 +615,7 @@ LOGARITHM:				INC				D								; Add one per shift
 						JP				ADDOFFSET				; Jump to load key
 LOADSHIFT:				LD				A, D
 						ADD				A, SHIFTKEYMAP	; In this case add the base for shift		
-ADDOFFSET:				ADD				A, 5						; Add 8 for every line
+ADDOFFSET:				ADD				A, 5						; Add 5 for every line
 						DJNZ			ADDOFFSET				; Jump back (do while loop)
 						SUB				5								; Since do while is one too much
 TRANSKEY:				XOR				B								; Empty B
