@@ -7,6 +7,9 @@ Essa placa "Face" foi baseada no "The Z80 Mem­ber­ship Card" - http://www.sunr
 O circuito ou código-fonte podem conter partes do projeto original mencionado acima. Para mais detalhes sobre licenças copyright  consulte o autor do projeto original (http://www.sunrise-ev.com/z80.htm)
 
 
+Vídeo: [`https://www.youtube.com/watch?v=1eWTQVRYLUw`](url)
+
+
 #### Base board
 
 ![Base](https://github.com/diego123cruz/Z80Mini/blob/main/Z80%20Mem%C2%ADber%C2%ADship%20Card%20%20-%20Face/Base.jpeg)
