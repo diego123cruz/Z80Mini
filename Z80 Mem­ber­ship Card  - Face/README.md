@@ -1,6 +1,3 @@
-
-
-
 # Z80Mini
 Circuito - https://github.com/diego123cruz/Z80Mini/blob/main/Circuito/Z80Mini.PDF
 

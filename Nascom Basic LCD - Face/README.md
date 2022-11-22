@@ -1,4 +1,4 @@
-
+<img src="https://raw.githubusercontent.com/leomil72/LM80C/master/lm80c_key_n_inside.jpg" title="LM80C motherboard inside its case" alt="LM80C motherboard inside its case">
 
 
 # Z80Mini
