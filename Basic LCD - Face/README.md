@@ -2,9 +2,9 @@
 
 ### Basic LCD - Face
 
-Vídeo demo: [`https://www.youtube.com/watch?v=0nLOt6mwVDU`](url)
+[Vídeo demo](https://www.youtube.com/watch?v=0nLOt6mwVDU)
 
-Vídeo detalhes: [`https://www.youtube.com/watch?v=qB5lAR5NyGU`](url)
+[Vídeo detalhes](https://www.youtube.com/watch?v=qB5lAR5NyGU)
 
 Essa placa "Face" foi baseada no "Grant's 7-chip Z80 computer" - http://searle.walesz80.htm e "Z80 SINGLE BOARD COMPUTER" - http://d-fence.sytes.net/z80sbc/
 
