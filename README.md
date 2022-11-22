@@ -2,7 +2,7 @@
 
 
 # Z80Mini
-Z80Mini foi pensado para ser um computador portatil e modular, temos uma placa base com o processador Z80 rodando em 4Mhz, 32Kb de memória RAM, um soquete para a memória ROM, (que pode ser instalada na placa "Face"), Duas portas de entradas e duas de saídas (a porta de saida 40h esta ligada no barramento atraves de resistores de 1k).
+Z80Mini foi pensado para ser um computador portátil e modular, temos uma placa base com o processador Z80 rodando em 4Mhz, 32Kb de memória RAM, um soquete para a memória ROM, (que pode ser instalada na placa "Face"), duas portas de entradas e duas de saídas (a porta de saída 40h está ligada no barramento através de resistores de 1k).
 
 ## Spec
 Z80 @4Mhz
@@ -24,6 +24,7 @@ IN_C0h
 
 ## Z80Mini - BaseBoard
 ![Z80Mini](https://raw.githubusercontent.com/diego123cruz/Z80Mini/main/Z80Mini_BaseBoardPower.jpeg)
+
 [Schematic - BaseBoard Only](https://github.com/diego123cruz/Z80Mini/blob/main/Schematic/Z80Mini%20BaseBoard.PDF)
 
 [Schematic - All boards](https://github.com/diego123cruz/Z80Mini/blob/main/Schematic/Z80Mini%20-%20All%20boards.PDF)
@@ -32,7 +33,7 @@ IN_C0h
 
 ## Faces
 ### Z80 Mem­ber­ship Card
-![Z80Mini](https://github.com/diego123cruz/Z80Mini/blob/main/Z80%20Mem%C2%ADber%C2%ADship%20Card%20%20-%20Face/Z80Mini.jpg)
+![Z80Mini](https://github.com/diego123cruz/Z80Mini/blob/main/Z80%20Mem%C2%ADber%C2%ADship%20Card%20%20-%20Face/Z80%20Membership%20Card.jpeg)
 
 [Schematic - Base](https://github.com/diego123cruz/Z80Mini/blob/main/Z80%20Mem%C2%ADber%C2%ADship%20Card%20%20-%20Face/Schematic/Z80%20Membership%20Card%20-%20Face%201-3.PDF)
 
