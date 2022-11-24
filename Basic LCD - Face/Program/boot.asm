@@ -7,6 +7,7 @@ CTRLC   .EQU    03H             ; Control "C"
 CTRLG   .EQU    07H             ; Control "G"
 BKSP    .EQU    08H             ; Back space
 LF      .EQU    0AH             ; Line feed
+VT      .equ    0BH             ; 
 CS      .EQU    0CH             ; Clear screen
 CR      .EQU    0DH             ; Carriage return [Enter]
 CTRLO   .EQU    0FH             ; Control "O"
@@ -81,9 +82,9 @@ KEYMAP:
 
 SHIFTKEYMAP:
 .BYTE				"!@#$%^&*()"
-.BYTE				"`~-_=+;:'D"
-.BYTE				"{}[]|D<>?/"
-.BYTE				CTRLC, ",.     ", $0B, $0A
+.BYTE				"`~-_=+;:'X" ; trocar X por " quando for gravar na eeprom
+.BYTE				"{}[]|Y<>?/" ; trocar Y por \ quando for gravar na eeprom
+.BYTE				CTRLC, ",.     ", VT, LF
 
 
 
@@ -168,7 +169,7 @@ TXA:
 ver_enter:       
 
                 ; trata dados para o lcd
-                CP      $0D                     ; compara com ENTER
+                CP      CR                     ; compara com ENTER
                 jr      nz, ver_limpa
 
                 call    shift_lcd_up
@@ -184,7 +185,7 @@ ver_limpa:
                 RET
 
 ver_line:
-                CP      $0A                     ; retorna começo da linha
+                CP      LF                     ; retorna começo da linha
                 jr      NZ, print_lcd      
 
                     ;----- verificar se precisa add algo aqui
@@ -430,6 +431,7 @@ continue_print:
     LD      L, A
 
     POP     AF  ; recupera char in A
+    PUSH    AF
     LD      (HL),  A
     INC     HL
     LD      A, L
@@ -444,6 +446,7 @@ continue_print:
     LD      (HL), A      ; coloca '_' para mostrar onde esta o cursor
 
 continue_print_fim:
+    POP     AF
     POP     HL
 
     RET
@@ -543,42 +546,6 @@ PRINT:
             RET
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ;---------------------------------------------------------------------------
 ; TECLADO 8X5 = 40 Teclas
 ;---------------------------------------------------------------------------
@@ -640,9 +607,7 @@ KEYOUT:					LD				A, E
                 PUSH     HL
 
 
-				; up key = $0b
-                ; down key = $0a
-                cp      $0B         ; if key up
+                cp      VT         ; if key up
                 JP      NZ, serialInt_check_down ; se nao for key up desvia
 
                 PUSH    AF
@@ -658,7 +623,7 @@ serialInt_check_down_pop:
 serialInt_check_down:
 
 
-                cp      $0A         ; if key down
+                cp      LF         ; if key down
                 jp      NZ, serialInt_continue
                 PUSH    AF
                 ld      a, (LCD_OFFSET)
