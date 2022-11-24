@@ -87,9 +87,9 @@
 0083   0043             SHIFTKEYMAP:
 0084   0043 21402324255E.BYTE				"!@#$%^&*()"
 0084   0049 262A2829
-0085   004D 607E2D5F3D2B.BYTE				"`~-_=+;:'D"
-0085   0053 3B3A2744
-0086   0057 7B7D5B5D7C44.BYTE				"{}[]|D<>?/"
+0085   004D 607E2D5F3D2B.BYTE				"`~-_=+;:'X" ; trocar X por " quando for gravar na eeprom
+0085   0053 3B3A2758
+0086   0057 7B7D5B5D7C59.BYTE				"{}[]|Y<>?/" ; trocar Y por \ quando for gravar na eeprom
 0086   005D 3C3E3F2F
 0087   0061 032C2E202020.BYTE				CTRLC, ",.     ", VT, LF
 0087   0067 20200B0A

@@ -57,34 +57,34 @@ LCD_BUFFER_SIZE     =   $D2 ;   0 - 210  buffer | ainda não pode ser maior que 
 
 
 
-		.ORG 			0
-RST00		DI
-			JP	INIT
+        .ORG 0
+RST00	DI
+	JP	INIT
 						
         .ORG     0008H
-RST08       JP	TXA ;PRINTCHAR
+RST08   JP	TXA ;PRINTCHAR
 
         .ORG 0010H
-RST10       JP READKEYINIT
+RST10   JP READKEYINIT
 
         .ORG 0018H ; check break
-RST18       ;LD	A, 0
-			;CP	0
-			;RET
-			JP CHKKEY
+RST18   ;LD	A, 0
+        ;CP	0
+        ;RET
+	JP CHKKEY
 
 
 KEYMAP:
-.BYTE				"1234567890"
-.BYTE				"QWERTYUIOP"
-.BYTE				"ASDFGHJKL", CR
-.BYTE				CTRLC, "ZXCVBNM ", DEL
+.BYTE   "1234567890"
+.BYTE   "QWERTYUIOP"
+.BYTE   "ASDFGHJKL", CR
+.BYTE   CTRLC, "ZXCVBNM ", DEL
 
 SHIFTKEYMAP:
-.BYTE				"!@#$%^&*()"
-.BYTE				"`~-_=+;:'X" ; trocar X por " quando for gravar na eeprom
-.BYTE				"{}[]|Y<>?/" ; trocar Y por \ quando for gravar na eeprom
-.BYTE				CTRLC, ",.     ", VT, LF
+.BYTE   "!@#$%^&*()"
+.BYTE   "`~-_=+;:'X" ; trocar X por " quando for gravar na eeprom
+.BYTE   "{}[]|Y<>?/" ; trocar Y por \ quando for gravar na eeprom
+.BYTE   CTRLC, ",.     ", VT, LF
 
 
 
@@ -94,14 +94,14 @@ WELCOMEMSG:
 
 
 
-CHKKEY: 	LD  A, $40
-			OUT (REGISTER), A ; line 4
-			IN  A, (KEYREAD)
-			CP  1
-			JP  NZ, GRET
-			LD  A, CTRLC
-			CP	0
-			RET
+CHKKEY: LD  A, $40
+	OUT (REGISTER), A ; line 4
+	IN  A, (KEYREAD)
+	CP  1
+	JP  NZ, GRET
+	LD  A, CTRLC
+	CP	0
+	RET
 GRET:
 	LD  A, 0
 	CP 0
@@ -110,51 +110,51 @@ GRET:
 ;---------------------------------------------------------------------------
 ; INIT LCD
 ;---------------------------------------------------------------------------
-INIT:       LD        HL,TEMPSTACK    ; Temp stack
-			LD        SP,HL           ; Set up a temporary stack		
-			XOR		  E								; Empty E for key reading
-			XOR		  A
+INIT:   LD        HL,TEMPSTACK    ; Temp stack
+	LD        SP,HL           ; Set up a temporary stack		
+	XOR		  E								; Empty E for key reading
+	XOR		  A
 
-			; reset lcd
-			ld a, 30h 				; limpa lcd
-			call lcd_send_command
+	; reset lcd
+	ld a, 30h 				; limpa lcd
+	call lcd_send_command
 			
-			ld a, 30h 				; limpa lcd
-			call lcd_send_command
+	ld a, 30h 				; limpa lcd
+	call lcd_send_command
 			
-			ld a, 30h 				; limpa lcd
-			call lcd_send_command
+	ld a, 30h 				; limpa lcd
+	call lcd_send_command
 			
 
-			; init lcd
-			ld a,lcd_set_8bit
-			call lcd_send_command
+	; init lcd
+	ld a,lcd_set_8bit
+	call lcd_send_command
 	
-			ld a,lcd_cursor_on
-			call lcd_send_command
+	ld a,lcd_cursor_on
+	call lcd_send_command
 	
-			ld a,lcd_cls
-			call lcd_send_command
+	ld a,lcd_cls
+	call lcd_send_command
 
-			ld  a, 0Ch              ; Display on, cursor off
-			call lcd_send_command
+	ld  a, 0Ch                              ; Display on, cursor off
+	call lcd_send_command
 			
-			ld a, 06h 				; Increment cursor (shift cursor to right)
-			call lcd_send_command
+	ld a, 06h 				; Increment cursor (shift cursor to right)
+	call lcd_send_command
 			
-			ld a, 01h 				; limpa lcd
-			call lcd_send_command
+	ld a, 01h 				; limpa lcd
+	call lcd_send_command
 
 
-			call      init_lcd_screen    ; init logical
+	call      init_lcd_screen               ; init logical
 
-			IM 		  1
-			LD        HL, WELCOMEMSG
-			CALL	  PRINT
+	IM 		  1
+	LD        HL, WELCOMEMSG
+	CALL	  PRINT
 
-			EI
-			JP        $0400           ; Start BASIC COLD
-			HALT
+	EI
+	JP        $0400                         ; Start BASIC COLD
+	HALT
 
 loop:
     jp loop			
@@ -537,84 +537,82 @@ teste:
 
 
 PRINT:          
-			LD       A,(HL)          ; Get character
-            OR       A               ; Is it $00 ?
-            RET      Z               ; Then RETurn on terminator
-            RST      08H             ; Print it
-            INC      HL              ; Next Character
-            JR       PRINT           ; Continue until $00
-            RET
+	LD       A,(HL)          ; Get character
+        OR       A               ; Is it $00 ?
+        RET      Z               ; Then RETurn on terminator
+        RST      08H             ; Print it
+        INC      HL              ; Next Character
+        JR       PRINT           ; Continue until $00
+        RET
 
 
 ;---------------------------------------------------------------------------
 ; TECLADO 8X5 = 40 Teclas
 ;---------------------------------------------------------------------------
-READKEYINIT:			PUSH			BC
-						PUSH			DE
-						PUSH			HL
-						LD				E, 0						; E will be the last pressed key
-READKEY:				LD				H, 1						; H is the line register, start with second
-						LD				B, 0						; Count lines for later multiplication	
-						LD				D, 0						; DE will be the adress for mask
+READKEYINIT:    PUSH    BC
+		PUSH	DE
+		PUSH    HL
+		LD      E, 0                    ; E will be the last pressed key
+READKEY:        LD      H, 1                    ; H is the line register, start with second
+		LD      B, 0                    ; Count lines for later multiplication	
+		LD      D, 0                    ; DE will be the adress for mask
 						
-NEXTKEY:				LD				A, H						
-						CP				0								; All lines tried? 
-						JP				Z, KEYOUT				; Then check if there was a key pressed
-						OUT				(REGISTER), A		; Put current line to register
-						IN				A, (KEYREAD)		; Input Keys
-						AND 			$1F ; only 5 bits
-						SLA				H								; Next line
-						INC				B
-						CP				0								; Was key zero?
-						JP				Z, NEXTKEY	 		; Then try again with next lines
-						LD				D, 0						; In D will be the number of the key
-LOGARITHM:				INC				D								; Add one per shift
-						SRL				A								; Shift key right
-						JP				NZ, LOGARITHM		; If not zero shift again
-						DEC				D								; Was too much
-						;LD				A, 1						; Check first line for alt, shift, etc...
-						;OUT				(REGISTER), A
-						IN				A, (KEYREAD)
-						AND				$80								; Check if first bit set (shift key pressed)
-						JP				NZ, LOADSHIFT		; Then jump to read with shift
-						LD				A, D						; Put read key into accu
-						ADD				A, KEYMAP				; Add base of key map array
-						JP				ADDOFFSET				; Jump to load key
-LOADSHIFT:				LD				A, D
-						ADD				A, SHIFTKEYMAP	; In this case add the base for shift		
-ADDOFFSET:				ADD				A, 5						; Add 5 for every line
-						DJNZ			ADDOFFSET				; Jump back (do while loop)
-						SUB				5								; Since do while is one too much
-TRANSKEY:				XOR				B								; Empty B
-						LD				C, A						; A will be address in BC
-						LD				A, (BC)					; Load key
-						CP				E								; Same key?
-						JP				Z, READKEY			; Then from beginning
-						LD				E, A						; Otherwise save new key
-						JP				READKEY					; And restart
-KEYOUT:					LD				A, E
-						LD				E, 0						; empty it
-						OR				A								; Was a key read?
-						JP				Z, READKEY			; If not restart
-						;CALL			PRINTCHAR				; If yes print key
-						POP				HL
-						POP				DE
-						POP				BC
-						;RET		
+NEXTKEY:        LD      A, H						
+                CP      0                       ; All lines tried? 
+                JP      Z, KEYOUT               ; Then check if there was a key pressed
+		OUT     (REGISTER), A		; Put current line to register
+		IN      A, (KEYREAD)		; Input Keys
+	        AND     $1F                     ; only 5 bits
+	        SLA     H                       ; Next line
+                INC     B
+                CP      0                       ; Was key zero?
+                JP      Z, NEXTKEY              ; Then try again with next lines
+                LD      D, 0                    ; In D will be the number of the key
+LOGARITHM:      INC     D	                ; Add one per shift
+                SRL     A                       ; Shift key right
+                JP      NZ, LOGARITHM		; If not zero shift again
+                DEC     D                       ; Was too much
+		IN      A, (KEYREAD)
+                AND     $80                     ; Check if first bit set (shift key pressed)
+                JP      NZ, LOADSHIFT		; Then jump to read with shift
+                LD      A, D                    ; Put read key into accu
+                ADD     A, KEYMAP               ; Add base of key map array
+                JP      ADDOFFSET               ; Jump to load key
+LOADSHIFT:      LD      A, D
+                ADD     A, SHIFTKEYMAP          ; In this case add the base for shift		
+ADDOFFSET:      ADD     A, 5                    ; Add 5 for every line
+                DJNZ    ADDOFFSET               ; Jump back (do while loop)
+		SUB     5                       ; Since do while is one too much
+TRANSKEY:       XOR     B                       ; Empty B
+	        LD      C, A                    ; A will be address in BC
+	        LD      A, (BC)	                ; Load key
+	        CP      E                       ; Same key?
+	        JP      Z, READKEY              ; Then from beginning
+	        LD      E, A                    ; Otherwise save new key
+	        JP      READKEY	                ; And restart
+KEYOUT:		LD      A, E
+		LD      E, 0                    ; empty it
+	        OR      A	                ; Was a key read?
+	        JP      Z, READKEY              ; If not restart
+	        ;CALL   PRINTCHAR               ; If yes print key
+	        POP     HL
+	        POP     DE
+		POP     BC
+	        ;RET		
 
 
-				PUSH     AF
+	        PUSH     AF
                 PUSH     HL
 
 
-                cp      VT         ; if key up
+                cp      VT                       ; if key up
                 JP      NZ, serialInt_check_down ; se nao for key up desvia
 
                 PUSH    AF
                 LD      A, (LCD_OFFSET)
                 CP      $78
                 JP      Z, serialInt_check_down_pop
-                ADD     A, $14                ; tratar se LCD_OFFSET > LCD_BUFFER_END - $14
+                ADD     A, $14                  ; tratar se LCD_OFFSET > LCD_BUFFER_END - $14
                 LD      (LCD_OFFSET), A
                 call    show_lcd_screen
 
@@ -623,13 +621,13 @@ serialInt_check_down_pop:
 serialInt_check_down:
 
 
-                cp      LF         ; if key down
+                cp      LF                       ; if key down
                 jp      NZ, serialInt_continue
                 PUSH    AF
                 ld      a, (LCD_OFFSET)
                 CP      $0
-                JP      Z, serialInt_continue_pop             ; se for 0 não diminuir
-                SUB     $14                   ; tratar se LCD_OFFSET = 0
+                JP      Z, serialInt_continue_pop       ; se for 0 não diminuir
+                SUB     $14                     ; tratar se LCD_OFFSET = 0
                 LD      (LCD_OFFSET), A
                 call    show_lcd_screen
 
@@ -654,7 +652,7 @@ serialInt_continue:
 ;******************
 lcd_send_command:
 	push bc				;Preserve
-	ld c,lcd_comm_port	;Command port
+	ld c,lcd_comm_port	        ;Command port
 	
 lcd_command_wait_loop:	;Busy wait
 	in b,(c)			;Read status byte
@@ -672,14 +670,14 @@ lcd_command_wait_loop:	;Busy wait
 ;******************
 lcd_send_data:
 	push bc				;Preserve
-	ld c,lcd_comm_port	;Command port
+	ld c,lcd_comm_port	        ;Command port
 	
-lcd_data_wait_loop:	;Busy wait
+lcd_data_wait_loop:	                ;Busy wait
 	in b,(c)			;Read status byte
 	rl b				;Shift busy bit into carry flag
-	jr c,lcd_data_wait_loop	;While busy
+	jr c,lcd_data_wait_loop	        ;While busy
 	
-	ld c,lcd_data_port	;Data port
+	ld c,lcd_data_port	        ;Data port
 	out (c),a			;Send data
 	pop bc				;Restore
 	ret
