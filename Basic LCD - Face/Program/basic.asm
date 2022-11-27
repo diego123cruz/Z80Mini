@@ -94,7 +94,7 @@ FPEXP   .EQU    FPREG+3         ; Floating point exponent
 SGNRES  .EQU    WRKSPC+0E8H     ; Sign of result
 PBUFF   .EQU    WRKSPC+0E9H     ; Number print buffer
 MULVAL  .EQU    WRKSPC+0F6H     ; Multiplier
-PROGST  .EQU    WRKSPC+0F9H     ; Start of program text area |33280 + 249 = 33529| -> 761 + 1 = 762 (79 209) 4F D1
+PROGST  .EQU    WRKSPC+0F9H     ; Start of program text area |33280 + 249 = 33529|
 STLOOK  .EQU    WRKSPC+15DH     ; Start of memory test
 
 ; BASIC ERROR CODE VALUES
