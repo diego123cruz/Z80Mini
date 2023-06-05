@@ -32,7 +32,7 @@
 0032   0000             
 0033   0000             ; BASIC WORK SPACE LOCATIONS
 0034   0000             
-0035   0000             WRKSPC  .EQU    8200H             ; BASIC Work space
+0035   0000             WRKSPC  .EQU    8200H             ; BASIC Work space |33280|
 0036   0000             USR     .EQU    WRKSPC+3H           ; "USR (x)" jump
 0037   0000             OUTSUB  .EQU    WRKSPC+6H           ; "OUT p,n"
 0038   0000             OTPORT  .EQU    WRKSPC+7H           ; Port (p)
@@ -94,7 +94,7 @@
 0094   0000             SGNRES  .EQU    WRKSPC+0E8H     ; Sign of result
 0095   0000             PBUFF   .EQU    WRKSPC+0E9H     ; Number print buffer
 0096   0000             MULVAL  .EQU    WRKSPC+0F6H     ; Multiplier
-0097   0000             PROGST  .EQU    WRKSPC+0F9H     ; Start of program text area
+0097   0000             PROGST  .EQU    WRKSPC+0F9H     ; Start of program text area |33280 + 249 = 33529|
 0098   0000             STLOOK  .EQU    WRKSPC+15DH     ; Start of memory test
 0099   0000             
 0100   0000             ; BASIC ERROR CODE VALUES
