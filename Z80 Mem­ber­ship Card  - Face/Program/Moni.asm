@@ -68,6 +68,9 @@ B2400:	.EQU	003FH	;2400 BAUD
 B4800:	.EQU	001BH	;4800 BAUD - Default
 B9600:	.EQU	000BH	;9600 BAUD
 
+SERIAL_RX_PORT:          .EQU $C0             ; Serial RX port - bit7
+SERIAL_TX_PORT:          .EQU $C0             ; Serial TX Port - bit6
+
 ; ---------------------------------------------------------
 ; RAM MAP - Monitor | $FF00 - $FFFF
 ; ---------------------------------------------------------
@@ -1965,50 +1968,6 @@ START:
     LD  A, 1                 ; Monitor mode
     LD  (SYSMODE), A
 
-
-
-
-
-
-
-;LOOP:
-;   INC A
-;   JP NZ, LOOP
-;   INC BC
-;   JP LOOP
-
-    LD A, $3C
-    LD ($8000), A
-
-    LD A, $C2
-    LD ($8001), A
-
-    LD A, $00
-    LD ($8002), A
-
-    LD A, $80
-    LD ($8003), A
-
-    LD A, $03
-    LD ($8004), A
-
-    LD A, $C3
-    LD ($8005), A
-
-    LD A, $00
-    LD ($8006), A
-
-    LD A, $80
-    LD ($8007), A
-
-
-
-
-
-
-
-
-
 START_COM:
     LD  HL, START_RAM
     LD  (PC_RAM), HL
@@ -2348,31 +2307,30 @@ TXDATA:	PUSH	AF
 ; TRANSMIT START BIT
 ;
 	XOR	A
-	OUT	(Port40),A
+	OUT	(SERIAL_TX_PORT),A
 	CALL	BITIME
 ;
 ; TRANSMIT DATA
 ;
 	LD	B,08H
-	;RRC	C
+	RRC	C
 NXTBIT:	RRC	C	;SHIFT BITS TO D6,
 	LD	A,C	;LSB FIRST AND OUTPUT
-	AND	80H	;THEM FOR ONE BIT TIME.
-	OUT	(Port40),A
+	AND	40H	;THEM FOR ONE BIT TIME.
+	OUT	(SERIAL_TX_PORT),A
 	CALL	BITIME
 	DJNZ	NXTBIT
 ;
 ; SEND STOP BITS
 ;
-	LD	A,80H
-	OUT	(Port40),A
+	LD	A,40H
+	OUT	(SERIAL_TX_PORT),A
 	CALL	BITIME
 	CALL	BITIME
 	POP	HL
 	POP	BC
 	POP	AF
 	RET
-
 ;-----------------------
 ; SERIAL RECEIVE ROUTINE
 ;-----------------------
@@ -2388,9 +2346,8 @@ RXDATA:	PUSH	BC
 ;
 ; WAIT FOR START BIT 
 ;
-RXDAT1: IN	A,(Port40)
-;        IN	A,(KEYBUF)
-	    BIT	6,A
+RXDAT1: IN	A,(SERIAL_RX_PORT)
+	    BIT	7,A
 	    JR	NZ,RXDAT1	;NO START BIT
 ;
 ; DETECTED START BIT
@@ -2399,9 +2356,8 @@ RXDAT1: IN	A,(Port40)
 	SRL	H
 	RR	L 	;DELAY FOR HALF BIT TIME
 	CALL 	BITIME
-	IN	A,(Port40)
-;    IN	A,(KEYBUF)
-	BIT	6,A
+	IN	A,(SERIAL_RX_PORT)
+	BIT	7,A
 	JR	NZ,RXDAT1	;START BIT NOT VALID
 ;
 ; DETECTED VALID START BIT,READ IN DATA
@@ -2409,10 +2365,8 @@ RXDAT1: IN	A,(Port40)
 	LD	B,08H
 RXDAT2:	LD	HL,(BAUD)
 	CALL	BITIME	;DELAY ONE BIT TIME
-	IN	A,(Port40)
-;    IN	A,(KEYBUF)
+	IN	A,(SERIAL_RX_PORT)
 	RL	A
-    RL	A
 	RR	C	;SHIFT BIT INTO DATA REG
 	DJNZ	RXDAT2
 	LD	A,C

@@ -1,0 +1,171 @@
+0001   0000             
+0002   0000             
+0003   0000             DELAY_100mS     .equ    $0C68
+0004   0000             Port40          .equ    $40
+0005   0000             PortC0          .equ    $C0
+0006   0000             ; ---------------------------------------------------------
+0007   0000             ; Utilitys Program | IR Sensor
+0008   0000             ; ---------------------------------------------------------
+0009   8000             .org $8000
+0010   8000             
+0011   8000             CONTROLE_SONY:
+0012   8000 3E 00           LD A, 0
+0013   8002 32 00 80        LD ($8000), A            ; BUzzer
+0014   8005             CONTROLE_IR:
+0015   8005 F3              DI                       ; deliga monitor (int38)
+0016   8006             
+0017   8006 01 00 00        LD  BC, 0                ; B - time, C - Count
+0018   8009 16 00           LD  D, 0                 ; D, Data
+0019   800B             CIR:                         ; aguarda nivel 0
+0020   800B DB 40           IN A, (Port40)
+0021   800D CB 7F           BIT 7, A
+0022   800F C2 0B 80        JP NZ, CIR
+0023   8012             CIR_START:                   ; Recebe Start (9)
+0024   8012 04              INC B                    ; B = time, INC B
+0025   8013 CD F9 80        CALL CONTROLE_DELAY
+0026   8016 DB 40           IN  A, (Port40)
+0027   8018 CB 7F           BIT 7, A
+0028   801A CA 12 80        JP Z, CIR_START          ; loop até nivel 1
+0029   801D             
+0030   801D 78              LD A, B
+0031   801E FE 09           CP 9                     ; start time = 9
+0032   8020 C2 05 80        JP NZ, CONTROLE_IR       ; se não é start - reinicia
+0033   8023             
+0034   8023             ; agora começa a pegar os commandos
+0035   8023 16 00           LD  D, 0                     ; zera data
+0036   8025 0E 06           LD  C, 6                     ; data tem 7 bits
+0037   8027             CONTROLE_IR_LOOP:            ; Aguarda nivel 0
+0038   8027 DB 40           IN A, (Port40)
+0039   8029 CB 7F           BIT 7, A
+0040   802B C2 27 80        JP NZ, CONTROLE_IR_LOOP
+0041   802E             
+0042   802E 06 00           LD  B, 0                ; B = time
+0043   8030             CONTROLE_IR_LOOP2:           ; Recebeu alguma coisa
+0044   8030 04              INC B
+0045   8031 CD F9 80        CALL CONTROLE_DELAY
+0046   8034 DB 40           IN  A, (Port40)
+0047   8036 CB 7F           BIT 7, A
+0048   8038 CA 30 80        JP Z, CONTROLE_IR_LOOP2  ; aguarda nivel 1
+0049   803B             
+0050   803B 78              LD A, B
+0051   803C FE 05           CP 5                     ; 5 HIGH, 3 LOW
+0052   803E C2 43 80        JP NZ, CIR_ZERO
+0053   8041 CB C2           SET 0, D
+0054   8043             
+0055   8043             CIR_ZERO:
+0056   8043 79              LD A, C
+0057   8044 FE 00           CP 0
+0058   8046 CA 51 80        JP Z, CONTROLE_OK 
+0059   8049             
+0060   8049 CB 02           RLC D
+0061   804B 06 00           LD B, 0
+0062   804D 0D              DEC C
+0063   804E             
+0064   804E C3 27 80        JP CONTROLE_IR_LOOP
+0065   8051             
+0066   8051                 
+0067   8051             
+0068   8051             CONTROLE_OK:
+0069   8051 7A              LD  A, D
+0070   8052 32 00 90        LD ($9000), A           ; Save data $9000
+0071   8055             
+0072   8055             ; commando recebido em D
+0073   8055 7A              LD A, D
+0074   8056 FE 53           CP $53                   ; ok
+0075   8058 CA DD 80        JP Z, CIR_OK
+0076   805B FE 63           CP $63                   ; Exit
+0077   805D CA F0 80        JP Z, CIR_SAIR
+0078   8060 FE 54           CP $54                   ; power
+0079   8062 CA CA 80        JP Z, CIR_TOGGLE_BUZZER
+0080   8065 FE 52           CP $52
+0081   8067 CA 7E 80        JP Z, CIR_R              ; red
+0082   806A FE 32           CP $32
+0083   806C CA 91 80        JP Z, CIR_G              ; green
+0084   806F FE 72           CP $72
+0085   8071 CA A4 80        JP Z, CIR_Y              ; yellow
+0086   8074 FE 12           CP $12
+0087   8076 CA B7 80        JP Z, CIR_B              ; blue
+0088   8079             
+0089   8079 D3 40           OUT (Port40), A
+0090   807B C3 05 80        JP CONTROLE_IR
+0091   807E             
+0092   807E             
+0093   807E             CIR_R:
+0094   807E 3A 00 80        LD A, ($8000)
+0095   8081 EE 20           XOR $20
+0096   8083 D3 C0           OUT (PortC0), A
+0097   8085 32 00 80        LD ($8000), A
+0098   8088 CD 68 0C        CALL DELAY_100mS
+0099   808B CD 68 0C        CALL DELAY_100mS
+0100   808E C3 05 80        JP CONTROLE_IR
+0101   8091             
+0102   8091             CIR_G:
+0103   8091 3A 00 80        LD A, ($8000)
+0104   8094 EE 80           XOR $80
+0105   8096 D3 C0           OUT (PortC0), A
+0106   8098 32 00 80        LD ($8000), A
+0107   809B CD 68 0C        CALL DELAY_100mS
+0108   809E CD 68 0C        CALL DELAY_100mS
+0109   80A1 C3 05 80        JP CONTROLE_IR
+0110   80A4             
+0111   80A4             CIR_Y:
+0112   80A4 3A 00 80        LD A, ($8000)
+0113   80A7 EE 40           XOR $40
+0114   80A9 D3 C0           OUT (PortC0), A
+0115   80AB 32 00 80        LD ($8000), A
+0116   80AE CD 68 0C        CALL DELAY_100mS
+0117   80B1 CD 68 0C        CALL DELAY_100mS
+0118   80B4 C3 05 80        JP CONTROLE_IR
+0119   80B7             
+0120   80B7             CIR_B:
+0121   80B7 3A 00 80        LD A, ($8000)
+0122   80BA EE 10           XOR $10
+0123   80BC D3 C0           OUT (PortC0), A
+0124   80BE 32 00 80        LD ($8000), A
+0125   80C1 CD 68 0C        CALL DELAY_100mS
+0126   80C4 CD 68 0C        CALL DELAY_100mS
+0127   80C7 C3 05 80        JP CONTROLE_IR
+0128   80CA             
+0129   80CA             
+0130   80CA             CIR_TOGGLE_BUZZER:
+0131   80CA 3A 00 80        LD A, ($8000)
+0132   80CD EE 08           XOR $08
+0133   80CF D3 C0           OUT (PortC0), A
+0134   80D1 32 00 80        LD ($8000), A
+0135   80D4 CD 68 0C        CALL DELAY_100mS
+0136   80D7 CD 68 0C        CALL DELAY_100mS
+0137   80DA C3 05 80        JP CONTROLE_IR
+0138   80DD             
+0139   80DD             CIR_OK:
+0140   80DD 3A 00 80        LD A, ($8000)
+0141   80E0 EE 01           XOR $01
+0142   80E2 D3 C0           OUT (PortC0), A
+0143   80E4 32 00 80        LD ($8000), A
+0144   80E7 CD 68 0C        CALL DELAY_100mS
+0145   80EA CD 68 0C        CALL DELAY_100mS
+0146   80ED C3 05 80        JP CONTROLE_IR
+0147   80F0             
+0148   80F0             CIR_SAIR:
+0149   80F0                 ; retorna int
+0150   80F0 ED 56           IM  1
+0151   80F2 FB              EI
+0152   80F3 AF              XOR A
+0153   80F4 D3 40           OUT (Port40), A
+0154   80F6                 
+0155   80F6             CONTROLE_IR_LOOP3:
+0156   80F6 C3 F6 80        JP CONTROLE_IR_LOOP3
+0157   80F9             
+0158   80F9             
+0159   80F9             CONTROLE_DELAY:
+0160   80F9 F5              PUSH AF
+0161   80FA 3E 32           LD A, 50
+0162   80FC             CONTROLE_DELAY_LOOP:
+0163   80FC 3D              DEC A
+0164   80FD FE 00           CP 0
+0165   80FF C2 FC 80        JP NZ, CONTROLE_DELAY_LOOP
+0166   8102 F1              POP AF
+0167   8103 C9              RET
+0168   8104             
+0169   8104             .end
+0170   8104             
+tasm: Number of errors = 0
