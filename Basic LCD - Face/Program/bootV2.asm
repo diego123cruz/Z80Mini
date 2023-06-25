@@ -109,8 +109,9 @@ KEYMAP:
 
 SHIFTKEYMAP:
 .BYTE   "!@#$%^&*()"
-.BYTE   "`~-_=+;:'X" ; trocar X por " quando for gravar na eeprom
-.BYTE   "{}[]|Y<>?/" ; trocar Y por \ quando for gravar na eeprom
+.BYTE   "`~-_=+;:'"
+.BYTE   22h
+.BYTE   "{}[]|",$5C,"<>?/"
 .BYTE   CTRLC, ",.     ", VT, LF
 
 
