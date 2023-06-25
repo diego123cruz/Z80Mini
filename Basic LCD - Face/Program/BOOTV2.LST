@@ -90,16 +90,16 @@
 0090   0001 C3 6B 00            JP  INICIO
 0091   0004             						
 0092   0008                     .ORG     0008H
-0093   0008 C3 C9 04    RST08   JP  PRINTCHAR
+0093   0008 C3 CF 04    RST08   JP  PRINTCHAR
 0094   000B             
 0095   0010                     .ORG 0010H
-0096   0010 C3 D1 07    RST10   JP KEYREADINIT
+0096   0010 C3 CB 07    RST10   JP KEYREADINIT
 0097   0013             
 0098   0018                     .ORG 0018H ; check break
 0099   0018             RST18   ;LD	A, 0
 0100   0018                     ;CP	0
 0101   0018                     ;RET
-0102   0018 C3 BC 07    	JP CHKKEY
+0102   0018 C3 B6 07    	JP CHKKEY
 0103   001B             
 0104   001B             KEYMAP:
 0105   001B 313233343536.BYTE   "1234567890"
@@ -138,1260 +138,1250 @@
 0130   006B 31 FF 8F        LD  SP, $8FFF
 0131   006E             
 0132   006E                 ; init serial
-0133   006E CD A4 08        CALL  DELONE     ;WAIT A SEC SO THE HOST SEES TX HIGH  
-0134   0071 21 3F 08        LD    HL,TXDATA
+0133   006E CD 9E 08        CALL  DELONE     ;WAIT A SEC SO THE HOST SEES TX HIGH  
+0134   0071 21 39 08        LD    HL,TXDATA
 0135   0074 22 AA FF        LD    (PUTCH),HL ;USE THE BITBANG SERIAL TRANSMIT
-0136   0077 21 6A 08        LD    HL,RXDATA
+0136   0077 21 64 08        LD    HL,RXDATA
 0137   007A 22 AC FF        LD    (GETCH),HL  ;USE THE BITBANG SERIAL RECEIVE
 0138   007D                 
 0139   007D 21 1B 00        LD	HL,B4800
 0140   0080 22 C0 FF    	LD	(BAUD),HL	;DEFAULT SERIAL=9600 BAUD
 0141   0083             
-0142   0083 21 BA 08        LD HL, WELLCOME
-0143   0086 CD 25 08        CALL SNDMSG
+0142   0083 21 B4 08        LD HL, WELLCOME
+0143   0086 CD 1F 08        CALL SNDMSG
 0144   0089             
 0145   0089                 ; CALL INCH
 0146   0089                 ; CALL OUTCH
 0147   0089             
 0148   0089                 ; Init LCD hardware
-0149   0089 CD 30 06        CALL INIT_LCD
-0150   008C CD AD 07        call delay
+0149   0089 CD 2A 06        CALL INIT_LCD
+0150   008C CD A7 07        call delay
 0151   008F             
-0152   008F CD 48 07        call cls_TXT
-0153   0092 CD AD 07        call delay
+0152   008F CD 42 07        call cls_TXT
+0153   0092 CD A7 07        call delay
 0154   0095             
-0155   0095 CD D2 06        CALL enable_grafic
-0156   0098 CD AD 07        call delay
+0155   0095 CD CC 06        CALL enable_grafic
+0156   0098 CD A7 07        call delay
 0157   009B             
-0158   009B CD 4E 07        call cls_GRAPHIC
-0159   009E CD AD 07        call delay
+0158   009B CD 48 07        call cls_GRAPHIC
+0159   009E CD A7 07        call delay
 0160   00A1             
-0161   00A1 CD C4 06        call lcd_clear
+0161   00A1 CD BE 06        call lcd_clear
 0162   00A4             
 0163   00A4 21 00 85        ld hl, DISPLAY
-0164   00A7 CD EB 06        call print_image
+0164   00A7 CD E5 06        call print_image
 0165   00AA             
-0166   00AA CD AD 07        call delay
+0166   00AA CD A7 07        call delay
 0167   00AD             
 0168   00AD                 ; Init LCD logical
-0169   00AD CD B6 04        call INIT_TXT_LCD ; set cursor X Y to 0
+0169   00AD CD BC 04        call INIT_TXT_LCD ; set cursor X Y to 0
 0170   00B0             
-0171   00B0 C3 00 60        JP BASIC
-0172   00B3             
-0173   00B3             KEY:
-0174   00B3             
-0175   00B3 C3 B3 00        JP  KEY
-0176   00B6             
-0177   00B6             
-0178   00B6             
-0179   00B6             TABLE:
-0180   00B6 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; NUL
-0180   00BC 0000
-0181   00BE 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; SOH
-0181   00C4 0000
-0182   00C6 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; STX
-0182   00CC 0000
-0183   00CE 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; ETX
-0183   00D4 0000
-0184   00D6 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; EOT
-0184   00DC 0000
-0185   00DE 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; ENQ
-0185   00E4 0000
-0186   00E6 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; ACK
-0186   00EC 0000
-0187   00EE 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; BEL
-0187   00F4 0000
-0188   00F6 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; BS
-0188   00FC 0000
-0189   00FE 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; TAB
-0189   0104 0000
-0190   0106 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; LF
-0190   010C 0000
-0191   010E 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; VT
-0191   0114 0000
-0192   0116 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; FF
-0192   011C 0000
-0193   011E 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; CR
-0193   0124 0000
-0194   0126 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; SO
-0194   012C 0000
-0195   012E 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; SI
-0195   0134 0000
-0196   0136 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; DLE
-0196   013C 0000
-0197   013E 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; DC1
-0197   0144 0000
-0198   0146 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; DC2
-0198   014C 0000
-0199   014E 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; DC3
-0199   0154 0000
-0200   0156 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; DC4
-0200   015C 0000
-0201   015E 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; NAK
-0201   0164 0000
-0202   0166 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; SYN
-0202   016C 0000
-0203   016E 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; ETB
-0203   0174 0000
-0204   0176 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; CAN
-0204   017C 0000
-0205   017E 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; EM
-0205   0184 0000
-0206   0186 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; SUB
-0206   018C 0000
-0207   018E 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; ESC
-0207   0194 0000
-0208   0196 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; FS
-0208   019C 0000
-0209   019E 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; GS
-0209   01A4 0000
-0210   01A6 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; RS
-0210   01AC 0000
-0211   01AE 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; US
-0211   01B4 0000
-0212   01B6             
-0213   01B6             ; DEC 32
-0214   01B6 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; SPACE
-0214   01BC 0000
-0215   01BE 202020202000.db $20, $20, $20, $20, $20, $00, $20, $00 ; !
-0215   01C4 2000
-0216   01C6 505050000000.db $50, $50, $50, $00, $00, $00, $00, $00 ; "
-0216   01CC 0000
-0217   01CE 5050F850F850.db $50, $50, $F8, $50, $F8, $50, $50, $00 ; #
-0217   01D4 5000
-0218   01D6 2078A07028F0.db $20, $78, $A0, $70, $28, $F0, $20, $00 ; $
-0218   01DC 2000
-0219   01DE C0C810204098.db $C0, $C8, $10, $20, $40, $98, $18, $00 ; %
-0219   01E4 1800
-0220   01E6 6090A040A890.db $60, $90, $A0, $40, $A8, $90, $68, $00 ; &
-0220   01EC 6800
-0221   01EE 202020000000.db $20, $20, $20, $00, $00, $00, $00, $00 ; '
-0221   01F4 0000
-0222   01F6 102040404020.db $10, $20, $40, $40, $40, $20, $10, $00 ; (
-0222   01FC 1000
-0223   01FE 402010101020.db $40, $20, $10, $10, $10, $20, $40, $00 ; )
-0223   0204 4000
-0224   0206 0020A870A820.db $00, $20, $A8, $70, $A8, $20, $00, $00 ; *
-0224   020C 0000
-0225   020E 002020F82020.db $00, $20, $20, $F8, $20, $20, $00, $00 ; +
-0225   0214 0000
-0226   0216 000000006020.db $00, $00, $00, $00, $60, $20, $40, $00 ; ,
-0226   021C 4000
-0227   021E 000000F80000.db $00, $00, $00, $F8, $00, $00, $00, $00 ; -
-0227   0224 0000
-0228   0226 000000000060.db $00, $00, $00, $00, $00, $60, $60, $00 ; .
-0228   022C 6000
-0229   022E 000008102040.db $00, $00, $08, $10, $20, $40, $80, $00 ; /
-0229   0234 8000
-0230   0236 708898A8C888.db $70, $88, $98, $A8, $C8, $88, $70, $00 ; 0
-0230   023C 7000
-0231   023E 206020202020.db $20, $60, $20, $20, $20, $20, $70, $00 ; 1
-0231   0244 7000
-0232   0246 708808102040.db $70, $88, $08, $10, $20, $40, $F8, $00 ; 2
-0232   024C F800
-0233   024E F81020100888.db $F8, $10, $20, $10, $08, $88, $70, $00 ; 3
-0233   0254 7000
-0234   0256 10305090F810.db $10, $30, $50, $90, $F8, $10, $10, $00 ; 4
-0234   025C 1000
-0235   025E F880F0080888.db $F8, $80, $F0, $08, $08, $88, $70, $00 ; 5
-0235   0264 7000
-0236   0266 304080F08888.db $30, $40, $80, $F0, $88, $88, $70, $00 ; 6
-0236   026C 7000
-0237   026E F80810204040.db $F8, $08, $10, $20, $40, $40, $40, $00 ; 7
-0237   0274 4000
-0238   0276 708888708888.db $70, $88, $88, $70, $88, $88, $70, $00 ; 8
-0238   027C 7000
-0239   027E 708888780810.db $70, $88, $88, $78, $08, $10, $60, $00 ; 9
-0239   0284 6000
-0240   0286 000030300030.db $00, $00, $30, $30, $00, $30, $30, $00 ; :
-0240   028C 3000
-0241   028E 003030003010.db $00, $30, $30, $00, $30, $10, $20, $00 ; ;
-0241   0294 2000
-0242   0296 102040804020.db $10, $20, $40, $80, $40, $20, $10, $00 ; <
-0242   029C 1000
-0243   029E 0000F800F800.db $00, $00, $F8, $00, $F8, $00, $00, $00 ; =
-0243   02A4 0000
-0244   02A6 402010081020.db $40, $20, $10, $08, $10, $20, $40, $00 ; >
-0244   02AC 4000
-0245   02AE 304808102000.db $30, $48, $08, $10, $20, $00, $20, $00 ; ?
-0245   02B4 2000
-0246   02B6 70880868A8A8.db $70, $88, $08, $68, $A8, $A8, $70, $00 ; @
-0246   02BC 7000
-0247   02BE             
-0248   02BE             ; DEC 65 Maiusculas
-0249   02BE 20508888F888.db $20, $50, $88, $88, $F8, $88, $88, $00 ; A
-0249   02C4 8800
-0250   02C6 F08888F08888.db $F0, $88, $88, $F0, $88, $88, $F0, $00 ; B
-0250   02CC F000
-0251   02CE 708880808088.db $70, $88, $80, $80, $80, $88, $70, $00 ; C
-0251   02D4 7000
-0252   02D6 E09088888890.db $E0, $90, $88, $88, $88, $90, $E0, $00 ; D
-0252   02DC E000
-0253   02DE F88080F08080.db $F8, $80, $80, $F0, $80, $80, $F8, $00 ; E
-0253   02E4 F800
-0254   02E6 F88080F08080.db $F8, $80, $80, $F0, $80, $80, $80, $00 ; F
-0254   02EC 8000
-0255   02EE 70888080B888.db $70, $88, $80, $80, $B8, $88, $70, $00 ; G
-0255   02F4 7000
-0256   02F6 888888F88888.db $88, $88, $88, $F8, $88, $88, $88, $00 ; H
-0256   02FC 8800
-0257   02FE 702020202020.db $70, $20, $20, $20, $20, $20, $70, $00 ; I
-0257   0304 7000
-0258   0306 080808088888.db $08, $08, $08, $08, $88, $88, $70, $00 ; J
-0258   030C 7000
-0259   030E 8890A0C0A090.db $88, $90, $A0, $C0, $A0, $90, $88, $00 ; K
-0259   0314 8800
-0260   0316 808080808080.db $80, $80, $80, $80, $80, $80, $F8, $00 ; L
-0260   031C F800
-0261   031E 88D8A8888888.db $88, $D8, $A8, $88, $88, $88, $88, $00 ; M
-0261   0324 8800
-0262   0326 8888C8A89888.db $88, $88, $C8, $A8, $98, $88, $88, $00 ; N
-0262   032C 8800
-0263   032E 708888888888.db $70, $88, $88, $88, $88, $88, $70, $00 ; O
-0263   0334 7000
-0264   0336 F08888F08080.db $F0, $88, $88, $F0, $80, $80, $80, $00 ; P
-0264   033C 8000
-0265   033E 70888888A898.db $70, $88, $88, $88, $A8, $98, $70, $00 ; Q
-0265   0344 7000
-0266   0346 F08888F08888.db $F0, $88, $88, $F0, $88, $88, $88, $00 ; R
-0266   034C 8800
-0267   034E 708880700888.db $70, $88, $80, $70, $08, $88, $70, $00 ; S
-0267   0354 7000
-0268   0356 F82020202020.db $F8, $20, $20, $20, $20, $20, $20, $00 ; T
-0268   035C 2000
-0269   035E 888888888888.db $88, $88, $88, $88, $88, $88, $70, $00 ; U
-0269   0364 7000
-0270   0366 888888888850.db $88, $88, $88, $88, $88, $50, $20, $00 ; V
-0270   036C 2000
-0271   036E 88888888A8D8.db $88, $88, $88, $88, $A8, $D8, $88, $00 ; W
-0271   0374 8800
-0272   0376 888850205088.db $88, $88, $50, $20, $50, $88, $88, $00 ; X
-0272   037C 8800
-0273   037E 888850202020.db $88, $88, $50, $20, $20, $20, $20, $00 ; Y
-0273   0384 2000
-0274   0386 F80810204080.db $F8, $08, $10, $20, $40, $80, $F8, $00 ; Z
-0274   038C F800
-0275   038E             
-0276   038E             ; DEC 91
-0277   038E 302020202020.db $30, $20, $20, $20, $20, $20, $30, $00 ; [
-0277   0394 3000
-0278   0396 008040201008.db $00, $80, $40, $20, $10, $08, $00, $00 ; \
-0278   039C 0000
-0279   039E 602020202020.db $60, $20, $20, $20, $20, $20, $60, $00 ; ]
-0279   03A4 6000
-0280   03A6 205088000000.db $20, $50, $88, $00, $00, $00, $00, $00 ; ^
-0280   03AC 0000
-0281   03AE 000000000000.db $00, $00, $00, $00, $00, $00, $F8, $00 ; _
-0281   03B4 F800
-0282   03B6 402010000000.db $40, $20, $10, $00, $00, $00, $00, $00 ; `
-0282   03BC 0000
-0283   03BE             
-0284   03BE             ; DEC 97 "Minusculas"
-0285   03BE 20508888F888.db $20, $50, $88, $88, $F8, $88, $88, $00 ; A
-0285   03C4 8800
-0286   03C6 F08888F08888.db $F0, $88, $88, $F0, $88, $88, $F0, $00 ; B
-0286   03CC F000
-0287   03CE 708880808088.db $70, $88, $80, $80, $80, $88, $70, $00 ; C
-0287   03D4 7000
-0288   03D6 E09088888890.db $E0, $90, $88, $88, $88, $90, $E0, $00 ; D
-0288   03DC E000
-0289   03DE F88080F08080.db $F8, $80, $80, $F0, $80, $80, $F8, $00 ; E
-0289   03E4 F800
-0290   03E6 F88080F08080.db $F8, $80, $80, $F0, $80, $80, $80, $00 ; F
-0290   03EC 8000
-0291   03EE 70888080B888.db $70, $88, $80, $80, $B8, $88, $70, $00 ; G
-0291   03F4 7000
-0292   03F6 888888F88888.db $88, $88, $88, $F8, $88, $88, $88, $00 ; H
-0292   03FC 8800
-0293   03FE 702020202020.db $70, $20, $20, $20, $20, $20, $70, $00 ; I
-0293   0404 7000
-0294   0406 080808088888.db $08, $08, $08, $08, $88, $88, $70, $00 ; J
-0294   040C 7000
-0295   040E 8890A0C0A090.db $88, $90, $A0, $C0, $A0, $90, $88, $00 ; K
-0295   0414 8800
-0296   0416 808080808080.db $80, $80, $80, $80, $80, $80, $F8, $00 ; L
-0296   041C F800
-0297   041E 88D8A8888888.db $88, $D8, $A8, $88, $88, $88, $88, $00 ; M
-0297   0424 8800
-0298   0426 8888C8A89888.db $88, $88, $C8, $A8, $98, $88, $88, $00 ; N
-0298   042C 8800
-0299   042E 708888888888.db $70, $88, $88, $88, $88, $88, $70, $00 ; O
-0299   0434 7000
-0300   0436 F08888F08080.db $F0, $88, $88, $F0, $80, $80, $80, $00 ; P
-0300   043C 8000
-0301   043E 70888888A898.db $70, $88, $88, $88, $A8, $98, $70, $00 ; Q
-0301   0444 7000
-0302   0446 F08888F08888.db $F0, $88, $88, $F0, $88, $88, $88, $00 ; R
-0302   044C 8800
-0303   044E 708880700888.db $70, $88, $80, $70, $08, $88, $70, $00 ; S
-0303   0454 7000
-0304   0456 F82020202020.db $F8, $20, $20, $20, $20, $20, $20, $00 ; T
-0304   045C 2000
-0305   045E 888888888888.db $88, $88, $88, $88, $88, $88, $70, $00 ; U
-0305   0464 7000
-0306   0466 888888888850.db $88, $88, $88, $88, $88, $50, $20, $00 ; V
-0306   046C 2000
-0307   046E 88888888A8D8.db $88, $88, $88, $88, $A8, $D8, $88, $00 ; W
-0307   0474 8800
-0308   0476 888850205088.db $88, $88, $50, $20, $50, $88, $88, $00 ; X
-0308   047C 8800
-0309   047E 888850202020.db $88, $88, $50, $20, $20, $20, $20, $00 ; Y
-0309   0484 2000
-0310   0486 F80810204080.db $F8, $08, $10, $20, $40, $80, $F8, $00 ; Z
-0310   048C F800
-0311   048E             
-0312   048E             ; DEC 123
-0313   048E 102020402020.db $10, $20, $20, $40, $20, $20, $10, $00 ; {
-0313   0494 1000
-0314   0496 202020202020.db $20, $20, $20, $20, $20, $20, $20, $00 ; |
-0314   049C 2000
-0315   049E 402020102020.db $40, $20, $20, $10, $20, $20, $40, $00 ; }
-0315   04A4 4000
-0316   04A6 000050A00000.db $00, $00, $50, $A0, $00, $00, $00, $00 ; ~
-0316   04AC 0000
-0317   04AE 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; DEL
-0317   04B4 0000
-0318   04B6             
-0319   04B6             
-0320   04B6             INIT_TXT_LCD:
-0321   04B6 3E 00           ld a, 0
-0322   04B8 32 03 80        ld (LCD_TXT_X), a
-0323   04BB 32 04 80        ld (LCD_TXT_Y), a
-0324   04BE 21 00 00        ld hl, 0
-0325   04C1 22 08 80        ld (LCD_TXT_X_TMP), hl
-0326   04C4 23              inc hl
-0327   04C5 22 0A 80        ld (LCD_TXT_Y_TMP), hl
-0328   04C8 C9              RET
-0329   04C9             
-0330   04C9             
-0331   04C9             ; char in A
-0332   04C9             PRINTCHAR:
-0333   04C9 32 00 80        LD (LCD_CHAR), A ; save char to print
-0334   04CC             
-0335   04CC F5              PUSH AF
-0336   04CD C5              PUSH BC
-0337   04CE D5              PUSH DE
-0338   04CF E5              PUSH HL
-0339   04D0             
-0340   04D0                 ; Verificar Enter, clear, etc... SEM PERDER O reg. A
-0341   04D0             
-0342   04D0             
-0343   04D0                 ; pega o ponteiro para o caracter e salva em LCD_CHAR_POINT
-0344   04D0 26 00           ld H, 0
-0345   04D2 6F              ld L, A
-0346   04D3 29              ADD HL, HL ; hl x 8
-0347   04D4 29              ADD HL, HL
-0348   04D5 29              ADD HL, HL
-0349   04D6 54              LD D, H
-0350   04D7 5D              LD E, L
-0351   04D8 21 B6 00        ld hl, TABLE
-0352   04DB 19              add hl, de
-0353   04DC 22 01 80        ld (LCD_CHAR_POINT), HL ; table
-0354   04DF             
-0355   04DF             
-0356   04DF                 ; ajusta X
-0357   04DF 06 06           ld b, 6
-0358   04E1 3A 03 80        ld a, (LCD_TXT_X)
-0359   04E4 B7              or A
-0360   04E5 CA EF 04        jp z, ajustX
-0361   04E8 4F              ld c, a
-0362   04E9 CD 14 06        call multiplication
-0363   04EC C3 F3 04        jp ajustXOK
-0364   04EF                 
-0365   04EF             ajustX:
-0366   04EF 26 00           ld h,0
-0367   04F1 2E 00           ld l,0
-0368   04F3             ajustXOK:
-0369   04F3 22 08 80        ld (LCD_TXT_X_TMP), HL 
-0370   04F6             
-0371   04F6             
-0372   04F6             
-0373   04F6                 ; ajuste Y
-0374   04F6 16 04           ld d, 4
-0375   04F8 1E 00           ld e, 0 ; = 128x8 proxima linha
-0376   04FA 2A 0A 80        ld hl, (LCD_TXT_Y_TMP)
-0377   04FD 3A 04 80        ld a, (LCD_TXT_Y)
-0378   0500 B7              or a
-0379   0501 CA 0B 05        JP Z, multYfim
-0380   0504 21 00 00        ld hl, 0
-0381   0507 47              ld b, a
-0382   0508             multY:
-0383   0508 19              add hl, de
-0384   0509 10 FD           DJNZ multY
-0385   050B             multYfim:
-0386   050B 22 0A 80        ld (LCD_TXT_Y_TMP), HL
-0387   050E             
-0388   050E             
-0389   050E 2A 0A 80        ld hl, (LCD_TXT_Y_TMP)
-0390   0511 ED 5B 08 80     ld de, (LCD_TXT_X_TMP)
-0391   0515             
-0392   0515 19              add hl, de  ; hl tem pos do pix 0-8191
-0393   0516             
-0394   0516 22 0E 80        ld (LCD_TMP_POINT), hl
-0395   0519             
-0396   0519             
-0397   0519 3E 08           ld a, 8 ; altura do caracter
-0398   051B 32 0C 80        ld (LCD_CHAR_H), a
-0399   051E             printchar_loopH:
-0400   051E 2A 01 80        ld hl, (LCD_CHAR_POINT)
-0401   0521 7E              ld a, (HL)
-0402   0522 32 10 81        ld (LCD_TEMP), a
-0403   0525             
-0404   0525 3E 06           ld a, 6 ; largura do caracter
-0405   0527 32 0D 80        ld (LCD_CHAR_W), a
-0406   052A             printchar_loopW:
-0407   052A 3A 10 81        ld a, (LCD_TEMP)
-0408   052D E6 80           and 128
-0409   052F FE 00           cp 0
-0410   0531 CA 3D 05        jp z, printchar_loopWC
-0411   0534 2A 0E 80        ld hl, (LCD_TMP_POINT)
-0412   0537 CD 4F 06        call lcd_setPixel
-0413   053A C3 43 05        JP printchar_loopWE
-0414   053D             
-0415   053D             printchar_loopWC:
-0416   053D 2A 0E 80        ld hl, (LCD_TMP_POINT)
-0417   0540 CD 88 06        call lcd_clearPixel
-0418   0543             
-0419   0543             printchar_loopWE:
-0420   0543 3A 10 81        ld a, (LCD_TEMP)
-0421   0546 CB 27           sla a
-0422   0548 32 10 81        ld (LCD_TEMP), a
-0423   054B                 
-0424   054B 2A 0E 80        ld hl, (LCD_TMP_POINT)
-0425   054E 23              inc hl
-0426   054F 22 0E 80        ld (LCD_TMP_POINT), hl
-0427   0552             
-0428   0552 3A 0D 80        ld a, (LCD_CHAR_W)
-0429   0555 3D              dec A
-0430   0556 32 0D 80        ld (LCD_CHAR_W), a
-0431   0559 FE 00           cp 0
-0432   055B C2 2A 05        JP NZ, printchar_loopW
-0433   055E             
-0434   055E             
-0435   055E             
-0436   055E             
-0437   055E 2A 0E 80        ld hl, (LCD_TMP_POINT)
-0438   0561 2B              dec hl
-0439   0562 2B              dec hl
-0440   0563 2B              dec hl
-0441   0564 2B              dec hl
-0442   0565 2B              dec hl
-0443   0566 2B              dec hl
-0444   0567             
-0445   0567 16 00           ld d, 0
-0446   0569 1E 80           ld e, 128
-0447   056B 19              add hl, de
-0448   056C 22 0E 80        ld (LCD_TMP_POINT), HL
-0449   056F             
-0450   056F 2A 01 80        ld hl, (LCD_CHAR_POINT)
-0451   0572 23              inc hl
-0452   0573 22 01 80        ld (LCD_CHAR_POINT), hl
-0453   0576             
-0454   0576             
-0455   0576 3A 0C 80        ld a, (LCD_CHAR_H)
-0456   0579 3D              dec A
-0457   057A 32 0C 80        ld (LCD_CHAR_H), a
-0458   057D FE 00           cp 0
-0459   057F C2 1E 05        jp NZ, printchar_loopH
-0460   0582             
-0461   0582 21 00 85        ld hl, DISPLAY
-0462   0585 CD EB 06        call print_image
-0463   0588             
-0464   0588                 ; increment X, Y
-0465   0588 3A 03 80        ld a, (LCD_TXT_X)
-0466   058B 3C              inc a
-0467   058C FE 15           cp 21
-0468   058E C2 B0 05        jp nz, incXOK
-0469   0591 3E 00           ld a, 0
-0470   0593 32 03 80        ld (LCD_TXT_X), a
-0471   0596 3A 04 80        ld a, (LCD_TXT_Y)
-0472   0599 3C              inc a
-0473   059A FE 08           cp 8
-0474   059C C2 AA 05        jp nz, incYOK
-0475   059F 3E 00           ld a, 0
-0476   05A1 32 03 80        ld (LCD_TXT_X), a
-0477   05A4 32 04 80        ld (LCD_TXT_Y), a
-0478   05A7 C3 B3 05        jp print_char_fim
-0479   05AA             
-0480   05AA             incYOK:
-0481   05AA 32 04 80        ld (LCD_TXT_Y), a
-0482   05AD C3 B3 05        jp print_char_fim
-0483   05B0             
-0484   05B0             incXOK:
-0485   05B0 32 03 80        ld (LCD_TXT_X), a
-0486   05B3             
-0487   05B3             print_char_fim:
-0488   05B3 E1              POP HL
-0489   05B4 D1              POP DE
-0490   05B5 C1              POP BC
-0491   05B6 F1              POP AF
-0492   05B7 C9              RET
-0493   05B8                 ;-------- FIM
-0494   05B8             
-0495   05B8             
-0496   05B8             
-0497   05B8             
-0498   05B8             
-0499   05B8             
-0500   05B8             
-0501   05B8             
-0502   05B8             
-0503   05B8             
-0504   05B8             ; print_diego
-0505   05B8             PRINT_DIEGO:
-0506   05B8 3A 02 81        ld a, (LCD_COOX)
-0507   05BB 47              ld b, A
-0508   05BC             
-0509   05BC 3A 03 81        ld a, (LCD_COOY)
-0510   05BF 4F              ld c,A
-0511   05C0 CD 14 06        call multiplication
-0512   05C3             
-0513   05C3 3A 04 81        ld a, (LCD_PRINT_H)
-0514   05C6 06 00           ld b, 0
-0515   05C8 0E 00           ld c, 0
-0516   05CA             print_clear_loopH:
-0517   05CA F5              push af
-0518   05CB E5              push hl
-0519   05CC             
-0520   05CC E5              push hl
-0521   05CD 2A 06 81        ld hl, (LCD_PRINT_IMAGE)
-0522   05D0 09              add hl, bc
-0523   05D1 7E              ld a, (HL)
-0524   05D2 32 10 81        ld (LCD_TEMP),a
-0525   05D5 E1              pop hl
-0526   05D6             
-0527   05D6 3A 05 81        ld a, (LCD_PRINT_W)
-0528   05D9             print_clear_loopW:
-0529   05D9             
-0530   05D9 F5              push af
-0531   05DA                 
-0532   05DA 3A 10 81        ld a, (LCD_TEMP)
-0533   05DD E6 80           and 128
-0534   05DF FE 00           cp 0
-0535   05E1 CA EA 05        jp z, print_clear_loopWC
-0536   05E4 CD 4F 06        call lcd_setPixel
-0537   05E7 C3 ED 05        JP print_clear_loopWE
-0538   05EA             print_clear_loopWC:
-0539   05EA CD 88 06        call lcd_clearPixel
-0540   05ED             print_clear_loopWE:
-0541   05ED 3A 10 81        ld a, (LCD_TEMP)
-0542   05F0 CB 27           sla a
-0543   05F2 32 10 81        ld (LCD_TEMP), a
-0544   05F5             
-0545   05F5 F1              pop af
-0546   05F6                 
-0547   05F6             
-0548   05F6 23              inc hl
-0549   05F7 3D              dec A
-0550   05F8 FE 00           cp 0
-0551   05FA C2 D9 05        JP NZ, print_clear_loopW
-0552   05FD             
-0553   05FD E1              pop hl
-0554   05FE F1              pop af
-0555   05FF             
-0556   05FF D5              push de
-0557   0600 16 00           ld d, 0
-0558   0602 1E 80           ld e, 128
-0559   0604 19              add hl, de
-0560   0605 D1              pop de
-0561   0606             
-0562   0606 03              inc bc
-0563   0607 3D              dec A
-0564   0608 FE 00           cp 0
-0565   060A C2 CA 05        jp NZ, print_clear_loopH
-0566   060D             
-0567   060D 21 00 85        ld hl, DISPLAY
-0568   0610 CD EB 06        call print_image
-0569   0613             
-0570   0613 C9              RET
-0571   0614             
-0572   0614             
-0573   0614             ; ----------------------------------
-0574   0614             
-0575   0614             ; INPUT: THE VALUES IN REGISTER B EN C
-0576   0614             ; OUTPUT: HL = B * C
-0577   0614             ; CHANGES: AF,DE,HL,B
-0578   0614             ;
-0579   0614             multiplication:
-0580   0614 21 00 00    	LD HL,0
-0581   0617 78          	LD A,B
-0582   0618 B7          	OR A
-0583   0619 C8          	RET Z
-0584   061A 16 00       	LD D,0
-0585   061C 59          	LD E,C
-0586   061D 19          multiplicationLOOP:	ADD HL,DE
-0587   061E 10 FD       	DJNZ multiplicationLOOP
-0588   0620 C9          	RET 
-0589   0621             
-0590   0621             ;-----------------------------------
-0591   0621             
-0592   0621             Div_HL_D:
-0593   0621             ;Inputs:
-0594   0621             ;   HL and D
-0595   0621             ;Outputs:
-0596   0621             ;   HL is the quotient (HL/D)
-0597   0621             ;   A is the remainder
-0598   0621             ;   B is 0
-0599   0621             ;   C,D,E are preserved
-0600   0621 AF              xor a         ; Clear upper eight bits of AHL
-0601   0622 06 10           ld b,16       ; Sixteen bits in dividend
-0602   0624             _loop:
-0603   0624 29              add hl,hl     ; Do a "SLA HL". If the upper bit was 1, the c flag is set
-0604   0625 17              rla           ; This moves the upper bits of the dividend into A
-0605   0626 38 03           jr c,_overflow; If D is allowed to be >128, then it is possible for A to overflow here. (Yes future Zeda, 128 is "safe.")
-0606   0628 BA              cp d          ; Check if we can subtract the divisor
-0607   0629 38 02           jr c,_skip    ; Carry means A < D
-0608   062B             _overflow:
-0609   062B 92              sub d         ; Do subtraction for real this time
-0610   062C 2C              inc l         ; Set the next bit of the quotient (currently bit 0)
-0611   062D             _skip:
-0612   062D 10 F5           djnz _loop
-0613   062F C9              ret
-0614   0630             
-0615   0630             
-0616   0630             ; -----------------------------------------------------------------------------
-0617   0630             ;   LCD DRIVER
-0618   0630             ; -----------------------------------------------------------------------------
-0619   0630             ; INIT_LCD - Inicia o lcd em mode texto
-0620   0630             ; lcd_setPixel - Liga um pixel (0 - 8191) pixel address em HL
-0621   0630             ; lcd_clearPixel - Desliga um pixel (0 - 8191) pixel address em HL
-0622   0630             ; lcd_clear - Limpa buffer do lcd
-0623   0630             ; enable_grafic - Coloca o LCD em modo grafico
-0624   0630             ; print_image - Coloca o conteudo de HL (128x64 bits) no LCD
-0625   0630             ; cls_TXT - Limpa LCD mode text
-0626   0630             ; cls_GRAPHIC - Limpa LCD modo grafico
-0627   0630             
-0628   0630             INIT_LCD:
-0629   0630                 ;Initialisation
-0630   0630 3E 30       	ld a, 30H
-0631   0632 CD 74 07    	call lcd_send_command
-0632   0635             
-0633   0635 3E A0       	ld a, 0b00100000
-0634   0637 CD 74 07    	call lcd_send_command
-0635   063A             
-0636   063A 3E 30       	ld a, 30H
-0637   063C CD 74 07    	call lcd_send_command
-0638   063F             
-0639   063F 3E 0C       	ld a, 0CH
-0640   0641 CD 74 07    	call lcd_send_command
-0641   0644             
-0642   0644 3E 01       	ld a, 01H
-0643   0646 CD 74 07    	call lcd_send_command
-0644   0649             
-0645   0649 3E 02       	ld a, 02H
-0646   064B CD 74 07    	call lcd_send_command
-0647   064E C9              RET
-0648   064F             
-0649   064F             
-0650   064F             ; pixel index in HL
-0651   064F             lcd_setPixel:
-0652   064F E5              push hl
-0653   0650 C5              push bc
-0654   0651 D5              push de
-0655   0652 F5              push af
-0656   0653 AF              xor A
-0657   0654 32 07 80        ld (LCD_BIT_INDEX), A
-0658   0657 32 05 80        ld (LCD_BYTE_INDEX), A
-0659   065A             
-0660   065A 16 08           ld d, 8
-0661   065C CD 21 06        call Div_HL_D
-0662   065F 32 07 80        ld (LCD_BIT_INDEX), A
-0663   0662 22 05 80        ld (LCD_BYTE_INDEX), HL
-0664   0665 ED 4B 05 80     ld BC, (LCD_BYTE_INDEX)
-0665   0669 21 00 85        ld hl, DISPLAY
-0666   066C 09              add hl, bc
-0667   066D                 
-0668   066D 06 80           ld b, 128 ; 1000 0000
-0669   066F 3A 07 80        ld a, (LCD_BIT_INDEX) ;
-0670   0672 FE 00           cp 0
-0671   0674 CA 80 06        jp z, lcd_setPixel_fim
-0672   0677             lcd_setPixel_bit:
-0673   0677 CB 38           srl B
-0674   0679 3D              dec A
-0675   067A CA 80 06        jp z, lcd_setPixel_fim
-0676   067D                 
-0677   067D C3 77 06        jp lcd_setPixel_bit
-0678   0680             lcd_setPixel_fim
-0679   0680 7E              ld a, (hl)
-0680   0681 B0              or b
-0681   0682 77              ld (hl), a
-0682   0683             
-0683   0683 F1              pop af
-0684   0684 C1              pop bc
-0685   0685 D1              pop de
-0686   0686 E1              pop hl
-0687   0687 C9              ret
-0688   0688             
-0689   0688             ;===============================
-0690   0688             ; pixel index in HL
-0691   0688             lcd_clearPixel:
-0692   0688 E5              push hl
-0693   0689 C5              push bc
-0694   068A D5              push de
-0695   068B F5              push af
-0696   068C AF              xor A
-0697   068D 32 07 80        ld (LCD_BIT_INDEX), A
-0698   0690 32 05 80        ld (LCD_BYTE_INDEX), A
-0699   0693 16 08           ld d, 8
-0700   0695 CD 21 06        call Div_HL_D
-0701   0698 32 07 80        ld (LCD_BIT_INDEX), A
-0702   069B 22 05 80        ld (LCD_BYTE_INDEX), HL
-0703   069E ED 4B 05 80     ld BC, (LCD_BYTE_INDEX)
-0704   06A2 21 00 85        ld hl, DISPLAY
-0705   06A5 09              add hl, bc
-0706   06A6                 
-0707   06A6 06 80           ld b, 128 ; 1000 0000
-0708   06A8 3A 07 80        ld a, (LCD_BIT_INDEX) ;
-0709   06AB FE 00           cp 0
-0710   06AD CA B9 06        jp z, lcd_clearPixel_fim
-0711   06B0             lcd_clearPixel_bit:
-0712   06B0 CB 38           srl B
-0713   06B2 3D              dec A
-0714   06B3 CA B9 06        jp z, lcd_clearPixel_fim
-0715   06B6                 
-0716   06B6 C3 B0 06        jp lcd_clearPixel_bit
-0717   06B9             lcd_clearPixel_fim
-0718   06B9 78              ld a, b
-0719   06BA 2F              cpl     ; NOT B
-0720   06BB 47              ld b, a
-0721   06BC             
-0722   06BC 7E              ld a, (hl)
-0723   06BD A0              and b
-0724   06BE 77              ld (hl), a
-0725   06BF             
-0726   06BF F1              pop af
-0727   06C0 C1              pop bc
-0728   06C1 D1              pop de
-0729   06C2 E1              pop hl
-0730   06C3 C9              ret
-0731   06C4             
-0732   06C4             
-0733   06C4             ;;--------------------------------------------------
-0734   06C4             lcd_clear:
-0735   06C4                 ;; HL = start address of block
-0736   06C4 21 00 85        ld hl, DISPLAY
-0737   06C7             
-0738   06C7                 ;; DE = HL + 1
-0739   06C7 5D              ld e,l
-0740   06C8 54              ld d,h
-0741   06C9 13              inc de
-0742   06CA             
-0743   06CA                 ;; initialise first byte of block
-0744   06CA                 ;; with data byte (&00)
-0745   06CA 36 00           ld (hl), 0
-0746   06CC                     
-0747   06CC                 ;; BC = length of block in bytes
-0748   06CC                 ;; HL+BC-1 = end address of block
-0749   06CC             
-0750   06CC 01 00 04        ld bc, 1024
-0751   06CF             
-0752   06CF                 ;; fill memory
-0753   06CF ED B0           ldir
-0754   06D1 C9              ret
-0755   06D2             
-0756   06D2             
-0757   06D2             ;===================
-0758   06D2             
-0759   06D2             ; grafic mode - enable
-0760   06D2             enable_grafic:
-0761   06D2 3E 30       	ld a, 30H
-0762   06D4 CD 74 07    	call lcd_send_command
-0763   06D7 CD 9F 07    	call delayLCD
-0764   06DA             	
-0765   06DA 3E 34       	ld a, 34H
-0766   06DC CD 74 07    	call lcd_send_command
-0767   06DF CD 9F 07    	call delayLCD
-0768   06E2             	
-0769   06E2 3E 36       	ld a, 36H
-0770   06E4 CD 74 07    	call lcd_send_command
-0771   06E7 CD 9F 07    	call delayLCD
-0772   06EA C9              ret
-0773   06EB             
-0774   06EB             
-0775   06EB             ;==========================
-0776   06EB             
-0777   06EB             print_image:						; LOAD 128*64 bits (16*8 Byte) of data into the LCD screen
-0778   06EB             									; HL content the data address
-0779   06EB F5              push af
-0780   06EC D5          	push de
-0781   06ED C5          	push bc
-0782   06EE             
-0783   06EE             
-0784   06EE             ; premiere partie : X de 0 à 127 / Y de 0 à 32
-0785   06EE             
-0786   06EE 3E 20       	ld a,32
-0787   06F0 57          	ld d,a							; boucle Y
-0788   06F1 3E 00       	ld a,0
-0789   06F3 5F          	ld e,a
-0790   06F4             	
-0791   06F4             boucle_colonne:
-0792   06F4 3E 80       		ld a,$80					; coordonnée Y (0)
-0793   06F6 83          		add a,e
-0794   06F7 CD 74 07    		call lcd_send_command
-0795   06FA             		
-0796   06FA 3E 80       		ld a,$80					; coordonnée X (0)		
-0797   06FC CD 74 07    		call lcd_send_command
-0798   06FF             		
-0799   06FF 3E 08       		ld a,8
-0800   0701 47          		ld b,a						; boucle X
-0801   0702             		
-0802   0702             boucle_ligne:	
-0803   0702 7E          			ld a,(hl)
-0804   0703 CD 7E 07    			call lcd_send_data
-0805   0706 23          			inc hl
-0806   0707 7E          			ld a,(hl)
-0807   0708 CD 7E 07    			call lcd_send_data		; auto-increment on screen address
-0808   070B 23          			inc hl
-0809   070C 05          			dec b
-0810   070D AF          			XOR a
-0811   070E B0          			OR b
-0812   070F C2 02 07    			jp nz,boucle_ligne		; tant qu'on a pas fait 7 
-0813   0712             		
-0814   0712 15          		dec d
-0815   0713 1C          		inc e
-0816   0714 AF          		XOR a
-0817   0715 B2          		OR d
-0818   0716 C2 F4 06    		jp nz,boucle_colonne
-0819   0719             		
-0820   0719             
-0821   0719             ; seconde partie : X de 128 à 255 / Y de 0 à 32
-0822   0719             
-0823   0719 3E 20       	ld a,32
-0824   071B 57          	ld d,a							; boucle Y
-0825   071C 3E 00       	ld a,0
-0826   071E 5F          	ld e,a
-0827   071F             	
-0828   071F             boucle_colonne2:
-0829   071F 3E 80       		ld a,$80					; coordonnée Y (0)
-0830   0721 83          		add a, e
-0831   0722 CD 74 07    		call lcd_send_command
-0832   0725             		
-0833   0725 3E 88       		ld a,$88					; coordonnée X (8)		
-0834   0727 CD 74 07    		call lcd_send_command
-0835   072A             		
-0836   072A 3E 08       		ld a,8
-0837   072C 47          		ld b,a						; boucle X
-0838   072D             		
-0839   072D             boucle_ligne2:	
-0840   072D 7E          			ld a,(hl)
-0841   072E CD 7E 07    			call lcd_send_data
-0842   0731 23          			inc hl
-0843   0732 7E          			ld a,(hl)
-0844   0733 CD 7E 07    			call lcd_send_data		; auto-increment on screen address
-0845   0736 23          			inc hl
-0846   0737 05          			dec b
-0847   0738 AF          			XOR a
-0848   0739 B0          			OR b
-0849   073A C2 2D 07    			jp nz,boucle_ligne2		; tant qu'on a pas fait 7 
-0850   073D             		
-0851   073D 15          		dec d
-0852   073E 1C          		inc e
-0853   073F AF          		XOR a
-0854   0740 B2          		OR d
-0855   0741 C2 1F 07    		jp nz,boucle_colonne2
-0856   0744             
-0857   0744 C1          	pop bc
-0858   0745 D1          	pop de
-0859   0746 F1              pop af
-0860   0747             
-0861   0747 C9              ret
-0862   0748             
-0863   0748             
-0864   0748             
-0865   0748             ; ======================
-0866   0748             cls_TXT:
-0867   0748             	; # CLEAR DISPLAY IN TEXT MODE # 
-0868   0748 3E 01       	ld a,%00000001 					; CLEAR DISPLAY -> " $01 "
-0869   074A CD 74 07    	call lcd_send_command		; CLEAR DISPLAY	
-0870   074D C9              ret
-0871   074E             
-0872   074E             ; ========================
-0873   074E             
-0874   074E             cls_GRAPHIC:		;   Fill entire Graphical screen with value 0
-0875   074E             					;	Graphic RAM (GDRAM) use :
-0876   074E             					;	1. Set vertical address (Y) for GDRAM
-0877   074E             					;	2. Set horizontal address (X) for GDRAM
-0878   074E             					;	3. Write D15~D8 to GDRAM (first byte)
-0879   074E             					;	4. Write D7~D0 to GDRAM (second byte)
-0880   074E C5          	push bc
-0881   074F D5          	push de
-0882   0750             
-0883   0750 1E 20       	ld e,$20						; e = 32 
-0884   0752 16 00       	ld d,$0							; d = 0
-0885   0754             Boucle32X:
-0886   0754 7A          		ld a,d
-0887   0755 F6 80       		OR $80
-0888   0757 CD 74 07    		call lcd_send_command
-0889   075A             		
-0890   075A 3E 80       		ld a,$80					; Set horizontal address（X） for GDRAM = 0 ($80)
-0891   075C CD 74 07    		call lcd_send_command
-0892   075F             		
-0893   075F AF          		xor a							 	
-0894   0760 06 10       		ld b,$10							; b = 17
-0895   0762             		
-0896   0762             Boucle16X:	 
-0897   0762 CD 7E 07    			call lcd_send_data 			; Write D15〜D8 to GDRAM (first byte)
-0898   0765 CD 7E 07    			call lcd_send_data 			; Write D7〜D0 to GDRAM (second byte)
-0899   0768             											; Address counter will automatically increase by one for the next two-byte data												
-0900   0768 10 F8       			djnz Boucle16X					; b = b -1 ; jump to label if b not 0
-0901   076A             		
-0902   076A 1D          		dec e 
-0903   076B 14          		inc d
-0904   076C AF          		xor a							; a = 0
-0905   076D B3          		or e
-0906   076E C2 54 07    		jp nz,Boucle32X
-0907   0771             
-0908   0771 D1          	pop de
-0909   0772 C1          	pop bc
-0910   0773             	
-0911   0773 C9              ret
-0912   0774             
-0913   0774             
-0914   0774             
-0915   0774             
-0916   0774             ;******************
-0917   0774             ;Send a command byte to the LCD
-0918   0774             ;Entry: A= command byte
-0919   0774             ;Exit: All preserved
-0920   0774             ;******************
-0921   0774             lcd_send_command:
-0922   0774 C5          	push bc				;Preserve
-0923   0775 0E 70       	ld c, LCDCTRL   	;Command port
-0924   0777             	
-0925   0777             lcd_command_wait_loop:	;Busy wait
-0926   0777 CD 9F 07    	call delayLCD
-0927   077A             	
-0928   077A ED 79       	out (c),a			;Send command
-0929   077C C1          	pop bc				;Restore
-0930   077D C9          	ret
+0171   00B0 21 CB 08        LD HL, MGS_INIT_BASIC
+0172   00B3 CD 1F 08        CALL SNDMSG
+0173   00B6             
+0174   00B6 C3 00 60        JP BASIC
+0175   00B9             
+0176   00B9             KEY:
+0177   00B9                 ;CALL KEYREADINIT
+0178   00B9                 ;CALL PRINTCHAR
+0179   00B9             
+0180   00B9 C3 B9 00        JP  KEY
+0181   00BC             
+0182   00BC             
+0183   00BC             
+0184   00BC             TABLE:
+0185   00BC 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; NUL
+0185   00C2 0000
+0186   00C4 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; SOH
+0186   00CA 0000
+0187   00CC 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; STX
+0187   00D2 0000
+0188   00D4 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; ETX
+0188   00DA 0000
+0189   00DC 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; EOT
+0189   00E2 0000
+0190   00E4 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; ENQ
+0190   00EA 0000
+0191   00EC 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; ACK
+0191   00F2 0000
+0192   00F4 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; BEL
+0192   00FA 0000
+0193   00FC 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; BS
+0193   0102 0000
+0194   0104 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; TAB
+0194   010A 0000
+0195   010C 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; LF
+0195   0112 0000
+0196   0114 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; VT
+0196   011A 0000
+0197   011C 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; FF
+0197   0122 0000
+0198   0124 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; CR
+0198   012A 0000
+0199   012C 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; SO
+0199   0132 0000
+0200   0134 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; SI
+0200   013A 0000
+0201   013C 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; DLE
+0201   0142 0000
+0202   0144 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; DC1
+0202   014A 0000
+0203   014C 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; DC2
+0203   0152 0000
+0204   0154 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; DC3
+0204   015A 0000
+0205   015C 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; DC4
+0205   0162 0000
+0206   0164 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; NAK
+0206   016A 0000
+0207   016C 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; SYN
+0207   0172 0000
+0208   0174 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; ETB
+0208   017A 0000
+0209   017C 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; CAN
+0209   0182 0000
+0210   0184 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; EM
+0210   018A 0000
+0211   018C 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; SUB
+0211   0192 0000
+0212   0194 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; ESC
+0212   019A 0000
+0213   019C 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; FS
+0213   01A2 0000
+0214   01A4 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; GS
+0214   01AA 0000
+0215   01AC 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; RS
+0215   01B2 0000
+0216   01B4 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; US
+0216   01BA 0000
+0217   01BC             
+0218   01BC             ; DEC 32
+0219   01BC 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; SPACE
+0219   01C2 0000
+0220   01C4 202020202000.db $20, $20, $20, $20, $20, $00, $20, $00 ; !
+0220   01CA 2000
+0221   01CC 505050000000.db $50, $50, $50, $00, $00, $00, $00, $00 ; "
+0221   01D2 0000
+0222   01D4 5050F850F850.db $50, $50, $F8, $50, $F8, $50, $50, $00 ; #
+0222   01DA 5000
+0223   01DC 2078A07028F0.db $20, $78, $A0, $70, $28, $F0, $20, $00 ; $
+0223   01E2 2000
+0224   01E4 C0C810204098.db $C0, $C8, $10, $20, $40, $98, $18, $00 ; %
+0224   01EA 1800
+0225   01EC 6090A040A890.db $60, $90, $A0, $40, $A8, $90, $68, $00 ; &
+0225   01F2 6800
+0226   01F4 202020000000.db $20, $20, $20, $00, $00, $00, $00, $00 ; '
+0226   01FA 0000
+0227   01FC 102040404020.db $10, $20, $40, $40, $40, $20, $10, $00 ; (
+0227   0202 1000
+0228   0204 402010101020.db $40, $20, $10, $10, $10, $20, $40, $00 ; )
+0228   020A 4000
+0229   020C 0020A870A820.db $00, $20, $A8, $70, $A8, $20, $00, $00 ; *
+0229   0212 0000
+0230   0214 002020F82020.db $00, $20, $20, $F8, $20, $20, $00, $00 ; +
+0230   021A 0000
+0231   021C 000000006020.db $00, $00, $00, $00, $60, $20, $40, $00 ; ,
+0231   0222 4000
+0232   0224 000000F80000.db $00, $00, $00, $F8, $00, $00, $00, $00 ; -
+0232   022A 0000
+0233   022C 000000000060.db $00, $00, $00, $00, $00, $60, $60, $00 ; .
+0233   0232 6000
+0234   0234 000008102040.db $00, $00, $08, $10, $20, $40, $80, $00 ; /
+0234   023A 8000
+0235   023C 708898A8C888.db $70, $88, $98, $A8, $C8, $88, $70, $00 ; 0
+0235   0242 7000
+0236   0244 206020202020.db $20, $60, $20, $20, $20, $20, $70, $00 ; 1
+0236   024A 7000
+0237   024C 708808102040.db $70, $88, $08, $10, $20, $40, $F8, $00 ; 2
+0237   0252 F800
+0238   0254 F81020100888.db $F8, $10, $20, $10, $08, $88, $70, $00 ; 3
+0238   025A 7000
+0239   025C 10305090F810.db $10, $30, $50, $90, $F8, $10, $10, $00 ; 4
+0239   0262 1000
+0240   0264 F880F0080888.db $F8, $80, $F0, $08, $08, $88, $70, $00 ; 5
+0240   026A 7000
+0241   026C 304080F08888.db $30, $40, $80, $F0, $88, $88, $70, $00 ; 6
+0241   0272 7000
+0242   0274 F80810204040.db $F8, $08, $10, $20, $40, $40, $40, $00 ; 7
+0242   027A 4000
+0243   027C 708888708888.db $70, $88, $88, $70, $88, $88, $70, $00 ; 8
+0243   0282 7000
+0244   0284 708888780810.db $70, $88, $88, $78, $08, $10, $60, $00 ; 9
+0244   028A 6000
+0245   028C 000030300030.db $00, $00, $30, $30, $00, $30, $30, $00 ; :
+0245   0292 3000
+0246   0294 003030003010.db $00, $30, $30, $00, $30, $10, $20, $00 ; ;
+0246   029A 2000
+0247   029C 102040804020.db $10, $20, $40, $80, $40, $20, $10, $00 ; <
+0247   02A2 1000
+0248   02A4 0000F800F800.db $00, $00, $F8, $00, $F8, $00, $00, $00 ; =
+0248   02AA 0000
+0249   02AC 402010081020.db $40, $20, $10, $08, $10, $20, $40, $00 ; >
+0249   02B2 4000
+0250   02B4 304808102000.db $30, $48, $08, $10, $20, $00, $20, $00 ; ?
+0250   02BA 2000
+0251   02BC 70880868A8A8.db $70, $88, $08, $68, $A8, $A8, $70, $00 ; @
+0251   02C2 7000
+0252   02C4             
+0253   02C4             ; DEC 65 Maiusculas
+0254   02C4 20508888F888.db $20, $50, $88, $88, $F8, $88, $88, $00 ; A
+0254   02CA 8800
+0255   02CC F08888F08888.db $F0, $88, $88, $F0, $88, $88, $F0, $00 ; B
+0255   02D2 F000
+0256   02D4 708880808088.db $70, $88, $80, $80, $80, $88, $70, $00 ; C
+0256   02DA 7000
+0257   02DC E09088888890.db $E0, $90, $88, $88, $88, $90, $E0, $00 ; D
+0257   02E2 E000
+0258   02E4 F88080F08080.db $F8, $80, $80, $F0, $80, $80, $F8, $00 ; E
+0258   02EA F800
+0259   02EC F88080F08080.db $F8, $80, $80, $F0, $80, $80, $80, $00 ; F
+0259   02F2 8000
+0260   02F4 70888080B888.db $70, $88, $80, $80, $B8, $88, $70, $00 ; G
+0260   02FA 7000
+0261   02FC 888888F88888.db $88, $88, $88, $F8, $88, $88, $88, $00 ; H
+0261   0302 8800
+0262   0304 702020202020.db $70, $20, $20, $20, $20, $20, $70, $00 ; I
+0262   030A 7000
+0263   030C 080808088888.db $08, $08, $08, $08, $88, $88, $70, $00 ; J
+0263   0312 7000
+0264   0314 8890A0C0A090.db $88, $90, $A0, $C0, $A0, $90, $88, $00 ; K
+0264   031A 8800
+0265   031C 808080808080.db $80, $80, $80, $80, $80, $80, $F8, $00 ; L
+0265   0322 F800
+0266   0324 88D8A8888888.db $88, $D8, $A8, $88, $88, $88, $88, $00 ; M
+0266   032A 8800
+0267   032C 8888C8A89888.db $88, $88, $C8, $A8, $98, $88, $88, $00 ; N
+0267   0332 8800
+0268   0334 708888888888.db $70, $88, $88, $88, $88, $88, $70, $00 ; O
+0268   033A 7000
+0269   033C F08888F08080.db $F0, $88, $88, $F0, $80, $80, $80, $00 ; P
+0269   0342 8000
+0270   0344 70888888A898.db $70, $88, $88, $88, $A8, $98, $70, $00 ; Q
+0270   034A 7000
+0271   034C F08888F08888.db $F0, $88, $88, $F0, $88, $88, $88, $00 ; R
+0271   0352 8800
+0272   0354 708880700888.db $70, $88, $80, $70, $08, $88, $70, $00 ; S
+0272   035A 7000
+0273   035C F82020202020.db $F8, $20, $20, $20, $20, $20, $20, $00 ; T
+0273   0362 2000
+0274   0364 888888888888.db $88, $88, $88, $88, $88, $88, $70, $00 ; U
+0274   036A 7000
+0275   036C 888888888850.db $88, $88, $88, $88, $88, $50, $20, $00 ; V
+0275   0372 2000
+0276   0374 88888888A8D8.db $88, $88, $88, $88, $A8, $D8, $88, $00 ; W
+0276   037A 8800
+0277   037C 888850205088.db $88, $88, $50, $20, $50, $88, $88, $00 ; X
+0277   0382 8800
+0278   0384 888850202020.db $88, $88, $50, $20, $20, $20, $20, $00 ; Y
+0278   038A 2000
+0279   038C F80810204080.db $F8, $08, $10, $20, $40, $80, $F8, $00 ; Z
+0279   0392 F800
+0280   0394             
+0281   0394             ; DEC 91
+0282   0394 302020202020.db $30, $20, $20, $20, $20, $20, $30, $00 ; [
+0282   039A 3000
+0283   039C 008040201008.db $00, $80, $40, $20, $10, $08, $00, $00 ; \
+0283   03A2 0000
+0284   03A4 602020202020.db $60, $20, $20, $20, $20, $20, $60, $00 ; ]
+0284   03AA 6000
+0285   03AC 205088000000.db $20, $50, $88, $00, $00, $00, $00, $00 ; ^
+0285   03B2 0000
+0286   03B4 000000000000.db $00, $00, $00, $00, $00, $00, $F8, $00 ; _
+0286   03BA F800
+0287   03BC 402010000000.db $40, $20, $10, $00, $00, $00, $00, $00 ; `
+0287   03C2 0000
+0288   03C4             
+0289   03C4             ; DEC 97 "Minusculas"
+0290   03C4 20508888F888.db $20, $50, $88, $88, $F8, $88, $88, $00 ; A
+0290   03CA 8800
+0291   03CC F08888F08888.db $F0, $88, $88, $F0, $88, $88, $F0, $00 ; B
+0291   03D2 F000
+0292   03D4 708880808088.db $70, $88, $80, $80, $80, $88, $70, $00 ; C
+0292   03DA 7000
+0293   03DC E09088888890.db $E0, $90, $88, $88, $88, $90, $E0, $00 ; D
+0293   03E2 E000
+0294   03E4 F88080F08080.db $F8, $80, $80, $F0, $80, $80, $F8, $00 ; E
+0294   03EA F800
+0295   03EC F88080F08080.db $F8, $80, $80, $F0, $80, $80, $80, $00 ; F
+0295   03F2 8000
+0296   03F4 70888080B888.db $70, $88, $80, $80, $B8, $88, $70, $00 ; G
+0296   03FA 7000
+0297   03FC 888888F88888.db $88, $88, $88, $F8, $88, $88, $88, $00 ; H
+0297   0402 8800
+0298   0404 702020202020.db $70, $20, $20, $20, $20, $20, $70, $00 ; I
+0298   040A 7000
+0299   040C 080808088888.db $08, $08, $08, $08, $88, $88, $70, $00 ; J
+0299   0412 7000
+0300   0414 8890A0C0A090.db $88, $90, $A0, $C0, $A0, $90, $88, $00 ; K
+0300   041A 8800
+0301   041C 808080808080.db $80, $80, $80, $80, $80, $80, $F8, $00 ; L
+0301   0422 F800
+0302   0424 88D8A8888888.db $88, $D8, $A8, $88, $88, $88, $88, $00 ; M
+0302   042A 8800
+0303   042C 8888C8A89888.db $88, $88, $C8, $A8, $98, $88, $88, $00 ; N
+0303   0432 8800
+0304   0434 708888888888.db $70, $88, $88, $88, $88, $88, $70, $00 ; O
+0304   043A 7000
+0305   043C F08888F08080.db $F0, $88, $88, $F0, $80, $80, $80, $00 ; P
+0305   0442 8000
+0306   0444 70888888A898.db $70, $88, $88, $88, $A8, $98, $70, $00 ; Q
+0306   044A 7000
+0307   044C F08888F08888.db $F0, $88, $88, $F0, $88, $88, $88, $00 ; R
+0307   0452 8800
+0308   0454 708880700888.db $70, $88, $80, $70, $08, $88, $70, $00 ; S
+0308   045A 7000
+0309   045C F82020202020.db $F8, $20, $20, $20, $20, $20, $20, $00 ; T
+0309   0462 2000
+0310   0464 888888888888.db $88, $88, $88, $88, $88, $88, $70, $00 ; U
+0310   046A 7000
+0311   046C 888888888850.db $88, $88, $88, $88, $88, $50, $20, $00 ; V
+0311   0472 2000
+0312   0474 88888888A8D8.db $88, $88, $88, $88, $A8, $D8, $88, $00 ; W
+0312   047A 8800
+0313   047C 888850205088.db $88, $88, $50, $20, $50, $88, $88, $00 ; X
+0313   0482 8800
+0314   0484 888850202020.db $88, $88, $50, $20, $20, $20, $20, $00 ; Y
+0314   048A 2000
+0315   048C F80810204080.db $F8, $08, $10, $20, $40, $80, $F8, $00 ; Z
+0315   0492 F800
+0316   0494             
+0317   0494             ; DEC 123
+0318   0494 102020402020.db $10, $20, $20, $40, $20, $20, $10, $00 ; {
+0318   049A 1000
+0319   049C 202020202020.db $20, $20, $20, $20, $20, $20, $20, $00 ; |
+0319   04A2 2000
+0320   04A4 402020102020.db $40, $20, $20, $10, $20, $20, $40, $00 ; }
+0320   04AA 4000
+0321   04AC 000050A00000.db $00, $00, $50, $A0, $00, $00, $00, $00 ; ~
+0321   04B2 0000
+0322   04B4 000000000000.db $00, $00, $00, $00, $00, $00, $00, $00 ; DEL
+0322   04BA 0000
+0323   04BC             
+0324   04BC             
+0325   04BC             INIT_TXT_LCD:
+0326   04BC 3E 00           ld a, 0
+0327   04BE 32 03 80        ld (LCD_TXT_X), a
+0328   04C1 32 04 80        ld (LCD_TXT_Y), a
+0329   04C4 21 00 00        ld hl, 0
+0330   04C7 22 08 80        ld (LCD_TXT_X_TMP), hl
+0331   04CA 23              inc hl
+0332   04CB 22 0A 80        ld (LCD_TXT_Y_TMP), hl
+0333   04CE C9              RET
+0334   04CF             
+0335   04CF             
+0336   04CF             ; char in A
+0337   04CF             PRINTCHAR:
+0338   04CF 32 00 80        LD (LCD_CHAR), A ; save char to print
+0339   04D2             
+0340   04D2 F5              PUSH AF
+0341   04D3 C5              PUSH BC
+0342   04D4 D5              PUSH DE
+0343   04D5 E5              PUSH HL
+0344   04D6             
+0345   04D6                 ; Verificar Enter, clear, etc... SEM PERDER O reg. A
+0346   04D6             ver_enter:       
+0347   04D6             
+0348   04D6                             ; trata dados para o lcd
+0349   04D6 FE 0D                       CP      CR                     ; compara com ENTER
+0350   04D8 20 25                       jr      nz, ver_limpa
+0351   04DA             
+0352   04DA                             ;call    shift_lcd_up
+0353   04DA                             ;call    show_lcd_screen
+0354   04DA             
+0355   04DA 3E 00                       LD A,0
+0356   04DC 32 03 80                    LD (LCD_TXT_X), A ; ajusta X para o inicio da linha
+0357   04DF             
+0358   04DF 3A 04 80                    LD A, (LCD_TXT_Y)
+0359   04E2 3C                          inc a
+0360   04E3 FE 08                       cp 8
+0361   04E5 C2 F9 04                    jp nz, ver_enter_incYOK
+0362   04E8                             
+0363   04E8 CD BE 06                    call lcd_clear ; se linha > 8 entao limpa buffer da tela
+0364   04EB 21 00 85                    ld hl, DISPLAY  
+0365   04EE CD E5 06                    call print_image ; mostra tela limpa
+0366   04F1 3E 00                       LD A, 0
+0367   04F3 32 04 80                    LD (LCD_TXT_Y), A
+0368   04F6                             
+0369   04F6 C3 09 06                    jp print_char_fim
+0370   04F9             
+0371   04F9             ver_enter_incYOK:
+0372   04F9 32 04 80                    ld (LCD_TXT_Y), a
+0373   04FC C3 09 06                    jp print_char_fim
+0374   04FF             
+0375   04FF             
+0376   04FF             ver_limpa:
+0377   04FF FE 0C                       CP      $0C                     ; compara com limpar tela
+0378   0501 20 14                       jr      NZ, ver_line
+0379   0503                             
+0380   0503                             ;call    clear_lcd_screen
+0381   0503                             ;call    show_lcd_screen
+0382   0503 CD BE 06                    call lcd_clear
+0383   0506 21 00 85                    ld hl, DISPLAY
+0384   0509 CD E5 06                    call print_image
+0385   050C 3E 00                       LD A, 0
+0386   050E 32 03 80                    LD (LCD_TXT_X), A
+0387   0511 32 04 80                    LD (LCD_TXT_Y), A
+0388   0514             
+0389   0514 C3 09 06                    JP print_char_fim
+0390   0517             
+0391   0517             ver_line:
+0392   0517 FE 0A                       CP      LF                     ; retorna começo da linha
+0393   0519 20 03                       jr      NZ, print_lcd      
+0394   051B             
+0395   051B                                 ;----- verificar se precisa add algo aqui
+0396   051B                             ;call    shift_lcd_up
+0397   051B                             ;call    show_lcd_screen
+0398   051B C3 09 06                    JP print_char_fim
+0399   051E             
+0400   051E             print_lcd:
+0401   051E                 ; pega o ponteiro para o caracter e salva em LCD_CHAR_POINT
+0402   051E 26 00           ld H, 0
+0403   0520 6F              ld L, A
+0404   0521 29              ADD HL, HL ; hl x 8
+0405   0522 29              ADD HL, HL
+0406   0523 29              ADD HL, HL
+0407   0524             
+0408   0524 54              LD D, H
+0409   0525 5D              LD E, L
+0410   0526 21 BC 00        ld hl, TABLE
+0411   0529 19              add hl, de
+0412   052A 22 01 80        ld (LCD_CHAR_POINT), HL ; table
+0413   052D             
+0414   052D             
+0415   052D                 ; ajusta X
+0416   052D 06 06           ld b, 6
+0417   052F 3A 03 80        ld a, (LCD_TXT_X)
+0418   0532 B7              or A
+0419   0533 CA 3D 05        jp z, ajustX
+0420   0536 4F              ld c, a
+0421   0537 CD 0E 06        call multiplication
+0422   053A C3 40 05        jp ajustXOK
+0423   053D                 
+0424   053D             ajustX:
+0425   053D 21 00 00        ld hl, 0
+0426   0540             ajustXOK:
+0427   0540 22 08 80        ld (LCD_TXT_X_TMP), HL 
+0428   0543             
+0429   0543             
+0430   0543             
+0431   0543                 ; ajuste Y
+0432   0543 16 04           ld d, 4
+0433   0545 1E 00           ld e, 0 ; = 128x8 proxima linha
+0434   0547 2A 0A 80        ld hl, (LCD_TXT_Y_TMP)
+0435   054A 3A 04 80        ld a, (LCD_TXT_Y)
+0436   054D B7              or a
+0437   054E CA 5E 05        JP Z, multYfim
+0438   0551 21 00 00        ld hl, 0
+0439   0554 47              ld b, a
+0440   0555             multY:
+0441   0555 19              add hl, de
+0442   0556 10 FD           DJNZ multY
+0443   0558             
+0444   0558 22 0A 80        ld (LCD_TXT_Y_TMP), HL
+0445   055B C3 64 05        jp multYfimok
+0446   055E             
+0447   055E             multYfim:
+0448   055E 21 00 00        ld hl, 0
+0449   0561 22 0A 80        ld (LCD_TXT_Y_TMP), HL
+0450   0564             
+0451   0564             multYfimok:
+0452   0564             
+0453   0564 2A 0A 80        ld hl, (LCD_TXT_Y_TMP)
+0454   0567 ED 5B 08 80     ld de, (LCD_TXT_X_TMP)
+0455   056B             
+0456   056B 19              add hl, de  ; hl tem pos do pix 0-8191
+0457   056C             
+0458   056C 22 0E 80        ld (LCD_TMP_POINT), hl
+0459   056F             
+0460   056F             
+0461   056F 3E 08           ld a, 8 ; altura do caracter
+0462   0571 32 0C 80        ld (LCD_CHAR_H), a
+0463   0574             printchar_loopH:
+0464   0574 2A 01 80        ld hl, (LCD_CHAR_POINT)
+0465   0577 7E              ld a, (HL)
+0466   0578 32 10 81        ld (LCD_TEMP), a
+0467   057B             
+0468   057B 3E 06           ld a, 6 ; largura do caracter
+0469   057D 32 0D 80        ld (LCD_CHAR_W), a
+0470   0580             printchar_loopW:
+0471   0580 3A 10 81        ld a, (LCD_TEMP)
+0472   0583 E6 80           and 128
+0473   0585 FE 00           cp 0
+0474   0587 CA 93 05        jp z, printchar_loopWC
+0475   058A 2A 0E 80        ld hl, (LCD_TMP_POINT)
+0476   058D CD 49 06        call lcd_setPixel
+0477   0590 C3 99 05        JP printchar_loopWE
+0478   0593             
+0479   0593             printchar_loopWC:
+0480   0593 2A 0E 80        ld hl, (LCD_TMP_POINT)
+0481   0596 CD 82 06        call lcd_clearPixel
+0482   0599             
+0483   0599             printchar_loopWE:
+0484   0599 3A 10 81        ld a, (LCD_TEMP)
+0485   059C CB 27           sla a
+0486   059E 32 10 81        ld (LCD_TEMP), a
+0487   05A1                 
+0488   05A1 2A 0E 80        ld hl, (LCD_TMP_POINT)
+0489   05A4 23              inc hl
+0490   05A5 22 0E 80        ld (LCD_TMP_POINT), hl
+0491   05A8             
+0492   05A8 3A 0D 80        ld a, (LCD_CHAR_W)
+0493   05AB 3D              dec A
+0494   05AC 32 0D 80        ld (LCD_CHAR_W), a
+0495   05AF FE 00           cp 0
+0496   05B1 C2 80 05        JP NZ, printchar_loopW
+0497   05B4             
+0498   05B4             
+0499   05B4             
+0500   05B4             
+0501   05B4 2A 0E 80        ld hl, (LCD_TMP_POINT)
+0502   05B7 2B              dec hl
+0503   05B8 2B              dec hl
+0504   05B9 2B              dec hl
+0505   05BA 2B              dec hl
+0506   05BB 2B              dec hl
+0507   05BC 2B              dec hl
+0508   05BD             
+0509   05BD 16 00           ld d, 0
+0510   05BF 1E 80           ld e, 128
+0511   05C1 19              add hl, de
+0512   05C2 22 0E 80        ld (LCD_TMP_POINT), HL
+0513   05C5             
+0514   05C5 2A 01 80        ld hl, (LCD_CHAR_POINT)
+0515   05C8 23              inc hl
+0516   05C9 22 01 80        ld (LCD_CHAR_POINT), hl
+0517   05CC             
+0518   05CC             
+0519   05CC 3A 0C 80        ld a, (LCD_CHAR_H)
+0520   05CF 3D              dec A
+0521   05D0 32 0C 80        ld (LCD_CHAR_H), a
+0522   05D3 FE 00           cp 0
+0523   05D5 C2 74 05        jp NZ, printchar_loopH
+0524   05D8             
+0525   05D8 21 00 85        ld hl, DISPLAY
+0526   05DB CD E5 06        call print_image
+0527   05DE             
+0528   05DE                 ; increment X, Y
+0529   05DE 3A 03 80        ld a, (LCD_TXT_X)
+0530   05E1 3C              inc a
+0531   05E2 FE 15           cp 21
+0532   05E4 C2 06 06        jp nz, incXOK
+0533   05E7 3E 00           ld a, 0
+0534   05E9 32 03 80        ld (LCD_TXT_X), a
+0535   05EC 3A 04 80        ld a, (LCD_TXT_Y)
+0536   05EF 3C              inc a
+0537   05F0 FE 08           cp 8
+0538   05F2 C2 00 06        jp nz, incYOK
+0539   05F5 3E 00           ld a, 0
+0540   05F7 32 03 80        ld (LCD_TXT_X), a
+0541   05FA 32 04 80        ld (LCD_TXT_Y), a
+0542   05FD C3 09 06        jp print_char_fim
+0543   0600             
+0544   0600             incYOK:
+0545   0600 32 04 80        ld (LCD_TXT_Y), a
+0546   0603 C3 09 06        jp print_char_fim
+0547   0606             
+0548   0606             incXOK:
+0549   0606 32 03 80        ld (LCD_TXT_X), a
+0550   0609             
+0551   0609             print_char_fim:
+0552   0609 E1              POP HL
+0553   060A D1              POP DE
+0554   060B C1              POP BC
+0555   060C F1              POP AF
+0556   060D C9              RET
+0557   060E             ;-------- FIM PRINTCHAR ------------------
+0558   060E             
+0559   060E             
+0560   060E             
+0561   060E             ; ----------------------------------
+0562   060E             
+0563   060E             ; INPUT: THE VALUES IN REGISTER B EN C
+0564   060E             ; OUTPUT: HL = B * C
+0565   060E             ; CHANGES: AF,DE,HL,B
+0566   060E             ;
+0567   060E             multiplication:
+0568   060E 21 00 00    	LD HL,0
+0569   0611 78          	LD A,B
+0570   0612 B7          	OR A
+0571   0613 C8          	RET Z
+0572   0614 16 00       	LD D,0
+0573   0616 59          	LD E,C
+0574   0617 19          multiplicationLOOP:	ADD HL,DE
+0575   0618 10 FD       	DJNZ multiplicationLOOP
+0576   061A C9          	RET 
+0577   061B             
+0578   061B             ;-----------------------------------
+0579   061B             
+0580   061B             Div_HL_D:
+0581   061B             ;Inputs:
+0582   061B             ;   HL and D
+0583   061B             ;Outputs:
+0584   061B             ;   HL is the quotient (HL/D)
+0585   061B             ;   A is the remainder
+0586   061B             ;   B is 0
+0587   061B             ;   C,D,E are preserved
+0588   061B AF              xor a         ; Clear upper eight bits of AHL
+0589   061C 06 10           ld b,16       ; Sixteen bits in dividend
+0590   061E             _loop:
+0591   061E 29              add hl,hl     ; Do a "SLA HL". If the upper bit was 1, the c flag is set
+0592   061F 17              rla           ; This moves the upper bits of the dividend into A
+0593   0620 38 03           jr c,_overflow; If D is allowed to be >128, then it is possible for A to overflow here. (Yes future Zeda, 128 is "safe.")
+0594   0622 BA              cp d          ; Check if we can subtract the divisor
+0595   0623 38 02           jr c,_skip    ; Carry means A < D
+0596   0625             _overflow:
+0597   0625 92              sub d         ; Do subtraction for real this time
+0598   0626 2C              inc l         ; Set the next bit of the quotient (currently bit 0)
+0599   0627             _skip:
+0600   0627 10 F5           djnz _loop
+0601   0629 C9              ret
+0602   062A             
+0603   062A             
+0604   062A             ; -----------------------------------------------------------------------------
+0605   062A             ;   LCD DRIVER
+0606   062A             ; -----------------------------------------------------------------------------
+0607   062A             ; INIT_LCD - Inicia o lcd em mode texto
+0608   062A             ; lcd_setPixel - Liga um pixel (0 - 8191) pixel address em HL
+0609   062A             ; lcd_clearPixel - Desliga um pixel (0 - 8191) pixel address em HL
+0610   062A             ; lcd_clear - Limpa buffer do lcd
+0611   062A             ; enable_grafic - Coloca o LCD em modo grafico
+0612   062A             ; print_image - Coloca o conteudo de HL (128x64 bits) no LCD
+0613   062A             ; cls_TXT - Limpa LCD mode text
+0614   062A             ; cls_GRAPHIC - Limpa LCD modo grafico
+0615   062A             
+0616   062A             INIT_LCD:
+0617   062A                 ;Initialisation
+0618   062A 3E 30       	ld a, 30H
+0619   062C CD 6E 07    	call lcd_send_command
+0620   062F             
+0621   062F 3E A0       	ld a, 0b00100000
+0622   0631 CD 6E 07    	call lcd_send_command
+0623   0634             
+0624   0634 3E 30       	ld a, 30H
+0625   0636 CD 6E 07    	call lcd_send_command
+0626   0639             
+0627   0639 3E 0C       	ld a, 0CH
+0628   063B CD 6E 07    	call lcd_send_command
+0629   063E             
+0630   063E 3E 01       	ld a, 01H
+0631   0640 CD 6E 07    	call lcd_send_command
+0632   0643             
+0633   0643 3E 02       	ld a, 02H
+0634   0645 CD 6E 07    	call lcd_send_command
+0635   0648 C9              RET
+0636   0649             
+0637   0649             
+0638   0649             ; pixel index in HL
+0639   0649             lcd_setPixel:
+0640   0649 E5              push hl
+0641   064A C5              push bc
+0642   064B D5              push de
+0643   064C F5              push af
+0644   064D AF              xor A
+0645   064E 32 07 80        ld (LCD_BIT_INDEX), A
+0646   0651 32 05 80        ld (LCD_BYTE_INDEX), A
+0647   0654             
+0648   0654 16 08           ld d, 8
+0649   0656 CD 1B 06        call Div_HL_D
+0650   0659 32 07 80        ld (LCD_BIT_INDEX), A
+0651   065C 22 05 80        ld (LCD_BYTE_INDEX), HL
+0652   065F ED 4B 05 80     ld BC, (LCD_BYTE_INDEX)
+0653   0663 21 00 85        ld hl, DISPLAY
+0654   0666 09              add hl, bc
+0655   0667                 
+0656   0667 06 80           ld b, 128 ; 1000 0000
+0657   0669 3A 07 80        ld a, (LCD_BIT_INDEX) ;
+0658   066C FE 00           cp 0
+0659   066E CA 7A 06        jp z, lcd_setPixel_fim
+0660   0671             lcd_setPixel_bit:
+0661   0671 CB 38           srl B
+0662   0673 3D              dec A
+0663   0674 CA 7A 06        jp z, lcd_setPixel_fim
+0664   0677                 
+0665   0677 C3 71 06        jp lcd_setPixel_bit
+0666   067A             lcd_setPixel_fim
+0667   067A 7E              ld a, (hl)
+0668   067B B0              or b
+0669   067C 77              ld (hl), a
+0670   067D             
+0671   067D F1              pop af
+0672   067E C1              pop bc
+0673   067F D1              pop de
+0674   0680 E1              pop hl
+0675   0681 C9              ret
+0676   0682             
+0677   0682             ;===============================
+0678   0682             ; pixel index in HL
+0679   0682             lcd_clearPixel:
+0680   0682 E5              push hl
+0681   0683 C5              push bc
+0682   0684 D5              push de
+0683   0685 F5              push af
+0684   0686 AF              xor A
+0685   0687 32 07 80        ld (LCD_BIT_INDEX), A
+0686   068A 32 05 80        ld (LCD_BYTE_INDEX), A
+0687   068D 16 08           ld d, 8
+0688   068F CD 1B 06        call Div_HL_D
+0689   0692 32 07 80        ld (LCD_BIT_INDEX), A
+0690   0695 22 05 80        ld (LCD_BYTE_INDEX), HL
+0691   0698 ED 4B 05 80     ld BC, (LCD_BYTE_INDEX)
+0692   069C 21 00 85        ld hl, DISPLAY
+0693   069F 09              add hl, bc
+0694   06A0                 
+0695   06A0 06 80           ld b, 128 ; 1000 0000
+0696   06A2 3A 07 80        ld a, (LCD_BIT_INDEX) ;
+0697   06A5 FE 00           cp 0
+0698   06A7 CA B3 06        jp z, lcd_clearPixel_fim
+0699   06AA             lcd_clearPixel_bit:
+0700   06AA CB 38           srl B
+0701   06AC 3D              dec A
+0702   06AD CA B3 06        jp z, lcd_clearPixel_fim
+0703   06B0                 
+0704   06B0 C3 AA 06        jp lcd_clearPixel_bit
+0705   06B3             lcd_clearPixel_fim
+0706   06B3 78              ld a, b
+0707   06B4 2F              cpl     ; NOT B
+0708   06B5 47              ld b, a
+0709   06B6             
+0710   06B6 7E              ld a, (hl)
+0711   06B7 A0              and b
+0712   06B8 77              ld (hl), a
+0713   06B9             
+0714   06B9 F1              pop af
+0715   06BA C1              pop bc
+0716   06BB D1              pop de
+0717   06BC E1              pop hl
+0718   06BD C9              ret
+0719   06BE             
+0720   06BE             
+0721   06BE             ;;--------------------------------------------------
+0722   06BE             lcd_clear:
+0723   06BE                 ;; HL = start address of block
+0724   06BE 21 00 85        ld hl, DISPLAY
+0725   06C1             
+0726   06C1                 ;; DE = HL + 1
+0727   06C1 5D              ld e,l
+0728   06C2 54              ld d,h
+0729   06C3 13              inc de
+0730   06C4             
+0731   06C4                 ;; initialise first byte of block
+0732   06C4                 ;; with data byte (&00)
+0733   06C4 36 00           ld (hl), 0
+0734   06C6                     
+0735   06C6                 ;; BC = length of block in bytes
+0736   06C6                 ;; HL+BC-1 = end address of block
+0737   06C6             
+0738   06C6 01 00 04        ld bc, 1024
+0739   06C9             
+0740   06C9                 ;; fill memory
+0741   06C9 ED B0           ldir
+0742   06CB C9              ret
+0743   06CC             
+0744   06CC             
+0745   06CC             ;===================
+0746   06CC             
+0747   06CC             ; grafic mode - enable
+0748   06CC             enable_grafic:
+0749   06CC 3E 30       	ld a, 30H
+0750   06CE CD 6E 07    	call lcd_send_command
+0751   06D1 CD 99 07    	call delayLCD
+0752   06D4             	
+0753   06D4 3E 34       	ld a, 34H
+0754   06D6 CD 6E 07    	call lcd_send_command
+0755   06D9 CD 99 07    	call delayLCD
+0756   06DC             	
+0757   06DC 3E 36       	ld a, 36H
+0758   06DE CD 6E 07    	call lcd_send_command
+0759   06E1 CD 99 07    	call delayLCD
+0760   06E4 C9              ret
+0761   06E5             
+0762   06E5             
+0763   06E5             ;==========================
+0764   06E5             
+0765   06E5             print_image:						; LOAD 128*64 bits (16*8 Byte) of data into the LCD screen
+0766   06E5             									; HL content the data address
+0767   06E5 F5              push af
+0768   06E6 D5          	push de
+0769   06E7 C5          	push bc
+0770   06E8             
+0771   06E8             
+0772   06E8             ; premiere partie : X de 0 à 127 / Y de 0 à 32
+0773   06E8             
+0774   06E8 3E 20       	ld a,32
+0775   06EA 57          	ld d,a							; boucle Y
+0776   06EB 3E 00       	ld a,0
+0777   06ED 5F          	ld e,a
+0778   06EE             	
+0779   06EE             boucle_colonne:
+0780   06EE 3E 80       		ld a,$80					; coordonnée Y (0)
+0781   06F0 83          		add a,e
+0782   06F1 CD 6E 07    		call lcd_send_command
+0783   06F4             		
+0784   06F4 3E 80       		ld a,$80					; coordonnée X (0)		
+0785   06F6 CD 6E 07    		call lcd_send_command
+0786   06F9             		
+0787   06F9 3E 08       		ld a,8
+0788   06FB 47          		ld b,a						; boucle X
+0789   06FC             		
+0790   06FC             boucle_ligne:	
+0791   06FC 7E          			ld a,(hl)
+0792   06FD CD 78 07    			call lcd_send_data
+0793   0700 23          			inc hl
+0794   0701 7E          			ld a,(hl)
+0795   0702 CD 78 07    			call lcd_send_data		; auto-increment on screen address
+0796   0705 23          			inc hl
+0797   0706 05          			dec b
+0798   0707 AF          			XOR a
+0799   0708 B0          			OR b
+0800   0709 C2 FC 06    			jp nz,boucle_ligne		; tant qu'on a pas fait 7 
+0801   070C             		
+0802   070C 15          		dec d
+0803   070D 1C          		inc e
+0804   070E AF          		XOR a
+0805   070F B2          		OR d
+0806   0710 C2 EE 06    		jp nz,boucle_colonne
+0807   0713             		
+0808   0713             
+0809   0713             ; seconde partie : X de 128 à 255 / Y de 0 à 32
+0810   0713             
+0811   0713 3E 20       	ld a,32
+0812   0715 57          	ld d,a							; boucle Y
+0813   0716 3E 00       	ld a,0
+0814   0718 5F          	ld e,a
+0815   0719             	
+0816   0719             boucle_colonne2:
+0817   0719 3E 80       		ld a,$80					; coordonnée Y (0)
+0818   071B 83          		add a, e
+0819   071C CD 6E 07    		call lcd_send_command
+0820   071F             		
+0821   071F 3E 88       		ld a,$88					; coordonnée X (8)		
+0822   0721 CD 6E 07    		call lcd_send_command
+0823   0724             		
+0824   0724 3E 08       		ld a,8
+0825   0726 47          		ld b,a						; boucle X
+0826   0727             		
+0827   0727             boucle_ligne2:	
+0828   0727 7E          			ld a,(hl)
+0829   0728 CD 78 07    			call lcd_send_data
+0830   072B 23          			inc hl
+0831   072C 7E          			ld a,(hl)
+0832   072D CD 78 07    			call lcd_send_data		; auto-increment on screen address
+0833   0730 23          			inc hl
+0834   0731 05          			dec b
+0835   0732 AF          			XOR a
+0836   0733 B0          			OR b
+0837   0734 C2 27 07    			jp nz,boucle_ligne2		; tant qu'on a pas fait 7 
+0838   0737             		
+0839   0737 15          		dec d
+0840   0738 1C          		inc e
+0841   0739 AF          		XOR a
+0842   073A B2          		OR d
+0843   073B C2 19 07    		jp nz,boucle_colonne2
+0844   073E             
+0845   073E C1          	pop bc
+0846   073F D1          	pop de
+0847   0740 F1              pop af
+0848   0741             
+0849   0741 C9              ret
+0850   0742             
+0851   0742             
+0852   0742             
+0853   0742             ; ======================
+0854   0742             cls_TXT:
+0855   0742             	; # CLEAR DISPLAY IN TEXT MODE # 
+0856   0742 3E 01       	ld a,%00000001 					; CLEAR DISPLAY -> " $01 "
+0857   0744 CD 6E 07    	call lcd_send_command		; CLEAR DISPLAY	
+0858   0747 C9              ret
+0859   0748             
+0860   0748             ; ========================
+0861   0748             
+0862   0748             cls_GRAPHIC:		;   Fill entire Graphical screen with value 0
+0863   0748             					;	Graphic RAM (GDRAM) use :
+0864   0748             					;	1. Set vertical address (Y) for GDRAM
+0865   0748             					;	2. Set horizontal address (X) for GDRAM
+0866   0748             					;	3. Write D15~D8 to GDRAM (first byte)
+0867   0748             					;	4. Write D7~D0 to GDRAM (second byte)
+0868   0748 C5          	push bc
+0869   0749 D5          	push de
+0870   074A             
+0871   074A 1E 20       	ld e,$20						; e = 32 
+0872   074C 16 00       	ld d,$0							; d = 0
+0873   074E             Boucle32X:
+0874   074E 7A          		ld a,d
+0875   074F F6 80       		OR $80
+0876   0751 CD 6E 07    		call lcd_send_command
+0877   0754             		
+0878   0754 3E 80       		ld a,$80					; Set horizontal address（X） for GDRAM = 0 ($80)
+0879   0756 CD 6E 07    		call lcd_send_command
+0880   0759             		
+0881   0759 AF          		xor a							 	
+0882   075A 06 10       		ld b,$10							; b = 17
+0883   075C             		
+0884   075C             Boucle16X:	 
+0885   075C CD 78 07    			call lcd_send_data 			; Write D15〜D8 to GDRAM (first byte)
+0886   075F CD 78 07    			call lcd_send_data 			; Write D7〜D0 to GDRAM (second byte)
+0887   0762             											; Address counter will automatically increase by one for the next two-byte data												
+0888   0762 10 F8       			djnz Boucle16X					; b = b -1 ; jump to label if b not 0
+0889   0764             		
+0890   0764 1D          		dec e 
+0891   0765 14          		inc d
+0892   0766 AF          		xor a							; a = 0
+0893   0767 B3          		or e
+0894   0768 C2 4E 07    		jp nz,Boucle32X
+0895   076B             
+0896   076B D1          	pop de
+0897   076C C1          	pop bc
+0898   076D             	
+0899   076D C9              ret
+0900   076E             
+0901   076E             
+0902   076E             
+0903   076E             
+0904   076E             ;******************
+0905   076E             ;Send a command byte to the LCD
+0906   076E             ;Entry: A= command byte
+0907   076E             ;Exit: All preserved
+0908   076E             ;******************
+0909   076E             lcd_send_command:
+0910   076E C5          	push bc				;Preserve
+0911   076F 0E 70       	ld c, LCDCTRL   	;Command port
+0912   0771             	
+0913   0771             lcd_command_wait_loop:	;Busy wait
+0914   0771 CD 99 07    	call delayLCD
+0915   0774             	
+0916   0774 ED 79       	out (c),a			;Send command
+0917   0776 C1          	pop bc				;Restore
+0918   0777 C9          	ret
+0919   0778             	
+0920   0778             ;******************
+0921   0778             ;Send a data byte to the LCD
+0922   0778             ;Entry: A= data byte
+0923   0778             ;Exit: All preserved
+0924   0778             ;******************
+0925   0778             lcd_send_data:
+0926   0778 C5          	push bc				;Preserve
+0927   0779 0E 70       	ld c, LCDCTRL	    ;Command port
+0928   077B             	
+0929   077B                 ;Busy wait
+0930   077B CD 99 07    	call delayLCD
 0931   077E             	
-0932   077E             ;******************
-0933   077E             ;Send a data byte to the LCD
-0934   077E             ;Entry: A= data byte
-0935   077E             ;Exit: All preserved
-0936   077E             ;******************
-0937   077E             lcd_send_data:
-0938   077E C5          	push bc				;Preserve
-0939   077F 0E 70       	ld c, LCDCTRL	    ;Command port
-0940   0781             	
-0941   0781                 ;Busy wait
-0942   0781 CD 9F 07    	call delayLCD
-0943   0784             	
-0944   0784 0E 71       	ld c, LCDDATA	;Data port
-0945   0786 ED 79       	out (c),a			;Send data
-0946   0788 C1          	pop bc				;Restore
-0947   0789 C9          	ret
-0948   078A             
-0949   078A             ;******************
-0950   078A             ;Send an asciiz string to the LCD
-0951   078A             ;Entry: HL=address of string
-0952   078A             ;Exit: HL=address of ending zero of the string. All others preserved
-0953   078A             ;******************
-0954   078A             lcd_send_asciiz:
-0955   078A F5          	push af
-0956   078B C5          	push bc				;Preserve
-0957   078C             lcd_asciiz_char_loop:
-0958   078C 0E 70       	ld c, LCDCTRL   	;Command port
-0959   078E             	
-0960   078E             lcd_asciiz_wait_loop:	;Busy wait
-0961   078E CD 9F 07    	call delayLCD
-0962   0791             	
-0963   0791 7E          	ld a,(hl)			;Get character
-0964   0792 A7          	and a				;Is it zero?
-0965   0793 28 07       	jr z,lcd_asciiz_done	;If so, we're done
-0966   0795             	
-0967   0795 0E 71       	ld c, LCDDATA	;Data port
-0968   0797 ED 79       	out (c),a			;Send data
-0969   0799 23          	inc hl				;Next char
-0970   079A 18 F0       	jr lcd_asciiz_char_loop
-0971   079C             	
-0972   079C             lcd_asciiz_done:
-0973   079C C1          	pop bc				;Restore
-0974   079D F1          	pop af
-0975   079E C9          	ret
-0976   079F             
-0977   079F             ; =========================================================
-0978   079F             ; Delay LCD
-0979   079F             ; =========================================================
-0980   079F             delayLCD:
-0981   079F             
-0982   079F 00          	NOP
-0983   07A0 00          	NOP
-0984   07A1 00          	NOP
-0985   07A2 00          	NOP
-0986   07A3 00          	NOP
-0987   07A4 00          	NOP
-0988   07A5 00          	NOP
-0989   07A6 00          	NOP
-0990   07A7 00          	NOP
-0991   07A8 00          	NOP
-0992   07A9 00          	NOP ; KO
-0993   07AA 00          	NOP
-0994   07AB 00              NOP
-0995   07AC C9              ret
-0996   07AD             
-0997   07AD             	
-0998   07AD             ; =========================================================
-0999   07AD             ; Delay
-1000   07AD             ; =========================================================
-1001   07AD             delay:
-1002   07AD C5          	push bc                       ; 2.75 us
-1003   07AE 06 FF           ld b, 255                     ; 1.75 us
-1004   07B0             delay_loop_b:
-1005   07B0 0E FF       	ld c, 255                     ; 1.75 us
-1006   07B2             delay_loop:
-1007   07B2 0D          	dec c                         ; 1 us
-1008   07B3 C2 B2 07        jp nz, delay_loop             ; true = 3 us, false 1.75 us
-1009   07B6 05              dec b                         ; 1 us
-1010   07B7 C2 B0 07        jp nz, delay_loop_b           ; true = 3 us, false 1.75 us
-1011   07BA C1              pop bc                        ; 2.50 us
-1012   07BB C9              ret   
-1013   07BC             
-1014   07BC             
-1015   07BC             ; Check break key
-1016   07BC 3E 40       CHKKEY: LD  A, $40
-1017   07BE D3 40       	OUT (KEY_OUT), A ; line 4
-1018   07C0 DB 40       	IN  A, (KEY_IN)
-1019   07C2 FE 01       	CP  1
-1020   07C4 C2 CC 07    	JP  NZ, GRET
-1021   07C7 3E 03       	LD  A, CTRLC
-1022   07C9 FE 00       	CP	0
-1023   07CB C9          	RET
-1024   07CC             GRET:
-1025   07CC 3E 00       	LD  A, 0
-1026   07CE FE 00       	CP 0
-1027   07D0 C9          	RET
-1028   07D1             
-1029   07D1             
-1030   07D1             
-1031   07D1             
-1032   07D1             ; -----------------------------------------------------------------------------
-1033   07D1             ;   KEYREAD - KEY In A
-1034   07D1             ; -----------------------------------------------------------------------------
-1035   07D1             KEYREADINIT:
-1036   07D1 C5              PUSH    BC
-1037   07D2 D5          	PUSH	DE
-1038   07D3 E5          	PUSH    HL
-1039   07D4 1E 00       	LD      E, 0                    ; E will be the last pressed key
-1040   07D6             READKEY:        
-1041   07D6 26 01           LD      H, 1                    ; H is the line register, start with second
-1042   07D8 06 00       	LD      B, 0                    ; Count lines for later multiplication	
-1043   07DA 16 00       	LD      D, 0                    ; DE will be the adress for mask
-1044   07DC             						
-1045   07DC             NEXTKEY:        
-1046   07DC 7C              LD      A, H						
-1047   07DD FE 00           CP      0                       ; All lines tried? 
-1048   07DF CA 1A 08        JP      Z, KEYOUT               ; Then check if there was a key pressed
-1049   07E2 D3 40       	OUT     (KEY_OUT), A		    ; Put current line to register
-1050   07E4 DB 40       	IN      A, (KEY_IN)		        ; Input Keys
-1051   07E6 E6 1F       	AND     $1F                     ; only 5 bits
-1052   07E8 CB 24       	SLA     H                       ; Next line
-1053   07EA 04              INC     B
-1054   07EB FE 00           CP      0                       ; Was key zero?
-1055   07ED CA DC 07        JP      Z, NEXTKEY              ; Then try again with next lines
-1056   07F0 16 00           LD      D, 0                    ; In D will be the number of the key
-1057   07F2             LOGARITHM:      
-1058   07F2 14              INC     D	                    ; Add one per shift
-1059   07F3 CB 3F           SRL     A                       ; Shift key right
-1060   07F5 C2 F2 07        JP      NZ, LOGARITHM		    ; If not zero shift again
-1061   07F8 15              DEC     D                       ; Was too much
-1062   07F9 DB 40       	IN      A, (KEY_IN)
-1063   07FB E6 80           AND     $80                     ; Check if first bit set (shift key pressed)
-1064   07FD C2 06 08        JP      NZ, LOADSHIFT		    ; Then jump to read with shift
-1065   0800 7A              LD      A, D                    ; Put read key into accu
-1066   0801 C6 1B           ADD     A, KEYMAP               ; Add base of key map array
-1067   0803 C3 09 08        JP      ADDOFFSET               ; Jump to load key
-1068   0806             LOADSHIFT:
-1069   0806 7A              LD      A, D
-1070   0807 C6 43           ADD     A, SHIFTKEYMAP          ; In this case add the base for shift		
-1071   0809             ADDOFFSET:
-1072   0809 C6 05           ADD     A, 5                    ; Add 5 for every line
-1073   080B 10 FC           DJNZ    ADDOFFSET               ; Jump back (do while loop)
-1074   080D D6 05       	SUB     5                       ; Since do while is one too much
-1075   080F             TRANSKEY:
-1076   080F A8              XOR     B                       ; Empty B
-1077   0810 4F          	LD      C, A                    ; A will be address in BC
-1078   0811 0A          	LD      A, (BC)	                ; Load key
-1079   0812 BB          	CP      E                       ; Same key?
-1080   0813 CA D6 07    	JP      Z, READKEY              ; Then from beginning
-1081   0816 5F          	LD      E, A                    ; Otherwise save new key
-1082   0817 C3 D6 07    	JP      READKEY	                ; And restart
-1083   081A             KEYOUT:
-1084   081A 7B              LD      A, E
-1085   081B 1E 00           LD      E, 0                    ; empty it
-1086   081D B7              OR      A	                    ; Was a key read?
-1087   081E CA D6 07        JP      Z, READKEY              ; If not restart
-1088   0821 E1              POP     HL
-1089   0822 D1              POP     DE
-1090   0823 C1              POP     BC
-1091   0824 C9              RET
-1092   0825             
-1093   0825             
-1094   0825             
-1095   0825             
-1096   0825             
-1097   0825             ;-----------------------------------------
-1098   0825             ; SEND AN ASCII STRING OUT THE SERIAL PORT
-1099   0825             ;-----------------------------------------
-1100   0825             ; 
-1101   0825             ; SENDS A ZERO TERMINATED STRING OR 
-1102   0825             ; 128 CHARACTERS MAX. OUT THE SERIAL PORT
-1103   0825             ;
-1104   0825             ;      ENTRY : HL = POINTER TO 00H TERMINATED STRING
-1105   0825             ;      EXIT  : NONE
-1106   0825             ;
-1107   0825             ;       MODIFIES : A,B,C
-1108   0825             ;          
-1109   0825 06 80       SNDMSG: LD    B,128         ;128 CHARS MAX
-1110   0827 7E          SDMSG1: LD    A,(HL)        ;GET THE CHAR
-1111   0828 FE 00              CP    00H          ;ZERO TERMINATOR?
-1112   082A 28 06              JR    Z,SDMSG2      ;FOUND A ZERO TERMINATOR, EXIT  
-1113   082C CD 33 08           CALL  OUTCH         ;TRANSMIT THE CHAR
-1114   082F 23                 INC   HL
-1115   0830 10 F5              DJNZ  SDMSG1        ;128 CHARS MAX!    
-1116   0832 C9          SDMSG2: RET
-1117   0833             
-1118   0833             
-1119   0833             
-1120   0833             ;-----------------------------------
-1121   0833             ; OUTPUT A CHARACTER TO THE TERMINAL
-1122   0833             ;-----------------------------------       
-1123   0833 DD 2A AA FF OUTCH:  LD   IX,(PUTCH)
-1124   0837 DD E9              JP   (IX)
-1125   0839             ;------------------------------------
-1126   0839             ; INPUT A CHARACTER FROM THE TERMINAL
-1127   0839             ;------------------------------------
-1128   0839 DD 2A AC FF INCH:  LD   IX,(GETCH)
-1129   083D DD E9             JP   (IX)
-1130   083F             
-1131   083F             
-1132   083F             
-1133   083F             ;------------------------
-1134   083F             ; SERIAL TRANSMIT ROUTINE
-1135   083F             ;------------------------
-1136   083F             ;TRANSMIT BYTE SERIALLY ON DOUT
-1137   083F             ;
-1138   083F             ; ENTRY : A = BYTE TO TRANSMIT
-1139   083F             ;  EXIT : NO REGISTERS MODIFIED
-1140   083F             ;
-1141   083F F5          TXDATA:	PUSH	AF
-1142   0840 C5          	PUSH	BC
-1143   0841 E5          	PUSH	HL
-1144   0842 2A C0 FF    	LD	HL,(BAUD)
-1145   0845 4F          	LD	C,A
-1146   0846             ;
-1147   0846             ; TRANSMIT START BIT
-1148   0846             ;
-1149   0846 AF          	XOR	A
-1150   0847 D3 C0       	OUT	(SERIAL_TX_PORT),A
-1151   0849 CD 97 08    	CALL	BITIME
-1152   084C             ;
-1153   084C             ; TRANSMIT DATA
-1154   084C             ;
-1155   084C 06 08       	LD	B,08H
-1156   084E CB 09       	RRC	C
-1157   0850 CB 09       NXTBIT:	RRC	C	;SHIFT BITS TO D6,
-1158   0852 79          	LD	A,C	;LSB FIRST AND OUTPUT
-1159   0853 E6 40       	AND	40H	;THEM FOR ONE BIT TIME.
-1160   0855 D3 C0       	OUT	(SERIAL_TX_PORT),A
-1161   0857 CD 97 08    	CALL	BITIME
-1162   085A 10 F4       	DJNZ	NXTBIT
-1163   085C             ;
-1164   085C             ; SEND STOP BITS
-1165   085C             ;
-1166   085C 3E 40       	LD	A,40H
-1167   085E D3 C0       	OUT	(SERIAL_TX_PORT),A
-1168   0860 CD 97 08    	CALL	BITIME
-1169   0863 CD 97 08    	CALL	BITIME
-1170   0866 E1          	POP	HL
-1171   0867 C1          	POP	BC
-1172   0868 F1          	POP	AF
-1173   0869 C9          	RET
-1174   086A             ;-----------------------
-1175   086A             ; SERIAL RECEIVE ROUTINE
-1176   086A             ;-----------------------
-1177   086A             ;RECEIVE SERIAL BYTE FROM DIN
-1178   086A             ;
-1179   086A             ; ENTRY : NONE
-1180   086A             ;  EXIT : A= RECEIVED BYTE IF CARRY CLEAR
-1181   086A             ;
-1182   086A             ; REGISTERS MODIFIED A AND F
-1183   086A             ;
-1184   086A C5          RXDATA:	PUSH	BC
-1185   086B E5          	PUSH	HL
-1186   086C             ;
-1187   086C             ; WAIT FOR START BIT 
-1188   086C             ;
-1189   086C DB C0       RXDAT1: IN	A,(SERIAL_RX_PORT)
-1190   086E CB 7F       	    BIT	7,A
-1191   0870 20 FA       	    JR	NZ,RXDAT1	;NO START BIT
-1192   0872             ;
-1193   0872             ; DETECTED START BIT
-1194   0872             ;
-1195   0872 2A C0 FF    	LD	HL,(BAUD)
-1196   0875 CB 3C       	SRL	H
-1197   0877 CB 1D       	RR	L 	;DELAY FOR HALF BIT TIME
-1198   0879 CD 97 08    	CALL 	BITIME
-1199   087C DB C0       	IN	A,(SERIAL_RX_PORT)
-1200   087E CB 7F       	BIT	7,A
-1201   0880 20 EA       	JR	NZ,RXDAT1	;START BIT NOT VALID
-1202   0882             ;
-1203   0882             ; DETECTED VALID START BIT,READ IN DATA
-1204   0882             ;
-1205   0882 06 08       	LD	B,08H
-1206   0884 2A C0 FF    RXDAT2:	LD	HL,(BAUD)
-1207   0887 CD 97 08    	CALL	BITIME	;DELAY ONE BIT TIME
-1208   088A DB C0       	IN	A,(SERIAL_RX_PORT)
-1209   088C CB 17       	RL	A
-1210   088E CB 19       	RR	C	;SHIFT BIT INTO DATA REG
-1211   0890 10 F2       	DJNZ	RXDAT2
-1212   0892 79          	LD	A,C
-1213   0893 B7          	OR	A	;CLEAR CARRY FLAG
-1214   0894 E1              POP	HL
-1215   0895 C1          	POP	BC
-1216   0896 C9          	RET
-1217   0897             ;---------------
-1218   0897             ; BIT TIME DELAY
-1219   0897             ;---------------
-1220   0897             ;DELAY FOR ONE SERIAL BIT TIME
-1221   0897             ;ENTRY : HL = DELAY TIME
-1222   0897             ; NO REGISTERS MODIFIED
-1223   0897             ;
-1224   0897 E5          BITIME:	PUSH	HL
-1225   0898 D5          	PUSH	DE
-1226   0899 11 01 00    	LD	DE,0001H
-1227   089C ED 52       BITIM1:	SBC	HL,DE
-1228   089E D2 9C 08    	JP	NC,BITIM1
-1229   08A1 D1          	POP	DE
-1230   08A2 E1          	POP	HL
-1231   08A3 C9          	RET
-1232   08A4             
-1233   08A4             
-1234   08A4             
-1235   08A4             ;-----------------
-1236   08A4             ; ONE SECOND DELAY
-1237   08A4             ;-----------------
-1238   08A4             ;
-1239   08A4             ; ENTRY : NONE
-1240   08A4             ; EXIT : FLAG REGISTER MODIFIED
-1241   08A4             ;
-1242   08A4 C5          DELONE:	PUSH	BC
-1243   08A5 D5          	PUSH	DE
-1244   08A6 E5          	PUSH	HL
-1245   08A7 11 01 00    	LD	DE,0001H
-1246   08AA 21 70 08    	LD	HL,0870H
-1247   08AD 06 92       DELON1:	LD	B,92H
-1248   08AF 10 FE       DELON2:	DJNZ	DELON2	;INNER LOOP
-1249   08B1 ED 52       	SBC	HL,DE
-1250   08B3 D2 AD 08    	JP	NC,DELON1	;OUTER LOOP
-1251   08B6 E1          	POP	HL
-1252   08B7 D1          	POP	DE
-1253   08B8 C1          	POP	BC
-1254   08B9 C9          	RET
-1255   08BA             
-1256   08BA             
-1257   08BA 0D0D0A5A3830WELLCOME: .db CR, CR, LF,"Z80 Mini Iniciado", CR, LF, 00H
-1257   08C0 204D696E6920496E69636961646F0D0A00
-1258   08D1             
-1259   08D1             .end
+0932   077E 0E 71       	ld c, LCDDATA	;Data port
+0933   0780 ED 79       	out (c),a			;Send data
+0934   0782 C1          	pop bc				;Restore
+0935   0783 C9          	ret
+0936   0784             
+0937   0784             ;******************
+0938   0784             ;Send an asciiz string to the LCD
+0939   0784             ;Entry: HL=address of string
+0940   0784             ;Exit: HL=address of ending zero of the string. All others preserved
+0941   0784             ;******************
+0942   0784             lcd_send_asciiz:
+0943   0784 F5          	push af
+0944   0785 C5          	push bc				;Preserve
+0945   0786             lcd_asciiz_char_loop:
+0946   0786 0E 70       	ld c, LCDCTRL   	;Command port
+0947   0788             	
+0948   0788             lcd_asciiz_wait_loop:	;Busy wait
+0949   0788 CD 99 07    	call delayLCD
+0950   078B             	
+0951   078B 7E          	ld a,(hl)			;Get character
+0952   078C A7          	and a				;Is it zero?
+0953   078D 28 07       	jr z,lcd_asciiz_done	;If so, we're done
+0954   078F             	
+0955   078F 0E 71       	ld c, LCDDATA	;Data port
+0956   0791 ED 79       	out (c),a			;Send data
+0957   0793 23          	inc hl				;Next char
+0958   0794 18 F0       	jr lcd_asciiz_char_loop
+0959   0796             	
+0960   0796             lcd_asciiz_done:
+0961   0796 C1          	pop bc				;Restore
+0962   0797 F1          	pop af
+0963   0798 C9          	ret
+0964   0799             
+0965   0799             ; =========================================================
+0966   0799             ; Delay LCD
+0967   0799             ; =========================================================
+0968   0799             delayLCD:
+0969   0799             
+0970   0799 00          	NOP
+0971   079A 00          	NOP
+0972   079B 00          	NOP
+0973   079C 00          	NOP
+0974   079D 00          	NOP
+0975   079E 00          	NOP
+0976   079F 00          	NOP
+0977   07A0 00          	NOP
+0978   07A1 00          	NOP
+0979   07A2 00          	NOP
+0980   07A3 00          	NOP ; KO
+0981   07A4 00          	NOP
+0982   07A5 00              NOP
+0983   07A6 C9              ret
+0984   07A7             
+0985   07A7             	
+0986   07A7             ; =========================================================
+0987   07A7             ; Delay
+0988   07A7             ; =========================================================
+0989   07A7             delay:
+0990   07A7 C5          	push bc                       ; 2.75 us
+0991   07A8 06 FF           ld b, 255                     ; 1.75 us
+0992   07AA             delay_loop_b:
+0993   07AA 0E FF       	ld c, 255                     ; 1.75 us
+0994   07AC             delay_loop:
+0995   07AC 0D          	dec c                         ; 1 us
+0996   07AD C2 AC 07        jp nz, delay_loop             ; true = 3 us, false 1.75 us
+0997   07B0 05              dec b                         ; 1 us
+0998   07B1 C2 AA 07        jp nz, delay_loop_b           ; true = 3 us, false 1.75 us
+0999   07B4 C1              pop bc                        ; 2.50 us
+1000   07B5 C9              ret   
+1001   07B6             
+1002   07B6             
+1003   07B6             ; Check break key
+1004   07B6 3E 40       CHKKEY: LD  A, $40
+1005   07B8 D3 40       	OUT (KEY_OUT), A ; line 4
+1006   07BA DB 40       	IN  A, (KEY_IN)
+1007   07BC FE 01       	CP  1
+1008   07BE C2 C6 07    	JP  NZ, GRET
+1009   07C1 3E 03       	LD  A, CTRLC
+1010   07C3 FE 00       	CP	0
+1011   07C5 C9          	RET
+1012   07C6             GRET:
+1013   07C6 3E 00       	LD  A, 0
+1014   07C8 FE 00       	CP 0
+1015   07CA C9          	RET
+1016   07CB             
+1017   07CB             
+1018   07CB             
+1019   07CB             
+1020   07CB             ; -----------------------------------------------------------------------------
+1021   07CB             ;   KEYREAD - KEY In A
+1022   07CB             ; -----------------------------------------------------------------------------
+1023   07CB             KEYREADINIT:
+1024   07CB C5              PUSH    BC
+1025   07CC D5          	PUSH	DE
+1026   07CD E5          	PUSH    HL
+1027   07CE 1E 00       	LD      E, 0                    ; E will be the last pressed key
+1028   07D0             READKEY:        
+1029   07D0 26 01           LD      H, 1                    ; H is the line register, start with second
+1030   07D2 06 00       	LD      B, 0                    ; Count lines for later multiplication	
+1031   07D4 16 00       	LD      D, 0                    ; DE will be the adress for mask
+1032   07D6             						
+1033   07D6             NEXTKEY:        
+1034   07D6 7C              LD      A, H						
+1035   07D7 FE 00           CP      0                       ; All lines tried? 
+1036   07D9 CA 14 08        JP      Z, KEYOUT               ; Then check if there was a key pressed
+1037   07DC D3 40       	OUT     (KEY_OUT), A		    ; Put current line to register
+1038   07DE DB 40       	IN      A, (KEY_IN)		        ; Input Keys
+1039   07E0 E6 1F       	AND     $1F                     ; only 5 bits
+1040   07E2 CB 24       	SLA     H                       ; Next line
+1041   07E4 04              INC     B
+1042   07E5 FE 00           CP      0                       ; Was key zero?
+1043   07E7 CA D6 07        JP      Z, NEXTKEY              ; Then try again with next lines
+1044   07EA 16 00           LD      D, 0                    ; In D will be the number of the key
+1045   07EC             LOGARITHM:      
+1046   07EC 14              INC     D	                    ; Add one per shift
+1047   07ED CB 3F           SRL     A                       ; Shift key right
+1048   07EF C2 EC 07        JP      NZ, LOGARITHM		    ; If not zero shift again
+1049   07F2 15              DEC     D                       ; Was too much
+1050   07F3 DB 40       	IN      A, (KEY_IN)
+1051   07F5 E6 80           AND     $80                     ; Check if first bit set (shift key pressed)
+1052   07F7 C2 00 08        JP      NZ, LOADSHIFT		    ; Then jump to read with shift
+1053   07FA 7A              LD      A, D                    ; Put read key into accu
+1054   07FB C6 1B           ADD     A, KEYMAP               ; Add base of key map array
+1055   07FD C3 03 08        JP      ADDOFFSET               ; Jump to load key
+1056   0800             LOADSHIFT:
+1057   0800 7A              LD      A, D
+1058   0801 C6 43           ADD     A, SHIFTKEYMAP          ; In this case add the base for shift		
+1059   0803             ADDOFFSET:
+1060   0803 C6 05           ADD     A, 5                    ; Add 5 for every line
+1061   0805 10 FC           DJNZ    ADDOFFSET               ; Jump back (do while loop)
+1062   0807 D6 05       	SUB     5                       ; Since do while is one too much
+1063   0809             TRANSKEY:
+1064   0809 A8              XOR     B                       ; Empty B
+1065   080A 4F          	LD      C, A                    ; A will be address in BC
+1066   080B 0A          	LD      A, (BC)	                ; Load key
+1067   080C BB          	CP      E                       ; Same key?
+1068   080D CA D0 07    	JP      Z, READKEY              ; Then from beginning
+1069   0810 5F          	LD      E, A                    ; Otherwise save new key
+1070   0811 C3 D0 07    	JP      READKEY	                ; And restart
+1071   0814             KEYOUT:
+1072   0814 7B              LD      A, E
+1073   0815 1E 00           LD      E, 0                    ; empty it
+1074   0817 B7              OR      A	                    ; Was a key read?
+1075   0818 CA D0 07        JP      Z, READKEY              ; If not restart
+1076   081B E1              POP     HL
+1077   081C D1              POP     DE
+1078   081D C1              POP     BC
+1079   081E C9              RET
+1080   081F             
+1081   081F             
+1082   081F             
+1083   081F             
+1084   081F             
+1085   081F             ;-----------------------------------------
+1086   081F             ; SEND AN ASCII STRING OUT THE SERIAL PORT
+1087   081F             ;-----------------------------------------
+1088   081F             ; 
+1089   081F             ; SENDS A ZERO TERMINATED STRING OR 
+1090   081F             ; 128 CHARACTERS MAX. OUT THE SERIAL PORT
+1091   081F             ;
+1092   081F             ;      ENTRY : HL = POINTER TO 00H TERMINATED STRING
+1093   081F             ;      EXIT  : NONE
+1094   081F             ;
+1095   081F             ;       MODIFIES : A,B,C
+1096   081F             ;          
+1097   081F 06 80       SNDMSG: LD    B,128         ;128 CHARS MAX
+1098   0821 7E          SDMSG1: LD    A,(HL)        ;GET THE CHAR
+1099   0822 FE 00              CP    00H          ;ZERO TERMINATOR?
+1100   0824 28 06              JR    Z,SDMSG2      ;FOUND A ZERO TERMINATOR, EXIT  
+1101   0826 CD 2D 08           CALL  OUTCH         ;TRANSMIT THE CHAR
+1102   0829 23                 INC   HL
+1103   082A 10 F5              DJNZ  SDMSG1        ;128 CHARS MAX!    
+1104   082C C9          SDMSG2: RET
+1105   082D             
+1106   082D             
+1107   082D             
+1108   082D             ;-----------------------------------
+1109   082D             ; OUTPUT A CHARACTER TO THE TERMINAL
+1110   082D             ;-----------------------------------       
+1111   082D DD 2A AA FF OUTCH:  LD   IX,(PUTCH)
+1112   0831 DD E9              JP   (IX)
+1113   0833             ;------------------------------------
+1114   0833             ; INPUT A CHARACTER FROM THE TERMINAL
+1115   0833             ;------------------------------------
+1116   0833 DD 2A AC FF INCH:  LD   IX,(GETCH)
+1117   0837 DD E9             JP   (IX)
+1118   0839             
+1119   0839             
+1120   0839             
+1121   0839             ;------------------------
+1122   0839             ; SERIAL TRANSMIT ROUTINE
+1123   0839             ;------------------------
+1124   0839             ;TRANSMIT BYTE SERIALLY ON DOUT
+1125   0839             ;
+1126   0839             ; ENTRY : A = BYTE TO TRANSMIT
+1127   0839             ;  EXIT : NO REGISTERS MODIFIED
+1128   0839             ;
+1129   0839 F5          TXDATA:	PUSH	AF
+1130   083A C5          	PUSH	BC
+1131   083B E5          	PUSH	HL
+1132   083C 2A C0 FF    	LD	HL,(BAUD)
+1133   083F 4F          	LD	C,A
+1134   0840             ;
+1135   0840             ; TRANSMIT START BIT
+1136   0840             ;
+1137   0840 AF          	XOR	A
+1138   0841 D3 C0       	OUT	(SERIAL_TX_PORT),A
+1139   0843 CD 91 08    	CALL	BITIME
+1140   0846             ;
+1141   0846             ; TRANSMIT DATA
+1142   0846             ;
+1143   0846 06 08       	LD	B,08H
+1144   0848 CB 09       	RRC	C
+1145   084A CB 09       NXTBIT:	RRC	C	;SHIFT BITS TO D6,
+1146   084C 79          	LD	A,C	;LSB FIRST AND OUTPUT
+1147   084D E6 40       	AND	40H	;THEM FOR ONE BIT TIME.
+1148   084F D3 C0       	OUT	(SERIAL_TX_PORT),A
+1149   0851 CD 91 08    	CALL	BITIME
+1150   0854 10 F4       	DJNZ	NXTBIT
+1151   0856             ;
+1152   0856             ; SEND STOP BITS
+1153   0856             ;
+1154   0856 3E 40       	LD	A,40H
+1155   0858 D3 C0       	OUT	(SERIAL_TX_PORT),A
+1156   085A CD 91 08    	CALL	BITIME
+1157   085D CD 91 08    	CALL	BITIME
+1158   0860 E1          	POP	HL
+1159   0861 C1          	POP	BC
+1160   0862 F1          	POP	AF
+1161   0863 C9          	RET
+1162   0864             ;-----------------------
+1163   0864             ; SERIAL RECEIVE ROUTINE
+1164   0864             ;-----------------------
+1165   0864             ;RECEIVE SERIAL BYTE FROM DIN
+1166   0864             ;
+1167   0864             ; ENTRY : NONE
+1168   0864             ;  EXIT : A= RECEIVED BYTE IF CARRY CLEAR
+1169   0864             ;
+1170   0864             ; REGISTERS MODIFIED A AND F
+1171   0864             ;
+1172   0864 C5          RXDATA:	PUSH	BC
+1173   0865 E5          	PUSH	HL
+1174   0866             ;
+1175   0866             ; WAIT FOR START BIT 
+1176   0866             ;
+1177   0866 DB C0       RXDAT1: IN	A,(SERIAL_RX_PORT)
+1178   0868 CB 7F       	    BIT	7,A
+1179   086A 20 FA       	    JR	NZ,RXDAT1	;NO START BIT
+1180   086C             ;
+1181   086C             ; DETECTED START BIT
+1182   086C             ;
+1183   086C 2A C0 FF    	LD	HL,(BAUD)
+1184   086F CB 3C       	SRL	H
+1185   0871 CB 1D       	RR	L 	;DELAY FOR HALF BIT TIME
+1186   0873 CD 91 08    	CALL 	BITIME
+1187   0876 DB C0       	IN	A,(SERIAL_RX_PORT)
+1188   0878 CB 7F       	BIT	7,A
+1189   087A 20 EA       	JR	NZ,RXDAT1	;START BIT NOT VALID
+1190   087C             ;
+1191   087C             ; DETECTED VALID START BIT,READ IN DATA
+1192   087C             ;
+1193   087C 06 08       	LD	B,08H
+1194   087E 2A C0 FF    RXDAT2:	LD	HL,(BAUD)
+1195   0881 CD 91 08    	CALL	BITIME	;DELAY ONE BIT TIME
+1196   0884 DB C0       	IN	A,(SERIAL_RX_PORT)
+1197   0886 CB 17       	RL	A
+1198   0888 CB 19       	RR	C	;SHIFT BIT INTO DATA REG
+1199   088A 10 F2       	DJNZ	RXDAT2
+1200   088C 79          	LD	A,C
+1201   088D B7          	OR	A	;CLEAR CARRY FLAG
+1202   088E E1              POP	HL
+1203   088F C1          	POP	BC
+1204   0890 C9          	RET
+1205   0891             ;---------------
+1206   0891             ; BIT TIME DELAY
+1207   0891             ;---------------
+1208   0891             ;DELAY FOR ONE SERIAL BIT TIME
+1209   0891             ;ENTRY : HL = DELAY TIME
+1210   0891             ; NO REGISTERS MODIFIED
+1211   0891             ;
+1212   0891 E5          BITIME:	PUSH	HL
+1213   0892 D5          	PUSH	DE
+1214   0893 11 01 00    	LD	DE,0001H
+1215   0896 ED 52       BITIM1:	SBC	HL,DE
+1216   0898 D2 96 08    	JP	NC,BITIM1
+1217   089B D1          	POP	DE
+1218   089C E1          	POP	HL
+1219   089D C9          	RET
+1220   089E             
+1221   089E             
+1222   089E             
+1223   089E             ;-----------------
+1224   089E             ; ONE SECOND DELAY
+1225   089E             ;-----------------
+1226   089E             ;
+1227   089E             ; ENTRY : NONE
+1228   089E             ; EXIT : FLAG REGISTER MODIFIED
+1229   089E             ;
+1230   089E C5          DELONE:	PUSH	BC
+1231   089F D5          	PUSH	DE
+1232   08A0 E5          	PUSH	HL
+1233   08A1 11 01 00    	LD	DE,0001H
+1234   08A4 21 70 08    	LD	HL,0870H
+1235   08A7 06 92       DELON1:	LD	B,92H
+1236   08A9 10 FE       DELON2:	DJNZ	DELON2	;INNER LOOP
+1237   08AB ED 52       	SBC	HL,DE
+1238   08AD D2 A7 08    	JP	NC,DELON1	;OUTER LOOP
+1239   08B0 E1          	POP	HL
+1240   08B1 D1          	POP	DE
+1241   08B2 C1          	POP	BC
+1242   08B3 C9          	RET
+1243   08B4             
+1244   08B4             
+1245   08B4 0D0D0A5A3830WELLCOME: .db CR, CR, LF,"Z80 Mini Iniciado", CR, LF, 00H
+1245   08BA 204D696E6920496E69636961646F0D0A00
+1246   08CB 0D0D0A496E69MGS_INIT_BASIC: .db CR, CR, LF,"Iniciando MS Basic", CR, LF, 00H
+1246   08D1 6369616E646F204D532042617369630D0A00
+1247   08E3             
+1248   08E3             .end
 tasm: Number of errors = 0

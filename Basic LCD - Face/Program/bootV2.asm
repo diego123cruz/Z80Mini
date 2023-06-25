@@ -168,9 +168,14 @@ INICIO:
     ; Init LCD logical
     call INIT_TXT_LCD ; set cursor X Y to 0
 
+    LD HL, MGS_INIT_BASIC
+    CALL SNDMSG
+
     JP BASIC
 
 KEY:
+    ;CALL KEYREADINIT
+    ;CALL PRINTCHAR
 
     JP  KEY
 
@@ -338,14 +343,68 @@ PRINTCHAR:
     PUSH HL
 
     ; Verificar Enter, clear, etc... SEM PERDER O reg. A
+ver_enter:       
+
+                ; trata dados para o lcd
+                CP      CR                     ; compara com ENTER
+                jr      nz, ver_limpa
+
+                ;call    shift_lcd_up
+                ;call    show_lcd_screen
+
+                LD A,0
+                LD (LCD_TXT_X), A ; ajusta X para o inicio da linha
+
+                LD A, (LCD_TXT_Y)
+                inc a
+                cp 8
+                jp nz, ver_enter_incYOK
+                
+                call lcd_clear ; se linha > 8 entao limpa buffer da tela
+                ld hl, DISPLAY  
+                call print_image ; mostra tela limpa
+                LD A, 0
+                LD (LCD_TXT_Y), A
+                
+                jp print_char_fim
+
+ver_enter_incYOK:
+                ld (LCD_TXT_Y), a
+                jp print_char_fim
 
 
+ver_limpa:
+                CP      $0C                     ; compara com limpar tela
+                jr      NZ, ver_line
+                
+                ;call    clear_lcd_screen
+                ;call    show_lcd_screen
+                call lcd_clear
+                ld hl, DISPLAY
+                call print_image
+                LD A, 0
+                LD (LCD_TXT_X), A
+                LD (LCD_TXT_Y), A
+
+                JP print_char_fim
+
+ver_line:
+                CP      LF                     ; retorna começo da linha
+                jr      NZ, print_lcd      
+
+                    ;----- verificar se precisa add algo aqui
+                ;call    shift_lcd_up
+                ;call    show_lcd_screen
+                JP print_char_fim
+
+print_lcd:
     ; pega o ponteiro para o caracter e salva em LCD_CHAR_POINT
     ld H, 0
     ld L, A
     ADD HL, HL ; hl x 8
     ADD HL, HL
     ADD HL, HL
+
     LD D, H
     LD E, L
     ld hl, TABLE
@@ -363,8 +422,7 @@ PRINTCHAR:
     jp ajustXOK
     
 ajustX:
-    ld h,0
-    ld l,0
+    ld hl, 0
 ajustXOK:
     ld (LCD_TXT_X_TMP), HL 
 
@@ -382,9 +440,15 @@ ajustXOK:
 multY:
     add hl, de
     DJNZ multY
+
+    ld (LCD_TXT_Y_TMP), HL
+    jp multYfimok
+
 multYfim:
+    ld hl, 0
     ld (LCD_TXT_Y_TMP), HL
 
+multYfimok:
 
     ld hl, (LCD_TXT_Y_TMP)
     ld de, (LCD_TXT_X_TMP)
@@ -490,84 +554,8 @@ print_char_fim:
     POP BC
     POP AF
     RET
-    ;-------- FIM
+;-------- FIM PRINTCHAR ------------------
 
-
-
-
-
-
-
-
-
-
-; print_diego
-PRINT_DIEGO:
-    ld a, (LCD_COOX)
-    ld b, A
-
-    ld a, (LCD_COOY)
-    ld c,A
-    call multiplication
-
-    ld a, (LCD_PRINT_H)
-    ld b, 0
-    ld c, 0
-print_clear_loopH:
-    push af
-    push hl
-
-    push hl
-    ld hl, (LCD_PRINT_IMAGE)
-    add hl, bc
-    ld a, (HL)
-    ld (LCD_TEMP),a
-    pop hl
-
-    ld a, (LCD_PRINT_W)
-print_clear_loopW:
-
-    push af
-    
-    ld a, (LCD_TEMP)
-    and 128
-    cp 0
-    jp z, print_clear_loopWC
-    call lcd_setPixel
-    JP print_clear_loopWE
-print_clear_loopWC:
-    call lcd_clearPixel
-print_clear_loopWE:
-    ld a, (LCD_TEMP)
-    sla a
-    ld (LCD_TEMP), a
-
-    pop af
-    
-
-    inc hl
-    dec A
-    cp 0
-    JP NZ, print_clear_loopW
-
-    pop hl
-    pop af
-
-    push de
-    ld d, 0
-    ld e, 128
-    add hl, de
-    pop de
-
-    inc bc
-    dec A
-    cp 0
-    jp NZ, print_clear_loopH
-
-    ld hl, DISPLAY
-    call print_image
-
-    RET
 
 
 ; ----------------------------------
@@ -1255,5 +1243,6 @@ DELON2:	DJNZ	DELON2	;INNER LOOP
 
 
 WELLCOME: .db CR, CR, LF,"Z80 Mini Iniciado", CR, LF, 00H
+MGS_INIT_BASIC: .db CR, CR, LF,"Iniciando MS Basic", CR, LF, 00H
 
 .end
