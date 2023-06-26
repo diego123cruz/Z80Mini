@@ -73,7 +73,8 @@ LCD_TXT_Y_TMP       .EQU    $800A   ; 2 bytes = LCD_TXT_Y * 128
 LCD_CHAR_H          .EQU    $800C   ; 1 byte altura do char
 LCD_CHAR_W          .EQU    $800D   ; 1 byte largura do char
 LCD_TMP_POINT       .EQU    $800E   ; 2 bytes ponteiro do pixel altural do print
-
+LCD_DELETE_CHAR     .EQU    $800F   ; 1 byte, 0 não, ff delete proximo char
+LCD_AUTO_X          .EQU    $8010   ; 1 byte, 0 sim, ff nao
 
 DISPLAY             .EQU    $8500
 
@@ -177,7 +178,6 @@ INICIO:
 KEY:
     ;CALL KEYREADINIT
     ;CALL PRINTCHAR
-
     JP  KEY
 
 
@@ -327,10 +327,91 @@ INIT_TXT_LCD:
     ld a, 0
     ld (LCD_TXT_X), a
     ld (LCD_TXT_Y), a
+    ld (LCD_DELETE_CHAR), a
+    ld (LCD_AUTO_X), a
     ld hl, 0
     ld (LCD_TXT_X_TMP), hl
     inc hl
     ld (LCD_TXT_Y_TMP), hl
+    RET
+
+
+DISPLAY_SCROLL_UP:
+    ; cada linha tem 128 bytes
+    ; temos 8 linhas
+    ; total 1024 bytes
+
+    ; display lines 0 to 7
+    ; move line 1 to 0
+    ld hl, DISPLAY+128
+    ld de, DISPLAY
+    ld bc, 127
+    ldir
+
+    ; move line 2 to 1
+    ld hl, DISPLAY+256
+    ld de, DISPLAY+128
+    ld bc, 127
+    ldir
+
+    ; move line 3 to 2
+    ld hl, DISPLAY+384
+    ld de, DISPLAY+256
+    ld bc, 127
+    ldir
+
+    ; move line 4 to 3
+    ld hl, DISPLAY+512
+    ld de, DISPLAY+384
+    ld bc, 127
+    ldir
+
+    ; move line 5 to 4
+    ld hl, DISPLAY+640
+    ld de, DISPLAY+512
+    ld bc, 127
+    ldir
+
+    ; move line 6 to 5
+    ld hl, DISPLAY+768
+    ld de, DISPLAY+640
+    ld bc, 127
+    ldir
+
+    ; move line 7 to 6
+    ld hl, DISPLAY+896
+    ld de, DISPLAY+768
+    ld bc, 127
+    ldir
+
+    ; clear line 7
+    ; 896 to 1024
+    ld hl, DISPLAY+896
+    ld e,l
+    ld d,h
+    inc de
+    ld (hl), 0
+    ld bc, 127
+    ldir
+
+    RET
+
+DELETE_CHAR:
+    POP HL ; retorno do call
+    LD A, 0
+    LD (LCD_DELETE_CHAR), A
+    LD A, (LCD_TXT_X)
+    DEC A
+    LD (LCD_TXT_X), A
+
+    LD A, $FF
+    LD (LCD_AUTO_X), A
+
+    POP AF
+    LD A, ' '
+    LD (LCD_CHAR), A
+    PUSH AF
+    PUSH HL ; call
     RET
 
 
@@ -342,6 +423,26 @@ PRINTCHAR:
     PUSH BC
     PUSH DE
     PUSH HL
+
+    PUSH AF
+    LD A, $0
+    LD (LCD_AUTO_X), A
+    POP AF
+
+
+ver_delete:
+    PUSH AF
+    LD A, (LCD_DELETE_CHAR)
+    or a
+    CP $FF
+    call z, DELETE_CHAR
+    POP AF
+    or a
+    CP $0
+    jr nz, ver_enter
+    LD A, $FF ; delete proximo char
+    LD (LCD_DELETE_CHAR), A
+    jp print_char_fim
 
     ; Verificar Enter, clear, etc... SEM PERDER O reg. A
 ver_enter:       
@@ -361,11 +462,9 @@ ver_enter:
                 cp 8
                 jp nz, ver_enter_incYOK
                 
-                call lcd_clear ; se linha > 8 entao limpa buffer da tela
-                ld hl, DISPLAY  
-                call print_image ; mostra tela limpa
-                LD A, 0
-                LD (LCD_TXT_Y), A
+                CALL DISPLAY_SCROLL_UP
+                ld hl, DISPLAY
+                CALL print_image
                 
                 jp print_char_fim
 
@@ -497,8 +596,6 @@ printchar_loopWE:
     JP NZ, printchar_loopW
 
 
-
-
     ld hl, (LCD_TMP_POINT)
     dec hl
     dec hl
@@ -525,6 +622,13 @@ printchar_loopWE:
 
     ld hl, DISPLAY
     call print_image
+
+
+    ; check auto x
+    LD A, (LCD_AUTO_X)
+    OR A
+    CP $FF
+    JP Z, print_char_fim
 
     ; increment X, Y
     ld a, (LCD_TXT_X)
