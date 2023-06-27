@@ -4,8 +4,9 @@
 ;         - CPU Z80@4Mhz
 ;         - Lcd Grafico 128x64
 ;         - Keyboard 40 keys + Shift
-;         - Ram 32k
-;         - Rom 32k
+;         - Rom 32k 0000h - 7FFFh
+;         - Ram 32k 8000h - FFFFh
+;         
 ;
 ;         - Ports:
 ;               - Keyboard: 40H
@@ -43,6 +44,9 @@ B2400:	.EQU	003FH	;2400 BAUD
 B4800:	.EQU	001BH	;4800 BAUD
 B9600:	.EQU	000BH	;9600 BAUD
 
+SYSTEM:	.EQU 	0FE00H	;INITIAL STACK POINTER
+I2CDATA .EQU    0D000H 
+
 BAUD:	 .EQU	0FFC0H	 ;BAUD RATE
 PUTCH:   .EQU   0FFAAH   ;OUTPUT A CHARACTER TO SERIAL
 GETCH:   .EQU   0FFACH   ;WAIT FOR A CHARACTER FROM SERIAL
@@ -62,28 +66,28 @@ LCD_LINE4   .EQU    98H
 
 
 
-LCD_CHAR            .EQU    $8000   ; 1 byte char ex: 'A'
-LCD_CHAR_POINT      .EQU    $8001   ; 2 bytes ponteiro para o mapa de caracteres
-LCD_TXT_X           .EQU    $8003   ; 1 byte  0-20 (21 col)
-LCD_TXT_Y           .EQU    $8004   ; 1 byte  0-7  (8 row)
-LCD_BYTE_INDEX      .EQU    $8005   ; 2 bytes pointer pixel(8)
-LCD_BIT_INDEX       .EQU    $8007   ; 1 byte pointer pixel(1)
-LCD_TXT_X_TMP       .EQU    $8008   ; 2 bytes = LCD_TXT_X * 6
-LCD_TXT_Y_TMP       .EQU    $800A   ; 2 bytes = LCD_TXT_Y * 128
-LCD_CHAR_H          .EQU    $800C   ; 1 byte altura do char
-LCD_CHAR_W          .EQU    $800D   ; 1 byte largura do char
-LCD_TMP_POINT       .EQU    $800E   ; 2 bytes ponteiro do pixel altural do print
-LCD_DELETE_CHAR     .EQU    $800F   ; 1 byte, 0 não, ff delete proximo char
-LCD_AUTO_X          .EQU    $8010   ; 1 byte, 0 sim, ff nao
+LCD_CHAR            .EQU    $E000   ; 1 byte char ex: 'A'
+LCD_CHAR_POINT      .EQU    $E001   ; 2 bytes ponteiro para o mapa de caracteres
+LCD_TXT_X           .EQU    $E003   ; 1 byte  0-20 (21 col)
+LCD_TXT_Y           .EQU    $E004   ; 1 byte  0-7  (8 row)
+LCD_BYTE_INDEX      .EQU    $E005   ; 2 bytes pointer pixel(8)
+LCD_BIT_INDEX       .EQU    $E007   ; 1 byte pointer pixel(1)
+LCD_TXT_X_TMP       .EQU    $E008   ; 2 bytes = LCD_TXT_X * 6
+LCD_TXT_Y_TMP       .EQU    $E00A   ; 2 bytes = LCD_TXT_Y * 128
+LCD_CHAR_H          .EQU    $E00C   ; 1 byte altura do char
+LCD_CHAR_W          .EQU    $E00D   ; 1 byte largura do char
+LCD_TMP_POINT       .EQU    $E00E   ; 2 bytes ponteiro do pixel altural do print
+LCD_DELETE_CHAR     .EQU    $E00F   ; 1 byte, 0 não, ff delete proximo char
+LCD_AUTO_X          .EQU    $E010   ; 1 byte, 0 sim, ff nao
 
-DISPLAY             .EQU    $8500
+DISPLAY             .EQU    $E500
 
-LCD_TEMP        .EQU    $8110
-LCD_COOX        .EQU    $8102 ; 1 byte, local onde vai printar
-LCD_COOY        .EQU    $8103 ; 1 byte
-LCD_PRINT_H     .EQU    $8104 ; 1 byte, tamanho do que vai printar
-LCD_PRINT_W     .EQU    $8105 ; 1 byte
-LCD_PRINT_IMAGE .EQU    $8106 ; 2 bytes
+LCD_TEMP        .EQU    $E110
+LCD_COOX        .EQU    $E102 ; 1 byte, local onde vai printar
+LCD_COOY        .EQU    $E103 ; 1 byte
+LCD_PRINT_H     .EQU    $E104 ; 1 byte, tamanho do que vai printar
+LCD_PRINT_W     .EQU    $E105 ; 1 byte
+LCD_PRINT_IMAGE .EQU    $E106 ; 2 bytes
 
 
         .ORG 0
@@ -114,71 +118,6 @@ SHIFTKEYMAP:
 .BYTE   22h
 .BYTE   "{}[]|",$5C,"<>?/"
 .BYTE   CTRLC, ",.     ", VT, LF
-
-
-
-
-
-
-
-
-
-
-
-; -----------------------------------------------------------------------------
-;   INICIO
-; -----------------------------------------------------------------------------
-INICIO:
-    LD  SP, $8FFF
-
-    ; init serial
-    CALL  DELONE     ;WAIT A SEC SO THE HOST SEES TX HIGH  
-    LD    HL,TXDATA
-    LD    (PUTCH),HL ;USE THE BITBANG SERIAL TRANSMIT
-    LD    HL,RXDATA
-    LD    (GETCH),HL  ;USE THE BITBANG SERIAL RECEIVE
-    
-    LD	HL,B4800
-	LD	(BAUD),HL	;DEFAULT SERIAL=9600 BAUD
-
-    LD HL, WELLCOME
-    CALL SNDMSG
-
-    ; CALL INCH
-    ; CALL OUTCH
-
-    ; Init LCD hardware
-    CALL INIT_LCD
-    call delay
-
-    call cls_TXT
-    call delay
-
-    CALL enable_grafic
-    call delay
-
-    call cls_GRAPHIC
-    call delay
-
-    call lcd_clear
-
-    ld hl, DISPLAY
-    call print_image
-
-    call delay
-
-    ; Init LCD logical
-    call INIT_TXT_LCD ; set cursor X Y to 0
-
-    LD HL, MGS_INIT_BASIC
-    CALL SNDMSG
-
-    JP BASIC
-
-KEY:
-    ;CALL KEYREADINIT
-    ;CALL PRINTCHAR
-    JP  KEY
 
 
 
@@ -323,6 +262,107 @@ TABLE:
 .db $00, $00, $00, $00, $00, $00, $00, $00 ; DEL
 
 
+
+
+
+
+
+
+; -----------------------------------------------------------------------------
+;   INICIO
+; -----------------------------------------------------------------------------
+INICIO:
+    LD  SP, SYSTEM
+
+    ; init serial
+    CALL  DELONE     ;WAIT A SEC SO THE HOST SEES TX HIGH  
+    LD    HL,TXDATA
+    LD    (PUTCH),HL ;USE THE BITBANG SERIAL TRANSMIT
+    LD    HL,RXDATA
+    LD    (GETCH),HL  ;USE THE BITBANG SERIAL RECEIVE
+    
+    LD	HL,B4800
+	LD	(BAUD),HL	;DEFAULT SERIAL=9600 BAUD
+
+    LD A, $FF
+    OUT (SERIAL_TX_PORT), A
+
+    LD HL, WELLCOME
+    CALL SNDMSG
+
+    ; CALL INCH
+    ; CALL OUTCH
+
+    ; Init LCD hardware
+    CALL INIT_LCD
+    call delay
+
+    call cls_TXT
+    call delay
+
+    CALL enable_grafic
+    call delay
+
+    call cls_GRAPHIC
+    call delay
+
+    call lcd_clear
+
+    ld hl, DISPLAY
+    call print_image
+
+    call delay
+
+    ; Init LCD logical
+    call INIT_TXT_LCD ; set cursor X Y to 0
+
+    LD HL, MSG_MONITOR
+    CALL SNDLCDMSG
+
+    LD HL, MSG_MENU1
+    CALL SNDLCDMSG
+
+    LD HL, MSG_MENU2
+    CALL SNDLCDMSG
+
+    LD HL, MSG_MENU3
+    CALL SNDLCDMSG
+
+    LD HL, MSG_MENU4
+    CALL SNDLCDMSG
+
+    ;JP BASIC
+
+KEY:
+    CALL KEYREADINIT
+    CP 'B'
+    JP Z, BASIC
+
+    CP 'I'
+    JP Z, INTEL_HEX
+
+    CP 'R'
+    JP Z, $8000
+
+    CP '1'
+    CALL Z, I2CLIST
+
+    JP  KEY
+
+
+INTEL_HEX:
+    CALL INTHEX
+    CALL delay
+    CALL delay
+    JP INICIO
+
+
+
+
+
+
+
+
 INIT_TXT_LCD:
     ld a, 0
     ld (LCD_TXT_X), a
@@ -450,9 +490,6 @@ ver_enter:
                 ; trata dados para o lcd
                 CP      CR                     ; compara com ENTER
                 jr      nz, ver_limpa
-
-                ;call    shift_lcd_up
-                ;call    show_lcd_screen
 
                 LD A,0
                 LD (LCD_TXT_X), A ; ajusta X para o inicio da linha
@@ -641,9 +678,11 @@ printchar_loopWE:
     inc a
     cp 8
     jp nz, incYOK
+    CALL DISPLAY_SCROLL_UP
+    ld hl, DISPLAY
+    CALL print_image
     ld a, 0
     ld (LCD_TXT_X), a
-    ld (LCD_TXT_Y), a
     jp print_char_fim
 
 incYOK:
@@ -1184,7 +1223,150 @@ KEYOUT:
     RET
 
 
+;-----------------------
+; RECEIVE INTEL HEX FILE
+;-----------------------       
+INTHEX: 
+       LD HL, MSG_ILOAD
+       CALL  SNDLCDMSG
 
+       LD HL, MSG_ILOAD
+       CALL  SNDMSG
+       
+
+       CALL  INTELH
+       JR    NZ,ITHEX1      
+
+       LD    HL,FILEOK
+       CALL  SNDLCDMSG   ;GOT FILE OK LCD
+       LD    HL,FILEOK
+       CALL  SNDMSG      ;GOT FILE OK Serial
+       
+       RET
+ITHEX1: LD    HL,CSUMERR
+       CALL  SNDLCDMSG
+
+       LD    HL,CSUMERR
+       CALL  SNDMSG      ;CHECKSUM ERROR
+       
+       RET  
+
+
+
+
+
+;-----------------------
+; RECEIVE INTEL HEX FILE
+;-----------------------
+INTELH:	LD	IX,SYSTEM	;POINT TO SYSTEM VARIABLES
+;
+; WAIT FOR RECORD MARK
+;
+INTEL1:	XOR	A
+	LD	(IX+3),A	;CLEAR CHECKSUM
+	CALL	RXDATA	;WAIT FOR THE RECORD MARK
+	CP	':'	;TO BE TRANSMITTED
+	JR	NZ,INTEL1	;NOT RECORD MARK
+;
+; GET RECORD LENGTH
+;
+	CALL	GETBYT
+	LD	(IX+0),A	;NUMBER OF DATA BYTES
+;
+; GET ADDRESS FIELD
+;
+	CALL	GETBYT
+	LD	(IX+2),A	;LOAD ADDRESS HIGH BYTE
+	CALL	GETBYT
+	LD	(IX+1),A	;LOAD ADDRESS LOW BYTE
+;
+; GET RECORD TYPE
+;
+	CALL	GETBYT
+	JR	NZ,INTEL4	;END OF FILE RECORD
+;
+; READ IN THE DATA
+;
+	LD	B,(IX+0)	;NUMBER OF DATA BYTES
+	LD	H,(IX+2)	;LOAD ADDRESS HIGH BYTE
+	LD	L,(IX+1)	;LOAD ADDRESS LOW BYTE
+
+INTEL2:	CALL	GETBYT	;GET DATA BYTE
+	LD	(HL),A	;STORE DATA BYTE
+	INC	HL
+	DJNZ	INTEL2	;LOAD MORE BYTES
+;
+; GET CHECKSUM AND COMPARE
+;
+	LD	A,(IX+3)	;CONVERT CHECKSUM TO
+	NEG		;TWO'S COMPLEMENT
+	LD	(IX+4),A	;SAVE COMPUTED CHECKSUM
+	CALL	GETBYT
+	LD	(IX+3),A	;SAVE RECORD CHECKSUM
+	CP	(IX+4)	;COMPARE CHECKSUM
+	JR	Z,INTEL1	;CHECKSUM OK,NEXT RECORD
+    RET             ;NZ=CHECKSUM ERROR
+;
+; END OF FILE RECORD
+;
+INTEL4:	LD	A,(IX+3)	;CONVERT CHECKSUM TO
+	NEG		;TWO'S COMPLEMENT
+	LD	(IX+4),A	;SAVE COMPUTED CHECKSUM
+	CALL	GETBYT
+	LD	(IX+3),A	;SAVE EOF CHECKSUM
+	CP	(IX+4)	;COMPARE CHECKSUM
+	RET  	    ;NZ=CHECKSUM ERROR
+;--------------------------
+; GET BYTE FROM SERIAL PORT
+;--------------------------
+GETBYT:	PUSH	BC
+	CALL	RXDATA
+	BIT	6,A
+	JR	Z,GETBT1
+	ADD	A,09H
+GETBT1:	AND	0FH
+	SLA 	A
+	SLA	A
+	SLA	A
+	SLA	A
+	LD	C,A
+;
+; GET LOW NYBBLE
+;
+	CALL	RXDATA
+	BIT	6,A
+	JR	Z,GETBT2
+	ADD	A,09H
+GETBT2:	AND	0FH
+	OR	C
+	LD	B,A
+	ADD	A,(IX+3)
+	LD	(IX+3),A	;ADD TO CHECKSUM
+	LD	A,B
+	AND	A	;CLEAR CARRY
+    POP	BC
+	RET
+
+;-----------------------------------------
+; SEND AN ASCII STRING OUT LCD
+;-----------------------------------------
+; 
+; SENDS A ZERO TERMINATED STRING OR 
+; 128 CHARACTERS MAX. OUT LCD
+;
+;      ENTRY : HL = POINTER TO 00H TERMINATED STRING
+;      EXIT  : NONE
+;
+;       MODIFIES : A,B,C
+;          
+SNDLCDMSG: LD    B,128         ;128 CHARS MAX
+SDLCDMSG1: LD    A,(HL)        ;GET THE CHAR
+       CP    00H          ;ZERO TERMINATOR?
+       JR    Z,SDLCDMSG2      ;FOUND A ZERO TERMINATOR, EXIT  
+       CALL PRINTCHAR         ;TRANSMIT THE CHAR
+       INC   HL
+       DJNZ  SDLCDMSG1        ;128 CHARS MAX!    
+SDLCDMSG2: RET
 
 
 ;-----------------------------------------
@@ -1324,7 +1506,6 @@ BITIM1:	SBC	HL,DE
 	RET
 
 
-
 ;-----------------
 ; ONE SECOND DELAY
 ;-----------------
@@ -1347,7 +1528,484 @@ DELON2:	DJNZ	DELON2	;INNER LOOP
 	RET
 
 
-WELLCOME: .db CR, CR, LF,"Z80 Mini Iniciado", CR, LF, 00H
-MGS_INIT_BASIC: .db CR, CR, LF,"Iniciando MS Basic", CR, LF, 00H
+
+
+
+
+
+; **********************************************************************
+; List devices found on the I2C bus
+;
+; Test each I2C device address and reports any that acknowledge
+
+I2CLIST:       LD   DE,LISTMsg        ;Address of message string
+            CALL StrOut         ;Output string
+            LD   D,0            ;First I2C device address to test
+LISTLOOP:      PUSH DE             ;Preserve DE
+            LD   A,D            ;Get device address to be tested
+            CALL LISTTEST          ;Test if device is present
+            POP  DE             ;Restore DE
+            JR   NZ,LISTNEXT       ;Skip if no acknowledge
+            LD   A,D            ;Get address of device tested
+            CALL HexOut         ;Output as two character hex 
+            CALL SpaceOut       ;Output space character
+LISTNEXT:      INC  D              ;Get next write address
+            INC  D
+            LD   A,D            ;Address of next device to test
+            OR   A              ;Have we tested all addresses?
+            JR   NZ,LISTLOOP       ;No, so loop again
+            CALL LineOut        ;Output new line
+            RET
+
+; Test if device at I2C address A acknowledges
+;   On entry: A = I2C device address (8-bit, bit 0 = lo for write)
+;   On exit:  Z flagged if device acknowledges
+;             NZ flagged if devices does not acknowledge
+LISTTEST:      CALL I2C_Open       ;Open I2C device for write
+            RET  NZ             ;Abort if failed to open
+            CALL I2C_Close      ;Close I2C device 
+            XOR  A              ;Return with Z flagged
+            RET
+
+LISTMsg:       .DB  "I2C device found at:",CR,0
+
+
+
+
+
+
+
+
+
+
+
+
+
+; Display test result
+;   On entry: DE = Address of null terminated string
+;             H = First value ($H)
+;             L = Second value ($L)
+;   On exit:  HL IX IY preserved
+Result:     
+            JP   String         ;Output result string to console
+
+
+; Character output to console
+;   On entry: A = Character to be output
+;   On exit:  BC DE HL IX IY preserved
+CharOut:    JP   API_Cout
+
+; New line output to console
+;   On entry: No parameters required
+;   On exit:  BC DE HL IX IY preserved
+LineOut:    JP   API_Lout
+
+; Space character ouput to console
+;   On entry: No parameters required
+;   On exit:  BC DE HL IX IY preserved
+SpaceOut:   LD   A,$20
+            JP   API_Cout
+
+; String output to console
+;   On entry: DE = Address of string
+;   On exit:  BC DE HL IX IY preserved
+StrOut:     JP   API_Sout
+
+
+; Delay by DE milliseconds (approx)
+;   On entry: DE = Delay time in milliseconds
+;   On exit:  BC DE HL IX IY preserved
+API_Delay:  PUSH BC             ;Preserve registers
+            PUSH DE
+            PUSH HL
+            CALL delay
+            POP  HL             ;Restore registers
+            POP  DE
+            POP  BC
+            RET
+
+
+; Character output to console device
+;   On entry: A = Character to be output
+;   On exit:  BC DE HL IX IY preserved
+API_Cout:   PUSH BC             ;Preserve registers
+            PUSH DE
+            PUSH HL
+            CALL $0008
+            POP  HL             ;Restore registers
+            POP  DE
+            POP  BC
+            RET
+
+
+; New line output to console device
+;   On entry: No parameters required
+;   On exit:  BC DE HL IX IY preserved
+API_Lout:   PUSH BC             ;Preserve registers
+            PUSH DE
+            PUSH HL
+            LD A, CR ; enter char
+            CALL $0008
+            POP  HL             ;Restore registers
+            POP  DE
+            POP  BC
+            RET
+
+
+; String output to console device
+;   On entry: DE = Address of string
+;   On exit:  BC DE HL IX IY preserved
+API_Sout:   PUSH BC             ;Preserve registers
+            PUSH DE
+            PUSH HL
+            LD H, D
+            LD L, E
+            CALL SNDLCDMSG
+            POP  HL             ;Restore registers
+            POP  DE
+            POP  BC
+            RET
+
+
+; Hex byte output to console
+;   On entry: A = Byte to be output in hex
+;   On exit:  BC DE HL IX IY preserved
+HexOut:     PUSH AF             ;Preserve byte to be output
+            RRA                 ;Shift top nibble to
+            RRA                 ;  botom four bits..
+            RRA
+            RRA
+            AND  $0F           ;Mask off unwanted bits
+            CALL HexOutHex           ;Output hi nibble
+            POP  AF             ;Restore byte to be output
+            AND  $0F           ;Mask off unwanted bits
+; Output nibble as ascii character
+HexOutHex:       CP   $0A           ;Nibble > 10 ?
+            JR   C,HexOutSkip        ;No, so skip
+            ADD  A,7            ;Yes, so add 7
+HexOutSkip:      ADD  A,$30         ;Add ASCII '0'
+            JP   API_Cout       ;Write character
+
+
+; Output string at DE with substitutions
+;   On entry: A = Address of device on I2C bus (write address)
+;             DE = Address of null terminated string
+;             H = Value to substitute for $H
+;             L = Value to substitute for $L
+;             B = Value to substitute for $B
+;   On exit:  DE = Address of next location after this string
+;             IX IY preserved
+String:     LD   A,(DE)         ;Get character from string
+            INC  DE             ;Point to next character in string
+            OR   A              ;Null ?
+            RET  Z              ;Yes, so we're done
+            CP   '$'            ;Substitue value?
+            JR   Z,StringSubst       ;Yes, so go handle substitution
+            CALL CharOut        ;Output character to console
+            JR   String         ;Go get next character from string
+StringSubst:     LD   A,(DE)         ;Get character from string
+            INC  DE             ;Point to next character in string
+            OR   A              ;Null ?
+            RET  Z              ;Yes, so we're done
+            CP   'H'            ;Register H
+            JR   NZ,StringNotH       ;No, so skip
+            LD   A,H            ;Get value 'H'
+            JR   StringGotIt         ;Go output it in hex
+StringNotH:      CP   'L'            ;Register L
+            JR   NZ,StringNotL       ;No, so skip
+            LD   A,L            ;Get value 'L'
+            JR   StringGotIt         ;Go output it in hex
+StringNotL:      CP   'B'            ;Register B
+            JR   NZ,StringNotB       ;No, so skip
+            LD   A,B            ;Get value 'L'
+            ;JR   @GotIt        ;Go output it in hex
+StringGotIt:     CALL HexOut         ;Output write address in hex
+StringNotB:      JR   String         ;Go get next character from string
+
+
+; **********************************************************************
+; I2C support functions
+
+; I2C bus open device
+;   On entry: A = Device address (bit zero is read flag)
+;             SCL = unknown, SDA = unknown
+;   On exit:  If successfully A = 0 and Z flagged
+;             If unsuccessfully A = Error and NZ flagged
+;             BC DE HL IX IY preserved
+I2C_Open:   PUSH AF
+            CALL I2C_Start      ;Output start condition
+            POP  AF
+            JR   I2C_Write      ;Write data byte
+
+
+; I2C bus close device
+;   On entry: SCL = unknown, SDA = unknown
+;   On exit:  If successfully A=0 and Z flagged
+;             If unsuccessfully A=Error and NZ flagged
+;             SCL = hi, SDA = hi
+;             BC DE HL IX IY preserved
+I2C_Close:  JP   I2C_Stop       ;Output stop condition
+
+
+; **********************************************************************
+; **********************************************************************
+; I2C bus master driver
+; **********************************************************************
+; **********************************************************************
+
+; Functions provided are:
+;     I2C_Start
+;     I2C_Stop
+;     I2C_Read
+;     I2C_Write
+;
+; This code has delays between all I/O operations to ensure it works
+; with the slowest I2C devices
+;
+; I2C transfer sequence
+;   +-------+  +---------+  +---------+     +---------+  +-------+
+;   | Start |  | Address |  | Data    | ... | Data    |  | Stop  |
+;   |       |  | frame   |  | frame 1 |     | frame N |  |       |
+;   +-------+  +---------+  +---------+     +---------+  +-------+
+;
+;
+; Start condition                     Stop condition
+; Output by master device             Output by master device
+;       ----+                                      +----
+; SDA       |                         SDA          |
+;           +-------                        -------+
+;       -------+                                +-------
+; SCL          |                      SCL       |
+;              +----                        ----+
+;
+;
+; Address frame
+; Clock and data output from master device
+; Receiving device outputs acknowledge 
+;        +-----+-----+-----+-----+-----+-----+-----+-----+     +---+
+; SDA    | A 7 | A 6 | A 5 | A 4 | A 3 | A 2 | A 1 | R/W | ACK |   |
+;     ---+-----+-----+-----+-----+-----+-----+-----+-----+-----+   +---
+;          +-+   +-+   +-+   +-+   +-+   +-+   +-+   +-+   +-+
+; SCL      | |   | |   | |   | |   | |   | |   | |   | |   | |
+;     -----+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---------
+;
+;
+; Data frame 
+; Clock output by master device
+; Data output by transmitting device
+; Receiving device outputs acknowledge 
+;        +-----+-----+-----+-----+-----+-----+-----+-----+     +---+
+; SDA    | D 7 | D 6 | D 5 | D 4 | D 3 | D 2 | D 1 | D 0 | ACK |   |
+;     ---+-----+-----+-----+-----+-----+-----+-----+-----+-----+   +---
+;          +-+   +-+   +-+   +-+   +-+   +-+   +-+   +-+   +-+
+; SCL      | |   | |   | |   | |   | |   | |   | |   | |   | |
+;     -----+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---------
+;
+
+
+; **********************************************************************
+; I2C constants
+
+
+; I2C bus master interface
+; The default device option is for SC126 or compatible
+
+I2C_PORT:   .EQU $20           ;Host I2C port address
+I2C_SDA_WR: .EQU 7              ;Host I2C write SDA bit number
+I2C_SDA_RD: .EQU 7              ;Host I2C read SDA bit number
+I2C_SCL_WR: .EQU 0              ;Host I2C write SCL bit number
+I2C_SCL_RD: .EQU 0              ;Host I2C read SCL bit number 
+I2C_QUIES:  .EQU 0b10000001     ;Host I2C output port quiescent value
+
+
+; I2C support constants
+ERR_NONE:   .EQU 0              ;Error = None
+ERR_JAM:    .EQU 1              ;Error = Bus jammed [not used]
+ERR_NOACK:  .EQU 2              ;Error = No ackonowledge
+ERR_TOUT:   .EQU 3              ;Error = Timeout
+
+
+; **********************************************************************
+; Hardware dependent I2C bus functions
+
+
+; I2C bus transmit frame (address or data)
+;   On entry: A = Data byte, or
+;                 Address byte (bit zero is read flag)
+;             SCL = low, SDA = low
+;   On exit:  If successful A=0 and Z flagged
+;                SCL = lo, SDA = lo
+;             If unsuccessful A=Error and NZ flagged
+;                SCL = high, SDA = high, I2C closed
+;             BC DE HL IX IY preserved
+I2C_Write:  PUSH BC             ;Preserve registers
+            PUSH DE
+            LD   D,A            ;Store byte to be written
+            LD   B,8            ;8 data bits, bit 7 first
+I2C_WriteWr_Loop:   RL   D              ;Test M.S.Bit
+            JR   C,I2C_WriteBit_Hi      ;High, so skip
+            CALL I2C_SDA_LO     ;SDA low   (SCL lo, SDA = data bit)
+            JR   I2C_WriteBit_Clk
+I2C_WriteBit_Hi:    CALL I2C_SDA_HI     ;SDA high  (SCL lo, SDA = data bit)
+I2C_WriteBit_Clk:   CALL I2C_SCL_HI     ;SCL high  (SCL hi, SDA = data bit)
+            CALL I2C_SCL_LO     ;SCL low   (SCL lo, SDA = data bit)
+            DJNZ I2C_WriteWr_Loop
+; Test for acknowledge from slave (receiver)
+; On arriving here, SCL = lo, SDA = data bit
+            CALL I2C_SDA_HI     ;SDA high  (SCL lo, SDA hi/ack)
+            CALL I2C_SCL_HI     ;SCL high  (SCL hi, SDA hi/ack)
+            CALL I2C_RdPort     ;Read SDA input
+            LD   B,A
+            CALL I2C_SCL_LO     ;SCL low   (SCL lo, SDA = hi)
+            BIT  I2C_SDA_RD,B
+            JR   NZ,I2C_WriteNoAck      ;Skip if no acknowledge
+            POP  DE             ;Restore registers
+            POP  BC
+            XOR  A              ;Return success A=0 and Z flagged
+            RET
+; I2C STOP required as no acknowledge
+; On arriving here, SCL = lo, SDA = hi
+I2C_WriteNoAck:     CALL I2C_SDA_LO     ;SDA low   (SCL lo, SDA = lo)
+            CALL I2C_SCL_HI     ;SCL high  (SCL hi, SDA = lo)
+            CALL I2C_SDA_HI     ;SDA low   (SCL hi, SDA = hi)
+            POP  DE             ;Restore registers
+            POP  BC
+            LD   A,ERR_NOACK    ;Return error = No Acknowledge
+            OR   A              ;  and NZ flagged
+            RET
+
+
+; I2C bus receive frame (data)
+;   On entry: A = Acknowledge flag
+;               If A != 0 the read is acknowledged
+;             SCL low, SDA low
+;   On exit:  If successful A = data byte and Z flagged
+;               SCL = low, SDA = low
+;             If unsuccessul* A = Error and NZ flagged
+;               SCL = low, SDA = low
+;             BC DE HL IX IY preserved
+; *This function always returns successful
+I2C_Read:   PUSH BC             ;Preserve registers
+            PUSH DE
+            LD   E,A            ;Store acknowledge flag
+            LD   B,8            ;8 data bits, 7 first
+            CALL I2C_SDA_HI     ;SDA high  (SCL lo, SDA hi/input)
+I2C_ReadRd_Loop:   CALL I2C_SCL_HI     ;SCL high  (SCL hi, SDA hi/input)
+            CALL I2C_RdPort     ;Read SDA input bit
+            SCF                 ;Set carry flag
+            BIT  I2C_SDA_RD,A   ;SDA input high?
+            JR   NZ, I2C_ReadRotate     ;Yes, skip with carry flag set
+            CCF                 ;Clear carry flag
+I2C_ReadRotate:    RL   D              ;Rotate result into D
+            CALL I2C_SCL_LO     ;SCL low   (SCL lo, SDA hi/input)
+            DJNZ  I2C_ReadRd_Loop       ;Repeat for all 8 bits
+; Acknowledge input byte
+; On arriving here, SCL = lo, SDA = hi/input
+            LD   A,E            ;Get acknowledge flag
+            OR   A              ;A = 0? (indicates no acknowledge)
+            JR   Z, I2C_ReadNoAck       ;Yes, so skip acknowledge
+            CALL I2C_SDA_LO     ;SDA low   (SCL lo, SDA lo)
+I2C_ReadNoAck:     CALL I2C_SCL_HI     ;SCL hi    (SCL hi, SDA lo)
+            CALL I2C_SCL_LO     ;SCL low   (SCL lo, SDA lo)
+            LD   A,D            ;Get data byte received
+            POP  DE             ;Restore registers
+            POP  BC
+            CP   A              ;Return success Z flagged
+            RET
+
+
+; I2C bus start
+;   On entry: SCL = unknown, SDA = unknown
+;   On exit:  SCL = low, SDA = low
+;             A = 0 and Z flagged as we always succeed
+;             BC DE HL IX IY preserved
+; First ensure SDA and SCL are high
+I2C_Start:  CALL I2C_INIT       ;Initialise I2C control port
+;           CALL I2C_SCL_HI     ;SCL high  (SCL hi, SDA ??)
+;           CALL I2C_SDA_HI     ;SDA high  (SCL hi, SDA hi)
+; Generate I2C start condition
+            CALL I2C_SDA_LO     ;SDA low   (SCL hi, SDA lo)
+            CALL I2C_SCL_LO     ;SCL low   (SCL lo, SDA lo)
+            XOR  A              ;Return success A=0 and Z flagged
+            RET
+
+
+; I2C bus stop 
+;   On entry: SCL = unknown, SDA = unknown
+;   On exit:  SCL = high, SDA = high
+;             A = 0 and Z flagged as we always succeed
+;             BC DE HL IX IY preserved
+; First ensure SDA and SCL are low
+I2C_Stop:   CALL I2C_SDA_LO     ;SDA low   (SCL hi, SDA lo)
+            CALL I2C_SCL_LO     ;SCL low   (SCL lo, SDA lo)
+; Generate stop condition
+            CALL I2C_SCL_HI     ;SCL high  (SCL hi, SDA lo)
+            CALL I2C_SDA_HI     ;SDA low   (SCL hi, SDA hi)
+            XOR  A              ;Return success A=0 and Z flagged
+            RET
+
+
+; **********************************************************************
+; I2C bus simple I/O functions
+;   On entry: No parameters required
+;   On exit:  BC DE HL IX IY preserved
+
+I2C_INIT:   LD   A,I2C_QUIES    ;I2C control port quiescent value
+            JR   I2C_WrPort
+
+I2C_SCL_HI: LD   A,(I2C_RAMCPY)
+            SET  I2C_SCL_WR,A
+            JR   I2C_WrPort
+
+I2C_SCL_LO: LD   A,(I2C_RAMCPY)
+            RES  I2C_SCL_WR,A
+            JR   I2C_WrPort
+
+I2C_SDA_HI: LD   A,(I2C_RAMCPY)
+            SET  I2C_SDA_WR,A
+            JR   I2C_WrPort
+
+I2C_SDA_LO: LD   A,(I2C_RAMCPY)
+            RES  I2C_SDA_WR,A
+            ;JR   I2C_WrPort
+
+I2C_WrPort: PUSH BC             ;Preserve registers
+            LD   B,0            ;Set up BC for 16-bit
+            LD   C,I2C_PORT     ;  I/O address of I2C port
+            OUT  (C),A          ;Write A to I2C I/O port
+            LD   (I2C_RAMCPY),A ;Write A to RAM copy
+            POP  BC             ;Restore registers
+            RET
+
+I2C_RdPort: PUSH BC             ;Preserve registers
+            LD   B,0            ;Set up BC for 16-bit
+            LD   C,I2C_PORT     ;  I/O address of I2C port
+            IN   A,(C)          ;Read A from I/O port
+            POP  BC             ;Restore registers
+            RET
+
+
+
+WELLCOME: .db CS, CR, CR, LF,"Z80 Mini Iniciado", CR, LF, 00H
+MSG_MONITOR .db "Z80 MINI - Monitor v1",CR, 00H
+MSG_MENU1 .db "B - Basic",CR, 00H
+MSG_MENU2 .db "I - Intel hex loader",CR, 00H
+MSG_MENU3 .db "R - RUN (JP $8000)",CR, 00H
+MSG_MENU4 .db "1 - I2C Scan",CR, 00H
+
+MSG_ILOAD .db $0C, "Intel HEX loader...", CR, 00H
+FILEOK    .DB      "FILE RECEIVED OK",CR,00H
+CSUMERR   .DB    "CHECKSUM ERROR",CR,00H
+
+
+
+; **********************************************************************
+; I2C workspace / variables in RAM
+
+            .ORG  I2CDATA
+
+I2C_RAMCPY: .DB  0              ;RAM copy of output port
+
+RESULTS:    .DB  0              ;Large block of results can start here
 
 .end

@@ -1,0 +1,978 @@
+0001   0000             ; **********************************************************************
+0002   0000             ; **  I2C demo       v2.1.0  26-Feb-2021        by Stephen C Cousins  **
+0003   0000             ; **********************************************************************
+0004   0000             
+0005   0000             ; This demonstration and test program is deliberately slow so it works 
+0006   0000             ; with the slowest I2C devices on the fastest processors.
+0007   0000             
+0008   0000             ; The program checks for a number of different I2C devices and performs
+0009   0000             ; some simple I/O operations on them.
+0010   0000             
+0011   0000             ; Default I2C addresses      Device     Write   Read     Alternatives
+0012   0000             ; =====================      ======     =====   ====     ============
+0013   0000             ; SC138 Memory card          24LC256    0xAE    0xAF     None
+0014   0000             ; SC401 Prototyping module   ?          ?       ?        ?
+0015   0000             ; SC402 Memory module        24xxx      0xA0    0xA1     1010 AAA-
+0016   0000             ; SC403 Digital I/O module   MCP2318    0x40    0x41     0100 AAA-
+0017   0000             ; SC404 Digital I/O module   MCP2308    0x42    0x43     0100 AAA-
+0018   0000             ; SC405 Digital I/O module   PCF8574/A  0x74    0x75     0100 AAA- / 0111 AAA-
+0019   0000             ; SC406 Temperature sensor   TC74 A5    0x9A    0x9B     Alternative chips
+0020   0000             ; SC407 Switches and lights  PCF8574/A  0x4E/7E 0x4F/7F  0100 AAA- / 0111 AAA-
+0021   0000             ;
+0022   0000             ; Notes: 
+0023   0000             ; PCF8574 address is 0100 AAA-, while PCF8574A address is 0111 AAA-
+0024   0000             ; TC74 sensor can be supplied from manufacturer with different addresses
+0025   0000             
+0026   0000             ; A legacy code example DEMO_BLOCK can be found below showing how to
+0027   0000             ; write and read a block of memory. This is not used in the current 
+0028   0000             ; version of this demonstration and test program.
+0029   0000             
+0030   0000             
+0031   0000             ; **********************************************************************
+0032   0000             ; Constants
+0033   0000             CR          .EQU    0DH             ; Carriage return [Enter]
+0034   0000             
+0035   0000             ; I2C device addresses used by this demonstration and test program:
+0036   0000             SC138_ADDR  .EQU $AE           ;SC402 Memory card (24xxx)
+0037   0000             SC401_ADDR  .EQU $00           ;SC401 User defined
+0038   0000             SC402_ADDR  .EQU $A0           ;SC402 Memory card (24xxx)
+0039   0000             SC405_ADDR  .EQU $40           ;SC405 Digital I/O module (PCF8574A)
+0040   0000             SC407_ADDR  .EQU $40           ;SC407 Switches and lights (PCF8574
+0041   0000             
+0042   0000             ; Memory space
+0043   0000             CODE        .EQU  $8000        ;Program code starts here
+0044   0000             DATA        .EQU  $9000        ;Data starts here
+0045   0000             
+0046   0000             
+0047   0000             ; **********************************************************************
+0048   0000             ; Main program
+0049   8000                         .ORG  CODE          ;Program starts at this address
+0050   8000             
+0051   8000             
+0052   8000 11 1B 80                LD   DE, MainMsg        ;Address of message string
+0053   8003 CD A1 82                CALL StrOut         ;Output string
+0054   8006                         
+0055   8006 CD 37 80                CALL LIST           ;List addresses of I2C devices found
+0056   8009             
+0057   8009                         ;CALL SC138          ;SC138 Memory card (eg. 24LCxxx)
+0058   8009             
+0059   8009 CD 80 81                CALL SC405          ;SC405 Digital I/O (PCF8574/A)
+0060   800C             
+0061   800C             
+0062   800C             ; Copy a block from I2C memory to CPU memory
+0063   800C             ;   On entry: DE = First address in I2C memory
+0064   800C             ;             HL = First address in CPU memory
+0065   800C             ;             BC = Number of bytes to be copied
+0066   800C 11 00 00                LD DE, $0000
+0067   800F 21 00 A0                LD HL, $A000
+0068   8012 01 FF 00                LD BC, $00FF
+0069   8015 CD DB 82                CALL I2C_MemRd
+0070   8018             
+0071   8018 C3 00 A0                JP $A000
+0072   801B             
+0073   801B 493243207632MainMsg: .DB  "I2C v2.1-Stephen C Cousins",CR,0
+0073   8021 2E312D5374657068656E204320436F7573696E730D00
+0074   8037             
+0075   8037             
+0076   8037             
+0077   8037             
+0078   8037             ; **********************************************************************
+0079   8037             ; List devices found on the I2C bus
+0080   8037             ;
+0081   8037             ; Test each I2C device address and reports any that acknowledge
+0082   8037             
+0083   8037 11 61 80    LIST:       LD   DE,LISTMsg        ;Address of message string
+0084   803A CD A1 82                CALL StrOut         ;Output string
+0085   803D 16 00                   LD   D,0            ;First I2C device address to test
+0086   803F D5          LISTLOOP:      PUSH DE             ;Preserve DE
+0087   8040 7A                      LD   A,D            ;Get device address to be tested
+0088   8041 CD 58 80                CALL LISTTEST          ;Test if device is present
+0089   8044 D1                      POP  DE             ;Restore DE
+0090   8045 20 07                   JR   NZ,LISTNEXT       ;Skip if no acknowledge
+0091   8047 7A                      LD   A,D            ;Get address of device tested
+0092   8048 CD A4 82                CALL HexOut         ;Output as two character hex 
+0093   804B CD 9C 82                CALL SpaceOut       ;Output space character
+0094   804E 14          LISTNEXT:      INC  D              ;Get next write address
+0095   804F 14                      INC  D
+0096   8050 7A                      LD   A,D            ;Address of next device to test
+0097   8051 B7                      OR   A              ;Have we tested all addresses?
+0098   8052 20 EB                   JR   NZ,LISTLOOP       ;No, so loop again
+0099   8054 CD 99 82                CALL LineOut        ;Output new line
+0100   8057 C9                      RET
+0101   8058             
+0102   8058             ; Test if device at I2C address A acknowledges
+0103   8058             ;   On entry: A = I2C device address (8-bit, bit 0 = lo for write)
+0104   8058             ;   On exit:  Z flagged if device acknowledges
+0105   8058             ;             NZ flagged if devices does not acknowledge
+0106   8058 CD 72 83    LISTTEST:      CALL I2C_Open       ;Open I2C device for write
+0107   805B C0                      RET  NZ             ;Abort if failed to open
+0108   805C CD 79 83                CALL I2C_Close      ;Close I2C device 
+0109   805F AF                      XOR  A              ;Return with Z flagged
+0110   8060 C9                      RET
+0111   8061             
+0112   8061 493243206465LISTMsg:       .DB  "I2C device found at:",CR,0
+0112   8067 7669636520666F756E642061743A0D00
+0113   8077             
+0114   8077             
+0115   8077             
+0116   8077             ; **********************************************************************
+0117   8077             ; SC138: Memory card (eg. 24LCxxx)
+0118   8077             ;
+0119   8077             ; Function:
+0120   8077             ;   Writes a test byte and read it back
+0121   8077             ;   Repeat with inverted test byte
+0122   8077             
+0123   8077 3E AE       SC138:      LD   A,SC138_ADDR   ;I2C device address
+0124   8079 11 CD 80                LD   DE,SC138Msg        ;Point to report string
+0125   807C CD 56 82                CALL Report         ;Z flagged if device found
+0126   807F C0                      RET  NZ             ;Abort if device not found
+0127   8080             
+0128   8080 3E AE                   LD   A,SC138_ADDR   ;I2C device address
+0129   8082 21 10 00                LD   HL,$0010      ;Address in I2C memory chip
+0130   8085 CD 27 81                CALL MemTest        ;Test this address
+0131   8088 11 E2 80                LD   DE,SC138Pass       ;Point to pass message
+0132   808B 28 03                   JR   Z,SC138Show        ;Skip if passed
+0133   808D 11 F6 80                LD   DE,SC138Fail       ;Point to fail message
+0134   8090 CD 93 82    SC138Show:      CALL Result         ;Display test result indented
+0135   8093                         
+0136   8093 CD 99 82                CALL LineOut        ;Output new line
+0137   8096             
+0138   8096 3E AE                   LD A, SC138_ADDR
+0139   8098 57                      LD D, A
+0140   8099 21 00 00                LD HL, $0000
+0141   809C CD 0A 81                CALL MemRd
+0142   809F CD 50 83                CALL API_Cout
+0143   80A2             
+0144   80A2 21 01 00                LD HL, $0001
+0145   80A5 CD 0A 81                CALL MemRd
+0146   80A8 CD 50 83                CALL API_Cout
+0147   80AB             
+0148   80AB 21 02 00                LD HL, $0002
+0149   80AE CD 0A 81                CALL MemRd
+0150   80B1 CD 50 83                CALL API_Cout
+0151   80B4             
+0152   80B4 21 03 00                LD HL, $0003
+0153   80B7 CD 0A 81                CALL MemRd
+0154   80BA CD 50 83                CALL API_Cout
+0155   80BD             
+0156   80BD 21 04 00                LD HL, $0004
+0157   80C0 CD 0A 81                CALL MemRd
+0158   80C3 CD 50 83                CALL API_Cout
+0159   80C6             
+0160   80C6 CD 99 82                CALL LineOut
+0161   80C9 CD 99 82                CALL LineOut
+0162   80CC             
+0163   80CC C9                      RET
+0164   80CD             
+0165   80CD 4D656D6F7279SC138Msg:       .DB  "Memory card 24LCxxx",CR,0
+0165   80D3 20636172642032344C437878780D00
+0166   80E2 4D656D6F7279SC138Pass:      .DB  "Memory test passed",CR,0
+0166   80E8 2074657374207061737365640D00
+0167   80F6 4D656D6F7279SC138Fail:      .DB  "Memory test failed",CR,0
+0167   80FC 2074657374206661696C65640D00
+0168   810A             
+0169   810A             
+0170   810A             ; Random access single byte read
+0171   810A             ;   On entry: D = I2C device address
+0172   810A             ;             HL = Address to be read
+0173   810A             ;             SCL = unknown, SDA = unknown
+0174   810A             ;   On exit:  A = Data byte read from memory
+0175   810A             ;             If successfully A = 0 and Z flagged
+0176   810A             ;             If unsuccessfully A = Error and NZ flagged
+0177   810A             ;             BC DE HL IX IY preserved
+0178   810A             ; This routine only tests for I2C failure on initial device open!
+0179   810A 7A          MemRd:      LD   A,D            ;I2C device address (write)
+0180   810B CD 72 83                CALL I2C_Open       ;Open for write
+0181   810E C0                      RET  NZ             ;Abort if failure
+0182   810F 7C                      LD   A,H            ;Address (hi) in memory chip
+0183   8110 CD 7C 83                CALL I2C_Write      ;Send address hi byte
+0184   8113 7D                      LD   A,L            ;Address (lo) in memory chip
+0185   8114 CD 7C 83                CALL I2C_Write      ;Send address lo byte
+0186   8117 7A                      LD   A,D            ;I2C device address (write)
+0187   8118 3C                      INC  A              ;Increment to read address
+0188   8119 CD 72 83                CALL I2C_Open       ;Open for read
+0189   811C AF                      XOR  A              ;Do not acknowledge read
+0190   811D CD B9 83                CALL I2C_Read       ;Read byte from I2C memory
+0191   8120 F5                      PUSH AF             ;Preserve AF
+0192   8121 CD F1 83                CALL I2C_Stop       ;Generate I2C stop
+0193   8124 F1                      POP  AF             ;Restore AF
+0194   8125 BF                      CP   A              ;Z flagged as successful
+0195   8126 C9                      RET
+0196   8127             
+0197   8127             
+0198   8127             ; **********************************************************************
+0199   8127             ; Single byte random access read and write to memory chip (ie. 24LC256)
+0200   8127             ;
+0201   8127             ; This test writes a test byte to a location in the memory chip, waits a
+0202   8127             ; while, then reads it back. It then repeats the test with an inverted 
+0203   8127             ; test byte.
+0204   8127             
+0205   8127             ; Random access single byte memory test
+0206   8127             ;   On entry: A = I2C device address 
+0207   8127             ;             HL = Address to be tested within I2C memory chip
+0208   8127             ;   On exit:  If successfully A = 0 and Z flagged
+0209   8127             ;             If unsuccessfully A = Error and NZ flagged
+0210   8127             ;             IX IY preserved
+0211   8127 57          MemTest:    LD   D,A            ;I2C device address to test
+0212   8128 1E 55                   LD   E,$55         ;Byte to be written
+0213   812A CD 36 81                CALL MemTestTest          ;Test this pattern
+0214   812D C0                      RET  NZ             ;Abort if error
+0215   812E 1E AA                   LD   E,$AA         ;Byte to be written
+0216   8130 CD 36 81                CALL MemTestTest          ;Test this pattern
+0217   8133 C0                      RET  NZ             ;Abort if error
+0218   8134 AF                      XOR  A              ;Ensure A=0 and Z flagged for success
+0219   8135 C9                      RET
+0220   8136             
+0221   8136             ; Write byte and read it back
+0222   8136             ;   On entry: E = Byte to be written
+0223   8136             ;             HL = Address within chip to be tested
+0224   8136             ;   On exit:  If successfully A = 0 and Z flagged
+0225   8136             ;             If unsuccessfully A = Error and NZ flagged
+0226   8136             ;             BC DE HL IX IY preserved
+0227   8136             ; This routine writes a test byte to a location in the memory chip, 
+0228   8136             ; waits a while, then reads it back. 
+0229   8136 CD 4E 81    MemTestTest:      CALL MemTestMWr           ;Write to I2C memory
+0230   8139 20 0F                   JR   NZ,MemTestFail       ;Abort if error
+0231   813B D5                      PUSH DE             ;Preserve DE
+0232   813C 11 32 00                LD   DE,50
+0233   813F CD 46 83                CALL API_Delay      ;Delay 50ms
+0234   8142 D1                      POP  DE             ;Restore DE
+0235   8143 CD 63 81                CALL MemTestMRd           ;Read from I2C memory
+0236   8146 20 02                   JR   NZ,MemTestFail       ;Abort if error
+0237   8148 BB                      CP   E              ;Is it correct?
+0238   8149 C9                      RET                 ;Return z flagged if test passed
+0239   814A             MemTestFail:    
+0240   814A 3E FF                   LD A, $FF
+0241   814C B7                      OR   A ;$0FF         ;Return NZ flagged as test failed
+0242   814D C9                      RET
+0243   814E             
+0244   814E             ; Random access single byte write
+0245   814E             ;   On entry: D = I2C device address
+0246   814E             ;             E = Byte to be written
+0247   814E             ;             HL = Address to be written
+0248   814E             ;             SCL = unknown, SDA = unknown
+0249   814E             ;   On exit:  If successfully A = 0 and Z flagged
+0250   814E             ;             If unsuccessfully A = Error and NZ flagged
+0251   814E             ;             BC DE HL IX IY preserved
+0252   814E             ; This routine only tests for I2C failure on initial device open!
+0253   814E 7A          MemTestMWr:       LD   A,D            ;I2C address to write to
+0254   814F CD 72 83                CALL I2C_Open       ;Open for write
+0255   8152 C0                      RET  NZ             ;Abort if failure
+0256   8153 7C                      LD   A,H            ;Address (hi) in memory chip
+0257   8154 CD 7C 83                CALL I2C_Write      ;Send address hi byte
+0258   8157 7D                      LD   A,L            ;Address (lo) in memory chip
+0259   8158 CD 7C 83                CALL I2C_Write      ;Send address lo byte
+0260   815B 7B                      LD   A,E            ;Byte to be written to memory
+0261   815C CD 7C 83                CALL I2C_Write      ;Write data byte to memory chip
+0262   815F CD F1 83                CALL I2C_Stop       ;Generate I2C stop
+0263   8162 C9                      RET                 ;Yes, I could just JP I2C_Stop !!
+0264   8163             
+0265   8163             
+0266   8163             ; Random access single byte read
+0267   8163             ;   On entry: D = I2C device address
+0268   8163             ;             HL = Address to be read
+0269   8163             ;             SCL = unknown, SDA = unknown
+0270   8163             ;   On exit:  A = Data byte read from memory
+0271   8163             ;             If successfully A = 0 and Z flagged
+0272   8163             ;             If unsuccessfully A = Error and NZ flagged
+0273   8163             ;             BC DE HL IX IY preserved
+0274   8163             ; This routine only tests for I2C failure on initial device open!
+0275   8163 7A          MemTestMRd:       LD   A,D            ;I2C device address (write)
+0276   8164 CD 72 83                CALL I2C_Open       ;Open for write
+0277   8167 C0                      RET  NZ             ;Abort if failure
+0278   8168 7C                      LD   A,H            ;Address (hi) in memory chip
+0279   8169 CD 7C 83                CALL I2C_Write      ;Send address hi byte
+0280   816C 7D                      LD   A,L            ;Address (lo) in memory chip
+0281   816D CD 7C 83                CALL I2C_Write      ;Send address lo byte
+0282   8170 7A                      LD   A,D            ;I2C device address (write)
+0283   8171 3C                      INC  A              ;Increment to read address
+0284   8172 CD 72 83                CALL I2C_Open       ;Open for read
+0285   8175 AF                      XOR  A              ;Do not acknowledge read
+0286   8176 CD B9 83                CALL I2C_Read       ;Read byte from I2C memory
+0287   8179 F5                      PUSH AF             ;Preserve AF
+0288   817A CD F1 83                CALL I2C_Stop       ;Generate I2C stop
+0289   817D F1                      POP  AF             ;Restore AF
+0290   817E BF                      CP   A              ;Z flagged as successful
+0291   817F C9                      RET
+0292   8180             
+0293   8180             ; **********************************************************************
+0294   8180             ; SC405: Digital I/O (PCF8574/A)
+0295   8180             ;
+0296   8180             ; Function:
+0297   8180             ;   All outputs are turned off
+0298   8180             ;   200ms delay
+0299   8180             ;   Output bit 7 is turned on
+0300   8180             ;   I/O bits are read and displayed in hex
+0301   8180             
+0302   8180 3E 40       SC405:      LD   A,SC405_ADDR   ;I2C device address
+0303   8182 11 FE 81                LD   DE,SC405Msg        ;Point to report string
+0304   8185 CD 56 82                CALL Report         ;Z flagged if device found
+0305   8188 C0                      RET  NZ             ;Abort if device not found
+0306   8189             
+0307   8189 26 00                   LD   H,$00         ;Prepare all bits low
+0308   818B CD EF 81                CALL SC405Write         ;Write data byte to device
+0309   818E CD E0 81                CALL SC405Read          ;Read data byte from device
+0310   8191 11 13 82                LD   DE,SC405Test       ;Address of message string
+0311   8194 CD 93 82                CALL Result         ;Display test result indented
+0312   8197 CD 99 82                CALL LineOut        ;Output new line
+0313   819A             
+0314   819A 11 C8 00                LD   DE,200         ;Prepare delay time in milliseconds
+0315   819D CD 46 83                CALL API_Delay      ;Delay 
+0316   81A0             
+0317   81A0 26 FF                   LD   H,$FF         ;Prepare all bits high (for use as inputs)
+0318   81A2 CD EF 81                CALL SC405Write         ;Write data byte to device
+0319   81A5 CD E0 81                CALL SC405Read          ;Read data byte from device
+0320   81A8 11 13 82                LD   DE,SC405Test       ;Address of message string
+0321   81AB CD 93 82                CALL Result         ;Display test result indented
+0322   81AE CD 99 82                CALL LineOut        ;Output new line
+0323   81B1             
+0324   81B1 11 C8 00                LD   DE,200         ;Prepare delay time in milliseconds
+0325   81B4 CD 46 83                CALL API_Delay      ;Delay 
+0326   81B7             
+0327   81B7 26 00                   LD   H,$00         ;Prepare all bits low
+0328   81B9 CD EF 81                CALL SC405Write         ;Write data byte to device
+0329   81BC CD E0 81                CALL SC405Read          ;Read data byte from device
+0330   81BF 11 13 82                LD   DE,SC405Test       ;Address of message string
+0331   81C2 CD 93 82                CALL Result         ;Display test result indented
+0332   81C5 CD 99 82                CALL LineOut        ;Output new line
+0333   81C8             
+0334   81C8 11 C8 00                LD   DE,200         ;Prepare delay time in milliseconds
+0335   81CB CD 46 83                CALL API_Delay      ;Delay 
+0336   81CE             
+0337   81CE 26 FF                   LD   H,$FF         ;Prepare all bits high (for use as inputs)
+0338   81D0 CD EF 81                CALL SC405Write         ;Write data byte to device
+0339   81D3 CD E0 81                CALL SC405Read          ;Read data byte from device
+0340   81D6 11 13 82                LD   DE,SC405Test       ;Address of message string
+0341   81D9 CD 93 82                CALL Result         ;Display test result indented
+0342   81DC CD 99 82                CALL LineOut        ;Output new line
+0343   81DF             
+0344   81DF             
+0345   81DF C9                      RET
+0346   81E0             
+0347   81E0             ; Returns value in L
+0348   81E0 3E 41       SC405Read:      LD   A,SC405_ADDR+1 ;I2C address to write to
+0349   81E2 CD 72 83                CALL I2C_Open       ;Open I2C device for write
+0350   81E5 C0                      RET  NZ             ;Abort if failed to open
+0351   81E6 CD B9 83                CALL I2C_Read       ;Write I2C device's output bits
+0352   81E9 C0                      RET  NZ             ;Abort if read failed
+0353   81EA 6F                      LD   L,A
+0354   81EB CD 79 83                CALL I2C_Close      ;Close I2C device 
+0355   81EE C9                      RET
+0356   81EF             
+0357   81EF             ; Output value H
+0358   81EF 3E 40       SC405Write:     LD   A,SC405_ADDR   ;I2C address to write to
+0359   81F1 CD 72 83                CALL I2C_Open       ;Open I2C device for write
+0360   81F4 C0                      RET  NZ             ;Abort if failed to open
+0361   81F5 7C                      LD   A,H            ;Data byte to be written
+0362   81F6 CD 7C 83                CALL I2C_Write      ;Write I2C device's output bits
+0363   81F9 C0                      RET  NZ             ;Abort if write failed
+0364   81FA CD 79 83                CALL I2C_Close      ;Close I2C device 
+0365   81FD C9                      RET
+0366   81FE             
+0367   81FE 446967697461SC405Msg:       .DB  "Digital I/O PCF8574",CR,0
+0367   8204 6C20492F4F20504346383537340D00
+0368   8213 4F75743D2024SC405Test:      .DB  "Out= $H, In= $L",0
+0368   8219 482C20496E3D20244C00
+0369   8223             
+0370   8223             
+0371   8223             ; **********************************************************************
+0372   8223             ; Utility functions
+0373   8223             
+0374   8223             ; Test if device is present.
+0375   8223             ;   On entry: A = Address of device on I2C bus (write address)
+0376   8223             ;   On exit:  Z flagged if device found, NZ if not found
+0377   8223             ;             IX IY preserved
+0378   8223 CD 72 83    Test:       CALL I2C_Open       ;Open I2C device for write
+0379   8226 C0                      RET  NZ             ;Abort if failed to open
+0380   8227 F5                      PUSH AF
+0381   8228 CD 79 83                CALL I2C_Close      ;Close I2C device 
+0382   822B F1                      POP  AF
+0383   822C C9                      RET
+0384   822D             
+0385   822D             
+0386   822D             ; Output string at DE with substitutions
+0387   822D             ;   On entry: A = Address of device on I2C bus (write address)
+0388   822D             ;             DE = Address of null terminated string
+0389   822D             ;             H = Value to substitute for $H
+0390   822D             ;             L = Value to substitute for $L
+0391   822D             ;             B = Value to substitute for $B
+0392   822D             ;   On exit:  DE = Address of next location after this string
+0393   822D             ;             IX IY preserved
+0394   822D 1A          String:     LD   A,(DE)         ;Get character from string
+0395   822E 13                      INC  DE             ;Point to next character in string
+0396   822F B7                      OR   A              ;Null ?
+0397   8230 C8                      RET  Z              ;Yes, so we're done
+0398   8231 FE 24                   CP   '$'            ;Substitue value?
+0399   8233 28 05                   JR   Z,StringSubst       ;Yes, so go handle substitution
+0400   8235 CD 96 82                CALL CharOut        ;Output character to console
+0401   8238 18 F3                   JR   String         ;Go get next character from string
+0402   823A 1A          StringSubst:     LD   A,(DE)         ;Get character from string
+0403   823B 13                      INC  DE             ;Point to next character in string
+0404   823C B7                      OR   A              ;Null ?
+0405   823D C8                      RET  Z              ;Yes, so we're done
+0406   823E FE 48                   CP   'H'            ;Register H
+0407   8240 20 03                   JR   NZ,StringNotH       ;No, so skip
+0408   8242 7C                      LD   A,H            ;Get value 'H'
+0409   8243 18 0C                   JR   StringGotIt         ;Go output it in hex
+0410   8245 FE 4C       StringNotH:      CP   'L'            ;Register L
+0411   8247 20 03                   JR   NZ,StringNotL       ;No, so skip
+0412   8249 7D                      LD   A,L            ;Get value 'L'
+0413   824A 18 05                   JR   StringGotIt         ;Go output it in hex
+0414   824C FE 42       StringNotL:      CP   'B'            ;Register B
+0415   824E 20 04                   JR   NZ,StringNotB       ;No, so skip
+0416   8250 78                      LD   A,B            ;Get value 'L'
+0417   8251                         ;JR   @GotIt        ;Go output it in hex
+0418   8251 CD A4 82    StringGotIt:     CALL HexOut         ;Output write address in hex
+0419   8254 18 D7       StringNotB:      JR   String         ;Go get next character from string
+0420   8256             
+0421   8256             
+0422   8256             ; Display device report, ie.
+0423   8256             ;   SC407 Switches and Lights Module at Write=<XX> Read=<XX+1>
+0424   8256             ;         <demo/test> result
+0425   8256             ;   On entry: A = Address of device on I2C bus (write address)
+0426   8256             ;             DE = Address of null terminated string
+0427   8256             ;   On exit:  AF preserved (Z flagged if device founf)
+0428   8256             ;             IX IY preserved
+0429   8256 67          Report:     LD   H,A            ;Store device write address
+0430   8257 3C                      INC  A              ;Increment to read address
+0431   8258 6F                      LD   L,A            ;Store device read address
+0432   8259 CD 2D 82                CALL String         ;Output start of supplied string (at DE)
+0433   825C 11 74 82                LD   DE,ReportAddress    ;Point to string
+0434   825F CD 2D 82                CALL String         ;Output "Write="
+0435   8262 CD 99 82                CALL LineOut        ;Output new line
+0436   8265 7C                      LD   A,H            ;Get device write address
+0437   8266 CD 23 82                CALL Test           ;Test if device is present
+0438   8269 C8                      RET  Z              ;Return if device found
+0439   826A 11 81 82                LD   DE,ReportNotFound   ;Point ot string
+0440   826D CD 93 82                CALL Result         ;Output "<indent>Device not found"
+0441   8270 CD 99 82                CALL LineOut        ;Output new line
+0442   8273 C9                      RET
+0443   8274 57723D244820ReportAddress:   .DB  "Wr=$H Rd=$L",CR,0
+0443   827A 52643D244C0D00
+0444   8281 446576696365ReportNotFound:  .DB  "Device not found",CR,0
+0444   8287 206E6F7420666F756E640D00
+0445   8293             
+0446   8293             
+0447   8293             ; Display test result
+0448   8293             ;   On entry: DE = Address of null terminated string
+0449   8293             ;             H = First value ($H)
+0450   8293             ;             L = Second value ($L)
+0451   8293             ;   On exit:  HL IX IY preserved
+0452   8293             Result:     
+0453   8293 C3 2D 82                JP   String         ;Output result string to console
+0454   8296             
+0455   8296             
+0456   8296             ; Character output to console
+0457   8296             ;   On entry: A = Character to be output
+0458   8296             ;   On exit:  BC DE HL IX IY preserved
+0459   8296 C3 50 83    CharOut:    JP   API_Cout
+0460   8299             
+0461   8299             ; New line output to console
+0462   8299             ;   On entry: No parameters required
+0463   8299             ;   On exit:  BC DE HL IX IY preserved
+0464   8299 C3 5A 83    LineOut:    JP   API_Lout
+0465   829C             
+0466   829C             ; Space character ouput to console
+0467   829C             ;   On entry: No parameters required
+0468   829C             ;   On exit:  BC DE HL IX IY preserved
+0469   829C 3E 20       SpaceOut:   LD   A,$20
+0470   829E C3 50 83                JP   API_Cout
+0471   82A1             
+0472   82A1             ; String output to console
+0473   82A1             ;   On entry: DE = Address of string
+0474   82A1             ;   On exit:  BC DE HL IX IY preserved
+0475   82A1 C3 66 83    StrOut:     JP   API_Sout
+0476   82A4             
+0477   82A4             ; Hex byte output to console
+0478   82A4             ;   On entry: A = Byte to be output in hex
+0479   82A4             ;   On exit:  BC DE HL IX IY preserved
+0480   82A4 F5          HexOut:     PUSH AF             ;Preserve byte to be output
+0481   82A5 1F                      RRA                 ;Shift top nibble to
+0482   82A6 1F                      RRA                 ;  botom four bits..
+0483   82A7 1F                      RRA
+0484   82A8 1F                      RRA
+0485   82A9 E6 0F                   AND  $0F           ;Mask off unwanted bits
+0486   82AB CD B1 82                CALL HexOutHex           ;Output hi nibble
+0487   82AE F1                      POP  AF             ;Restore byte to be output
+0488   82AF E6 0F                   AND  $0F           ;Mask off unwanted bits
+0489   82B1             ; Output nibble as ascii character
+0490   82B1 FE 0A       HexOutHex:       CP   $0A           ;Nibble > 10 ?
+0491   82B3 38 02                   JR   C,HexOutSkip        ;No, so skip
+0492   82B5 C6 07                   ADD  A,7            ;Yes, so add 7
+0493   82B7 C6 30       HexOutSkip:      ADD  A,$30         ;Add ASCII '0'
+0494   82B9 C3 50 83                JP   API_Cout       ;Write character
+0495   82BC             
+0496   82BC             
+0497   82BC             
+0498   82BC             
+0499   82BC             ; **********************************************************************
+0500   82BC             ; Block access read and write to 24LC256
+0501   82BC             ;
+0502   82BC             ; This demo writes a block of memory to the 24LC256, then reads it back
+0503   82BC             ; to RAM for checking.
+0504   82BC             
+0505   82BC             I2CA_BLOCK: .EQU $AE           ;I2C device addess: 24LC256
+0506   82BC             TIMEOUT:    .EQU 10000          ;Timeout loop counter
+0507   82BC             
+0508   82BC 21 00 00    DEMO_BLOCK: LD   HL, $0000      ;Start of data in ROM
+0509   82BF 11 00 10                LD   DE, $1000      ;Start of data in 24LC256
+0510   82C2 01 00 08                LD   BC, $800       ;Number of bytes to copy
+0511   82C5 CD 10 83                CALL I2C_MemWr      ;Write a block from ROM to I2C memory
+0512   82C8 11 C8 00                LD   DE,200
+0513   82CB CD 46 83                CALL API_Delay      ;Delay 200ms
+0514   82CE 21 01 90                LD   HL,RESULTS     ;Start of data in RAM
+0515   82D1 11 00 10                LD   DE, $1000      ;Start of data in 24LC256
+0516   82D4 01 00 08                LD   BC, $800       ;Number of bytes to copy
+0517   82D7 CD DB 82                CALL I2C_MemRd      ;Read a block from I2C memory to RAM
+0518   82DA C9                      RET
+0519   82DB             
+0520   82DB             
+0521   82DB             ; Copy a block from I2C memory to CPU memory
+0522   82DB             ;   On entry: DE = First address in I2C memory
+0523   82DB             ;             HL = First address in CPU memory
+0524   82DB             ;             BC = Number of bytes to be copied
+0525   82DB             ;             SCL = unknown, SDA = unknown
+0526   82DB             ;   On exit:  If successfully A = 0 and Z flagged
+0527   82DB             ;             If unsuccessfully A = Error and NZ flagged
+0528   82DB             ;             IX IY preserved
+0529   82DB C5          I2C_MemRd:  PUSH BC
+0530   82DC 01 10 27                LD   BC,TIMEOUT     ;Timeout loop counter
+0531   82DF 3E AE       I2C_MemRdRepeat:    LD   A,I2CA_BLOCK   ;I2C address to write to
+0532   82E1 CD 72 83                CALL I2C_Open       ;Open for write
+0533   82E4 28 0A                   JR   Z,I2C_MemRdReady       ;If open okay then skip on
+0534   82E6 0B                      DEC  BC
+0535   82E7 78                      LD   A,B
+0536   82E8 B1                      OR   C              ;Timeout?
+0537   82E9 20 F4                   JR   NZ,I2C_MemRdRepeat     ;No, so go try again
+0538   82EB C1                      POP  BC
+0539   82EC 3E 03                   LD   A,ERR_TOUT     ;Error code
+0540   82EE B7                      OR   A              ;Error, so NZ flagged
+0541   82EF C9                      RET                 ;Return with error
+0542   82F0             ; Device opened okay
+0543   82F0 C1          I2C_MemRdReady:     POP  BC             ;Restore byte counter
+0544   82F1 7A                      LD   A,D            ;Address (hi) in I2C memory
+0545   82F2 CD 7C 83                CALL I2C_Write      ;Write address
+0546   82F5 7B                      LD   A,E            ;Address (lo) in I2C memory
+0547   82F6 CD 7C 83                CALL I2C_Write      ;Write address
+0548   82F9 3E AF                   LD   A,I2CA_BLOCK+1 ;I2C device to be read from
+0549   82FB CD 72 83                CALL I2C_Open       ;Open for read
+0550   82FE C0                      RET  NZ             ;Abort if error
+0551   82FF 0B          I2C_MemRdRead:      DEC  BC             ;Decrement byte counter
+0552   8300 78                      LD   A,B
+0553   8301 B1                      OR   C              ;Last byte to be read?
+0554   8302 CD B9 83                CALL I2C_Read       ;Read byte with no ack on last byte
+0555   8305 77                      LD   (HL),A         ;Write byte in CPU memory
+0556   8306 23                      INC  HL             ;Increment CPU memory pointer
+0557   8307 78                      LD   A,B
+0558   8308 B1                      OR   C              ;Finished?
+0559   8309 20 F4                   JR   NZ,I2C_MemRdRead       ;No, so go read next byte
+0560   830B CD F1 83                CALL I2C_Stop       ;Generate I2C stop
+0561   830E AF                      XOR  A              ;Return with success (Z flagged)
+0562   830F C9                      RET
+0563   8310             
+0564   8310             
+0565   8310             ; Copy a block from CPU memory to I2C memory
+0566   8310             ;   On entry: DE = First address in I2C memory
+0567   8310             ;             HL = First address in CPU memory
+0568   8310             ;             BC = Number of bytes to be copied
+0569   8310             ;             SCL = unknown, SDA = unknown
+0570   8310             ;   On exit:  If successfully A = 0 and Z flagged
+0571   8310             ;             If unsuccessfully A = Error and NZ flagged
+0572   8310             ;             IX IY preserved
+0573   8310             ; The 24LC64 requires blocks of data to be written in 64 byte (or less)
+0574   8310             ; pages.
+0575   8310 C5          I2C_MemWr:  PUSH BC
+0576   8311 01 10 27                LD   BC,TIMEOUT     ;Timeout loop counter
+0577   8314 3E AE       I2C_MemWrRepeat:    LD   A,I2CA_BLOCK   ;I2C address to write to
+0578   8316 CD 72 83                CALL I2C_Open       ;Open for write
+0579   8319 28 0A                   JR   Z,I2C_MemWrReady       ;If open okay then skip on
+0580   831B 0B                      DEC  BC
+0581   831C 78                      LD   A,B
+0582   831D B1                      OR   C              ;Timeout?
+0583   831E 20 F4                   JR   NZ,I2C_MemWrRepeat     ;No, so go try again
+0584   8320 C1                      POP  BC
+0585   8321 3E 03                   LD   A,ERR_TOUT     ;Error code
+0586   8323 B7                      OR   A              ;Error, so NZ flagged
+0587   8324 C9                      RET                 ;Return with error
+0588   8325             ; Device opened okay
+0589   8325 C1          I2C_MemWrReady:     POP  BC             ;Restore byte counter
+0590   8326 7A          I2C_MemWrBlock:     LD   A,D            ;Address (hi) in I2C memory
+0591   8327 CD 7C 83                CALL I2C_Write      ;Write address
+0592   832A 7B                      LD   A,E            ;Address (lo) in I2C memory
+0593   832B CD 7C 83                CALL I2C_Write      ;Write address
+0594   832E 7E          I2C_MemWrWrite:     LD   A,(HL)         ;Get data byte from CPU memory
+0595   832F CD 7C 83                CALL I2C_Write      ;Read byte from I2C memory
+0596   8332 23                      INC  HL             ;Increment CPU memory pointer
+0597   8333 13                      INC  DE             ;Increment I2C memory pointer
+0598   8334 0B                      DEC  BC             ;Decrement byte counter
+0599   8335 78                      LD   A,B
+0600   8336 B1                      OR   C              ;Finished?
+0601   8337 28 05                   JR   Z,I2C_MemWrStore       ;Yes, so go store this page
+0602   8339 7B                      LD   A,E            ;Get address in I2C memory (lo byte)
+0603   833A E6 3F                   AND  63             ;64 byte page boundary?
+0604   833C 20 F0                   JR   NZ,I2C_MemWrWrite      ;No, so go write another byte
+0605   833E CD F1 83    I2C_MemWrStore:     CALL I2C_Stop       ;Generate I2C stop
+0606   8341 78                      LD   A,B
+0607   8342 B1                      OR   C              ;Finished?
+0608   8343 20 CB                   JR   NZ,I2C_MemWr   ;No, so go write some more
+0609   8345 C9                      RET   
+0610   8346             
+0611   8346             
+0612   8346             
+0613   8346             
+0614   8346             
+0615   8346             
+0616   8346             
+0617   8346             
+0618   8346             
+0619   8346             
+0620   8346             
+0621   8346             
+0622   8346             
+0623   8346             
+0624   8346             
+0625   8346             
+0626   8346             
+0627   8346             ; **********************************************************************
+0628   8346             ; Small computer monitor API
+0629   8346             
+0630   8346             ; Delay by DE milliseconds (approx)
+0631   8346             ;   On entry: DE = Delay time in milliseconds
+0632   8346             ;   On exit:  BC DE HL IX IY preserved
+0633   8346 C5          API_Delay:  PUSH BC             ;Preserve registers
+0634   8347 D5                      PUSH DE
+0635   8348 E5                      PUSH HL
+0636   8349 CD 7D 08                CALL $087D
+0637   834C E1                      POP  HL             ;Restore registers
+0638   834D D1                      POP  DE
+0639   834E C1                      POP  BC
+0640   834F C9                      RET
+0641   8350             
+0642   8350             
+0643   8350             ; Character output to console device
+0644   8350             ;   On entry: A = Character to be output
+0645   8350             ;   On exit:  BC DE HL IX IY preserved
+0646   8350 C5          API_Cout:   PUSH BC             ;Preserve registers
+0647   8351 D5                      PUSH DE
+0648   8352 E5                      PUSH HL
+0649   8353 CD 08 00                CALL $0008
+0650   8356 E1                      POP  HL             ;Restore registers
+0651   8357 D1                      POP  DE
+0652   8358 C1                      POP  BC
+0653   8359 C9                      RET
+0654   835A             
+0655   835A             
+0656   835A             ; New line output to console device
+0657   835A             ;   On entry: No parameters required
+0658   835A             ;   On exit:  BC DE HL IX IY preserved
+0659   835A C5          API_Lout:   PUSH BC             ;Preserve registers
+0660   835B D5                      PUSH DE
+0661   835C E5                      PUSH HL
+0662   835D 3E 0D                   LD A, CR ; enter char
+0663   835F CD 08 00                CALL $0008
+0664   8362 E1                      POP  HL             ;Restore registers
+0665   8363 D1                      POP  DE
+0666   8364 C1                      POP  BC
+0667   8365 C9                      RET
+0668   8366             
+0669   8366             
+0670   8366             ; String output to console device
+0671   8366             ;   On entry: DE = Address of string
+0672   8366             ;   On exit:  BC DE HL IX IY preserved
+0673   8366 C5          API_Sout:   PUSH BC             ;Preserve registers
+0674   8367 D5                      PUSH DE
+0675   8368 E5                      PUSH HL
+0676   8369 62                      LD H, D
+0677   836A 6B                      LD L, E
+0678   836B CD A8 09                CALL $09A8
+0679   836E E1                      POP  HL             ;Restore registers
+0680   836F D1                      POP  DE
+0681   8370 C1                      POP  BC
+0682   8371 C9                      RET
+0683   8372             
+0684   8372             
+0685   8372             ; **********************************************************************
+0686   8372             ; I2C support functions
+0687   8372             
+0688   8372             ; I2C bus open device
+0689   8372             ;   On entry: A = Device address (bit zero is read flag)
+0690   8372             ;             SCL = unknown, SDA = unknown
+0691   8372             ;   On exit:  If successfully A = 0 and Z flagged
+0692   8372             ;             If unsuccessfully A = Error and NZ flagged
+0693   8372             ;             BC DE HL IX IY preserved
+0694   8372 F5          I2C_Open:   PUSH AF
+0695   8373 CD E6 83                CALL I2C_Start      ;Output start condition
+0696   8376 F1                      POP  AF
+0697   8377 18 03                   JR   I2C_Write      ;Write data byte
+0698   8379             
+0699   8379             
+0700   8379             ; I2C bus close device
+0701   8379             ;   On entry: SCL = unknown, SDA = unknown
+0702   8379             ;   On exit:  If successfully A=0 and Z flagged
+0703   8379             ;             If unsuccessfully A=Error and NZ flagged
+0704   8379             ;             SCL = hi, SDA = hi
+0705   8379             ;             BC DE HL IX IY preserved
+0706   8379 C3 F1 83    I2C_Close:  JP   I2C_Stop       ;Output stop condition
+0707   837C             
+0708   837C             
+0709   837C             ; **********************************************************************
+0710   837C             ; **********************************************************************
+0711   837C             ; I2C bus master driver
+0712   837C             ; **********************************************************************
+0713   837C             ; **********************************************************************
+0714   837C             
+0715   837C             ; Functions provided are:
+0716   837C             ;     I2C_Start
+0717   837C             ;     I2C_Stop
+0718   837C             ;     I2C_Read
+0719   837C             ;     I2C_Write
+0720   837C             ;
+0721   837C             ; This code has delays between all I/O operations to ensure it works
+0722   837C             ; with the slowest I2C devices
+0723   837C             ;
+0724   837C             ; I2C transfer sequence
+0725   837C             ;   +-------+  +---------+  +---------+     +---------+  +-------+
+0726   837C             ;   | Start |  | Address |  | Data    | ... | Data    |  | Stop  |
+0727   837C             ;   |       |  | frame   |  | frame 1 |     | frame N |  |       |
+0728   837C             ;   +-------+  +---------+  +---------+     +---------+  +-------+
+0729   837C             ;
+0730   837C             ;
+0731   837C             ; Start condition                     Stop condition
+0732   837C             ; Output by master device             Output by master device
+0733   837C             ;       ----+                                      +----
+0734   837C             ; SDA       |                         SDA          |
+0735   837C             ;           +-------                        -------+
+0736   837C             ;       -------+                                +-------
+0737   837C             ; SCL          |                      SCL       |
+0738   837C             ;              +----                        ----+
+0739   837C             ;
+0740   837C             ;
+0741   837C             ; Address frame
+0742   837C             ; Clock and data output from master device
+0743   837C             ; Receiving device outputs acknowledge 
+0744   837C             ;        +-----+-----+-----+-----+-----+-----+-----+-----+     +---+
+0745   837C             ; SDA    | A 7 | A 6 | A 5 | A 4 | A 3 | A 2 | A 1 | R/W | ACK |   |
+0746   837C             ;     ---+-----+-----+-----+-----+-----+-----+-----+-----+-----+   +---
+0747   837C             ;          +-+   +-+   +-+   +-+   +-+   +-+   +-+   +-+   +-+
+0748   837C             ; SCL      | |   | |   | |   | |   | |   | |   | |   | |   | |
+0749   837C             ;     -----+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---------
+0750   837C             ;
+0751   837C             ;
+0752   837C             ; Data frame 
+0753   837C             ; Clock output by master device
+0754   837C             ; Data output by transmitting device
+0755   837C             ; Receiving device outputs acknowledge 
+0756   837C             ;        +-----+-----+-----+-----+-----+-----+-----+-----+     +---+
+0757   837C             ; SDA    | D 7 | D 6 | D 5 | D 4 | D 3 | D 2 | D 1 | D 0 | ACK |   |
+0758   837C             ;     ---+-----+-----+-----+-----+-----+-----+-----+-----+-----+   +---
+0759   837C             ;          +-+   +-+   +-+   +-+   +-+   +-+   +-+   +-+   +-+
+0760   837C             ; SCL      | |   | |   | |   | |   | |   | |   | |   | |   | |
+0761   837C             ;     -----+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---------
+0762   837C             ;
+0763   837C             
+0764   837C             
+0765   837C             ; **********************************************************************
+0766   837C             ; I2C constants
+0767   837C             
+0768   837C             
+0769   837C             ; I2C bus master interface
+0770   837C             ; The default device option is for SC126 or compatible
+0771   837C             
+0772   837C             I2C_PORT:   .EQU $20           ;Host I2C port address
+0773   837C             I2C_SDA_WR: .EQU 7              ;Host I2C write SDA bit number
+0774   837C             I2C_SDA_RD: .EQU 7              ;Host I2C read SDA bit number
+0775   837C             I2C_SCL_WR: .EQU 0              ;Host I2C write SCL bit number
+0776   837C             I2C_SCL_RD: .EQU 0              ;Host I2C read SCL bit number 
+0777   837C             I2C_QUIES:  .EQU 0b10000001     ;Host I2C output port quiescent value
+0778   837C             
+0779   837C             
+0780   837C             ; I2C support constants
+0781   837C             ERR_NONE:   .EQU 0              ;Error = None
+0782   837C             ERR_JAM:    .EQU 1              ;Error = Bus jammed [not used]
+0783   837C             ERR_NOACK:  .EQU 2              ;Error = No ackonowledge
+0784   837C             ERR_TOUT:   .EQU 3              ;Error = Timeout
+0785   837C             
+0786   837C             
+0787   837C             ; **********************************************************************
+0788   837C             ; Hardware dependent I2C bus functions
+0789   837C             
+0790   837C             
+0791   837C             ; I2C bus transmit frame (address or data)
+0792   837C             ;   On entry: A = Data byte, or
+0793   837C             ;                 Address byte (bit zero is read flag)
+0794   837C             ;             SCL = low, SDA = low
+0795   837C             ;   On exit:  If successful A=0 and Z flagged
+0796   837C             ;                SCL = lo, SDA = lo
+0797   837C             ;             If unsuccessful A=Error and NZ flagged
+0798   837C             ;                SCL = high, SDA = high, I2C closed
+0799   837C             ;             BC DE HL IX IY preserved
+0800   837C C5          I2C_Write:  PUSH BC             ;Preserve registers
+0801   837D D5                      PUSH DE
+0802   837E 57                      LD   D,A            ;Store byte to be written
+0803   837F 06 08                   LD   B,8            ;8 data bits, bit 7 first
+0804   8381 CB 12       I2C_WriteWr_Loop:   RL   D              ;Test M.S.Bit
+0805   8383 38 05                   JR   C,I2C_WriteBit_Hi      ;High, so skip
+0806   8385 CD 18 84                CALL I2C_SDA_LO     ;SDA low   (SCL lo, SDA = data bit)
+0807   8388 18 03                   JR   I2C_WriteBit_Clk
+0808   838A CD 11 84    I2C_WriteBit_Hi:    CALL I2C_SDA_HI     ;SDA high  (SCL lo, SDA = data bit)
+0809   838D CD 03 84    I2C_WriteBit_Clk:   CALL I2C_SCL_HI     ;SCL high  (SCL hi, SDA = data bit)
+0810   8390 CD 0A 84                CALL I2C_SCL_LO     ;SCL low   (SCL lo, SDA = data bit)
+0811   8393 10 EC                   DJNZ I2C_WriteWr_Loop
+0812   8395             ; Test for acknowledge from slave (receiver)
+0813   8395             ; On arriving here, SCL = lo, SDA = data bit
+0814   8395 CD 11 84                CALL I2C_SDA_HI     ;SDA high  (SCL lo, SDA hi/ack)
+0815   8398 CD 03 84                CALL I2C_SCL_HI     ;SCL high  (SCL hi, SDA hi/ack)
+0816   839B CD 29 84                CALL I2C_RdPort     ;Read SDA input
+0817   839E 47                      LD   B,A
+0818   839F CD 0A 84                CALL I2C_SCL_LO     ;SCL low   (SCL lo, SDA = hi)
+0819   83A2 CB 78                   BIT  I2C_SDA_RD,B
+0820   83A4 20 04                   JR   NZ,I2C_WriteNoAck      ;Skip if no acknowledge
+0821   83A6 D1                      POP  DE             ;Restore registers
+0822   83A7 C1                      POP  BC
+0823   83A8 AF                      XOR  A              ;Return success A=0 and Z flagged
+0824   83A9 C9                      RET
+0825   83AA             ; I2C STOP required as no acknowledge
+0826   83AA             ; On arriving here, SCL = lo, SDA = hi
+0827   83AA CD 18 84    I2C_WriteNoAck:     CALL I2C_SDA_LO     ;SDA low   (SCL lo, SDA = lo)
+0828   83AD CD 03 84                CALL I2C_SCL_HI     ;SCL high  (SCL hi, SDA = lo)
+0829   83B0 CD 11 84                CALL I2C_SDA_HI     ;SDA low   (SCL hi, SDA = hi)
+0830   83B3 D1                      POP  DE             ;Restore registers
+0831   83B4 C1                      POP  BC
+0832   83B5 3E 02                   LD   A,ERR_NOACK    ;Return error = No Acknowledge
+0833   83B7 B7                      OR   A              ;  and NZ flagged
+0834   83B8 C9                      RET
+0835   83B9             
+0836   83B9             
+0837   83B9             ; I2C bus receive frame (data)
+0838   83B9             ;   On entry: A = Acknowledge flag
+0839   83B9             ;               If A != 0 the read is acknowledged
+0840   83B9             ;             SCL low, SDA low
+0841   83B9             ;   On exit:  If successful A = data byte and Z flagged
+0842   83B9             ;               SCL = low, SDA = low
+0843   83B9             ;             If unsuccessul* A = Error and NZ flagged
+0844   83B9             ;               SCL = low, SDA = low
+0845   83B9             ;             BC DE HL IX IY preserved
+0846   83B9             ; *This function always returns successful
+0847   83B9 C5          I2C_Read:   PUSH BC             ;Preserve registers
+0848   83BA D5                      PUSH DE
+0849   83BB 5F                      LD   E,A            ;Store acknowledge flag
+0850   83BC 06 08                   LD   B,8            ;8 data bits, 7 first
+0851   83BE CD 11 84                CALL I2C_SDA_HI     ;SDA high  (SCL lo, SDA hi/input)
+0852   83C1 CD 03 84    I2C_ReadRd_Loop:   CALL I2C_SCL_HI     ;SCL high  (SCL hi, SDA hi/input)
+0853   83C4 CD 29 84                CALL I2C_RdPort     ;Read SDA input bit
+0854   83C7 37                      SCF                 ;Set carry flag
+0855   83C8 CB 7F                   BIT  I2C_SDA_RD,A   ;SDA input high?
+0856   83CA 20 01                   JR   NZ, I2C_ReadRotate     ;Yes, skip with carry flag set
+0857   83CC 3F                      CCF                 ;Clear carry flag
+0858   83CD CB 12       I2C_ReadRotate:    RL   D              ;Rotate result into D
+0859   83CF CD 0A 84                CALL I2C_SCL_LO     ;SCL low   (SCL lo, SDA hi/input)
+0860   83D2 10 ED                   DJNZ  I2C_ReadRd_Loop       ;Repeat for all 8 bits
+0861   83D4             ; Acknowledge input byte
+0862   83D4             ; On arriving here, SCL = lo, SDA = hi/input
+0863   83D4 7B                      LD   A,E            ;Get acknowledge flag
+0864   83D5 B7                      OR   A              ;A = 0? (indicates no acknowledge)
+0865   83D6 28 03                   JR   Z, I2C_ReadNoAck       ;Yes, so skip acknowledge
+0866   83D8 CD 18 84                CALL I2C_SDA_LO     ;SDA low   (SCL lo, SDA lo)
+0867   83DB CD 03 84    I2C_ReadNoAck:     CALL I2C_SCL_HI     ;SCL hi    (SCL hi, SDA lo)
+0868   83DE CD 0A 84                CALL I2C_SCL_LO     ;SCL low   (SCL lo, SDA lo)
+0869   83E1 7A                      LD   A,D            ;Get data byte received
+0870   83E2 D1                      POP  DE             ;Restore registers
+0871   83E3 C1                      POP  BC
+0872   83E4 BF                      CP   A              ;Return success Z flagged
+0873   83E5 C9                      RET
+0874   83E6             
+0875   83E6             
+0876   83E6             ; I2C bus start
+0877   83E6             ;   On entry: SCL = unknown, SDA = unknown
+0878   83E6             ;   On exit:  SCL = low, SDA = low
+0879   83E6             ;             A = 0 and Z flagged as we always succeed
+0880   83E6             ;             BC DE HL IX IY preserved
+0881   83E6             ; First ensure SDA and SCL are high
+0882   83E6 CD FF 83    I2C_Start:  CALL I2C_INIT       ;Initialise I2C control port
+0883   83E9             ;           CALL I2C_SCL_HI     ;SCL high  (SCL hi, SDA ??)
+0884   83E9             ;           CALL I2C_SDA_HI     ;SDA high  (SCL hi, SDA hi)
+0885   83E9             ; Generate I2C start condition
+0886   83E9 CD 18 84                CALL I2C_SDA_LO     ;SDA low   (SCL hi, SDA lo)
+0887   83EC CD 0A 84                CALL I2C_SCL_LO     ;SCL low   (SCL lo, SDA lo)
+0888   83EF AF                      XOR  A              ;Return success A=0 and Z flagged
+0889   83F0 C9                      RET
+0890   83F1             
+0891   83F1             
+0892   83F1             ; I2C bus stop 
+0893   83F1             ;   On entry: SCL = unknown, SDA = unknown
+0894   83F1             ;   On exit:  SCL = high, SDA = high
+0895   83F1             ;             A = 0 and Z flagged as we always succeed
+0896   83F1             ;             BC DE HL IX IY preserved
+0897   83F1             ; First ensure SDA and SCL are low
+0898   83F1 CD 18 84    I2C_Stop:   CALL I2C_SDA_LO     ;SDA low   (SCL hi, SDA lo)
+0899   83F4 CD 0A 84                CALL I2C_SCL_LO     ;SCL low   (SCL lo, SDA lo)
+0900   83F7             ; Generate stop condition
+0901   83F7 CD 03 84                CALL I2C_SCL_HI     ;SCL high  (SCL hi, SDA lo)
+0902   83FA CD 11 84                CALL I2C_SDA_HI     ;SDA low   (SCL hi, SDA hi)
+0903   83FD AF                      XOR  A              ;Return success A=0 and Z flagged
+0904   83FE C9                      RET
+0905   83FF             
+0906   83FF             
+0907   83FF             ; **********************************************************************
+0908   83FF             ; I2C bus simple I/O functions
+0909   83FF             ;   On entry: No parameters required
+0910   83FF             ;   On exit:  BC DE HL IX IY preserved
+0911   83FF             
+0912   83FF 3E 81       I2C_INIT:   LD   A,I2C_QUIES    ;I2C control port quiescent value
+0913   8401 18 1A                   JR   I2C_WrPort
+0914   8403             
+0915   8403 3A 00 90    I2C_SCL_HI: LD   A,(I2C_RAMCPY)
+0916   8406 CB C7                   SET  I2C_SCL_WR,A
+0917   8408 18 13                   JR   I2C_WrPort
+0918   840A             
+0919   840A 3A 00 90    I2C_SCL_LO: LD   A,(I2C_RAMCPY)
+0920   840D CB 87                   RES  I2C_SCL_WR,A
+0921   840F 18 0C                   JR   I2C_WrPort
+0922   8411             
+0923   8411 3A 00 90    I2C_SDA_HI: LD   A,(I2C_RAMCPY)
+0924   8414 CB FF                   SET  I2C_SDA_WR,A
+0925   8416 18 05                   JR   I2C_WrPort
+0926   8418             
+0927   8418 3A 00 90    I2C_SDA_LO: LD   A,(I2C_RAMCPY)
+0928   841B CB BF                   RES  I2C_SDA_WR,A
+0929   841D                         ;JR   I2C_WrPort
+0930   841D             
+0931   841D C5          I2C_WrPort: PUSH BC             ;Preserve registers
+0932   841E 06 00                   LD   B,0            ;Set up BC for 16-bit
+0933   8420 0E 20                   LD   C,I2C_PORT     ;  I/O address of I2C port
+0934   8422 ED 79                   OUT  (C),A          ;Write A to I2C I/O port
+0935   8424 32 00 90                LD   (I2C_RAMCPY),A ;Write A to RAM copy
+0936   8427 C1                      POP  BC             ;Restore registers
+0937   8428 C9                      RET
+0938   8429             
+0939   8429 C5          I2C_RdPort: PUSH BC             ;Preserve registers
+0940   842A 06 00                   LD   B,0            ;Set up BC for 16-bit
+0941   842C 0E 20                   LD   C,I2C_PORT     ;  I/O address of I2C port
+0942   842E ED 78                   IN   A,(C)          ;Read A from I/O port
+0943   8430 C1                      POP  BC             ;Restore registers
+0944   8431 C9                      RET
+0945   8432             
+0946   8432             
+0947   8432             ; **********************************************************************
+0948   8432             ; I2C workspace / variables in RAM
+0949   8432             
+0950   9000                         .ORG  DATA
+0951   9000             
+0952   9000 00          I2C_RAMCPY: .DB  0              ;RAM copy of output port
+0953   9001             
+0954   9001 00          RESULTS:    .DB  0              ;Large block of results can start here
+0955   9002             
+0956   9002             
+0957   9002             .END
+0958   9002             
+0959   9002             
+0960   9002             
+0961   9002             
+0962   9002             
+0963   9002             
+0964   9002             
+0965   9002             
+0966   9002             
+0967   9002             
+0968   9002             
+tasm: Number of errors = 0

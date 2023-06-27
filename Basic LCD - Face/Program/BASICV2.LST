@@ -32,7 +32,7 @@
 0032   0000             
 0033   0000             ; BASIC WORK SPACE LOCATIONS
 0034   0000             
-0035   0000             WRKSPC  .EQU    9000H             ; BASIC Work space |36864|
+0035   0000             WRKSPC  .EQU    8000H             ; BASIC Work space |32768|
 0036   0000             USR     .EQU    WRKSPC+3H           ; "USR (x)" jump
 0037   0000             OUTSUB  .EQU    WRKSPC+6H           ; "OUT p,n"
 0038   0000             OTPORT  .EQU    WRKSPC+7H           ; Port (p)
@@ -133,13 +133,13 @@
 0133   600F 2D 70               .WORD   ABPASS          ; Return integer in AB
 0134   6011             
 0135   6011             
-0136   6011 21 00 90    CSTART: LD      HL,WRKSPC       ; Start of workspace RAM
+0136   6011 21 00 80    CSTART: LD      HL,WRKSPC       ; Start of workspace RAM
 0137   6014 F9                  LD      SP,HL           ; Set up a temporary stack
 0138   6015 C3 4C 7C            JP      INITST          ; Go to initialise
 0139   6018             
 0140   6018 11 DE 62    INIT:   LD      DE,INITAB       ; Initialise workspace
 0141   601B 06 63               LD      B,INITBE-INITAB+3; Bytes to copy
-0142   601D 21 00 90            LD      HL,WRKSPC       ; Into workspace RAM
+0142   601D 21 00 80            LD      HL,WRKSPC       ; Into workspace RAM
 0143   6020 1A          COPY:   LD      A,(DE)          ; Get source
 0144   6021 77                  LD      (HL),A          ; To destination
 0145   6022 23                  INC     HL              ; Next destination
@@ -149,15 +149,15 @@
 0149   6028 F9                  LD      SP,HL           ; Temporary stack
 0150   6029 CD DF 64            CALL    CLREG           ; Clear registers and stack
 0151   602C CD AD 6A            CALL    PRNTCRLF        ; Output CRLF
-0152   602F 32 AA 90            LD      (BUFFER+72+1),A ; Mark end of buffer
-0153   6032 32 F9 90            LD      (PROGST),A      ; Initialise program area
+0152   602F 32 AA 80            LD      (BUFFER+72+1),A ; Mark end of buffer
+0153   6032 32 F9 80            LD      (PROGST),A      ; Initialise program area
 0154   6035 21 F3 60    MSIZE:  LD      HL,MEMMSG       ; Point to message
 0155   6038 CD 4B 71            CALL    PRS             ; Output "Memory size"
 0156   603B CD FC 64            CALL    PROMPT          ; Get input with '?'
 0157   603E CD 05 68            CALL    GETCHR          ; Get next character
 0158   6041 B7                  OR      A               ; Set flags
 0159   6042 C2 5A 60            JP      NZ,TSTMEM       ; If number - Test if RAM there
-0160   6045 21 5D 91            LD      HL,STLOOK       ; Point to start of RAM
+0160   6045 21 5D 81            LD      HL,STLOOK       ; Point to start of RAM
 0161   6048 23          MLOOP:  INC     HL              ; Next byte
 0162   6049 7C                  LD      A,H             ; Above address FFFF ?
 0163   604A B5                  OR      L
@@ -184,18 +184,18 @@
 0184   6069 C2 35 60            JP      NZ,MSIZE        ; Ask again if no RAM
 0185   606C             
 0186   606C 2B          SETTOP: DEC     HL              ; Back one byte
-0187   606D 11 5C 91            LD      DE,STLOOK-1     ; See if enough RAM
+0187   606D 11 5C 81            LD      DE,STLOOK-1     ; See if enough RAM
 0188   6070 CD 75 66            CALL    CPDEHL          ; Compare DE with HL
 0189   6073 DA 35 60            JP      C,MSIZE         ; Ask again if not enough RAM
 0190   6076 11 CE FF            LD      DE,0-50         ; 50 Bytes string space
-0191   6079 22 AF 90            LD      (LSTRAM),HL     ; Save last available RAM
+0191   6079 22 AF 80            LD      (LSTRAM),HL     ; Save last available RAM
 0192   607C 19                  ADD     HL,DE           ; Allocate string space
-0193   607D 22 5A 90            LD      (STRSPC),HL     ; Save string space
+0193   607D 22 5A 80            LD      (STRSPC),HL     ; Save string space
 0194   6080 CD BA 64            CALL    CLRPTR          ; Clear program area
-0195   6083 2A 5A 90            LD      HL,(STRSPC)     ; Get end of memory
+0195   6083 2A 5A 80            LD      HL,(STRSPC)     ; Get end of memory
 0196   6086 11 EF FF            LD      DE,0-17         ; Offset for free bytes
 0197   6089 19                  ADD     HL,DE           ; Adjust HL
-0198   608A 11 F9 90            LD      DE,PROGST       ; Start of program text
+0198   608A 11 F9 80            LD      DE,PROGST       ; Start of program text
 0199   608D 7D                  LD      A,L             ; Get LSB
 0200   608E 93                  SUB     E               ; Adjust it
 0201   608F 6F                  LD      L,A             ; Re-save
@@ -210,7 +210,7 @@
 0210   609E 21 AD 60            LD      HL,BFREE        ; " Bytes free" message
 0211   60A1 CD 4B 71            CALL    PRS             ; Output string
 0212   60A4             
-0213   60A4 31 66 90    WARMST: LD      SP,STACK        ; Temporary stack
+0213   60A4 31 66 80    WARMST: LD      SP,STACK        ; Temporary stack
 0214   60A7 CD DF 64    BRKRET: CALL    CLREG           ; Clear registers and stack
 0215   60AA C3 F8 63            JP      PRNTOK          ; Go to get command line
 0216   60AD             
@@ -232,7 +232,7 @@
 0227   60FE 63 76       FNCTAB: .WORD   SGN
 0228   6100 27 77               .WORD   INT
 0229   6102 79 76               .WORD   ABS
-0230   6104 03 90               .WORD   USR
+0230   6104 03 80               .WORD   USR
 0231   6106 0B 70               .WORD   FRE
 0232   6108 90 73               .WORD   INP
 0233   610A 39 70               .WORD   POS
@@ -246,7 +246,7 @@
 0241   611A BD 7A               .WORD   ATN
 0242   611C E4 73               .WORD   PEEK
 0243   611E 28 7B               .WORD   DEEK
-0244   6120 51 90               .WORD   POINT
+0244   6120 51 80               .WORD   POINT
 0245   6122 BD 72               .WORD   LEN
 0246   6124 D5 70               .WORD   STR
 0247   6126 57 73               .WORD   VAL
@@ -379,8 +379,8 @@
 0372   6287 0C 7B               .WORD   CLS
 0373   6289 11 7B               .WORD   WIDTH
 0374   628B 49 7C               .WORD   MONITR
-0375   628D 54 90               .WORD   PSET
-0376   628F 57 90               .WORD   RESET
+0375   628D 54 80               .WORD   PSET
+0376   628F 57 80               .WORD   RESET
 0377   6291 4F 6A               .WORD   PRINT
 0378   6293 7B 68               .WORD   CONT
 0379   6295 C1 66               .WORD   LIST
@@ -509,9 +509,9 @@
 0502   632F C3 00 00            JP      $0000           ; POINT reflection unused
 0503   6332 C3 00 00            JP      $0000           ; SET reflection
 0504   6335 C3 00 00            JP      $0000          	; RESET reflection
-0505   6338 5D 91               .WORD   STLOOK          ; Temp string space
+0505   6338 5D 81               .WORD   STLOOK          ; Temp string space
 0506   633A FE FF               .WORD   -2              ; Current line number (cold)
-0507   633C FA 90               .WORD   PROGST+1        ; Start of program text
+0507   633C FA 80               .WORD   PROGST+1        ; Start of program text
 0508   633E             INITBE:                         
 0509   633E             
 0510   633E             ; END OF INITIALISATION TABLE ---------------------------------------------------
@@ -561,7 +561,7 @@
 0553   6387 C3 7F 63            JP      MOVLP           ; Loop until all bytes moved
 0554   638A             
 0555   638A E5          CHKSTK: PUSH    HL              ; Save code string address
-0556   638B 2A DA 90            LD      HL,(ARREND)     ; Lowest free memory
+0556   638B 2A DA 80            LD      HL,(ARREND)     ; Lowest free memory
 0557   638E 06 00               LD      B,0             ; BC = Number of levels to test
 0558   6390 09                  ADD     HL,BC           ; 2 Bytes for each level
 0559   6391 09                  ADD     HL,BC
@@ -580,8 +580,8 @@
 0572   63A2 1E 0C       OMERR:  LD      E,OM            ; ?OM Error
 0573   63A4 C3 C1 63            JP      ERROR
 0574   63A7             
-0575   63A7 2A C9 90    DATSNR: LD      HL,(DATLIN)     ; Get line of current DATA item
-0576   63AA 22 5C 90            LD      (LINEAT),HL     ; Save as current line
+0575   63A7 2A C9 80    DATSNR: LD      HL,(DATLIN)     ; Get line of current DATA item
+0576   63AA 22 5C 80            LD      (LINEAT),HL     ; Save as current line
 0577   63AD 1E 02       SNERR:  LD      E,SN            ; ?SN Error
 0578   63AF 01                  .BYTE   01H             ; Skip "LD E,DZ"
 0579   63B0 1E 14       DZERR:  LD      E,DZ            ; ?/0 Error
@@ -598,7 +598,7 @@
 0590   63C1             
 0591   63C1             ERROR:  
 0592   63C1 CD DF 64            CALL    CLREG           ; Clear registers and stack
-0593   63C4 32 45 90            LD      (CTLOFG),A      ; Enable output (A is 0)
+0593   63C4 32 45 80            LD      (CTLOFG),A      ; Enable output (A is 0)
 0594   63C7 CD A0 6A            CALL    STTLIN          ; Start new line
 0595   63CA 21 B4 62            LD      HL,ERRORS       ; Point to error codes
 0596   63CD 57                  LD      D,A             ; D = 0 (A is 0)
@@ -611,7 +611,7 @@
 0603   63DB CD 86 66            CALL    OUTC            ; Output it
 0604   63DE 21 3E 63            LD      HL,ERRMSG       ; "Error" message
 0605   63E1 CD 4B 71    ERRIN:  CALL    PRS             ; Output message
-0606   63E4 2A 5C 90            LD      HL,(LINEAT)     ; Get line of error
+0606   63E4 2A 5C 80            LD      HL,(LINEAT)     ; Get line of error
 0607   63E7 11 FE FF            LD      DE,-2           ; Cold start error if -2
 0608   63EA CD 75 66            CALL    CPDEHL          ; See if cold start error
 0609   63ED CA 11 60            JP      Z,CSTART        ; Cold start error - Restart
@@ -624,12 +624,12 @@
 0616   63F8             
 0617   63F8             PRNTOK: 
 0618   63F8 AF                  XOR     A               ; Output "Ok" and get command
-0619   63F9 32 45 90            LD      (CTLOFG),A      ; Enable output
+0619   63F9 32 45 80            LD      (CTLOFG),A      ; Enable output
 0620   63FC CD A0 6A            CALL    STTLIN          ; Start new line
 0621   63FF 21 4A 63            LD      HL,OKMSG        ; "Ok" message
 0622   6402 CD 4B 71            CALL    PRS             ; Output "Ok"
 0623   6405 21 FF FF    GETCMD: LD      HL,-1           ; Flag direct mode
-0624   6408 22 5C 90            LD      (LINEAT),HL     ; Save as current line
+0624   6408 22 5C 80            LD      (LINEAT),HL     ; Save as current line
 0625   640B CD F2 65            CALL    GETLIN          ; Get an input line
 0626   640E DA 05 64            JP      C,GETCMD        ; Get line again if break
 0627   6411 CD 05 68            CALL    GETCHR          ; Get first character
@@ -647,7 +647,7 @@
 0639   6427 D5                  PUSH    DE              ; Save line number
 0640   6428 C5                  PUSH    BC              ; Save length of tokenised line
 0641   6429 AF                  XOR     A
-0642   642A 32 CC 90            LD      (LSTBIN),A      ; Clear last byte input
+0642   642A 32 CC 80            LD      (LSTBIN),A      ; Clear last byte input
 0643   642D CD 05 68            CALL    GETCHR          ; Get next character
 0644   6430 B7                  OR      A               ; Set flags
 0645   6431 F5                  PUSH    AF              ; And save them
@@ -660,7 +660,7 @@
 0652   643E C5          LINFND: PUSH    BC              ; Save address of line in prog
 0653   643F D2 55 64            JP      NC,INEWLN       ; Line not found - Insert new
 0654   6442 EB                  EX      DE,HL           ; Next line address in DE
-0655   6443 2A D6 90            LD      HL,(PROGND)     ; End of program
+0655   6443 2A D6 80            LD      HL,(PROGND)     ; End of program
 0656   6446 1A          SFTPRG: LD      A,(DE)          ; Shift rest of program down
 0657   6447 02                  LD      (BC),A
 0658   6448 03                  INC     BC              ; Next destination
@@ -669,19 +669,19 @@
 0661   644D C2 46 64            JP      NZ,SFTPRG       ; More to do
 0662   6450 60                  LD      H,B             ; HL - New end of program
 0663   6451 69                  LD      L,C
-0664   6452 22 D6 90            LD      (PROGND),HL     ; Update end of program
+0664   6452 22 D6 80            LD      (PROGND),HL     ; Update end of program
 0665   6455             
 0666   6455 D1          INEWLN: POP     DE              ; Get address of line,
 0667   6456 F1                  POP     AF              ; Get status
 0668   6457 CA 7C 64            JP      Z,SETPTR        ; No text - Set up pointers
-0669   645A 2A D6 90            LD      HL,(PROGND)     ; Get end of program
+0669   645A 2A D6 80            LD      HL,(PROGND)     ; Get end of program
 0670   645D E3                  EX      (SP),HL         ; Get length of input line
 0671   645E C1                  POP     BC              ; End of program to BC
 0672   645F 09                  ADD     HL,BC           ; Find new end
 0673   6460 E5                  PUSH    HL              ; Save new end
 0674   6461 CD 79 63            CALL    MOVUP           ; Make space for line
 0675   6464 E1                  POP     HL              ; Restore new end
-0676   6465 22 D6 90            LD      (PROGND),HL     ; Update end of program pointer
+0676   6465 22 D6 80            LD      (PROGND),HL     ; Update end of program pointer
 0677   6468 EB                  EX      DE,HL           ; Get line to move up in HL
 0678   6469 74                  LD      (HL),H          ; Save MSB
 0679   646A D1                  POP     DE              ; Get new line number
@@ -691,7 +691,7 @@
 0683   646E 23                  INC     HL
 0684   646F 72                  LD      (HL),D          ; Save MSB of line number
 0685   6470 23                  INC     HL              ; To first byte in line
-0686   6471 11 61 90            LD      DE,BUFFER       ; Copy buffer to program
+0686   6471 11 61 80            LD      DE,BUFFER       ; Copy buffer to program
 0687   6474 1A          MOVBUF: LD      A,(DE)          ; Get source
 0688   6475 77                  LD      (HL),A          ; Save destinations
 0689   6476 23                  INC     HL              ; Next source
@@ -720,7 +720,7 @@
 0712   6495 72                  LD      (HL),D          ; Save MSB of pointer
 0713   6496 C3 81 64            JP      PTRLP           ; Do next line
 0714   6499             
-0715   6499 2A 5E 90    SRCHLN: LD      HL,(BASTXT)     ; Start of program text
+0715   6499 2A 5E 80    SRCHLN: LD      HL,(BASTXT)     ; Start of program text
 0716   649C 44          SRCHLP: LD      B,H             ; BC = Address to look at
 0717   649D 4D                  LD      C,L
 0718   649E 7E                  LD      A,(HL)          ; Get address of next line
@@ -748,52 +748,52 @@
 0740   64B6 C3 9C 64            JP      SRCHLP          ; Keep looking
 0741   64B9             
 0742   64B9 C0          NEW:    RET     NZ              ; Return if any more on line
-0743   64BA 2A 5E 90    CLRPTR: LD      HL,(BASTXT)     ; Point to start of program
+0743   64BA 2A 5E 80    CLRPTR: LD      HL,(BASTXT)     ; Point to start of program
 0744   64BD AF                  XOR     A               ; Set program area to empty
 0745   64BE 77                  LD      (HL),A          ; Save LSB = 00
 0746   64BF 23                  INC     HL
 0747   64C0 77                  LD      (HL),A          ; Save MSB = 00
 0748   64C1 23                  INC     HL
-0749   64C2 22 D6 90            LD      (PROGND),HL     ; Set program end
+0749   64C2 22 D6 80            LD      (PROGND),HL     ; Set program end
 0750   64C5             
-0751   64C5 2A 5E 90    RUNFST: LD      HL,(BASTXT)     ; Clear all variables
+0751   64C5 2A 5E 80    RUNFST: LD      HL,(BASTXT)     ; Clear all variables
 0752   64C8 2B                  DEC     HL
 0753   64C9             
-0754   64C9 22 CE 90    INTVAR: LD      (BRKLIN),HL     ; Initialise RUN variables
-0755   64CC 2A AF 90            LD      HL,(LSTRAM)     ; Get end of RAM
-0756   64CF 22 C3 90            LD      (STRBOT),HL     ; Clear string space
+0754   64C9 22 CE 80    INTVAR: LD      (BRKLIN),HL     ; Initialise RUN variables
+0755   64CC 2A AF 80            LD      HL,(LSTRAM)     ; Get end of RAM
+0756   64CF 22 C3 80            LD      (STRBOT),HL     ; Clear string space
 0757   64D2 AF                  XOR     A
 0758   64D3 CD 15 68            CALL    RESTOR          ; Reset DATA pointers
-0759   64D6 2A D6 90            LD      HL,(PROGND)     ; Get end of program
-0760   64D9 22 D8 90            LD      (VAREND),HL     ; Clear variables
-0761   64DC 22 DA 90            LD      (ARREND),HL     ; Clear arrays
+0759   64D6 2A D6 80            LD      HL,(PROGND)     ; Get end of program
+0760   64D9 22 D8 80            LD      (VAREND),HL     ; Clear variables
+0761   64DC 22 DA 80            LD      (ARREND),HL     ; Clear arrays
 0762   64DF             
 0763   64DF C1          CLREG:  POP     BC              ; Save return address
-0764   64E0 2A 5A 90            LD      HL,(STRSPC)     ; Get end of working RAN
+0764   64E0 2A 5A 80            LD      HL,(STRSPC)     ; Get end of working RAN
 0765   64E3 F9                  LD      SP,HL           ; Set stack
-0766   64E4 21 B3 90            LD      HL,TMSTPL       ; Temporary string pool
-0767   64E7 22 B1 90            LD      (TMSTPT),HL     ; Reset temporary string ptr
+0766   64E4 21 B3 80            LD      HL,TMSTPL       ; Temporary string pool
+0767   64E7 22 B1 80            LD      (TMSTPT),HL     ; Reset temporary string ptr
 0768   64EA AF                  XOR     A               ; A = 00
 0769   64EB 6F                  LD      L,A             ; HL = 0000
 0770   64EC 67                  LD      H,A
-0771   64ED 22 D4 90            LD      (CONTAD),HL     ; No CONTinue
-0772   64F0 32 CB 90            LD      (FORFLG),A      ; Clear FOR flag
-0773   64F3 22 DE 90            LD      (FNRGNM),HL     ; Clear FN argument
+0771   64ED 22 D4 80            LD      (CONTAD),HL     ; No CONTinue
+0772   64F0 32 CB 80            LD      (FORFLG),A      ; Clear FOR flag
+0773   64F3 22 DE 80            LD      (FNRGNM),HL     ; Clear FN argument
 0774   64F6 E5                  PUSH    HL              ; HL = 0000
 0775   64F7 C5                  PUSH    BC              ; Put back return
-0776   64F8 2A CE 90    DOAGN:  LD      HL,(BRKLIN)     ; Get address of code to RUN
+0776   64F8 2A CE 80    DOAGN:  LD      HL,(BRKLIN)     ; Get address of code to RUN
 0777   64FB C9                  RET                     ; Return to execution driver
 0778   64FC             
 0779   64FC 3E 3F       PROMPT: LD      A,'?'           ; '?'
 0780   64FE CD 86 66            CALL    OUTC            ; Output character
 0781   6501 3E 20               LD      A,' '           ; Space
 0782   6503 CD 86 66            CALL    OUTC            ; Output character
-0783   6506 C3 4E 90            JP      RINPUT          ; Get input line
+0783   6506 C3 4E 80            JP      RINPUT          ; Get input line
 0784   6509             
 0785   6509 AF          CRUNCH: XOR     A               ; Tokenise line @ HL to BUFFER
-0786   650A 32 AE 90            LD      (DATFLG),A      ; Reset literal flag
+0786   650A 32 AE 80            LD      (DATFLG),A      ; Reset literal flag
 0787   650D 0E 05               LD      C,2+3           ; 2 byte number and 3 nulls
-0788   650F 11 61 90            LD      DE,BUFFER       ; Start of input buffer
+0788   650F 11 61 80            LD      DE,BUFFER       ; Start of input buffer
 0789   6512 7E          CRNCLP: LD      A,(HL)          ; Get byte
 0790   6513 FE 20               CP      ' '             ; Is it a space?
 0791   6515 CA 91 65            JP      Z,MOVDIR        ; Yes - Copy direct
@@ -802,7 +802,7 @@
 0794   651B CA B1 65            JP      Z,CPYLIT        ; Yes - Copy literal string
 0795   651E B7                  OR      A               ; Is it end of buffer?
 0796   651F CA B8 65            JP      Z,ENDBUF        ; Yes - End buffer
-0797   6522 3A AE 90            LD      A,(DATFLG)      ; Get data type
+0797   6522 3A AE 80            LD      A,(DATFLG)      ; Get data type
 0798   6525 B7                  OR      A               ; Literal?
 0799   6526 7E                  LD      A,(HL)          ; Get byte to copy
 0800   6527 C2 91 65            JP      NZ,MOVDIR       ; Literal - Copy direct
@@ -877,7 +877,7 @@
 0869   6597 CA 9F 65            JP      Z,SETLIT        ; Jump if multi-statement line
 0870   659A FE 49               CP      ZDATA-3AH       ; Is it DATA statement ?
 0871   659C C2 A2 65            JP      NZ,TSTREM       ; No - see if REM
-0872   659F 32 AE 90    SETLIT: LD      (DATFLG),A      ; Set literal flag
+0872   659F 32 AE 80    SETLIT: LD      (DATFLG),A      ; Set literal flag
 0873   65A2 D6 54       TSTREM: SUB     ZREM-3AH        ; Is it REM?
 0874   65A4 C2 12 65            JP      NZ,CRNCLP       ; No - Leave flag
 0875   65A7 47                  LD      B,A             ; Copy rest of buffer
@@ -892,7 +892,7 @@
 0884   65B4 13                  INC     DE              ; Move up destination
 0885   65B5 C3 A8 65            JP      NXTCHR          ; Repeat
 0886   65B8             
-0887   65B8 21 60 90    ENDBUF: LD      HL,BUFFER-1     ; Point to start of buffer
+0887   65B8 21 60 80    ENDBUF: LD      HL,BUFFER-1     ; Point to start of buffer
 0888   65BB 12                  LD      (DE),A          ; Mark end of buffer (A = 00)
 0889   65BC 13                  INC     DE
 0890   65BD 12                  LD      (DE),A          ; A = 00
@@ -900,10 +900,10 @@
 0892   65BF 12                  LD      (DE),A          ; A = 00
 0893   65C0 C9                  RET
 0894   65C1             
-0895   65C1 3A 44 90    DODEL:  LD      A,(NULFLG)      ; Get null flag status
+0895   65C1 3A 44 80    DODEL:  LD      A,(NULFLG)      ; Get null flag status
 0896   65C4 B7                  OR      A               ; Is it zero?
 0897   65C5 3E 00               LD      A,0             ; Zero A - Leave flags
-0898   65C7 32 44 90            LD      (NULFLG),A      ; Zero null flag
+0898   65C7 32 44 80            LD      (NULFLG),A      ; Zero null flag
 0899   65CA C2 D5 65            JP      NZ,ECHDEL       ; Set - Echo it
 0900   65CD 05                  DEC     B               ; Decrement length
 0901   65CE CA F2 65            JP      Z,GETLIN        ; Get line again if empty
@@ -925,21 +925,21 @@
 0917   65EF C3 F2 65            JP      TTYLIN          ; Get line again
 0918   65F2             
 0919   65F2             GETLIN:
-0920   65F2 21 61 90    TTYLIN: LD      HL,BUFFER       ; Get a line by character
+0920   65F2 21 61 80    TTYLIN: LD      HL,BUFFER       ; Get a line by character
 0921   65F5 06 01               LD      B,1             ; Set buffer as empty
 0922   65F7 AF                  XOR     A
-0923   65F8 32 44 90            LD      (NULFLG),A      ; Clear null flag
+0923   65F8 32 44 80            LD      (NULFLG),A      ; Clear null flag
 0924   65FB CD B0 66    MORINP: CALL    CLOTST          ; Get character and test ^O
 0925   65FE 4F                  LD      C,A             ; Save character in C
 0926   65FF FE 7F               CP      DEL             ; Delete character?
 0927   6601 CA C1 65            JP      Z,DODEL         ; Yes - Process it
-0928   6604 3A 44 90            LD      A,(NULFLG)      ; Get null flag
+0928   6604 3A 44 80            LD      A,(NULFLG)      ; Get null flag
 0929   6607 B7                  OR      A               ; Test null flag status
 0930   6608 CA 14 66            JP      Z,PROCES        ; Reset - Process character
 0931   660B 3E 00               LD      A,0             ; Set a null
 0932   660D CD 86 66            CALL    OUTC            ; Output null
 0933   6610 AF                  XOR     A               ; Clear A
-0934   6611 32 44 90            LD      (NULFLG),A      ; Reset null flag
+0934   6611 32 44 80            LD      (NULFLG),A      ; Reset null flag
 0935   6614 79          PROCES: LD      A,C             ; Get character
 0936   6615 FE 07               CP      CTRLG           ; Bell?
 0937   6617 CA 58 66            JP      Z,PUTCTL        ; Yes - Save it
@@ -964,7 +964,7 @@
 0956   6641 E5                  PUSH    HL              ; Save buffer address
 0957   6642 36 00               LD      (HL),0          ; Mark end of buffer
 0958   6644 CD 5D 7C            CALL    OUTNCR          ; Output and do CRLF
-0959   6647 21 61 90            LD      HL,BUFFER       ; Point to buffer start
+0959   6647 21 61 80            LD      HL,BUFFER       ; Point to buffer start
 0960   664A CD 4B 71            CALL    PRS             ; Output buffer
 0961   664D E1                  POP     HL              ; Restore buffer address
 0962   664E D1                  POP     DE              ; Restore DE
@@ -979,7 +979,7 @@
 0971   665D D2 6D 66            JP      NC,OUTNBS       ; Ring bell if buffer full
 0972   6660 79                  LD      A,C             ; Get character
 0973   6661 71                  LD      (HL),C          ; Save in buffer
-0974   6662 32 CC 90            LD      (LSTBIN),A      ; Save last input byte
+0974   6662 32 CC 80            LD      (LSTBIN),A      ; Save last input byte
 0975   6665 23                  INC     HL              ; Move up buffer
 0976   6666 04                  INC     B               ; Increment length
 0977   6667 CD 86 66    OUTIT:  CALL    OUTC            ; Output the character entered
@@ -1005,7 +1005,7 @@
 0997   6683 C3 AD 63            JP      SNERR           ; Different - ?SN Error
 0998   6686             
 0999   6686 F5          OUTC:   PUSH    AF              ; Save character
-1000   6687 3A 45 90            LD      A,(CTLOFG)      ; Get control "O" flag
+1000   6687 3A 45 80            LD      A,(CTLOFG)      ; Get control "O" flag
 1001   668A B7                  OR      A               ; Is it set?
 1002   668B C2 80 71            JP      NZ,POPAF        ; Yes - don't output
 1003   668E F1                  POP     AF              ; Restore character
@@ -1013,16 +1013,16 @@
 1005   6690 F5                  PUSH    AF              ; Save character
 1006   6691 FE 20               CP      ' '             ; Is it a control code?
 1007   6693 DA AA 66            JP      C,DINPOS        ; Yes - Don't INC POS(X)
-1008   6696 3A 42 90            LD      A,(LWIDTH)      ; Get line width
+1008   6696 3A 42 80            LD      A,(LWIDTH)      ; Get line width
 1009   6699 47                  LD      B,A             ; To B
-1010   669A 3A AB 90            LD      A,(CURPOS)      ; Get cursor position
+1010   669A 3A AB 80            LD      A,(CURPOS)      ; Get cursor position
 1011   669D 04                  INC     B               ; Width 255?
 1012   669E CA A6 66            JP      Z,INCLEN        ; Yes - No width limit
 1013   66A1 05                  DEC     B               ; Restore width
 1014   66A2 B8                  CP      B               ; At end of line?
 1015   66A3 CC AD 6A            CALL    Z,PRNTCRLF      ; Yes - output CRLF
 1016   66A6 3C          INCLEN: INC     A               ; Move on one character
-1017   66A7 32 AB 90            LD      (CURPOS),A      ; Save new position
+1017   66A7 32 AB 80            LD      (CURPOS),A      ; Save new position
 1018   66AA F1          DINPOS: POP     AF              ; Restore character
 1019   66AB C1                  POP     BC              ; Restore buffer length
 1020   66AC CD 46 7C            CALL    MONOUT          ; Send it
@@ -1032,9 +1032,9 @@
 1024   66B3 E6 7F               AND     01111111B       ; Strip bit 7
 1025   66B5 FE 0F               CP      CTRLO           ; Is it control "O"?
 1026   66B7 C0                  RET     NZ              ; No don't flip flag
-1027   66B8 3A 45 90            LD      A,(CTLOFG)      ; Get flag
+1027   66B8 3A 45 80            LD      A,(CTLOFG)      ; Get flag
 1028   66BB 2F                  CPL                     ; Flip it
-1029   66BC 32 45 90            LD      (CTLOFG),A      ; Put it back
+1029   66BC 32 45 80            LD      (CTLOFG),A      ; Put it back
 1030   66BF AF                  XOR     A               ; Null character
 1031   66C0 C9                  RET
 1032   66C1             
@@ -1089,40 +1089,40 @@
 1081   6714 C3 F0 66            JP      LSTLP3          ; Next byte in line
 1082   6717             
 1083   6717 E5          SETLIN: PUSH    HL              ; Set up LINES counter
-1084   6718 2A 48 90            LD      HL,(LINESN)     ; Get LINES number
-1085   671B 22 46 90            LD      (LINESC),HL     ; Save in LINES counter
+1084   6718 2A 48 80            LD      HL,(LINESN)     ; Get LINES number
+1085   671B 22 46 80            LD      (LINESC),HL     ; Save in LINES counter
 1086   671E E1                  POP     HL
 1087   671F C9                  RET
 1088   6720             
 1089   6720 E5          COUNT:  PUSH    HL              ; Save code string address
 1090   6721 D5                  PUSH    DE
-1091   6722 2A 46 90            LD      HL,(LINESC)     ; Get LINES counter
+1091   6722 2A 46 80            LD      HL,(LINESC)     ; Get LINES counter
 1092   6725 11 FF FF            LD      DE,-1
 1093   6728 ED 5A               ADC     HL,DE           ; Decrement
-1094   672A 22 46 90            LD      (LINESC),HL     ; Put it back
+1094   672A 22 46 80            LD      (LINESC),HL     ; Put it back
 1095   672D D1                  POP     DE
 1096   672E E1                  POP     HL              ; Restore code string address
 1097   672F F0                  RET     P               ; Return if more lines to go
 1098   6730 E5                  PUSH    HL              ; Save code string address
-1099   6731 2A 48 90            LD      HL,(LINESN)     ; Get LINES number
-1100   6734 22 46 90            LD      (LINESC),HL     ; Reset LINES counter
+1099   6731 2A 48 80            LD      HL,(LINESN)     ; Get LINES number
+1100   6734 22 46 80            LD      (LINESC),HL     ; Reset LINES counter
 1101   6737 CD 0A 7B            CALL    GETINP          ; Get input character
 1102   673A FE 03               CP      CTRLC           ; Is it control "C"?
 1103   673C CA 43 67            JP      Z,RSLNBK        ; Yes - Reset LINES and break
 1104   673F E1                  POP     HL              ; Restore code string address
 1105   6740 C3 20 67            JP      COUNT           ; Keep on counting
 1106   6743             
-1107   6743 2A 48 90    RSLNBK: LD      HL,(LINESN)     ; Get LINES number
-1108   6746 22 46 90            LD      (LINESC),HL     ; Reset LINES counter
+1107   6743 2A 48 80    RSLNBK: LD      HL,(LINESN)     ; Get LINES number
+1108   6746 22 46 80            LD      (LINESC),HL     ; Reset LINES counter
 1109   6749 C3 A7 60            JP      BRKRET          ; Go and output "Break"
 1110   674C             
 1111   674C 3E 64       FOR:    LD      A,64H           ; Flag "FOR" assignment
-1112   674E 32 CB 90            LD      (FORFLG),A      ; Save "FOR" flag
+1112   674E 32 CB 80            LD      (FORFLG),A      ; Save "FOR" flag
 1113   6751 CD B3 69            CALL    LET             ; Set up initial index
 1114   6754 C1                  POP     BC              ; Drop RETurn address
 1115   6755 E5                  PUSH    HL              ; Save code string address
 1116   6756 CD 9C 69            CALL    DATA            ; Get next statement address
-1117   6759 22 C7 90            LD      (LOOPST),HL     ; Save it for start of loop
+1117   6759 22 C7 80            LD      (LOOPST),HL     ; Save it for start of loop
 1118   675C 21 02 00            LD      HL,2            ; Offset for "FOR" block
 1119   675F 39                  ADD     HL,SP           ; Point to it
 1120   6760 CD 5A 63    FORSLP: CALL    LOKFOR          ; Look for existing "FOR" block
@@ -1137,7 +1137,7 @@
 1129   676D 23                  INC     HL
 1130   676E 23                  INC     HL
 1131   676F E5                  PUSH    HL              ; Save block address
-1132   6770 2A C7 90            LD      HL,(LOOPST)     ; Get address of loop statement
+1132   6770 2A C7 80            LD      HL,(LOOPST)     ; Get address of loop statement
 1133   6773 CD 75 66            CALL    CPDEHL          ; Compare the FOR loops
 1134   6776 E1                  POP     HL              ; Restore block address
 1135   6777 C2 60 67            JP      NZ,FORSLP       ; Different FORs - Find another
@@ -1148,10 +1148,10 @@
 1140   677D 0E 08               LD      C,8
 1141   677F CD 8A 63            CALL    CHKSTK          ; Check for 8 levels of stack
 1142   6782 E5                  PUSH    HL              ; Save code string address
-1143   6783 2A C7 90            LD      HL,(LOOPST)     ; Get first statement of loop
+1143   6783 2A C7 80            LD      HL,(LOOPST)     ; Get first statement of loop
 1144   6786 E3                  EX      (SP),HL         ; Save and restore code string
 1145   6787 E5                  PUSH    HL              ; Re-save code string address
-1146   6788 2A 5C 90            LD      HL,(LINEAT)     ; Get current line number
+1146   6788 2A 5C 80            LD      HL,(LINEAT)     ; Get current line number
 1147   678B E3                  EX      (SP),HL         ; Save and restore code string
 1148   678C CD 75 6C            CALL    TSTNUM          ; Make sure it's a number
 1149   678F CD 7B 66            CALL    CHKSYN          ; Make sure "TO" is next
@@ -1180,14 +1180,14 @@
 1172   67BA F5                  PUSH    AF              ; Save sign of STEP
 1173   67BB 33                  INC     SP              ; Don't save flags
 1174   67BC E5                  PUSH    HL              ; Save code string address
-1175   67BD 2A CE 90            LD      HL,(BRKLIN)     ; Get address of index variable
+1175   67BD 2A CE 80            LD      HL,(BRKLIN)     ; Get address of index variable
 1176   67C0 E3                  EX      (SP),HL         ; Save and restore code string
 1177   67C1 06 81       PUTFID: LD      B,ZFOR          ; "FOR" block marker
 1178   67C3 C5                  PUSH    BC              ; Save it
 1179   67C4 33                  INC     SP              ; Don't save C
 1180   67C5             
 1181   67C5 CD 30 68    RUNCNT: CALL    TSTBRK          ; Execution driver - Test break
-1182   67C8 22 CE 90            LD      (BRKLIN),HL     ; Save code address for break
+1182   67C8 22 CE 80            LD      (BRKLIN),HL     ; Save code address for break
 1183   67CB 7E                  LD      A,(HL)          ; Get next byte in code string
 1184   67CC FE 3A               CP      ':'             ; Multi statement line?
 1185   67CE CA E5 67            JP      Z,EXCUTE        ; Yes - Execute it
@@ -1203,7 +1203,7 @@
 1195   67DE 23                  INC     HL
 1196   67DF 56                  LD      D,(HL)          ; Get MSB of line number
 1197   67E0 EB                  EX      DE,HL           ; Line number to HL
-1198   67E1 22 5C 90            LD      (LINEAT),HL     ; Save as current line number
+1198   67E1 22 5C 80            LD      (LINEAT),HL     ; Save as current line number
 1199   67E4 EB                  EX      DE,HL           ; Line number back to DE
 1200   67E5 CD 05 68    EXCUTE: CALL    GETCHR          ; Get key word
 1201   67E8 11 C5 67            LD      DE,RUNCNT       ; Where to RETurn to
@@ -1238,7 +1238,7 @@
 1230   6814 C9                  RET
 1231   6815             
 1232   6815 EB          RESTOR: EX      DE,HL           ; Save code string address
-1233   6816 2A 5E 90            LD      HL,(BASTXT)     ; Point to start of program
+1233   6816 2A 5E 80            LD      HL,(BASTXT)     ; Point to start of program
 1234   6819 CA 2A 68            JP      Z,RESTNL        ; Just RESTORE - reset pointer
 1235   681C EB                  EX      DE,HL           ; Restore code string address
 1236   681D CD D1 68            CALL    ATOH            ; Get line number to DE
@@ -1249,7 +1249,7 @@
 1241   6826 D1                  POP     DE              ; Restore code string address
 1242   6827 D2 72 69            JP      NC,ULERR        ; ?UL Error if not found
 1243   682A 2B          RESTNL: DEC     HL              ; Byte before DATA statement
-1244   682B 22 DC 90    UPDATA: LD      (NXTDAT),HL     ; Update DATA pointer
+1244   682B 22 DC 80    UPDATA: LD      (NXTDAT),HL     ; Update DATA pointer
 1245   682E EB                  EX      DE,HL           ; Restore code string address
 1246   682F C9                  RET
 1247   6830             
@@ -1273,56 +1273,56 @@
 1265   6846 18 F6               JR      STALL           ; Loop until <Ctrl-Q> or <brk>
 1266   6848             
 1267   6848 3E FF       BRK     LD      A,$FF           ; Set BRKFLG
-1268   684A 32 4D 90            LD      (BRKFLG),A      ; Store it
+1268   684A 32 4D 80            LD      (BRKFLG),A      ; Store it
 1269   684D             
 1270   684D             
 1271   684D C0          STOP:   RET     NZ              ; Exit if anything else
 1272   684E F6                  .BYTE   0F6H            ; Flag "STOP"
 1273   684F C0          PEND:   RET     NZ              ; Exit if anything else
-1274   6850 22 CE 90            LD      (BRKLIN),HL     ; Save point of break
+1274   6850 22 CE 80            LD      (BRKLIN),HL     ; Save point of break
 1275   6853 21                  .BYTE   21H             ; Skip "OR 11111111B"
 1276   6854 F6 FF       INPBRK: OR      11111111B       ; Flag "Break" wanted
 1277   6856 C1                  POP     BC              ; Return not needed and more
-1278   6857 2A 5C 90    ENDPRG: LD      HL,(LINEAT)     ; Get current line number
+1278   6857 2A 5C 80    ENDPRG: LD      HL,(LINEAT)     ; Get current line number
 1279   685A F5                  PUSH    AF              ; Save STOP / END status
 1280   685B 7D                  LD      A,L             ; Is it direct break?
 1281   685C A4                  AND     H
 1282   685D 3C                  INC     A               ; Line is -1 if direct break
 1283   685E CA 6A 68            JP      Z,NOLIN         ; Yes - No line number
-1284   6861 22 D2 90            LD      (ERRLIN),HL     ; Save line of break
-1285   6864 2A CE 90            LD      HL,(BRKLIN)     ; Get point of break
-1286   6867 22 D4 90            LD      (CONTAD),HL     ; Save point to CONTinue
+1284   6861 22 D2 80            LD      (ERRLIN),HL     ; Save line of break
+1285   6864 2A CE 80            LD      HL,(BRKLIN)     ; Get point of break
+1286   6867 22 D4 80            LD      (CONTAD),HL     ; Save point to CONTinue
 1287   686A AF          NOLIN:  XOR     A
-1288   686B 32 45 90            LD      (CTLOFG),A      ; Enable output
+1288   686B 32 45 80            LD      (CTLOFG),A      ; Enable output
 1289   686E CD A0 6A            CALL    STTLIN          ; Start a new line
 1290   6871 F1                  POP     AF              ; Restore STOP / END status
 1291   6872 21 50 63            LD      HL,BRKMSG       ; "Break" message
 1292   6875 C2 E1 63            JP      NZ,ERRIN        ; "in line" wanted?
 1293   6878 C3 F8 63            JP      PRNTOK          ; Go to command mode
 1294   687B             
-1295   687B 2A D4 90    CONT:   LD      HL,(CONTAD)     ; Get CONTinue address
+1295   687B 2A D4 80    CONT:   LD      HL,(CONTAD)     ; Get CONTinue address
 1296   687E 7C                  LD      A,H             ; Is it zero?
 1297   687F B5                  OR      L
 1298   6880 1E 20               LD      E,CN            ; ?CN Error
 1299   6882 CA C1 63            JP      Z,ERROR         ; Yes - output "?CN Error"
 1300   6885 EB                  EX      DE,HL           ; Save code string address
-1301   6886 2A D2 90            LD      HL,(ERRLIN)     ; Get line of last break
-1302   6889 22 5C 90            LD      (LINEAT),HL     ; Set up current line number
+1301   6886 2A D2 80            LD      HL,(ERRLIN)     ; Get line of last break
+1302   6889 22 5C 80            LD      (LINEAT),HL     ; Set up current line number
 1303   688C EB                  EX      DE,HL           ; Restore code string address
 1304   688D C9                  RET                     ; CONTinue where left off
 1305   688E             
 1306   688E CD D3 73    NULL:   CALL    GETINT          ; Get integer 0-255
 1307   6891 C0                  RET     NZ              ; Return if bad value
-1308   6892 32 41 90            LD      (NULLS),A       ; Set nulls number
+1308   6892 32 41 80            LD      (NULLS),A       ; Set nulls number
 1309   6895 C9                  RET
 1310   6896             
 1311   6896             
 1312   6896 E5          ACCSUM: PUSH    HL              ; Save address in array
-1313   6897 2A 4A 90            LD      HL,(CHKSUM)     ; Get check sum
+1313   6897 2A 4A 80            LD      HL,(CHKSUM)     ; Get check sum
 1314   689A 06 00               LD      B,0             ; BC - Value of byte
 1315   689C 4F                  LD      C,A
 1316   689D 09                  ADD     HL,BC           ; Add byte to check sum
-1317   689E 22 4A 90            LD      (CHKSUM),HL     ; Re-save check sum
+1317   689E 22 4A 80            LD      (CHKSUM),HL     ; Re-save check sum
 1318   68A1 E1                  POP     HL              ; Restore address in array
 1319   68A2 C9                  RET
 1320   68A3             
@@ -1337,7 +1337,7 @@
 1329   68AE CD 72 6C    POSINT: CALL    GETNUM          ; Get integer 0 to 32767
 1330   68B1 CD 54 76    DEPINT: CALL    TSTSGN          ; Test sign of FPREG
 1331   68B4 FA CC 68            JP      M,FCERR         ; Negative - ?FC Error
-1332   68B7 3A E7 90    DEINT:  LD      A,(FPEXP)       ; Get integer value to DE
+1332   68B7 3A E7 80    DEINT:  LD      A,(FPEXP)       ; Get integer value to DE
 1333   68BA FE 90               CP      80H+16          ; Exponent in range (16 bits)?
 1334   68BC DA FC 76            JP      C,FPINT         ; Yes - convert it
 1335   68BF 01 80 90            LD      BC,9080H        ; BCDE = -32768
@@ -1379,7 +1379,7 @@
 1371   68FC 2B                  DEC     HL              ; Cancel increment
 1372   68FD CD 05 68            CALL    GETCHR          ; Get next character
 1373   6900 E5                  PUSH    HL              ; Save code string address
-1374   6901 2A AF 90            LD      HL,(LSTRAM)     ; Get end of RAM
+1374   6901 2A AF 80            LD      HL,(LSTRAM)     ; Get end of RAM
 1375   6904 CA 19 69            JP      Z,STORED        ; No value given - Use stored
 1376   6907 E1                  POP     HL              ; Restore code string address
 1377   6908 CD 7B 66            CALL    CHKSYN          ; Check for comma
@@ -1399,15 +1399,15 @@
 1391   691E 57                  LD      D,A             ; Save MSB
 1392   691F DA A2 63            JP      C,OMERR         ; ?OM Error if not enough mem
 1393   6922 E5                  PUSH    HL              ; Save RAM top
-1394   6923 2A D6 90            LD      HL,(PROGND)     ; Get program end
+1394   6923 2A D6 80            LD      HL,(PROGND)     ; Get program end
 1395   6926 01 28 00            LD      BC,40           ; 40 Bytes minimum working RAM
 1396   6929 09                  ADD     HL,BC           ; Get lowest address
 1397   692A CD 75 66            CALL    CPDEHL          ; Enough memory?
 1398   692D D2 A2 63            JP      NC,OMERR        ; No - ?OM Error
 1399   6930 EB                  EX      DE,HL           ; RAM top to HL
-1400   6931 22 5A 90            LD      (STRSPC),HL     ; Set new string space
+1400   6931 22 5A 80            LD      (STRSPC),HL     ; Set new string space
 1401   6934 E1                  POP     HL              ; End of memory to use
-1402   6935 22 AF 90            LD      (LSTRAM),HL     ; Set new top of RAM
+1402   6935 22 AF 80            LD      (LSTRAM),HL     ; Set new top of RAM
 1403   6938 E1                  POP     HL              ; Restore code string address
 1404   6939 C3 C9 64            JP      INTVAR          ; Initialise variables
 1405   693C             
@@ -1421,7 +1421,7 @@
 1413   694D C1                  POP     BC              ; Get return address
 1414   694E E5                  PUSH    HL              ; Save code string for RETURN
 1415   694F E5                  PUSH    HL              ; And for GOSUB routine
-1416   6950 2A 5C 90            LD      HL,(LINEAT)     ; Get current line
+1416   6950 2A 5C 80            LD      HL,(LINEAT)     ; Get current line
 1417   6953 E3                  EX      (SP),HL         ; Into stack - Code string out
 1418   6954 3E 8C               LD      A,ZGOSUB        ; "GOSUB" token
 1419   6956 F5                  PUSH    AF              ; Save token
@@ -1431,7 +1431,7 @@
 1423   6959 CD D1 68    GOTO:   CALL    ATOH            ; ASCII number to DE binary
 1424   695C CD 9E 69            CALL    REM             ; Get end of line
 1425   695F E5                  PUSH    HL              ; Save end of line
-1426   6960 2A 5C 90            LD      HL,(LINEAT)     ; Get current line
+1426   6960 2A 5C 80            LD      HL,(LINEAT)     ; Get current line
 1427   6963 CD 75 66            CALL    CPDEHL          ; Line after current?
 1428   6966 E1                  POP     HL              ; Restore end of line
 1429   6967 23                  INC     HL              ; Start of next line
@@ -1452,12 +1452,12 @@
 1444   6980 1E 04               LD      E,RG            ; ?RG Error
 1445   6982 C2 C1 63            JP      NZ,ERROR        ; Error if no "GOSUB" found
 1446   6985 E1                  POP     HL              ; Get RETURN line number
-1447   6986 22 5C 90            LD      (LINEAT),HL     ; Save as current
+1447   6986 22 5C 80            LD      (LINEAT),HL     ; Save as current
 1448   6989 23                  INC     HL              ; Was it from direct statement?
 1449   698A 7C                  LD      A,H
 1450   698B B5                  OR      L               ; Return to line
 1451   698C C2 96 69            JP      NZ,RETLIN       ; No - Return to line
-1452   698F 3A CC 90            LD      A,(LSTBIN)      ; Any INPUT in subroutine?
+1452   698F 3A CC 80            LD      A,(LSTBIN)      ; Any INPUT in subroutine?
 1453   6992 B7                  OR      A               ; If so buffer is corrupted
 1454   6993 C2 F7 63            JP      NZ,POPNOK       ; Yes - Go to command mode
 1455   6996 21 C5 67    RETLIN: LD      HL,RUNCNT       ; Execution driver loop
@@ -1485,31 +1485,31 @@
 1477   69B6 CD 7B 66            CALL    CHKSYN          ; Make sure "=" follows
 1478   69B9 B4                  .BYTE      ZEQUAL          ; "=" token
 1479   69BA D5                  PUSH    DE              ; Save address of variable
-1480   69BB 3A AD 90            LD      A,(TYPE)        ; Get data type
+1480   69BB 3A AD 80            LD      A,(TYPE)        ; Get data type
 1481   69BE F5                  PUSH    AF              ; Save type
 1482   69BF CD 84 6C            CALL    EVAL            ; Evaluate expression
 1483   69C2 F1                  POP     AF              ; Restore type
 1484   69C3 E3                  EX      (SP),HL         ; Save code - Get var addr
-1485   69C4 22 CE 90            LD      (BRKLIN),HL     ; Save address of variable
+1485   69C4 22 CE 80            LD      (BRKLIN),HL     ; Save address of variable
 1486   69C7 1F                  RRA                     ; Adjust type
 1487   69C8 CD 77 6C            CALL    CHKTYP          ; Check types are the same
 1488   69CB CA 06 6A            JP      Z,LETNUM        ; Numeric - Move value
 1489   69CE E5          LETSTR: PUSH    HL              ; Save address of string var
-1490   69CF 2A E4 90            LD      HL,(FPREG)      ; Pointer to string entry
+1490   69CF 2A E4 80            LD      HL,(FPREG)      ; Pointer to string entry
 1491   69D2 E5                  PUSH    HL              ; Save it on stack
 1492   69D3 23                  INC     HL              ; Skip over length
 1493   69D4 23                  INC     HL
 1494   69D5 5E                  LD      E,(HL)          ; LSB of string address
 1495   69D6 23                  INC     HL
 1496   69D7 56                  LD      D,(HL)          ; MSB of string address
-1497   69D8 2A 5E 90            LD      HL,(BASTXT)     ; Point to start of program
+1497   69D8 2A 5E 80            LD      HL,(BASTXT)     ; Point to start of program
 1498   69DB CD 75 66            CALL    CPDEHL          ; Is string before program?
 1499   69DE D2 F5 69            JP      NC,CRESTR       ; Yes - Create string entry
-1500   69E1 2A 5A 90            LD      HL,(STRSPC)     ; Point to string space
+1500   69E1 2A 5A 80            LD      HL,(STRSPC)     ; Point to string space
 1501   69E4 CD 75 66            CALL    CPDEHL          ; Is string literal in program?
 1502   69E7 D1                  POP     DE              ; Restore address of string
 1503   69E8 D2 FD 69            JP      NC,MVSTPT       ; Yes - Set up pointer
-1504   69EB 21 BF 90            LD      HL,TMPSTR       ; Temporary string pool
+1504   69EB 21 BF 80            LD      HL,TMPSTR       ; Temporary string pool
 1505   69EE CD 75 66            CALL    CPDEHL          ; Is string in temporary pool?
 1506   69F1 D2 FD 69            JP      NC,MVSTPT       ; No - Set up pointer
 1507   69F4 3E                  .BYTE   3EH             ; Skip "POP DE"
@@ -1576,21 +1576,21 @@
 1568   6A68 C1                  POP     BC              ; Code string address to BC
 1569   6A69 CD 84 6C            CALL    EVAL            ; Evaluate expression
 1570   6A6C E5                  PUSH    HL              ; Save code string address
-1571   6A6D 3A AD 90            LD      A,(TYPE)        ; Get variable type
+1571   6A6D 3A AD 80            LD      A,(TYPE)        ; Get variable type
 1572   6A70 B7                  OR      A               ; Is it a string variable?
 1573   6A71 C2 99 6A            JP      NZ,PRNTST       ; Yes - Output string contents
 1574   6A74 CD F9 77            CALL    NUMASC          ; Convert number to text
 1575   6A77 CD 09 71            CALL    CRTST           ; Create temporary string
 1576   6A7A 36 20               LD      (HL),' '        ; Followed by a space
-1577   6A7C 2A E4 90            LD      HL,(FPREG)      ; Get length of output
+1577   6A7C 2A E4 80            LD      HL,(FPREG)      ; Get length of output
 1578   6A7F 34                  INC     (HL)            ; Plus 1 for the space
-1579   6A80 2A E4 90            LD      HL,(FPREG)      ; < Not needed >
-1580   6A83 3A 42 90            LD      A,(LWIDTH)      ; Get width of line
+1579   6A80 2A E4 80            LD      HL,(FPREG)      ; < Not needed >
+1580   6A83 3A 42 80            LD      A,(LWIDTH)      ; Get width of line
 1581   6A86 47                  LD      B,A             ; To B
 1582   6A87 04                  INC     B               ; Width 255 (No limit)?
 1583   6A88 CA 95 6A            JP      Z,PRNTNB        ; Yes - Output number string
 1584   6A8B 04                  INC     B               ; Adjust it
-1585   6A8C 3A AB 90            LD      A,(CURPOS)      ; Get cursor position
+1585   6A8C 3A AB 80            LD      A,(CURPOS)      ; Get cursor position
 1586   6A8F 86                  ADD     A,(HL)          ; Add length of string
 1587   6A90 3D                  DEC     A               ; Adjust it
 1588   6A91 B8                  CP      B               ; Will output fit on this line?
@@ -1601,20 +1601,20 @@
 1593   6A9C E1                  POP     HL              ; Restore code string address
 1594   6A9D C3 4B 6A            JP      MRPRNT          ; See if more to PRINT
 1595   6AA0             
-1596   6AA0 3A AB 90    STTLIN: LD      A,(CURPOS)      ; Make sure on new line
+1596   6AA0 3A AB 80    STTLIN: LD      A,(CURPOS)      ; Make sure on new line
 1597   6AA3 B7                  OR      A               ; Already at start?
 1598   6AA4 C8                  RET     Z               ; Yes - Do nothing
 1599   6AA5 C3 AD 6A            JP      PRNTCRLF        ; Start a new line
 1600   6AA8             
 1601   6AA8 36 00       ENDINP: LD      (HL),0          ; Mark end of buffer
-1602   6AAA 21 60 90            LD      HL,BUFFER-1     ; Point to buffer
+1602   6AAA 21 60 80            LD      HL,BUFFER-1     ; Point to buffer
 1603   6AAD 3E 0D       PRNTCRLF: LD    A,CR            ; Load a CR
 1604   6AAF CD 86 66            CALL    OUTC            ; Output character
 1605   6AB2 3E 0A               LD      A,LF            ; Load a LF
 1606   6AB4 CD 86 66            CALL    OUTC            ; Output character
 1607   6AB7 AF          DONULL: XOR     A               ; Set to position 0
-1608   6AB8 32 AB 90            LD      (CURPOS),A      ; Store it
-1609   6ABB 3A 41 90            LD      A,(NULLS)       ; Get number of nulls
+1608   6AB8 32 AB 80            LD      (CURPOS),A      ; Store it
+1609   6ABB 3A 41 80            LD      A,(NULLS)       ; Get number of nulls
 1610   6ABE 3D          NULLP:  DEC     A               ; Count them
 1611   6ABF C8                  RET     Z               ; Return if done
 1612   6AC0 F5                  PUSH    AF              ; Save count
@@ -1623,9 +1623,9 @@
 1615   6AC5 F1                  POP     AF              ; Restore count
 1616   6AC6 C3 BE 6A            JP      NULLP           ; Keep counting
 1617   6AC9             
-1618   6AC9 3A 43 90    DOCOM:  LD      A,(COMMAN)      ; Get comma width
+1618   6AC9 3A 43 80    DOCOM:  LD      A,(COMMAN)      ; Get comma width
 1619   6ACC 47                  LD      B,A             ; Save in B
-1620   6ACD 3A AB 90            LD      A,(CURPOS)      ; Get current position
+1620   6ACD 3A AB 80            LD      A,(CURPOS)      ; Get current position
 1621   6AD0 B8                  CP      B               ; Within the limit?
 1622   6AD1 D4 AD 6A            CALL    NC,PRNTCRLF     ; No - output CRLF
 1623   6AD4 D2 03 6B            JP      NC,NEXITM       ; Get next item
@@ -1643,7 +1643,7 @@
 1635   6AEA D6 A8               SUB     ZSPC            ; Was it "SPC(" ?
 1636   6AEC E5                  PUSH    HL              ; Save code string address
 1637   6AED CA F3 6A            JP      Z,DOSPC         ; Yes - Do 'E' spaces
-1638   6AF0 3A AB 90            LD      A,(CURPOS)      ; Get current position
+1638   6AF0 3A AB 80            LD      A,(CURPOS)      ; Get current position
 1639   6AF3 2F          DOSPC:  CPL                     ; Number of spaces to print to
 1640   6AF4 83                  ADD     A,E             ; Total number to print
 1641   6AF5 D2 03 6B            JP      NC,NEXITM       ; TAB < Current POS(X)
@@ -1660,7 +1660,7 @@
 1652   6B0A 3F5265646F20REDO:   .BYTE   "?Redo from start",CR,LF,0
 1652   6B10 66726F6D2073746172740D0A00
 1653   6B1D             
-1654   6B1D 3A CD 90    BADINP: LD      A,(READFG)      ; READ or INPUT?
+1654   6B1D 3A CD 80    BADINP: LD      A,(READFG)      ; READ or INPUT?
 1655   6B20 B7                  OR      A
 1656   6B21 C2 A7 63            JP      NZ,DATSNR       ; READ - ?SN Error
 1657   6B24 C1                  POP     BC              ; Throw away code string addr
@@ -1672,7 +1672,7 @@
 1663   6B31 7E                  LD      A,(HL)          ; Get character after "INPUT"
 1664   6B32 FE 22               CP      '"'             ; Is there a prompt string?
 1665   6B34 3E 00               LD      A,0             ; Clear A and leave flags
-1666   6B36 32 45 90            LD      (CTLOFG),A      ; Enable output
+1666   6B36 32 45 80            LD      (CTLOFG),A      ; Enable output
 1667   6B39 C2 48 6B            JP      NZ,NOPMPT       ; No prompt - get input
 1668   6B3C CD 0A 71            CALL    QTSTR           ; Get string terminated by '"'
 1669   6B3F CD 7B 66            CALL    CHKSYN          ; Check for ';' after prompt
@@ -1694,10 +1694,10 @@
 1685   6B5A C3 62 6B            JP      NXTITM          ; Get next item
 1686   6B5D             
 1687   6B5D E5          READ:   PUSH    HL              ; Save code string address
-1688   6B5E 2A DC 90            LD      HL,(NXTDAT)     ; Next DATA statement
+1688   6B5E 2A DC 80            LD      HL,(NXTDAT)     ; Next DATA statement
 1689   6B61 F6                  .BYTE   0F6H            ; Flag "READ"
 1690   6B62 AF          NXTITM: XOR     A               ; Flag "INPUT"
-1691   6B63 32 CD 90            LD      (READFG),A      ; Save "READ"/"INPUT" flag
+1691   6B63 32 CD 80            LD      (READFG),A      ; Save "READ"/"INPUT" flag
 1692   6B66 E3                  EX      (SP),HL         ; Get code str' , Save pointer
 1693   6B67 C3 6E 6B            JP      GTVLUS          ; Get values
 1694   6B6A             
@@ -1709,7 +1709,7 @@
 1700   6B73 7E                  LD      A,(HL)          ; Get next "INPUT"/"DATA" byte
 1701   6B74 FE 2C               CP      ','             ; Comma?
 1702   6B76 CA 96 6B            JP      Z,ANTVLU        ; Yes - Get another value
-1703   6B79 3A CD 90            LD      A,(READFG)      ; Is it READ?
+1703   6B79 3A CD 80            LD      A,(READFG)      ; Is it READ?
 1704   6B7C B7                  OR      A
 1705   6B7D C2 03 6C            JP      NZ,FDTLP        ; Yes - Find next DATA stmt
 1706   6B80 3E 3F               LD      A,'?'           ; More INPUT needed
@@ -1725,7 +1725,7 @@
 1716   6B91 C5                  PUSH    BC              ; Save code string address
 1717   6B92 CA 9B 69            JP      Z,NXTDTA        ; Find end of buffer
 1718   6B95 D5                  PUSH    DE              ; Save variable address
-1719   6B96 3A AD 90    ANTVLU: LD      A,(TYPE)        ; Check data type
+1719   6B96 3A AD 80    ANTVLU: LD      A,(TYPE)        ; Check data type
 1720   6B99 B7                  OR      A               ; Is it numeric?
 1721   6B9A CA C0 6B            JP      Z,INPBIN        ; Yes - Convert to binary
 1722   6B9D CD 05 68            CALL    GETCHR          ; Get next character
@@ -1733,7 +1733,7 @@
 1724   6BA1 47                  LD      B,A             ; Again
 1725   6BA2 FE 22               CP      '"'             ; Start of literal sting?
 1726   6BA4 CA B4 6B            JP      Z,STRENT        ; Yes - Create string entry
-1727   6BA7 3A CD 90            LD      A,(READFG)      ; "READ" or "INPUT" ?
+1727   6BA7 3A CD 80            LD      A,(READFG)      ; "READ" or "INPUT" ?
 1728   6BAA B7                  OR      A
 1729   6BAB 57                  LD      D,A             ; Save 00 if "INPUT"
 1730   6BAC CA B1 6B            JP      Z,ITMSEP        ; "INPUT" - End with 00
@@ -1762,7 +1762,7 @@
 1753   6BD9 CD 05 68            CALL    GETCHR          ; Get next character
 1754   6BDC C2 6A 6B            JP      NZ,NEDMOR       ; More needed - Get it
 1755   6BDF D1                  POP     DE              ; Restore DATA pointer
-1756   6BE0 3A CD 90            LD      A,(READFG)      ; "READ" or "INPUT" ?
+1756   6BE0 3A CD 80            LD      A,(READFG)      ; "READ" or "INPUT" ?
 1757   6BE3 B7                  OR      A
 1758   6BE4 EB                  EX      DE,HL           ; DATA pointer to HL
 1759   6BE5 C2 2B 68            JP      NZ,UPDATA       ; Update DATA pointer if "READ"
@@ -1790,7 +1790,7 @@
 1780   6C15 23                  INC     HL
 1781   6C16 56                  LD      D,(HL)          ; MSB of line number
 1782   6C17 EB                  EX      DE,HL
-1783   6C18 22 C9 90            LD      (DATLIN),HL     ; Set line of current DATA item
+1783   6C18 22 C9 80            LD      (DATLIN),HL     ; Set line of current DATA item
 1784   6C1B EB                  EX      DE,HL
 1785   6C1C CD 05 68    FANDT:  CALL    GETCHR          ; Get next character
 1786   6C1F FE 83               CP      ZDATA           ; "DATA" token
@@ -1799,7 +1799,7 @@
 1789   6C27             
 1790   6C27 11 00 00    NEXT:   LD      DE,0            ; In case no index given
 1791   6C2A C4 68 6E    NEXT1:  CALL    NZ,GETVAR       ; Get index address
-1792   6C2D 22 CE 90            LD      (BRKLIN),HL     ; Save code string address
+1792   6C2D 22 CE 80            LD      (BRKLIN),HL     ; Save code string address
 1793   6C30 CD 56 63            CALL    BAKSTK          ; Look for "FOR" block
 1794   6C33 C2 B3 63            JP      NZ,NFERR        ; No "FOR" - ?NF Error
 1795   6C36 F9                  LD      SP,HL           ; Clear nested loops
@@ -1824,13 +1824,13 @@
 1814   6C53 CD A3 76            CALL    LOADFP          ; BC = Loop stmt,DE = Line num
 1815   6C56 CA 62 6C            JP      Z,KILFOR        ; Loop finished - Terminate it
 1816   6C59 EB                  EX      DE,HL           ; Loop statement line number
-1817   6C5A 22 5C 90            LD      (LINEAT),HL     ; Set loop line number
+1817   6C5A 22 5C 80            LD      (LINEAT),HL     ; Set loop line number
 1818   6C5D 69                  LD      L,C             ; Set code string to loop
 1819   6C5E 60                  LD      H,B
 1820   6C5F C3 C1 67            JP      PUTFID          ; Put back "FOR" and continue
 1821   6C62             
 1822   6C62 F9          KILFOR: LD      SP,HL           ; Remove "FOR" block
-1823   6C63 2A CE 90            LD      HL,(BRKLIN)     ; Code string after "NEXT"
+1823   6C63 2A CE 80            LD      HL,(BRKLIN)     ; Code string after "NEXT"
 1824   6C66 7E                  LD      A,(HL)          ; Get next byte in code string
 1825   6C67 FE 2C               CP      ','             ; More NEXTs ?
 1826   6C69 C2 C5 67            JP      NZ,RUNCNT       ; No - Do next statement
@@ -1841,7 +1841,7 @@
 1831   6C72 CD 84 6C    GETNUM: CALL    EVAL            ; Get a numeric expression
 1832   6C75 F6          TSTNUM: .BYTE      0F6H            ; Clear carry (numeric)
 1833   6C76 37          TSTSTR: SCF                     ; Set carry (string)
-1834   6C77 3A AD 90    CHKTYP: LD      A,(TYPE)        ; Check types match
+1834   6C77 3A AD 80    CHKTYP: LD      A,(TYPE)        ; Check types match
 1835   6C7A 8F                  ADC     A,A             ; Expected + actual
 1836   6C7B B7                  OR      A               ; Clear carry , set parity
 1837   6C7C E8                  RET     PE              ; Even parity - Types match
@@ -1855,8 +1855,8 @@
 1845   6C88 0E 01               LD      C,1
 1846   6C8A CD 8A 63            CALL    CHKSTK          ; Check for 1 level of stack
 1847   6C8D CD FB 6C            CALL    OPRND           ; Get next expression value
-1848   6C90 22 D0 90    EVAL2:  LD      (NXTOPR),HL     ; Save address of next operator
-1849   6C93 2A D0 90    EVAL3:  LD      HL,(NXTOPR)     ; Restore address of next opr
+1848   6C90 22 D0 80    EVAL2:  LD      (NXTOPR),HL     ; Save address of next operator
+1849   6C93 2A D0 80    EVAL3:  LD      HL,(NXTOPR)     ; Restore address of next opr
 1850   6C96 C1                  POP     BC              ; Precedence value and operator
 1851   6C97 78                  LD      A,B             ; Get precedence value
 1852   6C98 FE 78               CP      78H             ; "AND" or "OR" ?
@@ -1873,7 +1873,7 @@
 1863   6CAE BA                  CP      D               ; <- by combining last token
 1864   6CAF 57                  LD      D,A             ; <- with current one
 1865   6CB0 DA AD 63            JP      C,SNERR         ; Error if "<<' '==" or ">>"
-1866   6CB3 22 C5 90            LD      (CUROPR),HL     ; Save address of current token
+1866   6CB3 22 C5 80            LD      (CUROPR),HL     ; Save address of current token
 1867   6CB6 CD 05 68            CALL    GETCHR          ; Get next character
 1868   6CB9 C3 A0 6C            JP      RLTLP           ; Treat the two as one
 1869   6CBC             
@@ -1881,13 +1881,13 @@
 1871   6CBD B7                  OR      A
 1872   6CBE C2 E3 6D            JP      NZ,TSTRED       ; Yes - Test for reduction
 1873   6CC1 7E                  LD      A,(HL)          ; Get operator token
-1874   6CC2 22 C5 90            LD      (CUROPR),HL     ; Save operator address
+1874   6CC2 22 C5 80            LD      (CUROPR),HL     ; Save operator address
 1875   6CC5 D6 AC               SUB     ZPLUS           ; Operator or function?
 1876   6CC7 D8                  RET     C               ; Neither - Exit
 1877   6CC8 FE 07               CP      ZOR+1-ZPLUS     ; Is it + - * / ^ AND OR ?
 1878   6CCA D0                  RET     NC              ; No - Exit
 1879   6CCB 5F                  LD      E,A             ; Coded operator
-1880   6CCC 3A AD 90            LD      A,(TYPE)        ; Get data type
+1880   6CCC 3A AD 80            LD      A,(TYPE)        ; Get data type
 1881   6CCF 3D                  DEC     A               ; FF = numeric , 00 = string
 1882   6CD0 B3                  OR      E               ; Combine with coded operator
 1883   6CD1 7B                  LD      A,E             ; Get coded operator
@@ -1917,11 +1917,11 @@
 1907   6CF2 46                  LD      B,(HL)          ; Get MSB of routine address
 1908   6CF3 23                  INC     HL
 1909   6CF4 C5                  PUSH    BC              ; Save routine address
-1910   6CF5 2A C5 90            LD      HL,(CUROPR)     ; Address of current operator
+1910   6CF5 2A C5 80            LD      HL,(CUROPR)     ; Address of current operator
 1911   6CF8 C3 87 6C            JP      EVAL1           ; Loop until prec' break
 1912   6CFB             
 1913   6CFB AF          OPRND:  XOR     A               ; Get operand routine
-1914   6CFC 32 AD 90            LD      (TYPE),A        ; Set numeric expected
+1914   6CFC 32 AD 80            LD      (TYPE),A        ; Set numeric expected
 1915   6CFF CD 05 68            CALL    GETCHR          ; Get next character
 1916   6D02 1E 24               LD      E,MO            ; ?MO Error
 1917   6D04 CA C1 63            JP      Z,ERROR         ; No operand - Error
@@ -1958,7 +1958,7 @@
 1948   6D51             
 1949   6D51 16 7D       MINUS:  LD      D,7DH           ; '-' precedence
 1950   6D53 CD 87 6C            CALL    EVAL1           ; Evaluate until prec' break
-1951   6D56 2A D0 90            LD      HL,(NXTOPR)     ; Get next operator address
+1951   6D56 2A D0 80            LD      HL,(NXTOPR)     ; Get next operator address
 1952   6D59 E5                  PUSH    HL              ; Save next operator address
 1953   6D5A CD 7D 76            CALL    INVSGN          ; Negate value
 1954   6D5D CD 75 6C    RETNUM: CALL    TSTNUM          ; Make sure it's a number
@@ -1968,8 +1968,8 @@
 1958   6D62 CD 68 6E    CONVAR: CALL    GETVAR          ; Get variable address to DE
 1959   6D65 E5          FRMEVL: PUSH    HL              ; Save code string address
 1960   6D66 EB                  EX      DE,HL           ; Variable address to HL
-1961   6D67 22 E4 90            LD      (FPREG),HL      ; Save address of variable
-1962   6D6A 3A AD 90            LD      A,(TYPE)        ; Get type
+1961   6D67 22 E4 80            LD      (FPREG),HL      ; Save address of variable
+1962   6D6A 3A AD 80            LD      A,(TYPE)        ; Get type
 1963   6D6D B7                  OR      A               ; Numeric?
 1964   6D6E CC 92 76            CALL    Z,PHLTFP        ; Yes - Move contents to FPREG
 1965   6D71 E1                  POP     HL              ; Restore code string address
@@ -1988,7 +1988,7 @@
 1978   6D87 2C                  .BYTE      ','
 1979   6D88 CD 76 6C            CALL    TSTSTR          ; Make sure it's a string
 1980   6D8B EB                  EX      DE,HL           ; Save code string address
-1981   6D8C 2A E4 90            LD      HL,(FPREG)      ; Get address of string
+1981   6D8C 2A E4 80            LD      HL,(FPREG)      ; Get address of string
 1982   6D8F E3                  EX      (SP),HL         ; Save address of string
 1983   6D90 E5                  PUSH    HL              ; Save adjusted token value
 1984   6D91 EB                  EX      DE,HL           ; Restore code string address
@@ -2053,7 +2053,7 @@
 2043   6DE2 E9                  JP      (HL)            ; Save AC as current (ACPASS)
 2044   6DE3             
 2045   6DE3 21 F5 6D    TSTRED: LD      HL,CMPLOG       ; Logical compare routine
-2046   6DE6 3A AD 90            LD      A,(TYPE)        ; Get data type
+2046   6DE6 3A AD 80            LD      A,(TYPE)        ; Get data type
 2047   6DE9 1F                  RRA                     ; Carry set = string
 2048   6DEA 7A                  LD      A,D             ; Get last precedence value
 2049   6DEB 17                  RLA                     ; Times 2 plus carry
@@ -2076,7 +2076,7 @@
 2066   6E03 E5                  PUSH    HL              ; Save for RETurn
 2067   6E04 CA CF 76            JP      Z,CMPNUM        ; Compare values if numeric
 2068   6E07 AF                  XOR     A               ; Compare two strings
-2069   6E08 32 AD 90            LD      (TYPE),A        ; Set type to numeric
+2069   6E08 32 AD 80            LD      (TYPE),A        ; Set type to numeric
 2070   6E0B D5                  PUSH    DE              ; Save string name
 2071   6E0C CD 8E 72            CALL    GSTRCU          ; Get current string
 2072   6E0F 7E                  LD      A,(HL)          ; Get length of string
@@ -2143,13 +2143,13 @@
 2133   6E66 C5                  PUSH    BC              ; Save on stack
 2134   6E67 F6                  .BYTE      0F6H            ; Flag "Create" variable
 2135   6E68 AF          GETVAR: XOR     A               ; Find variable address,to DE
-2136   6E69 32 AC 90            LD      (LCRFLG),A      ; Set locate / create flag
+2136   6E69 32 AC 80            LD      (LCRFLG),A      ; Set locate / create flag
 2137   6E6C 46                  LD      B,(HL)          ; Get First byte of name
 2138   6E6D CD A3 68    GTFNAM: CALL    CHKLTR          ; See if a letter
 2139   6E70 DA AD 63            JP      C,SNERR         ; ?SN Error if not a letter
 2140   6E73 AF                  XOR     A
 2141   6E74 4F                  LD      C,A             ; Clear second byte of name
-2142   6E75 32 AD 90            LD      (TYPE),A        ; Set type to numeric
+2142   6E75 32 AD 80            LD      (TYPE),A        ; Set type to numeric
 2143   6E78 CD 05 68            CALL    GETCHR          ; Get next character
 2144   6E7B DA 84 6E            JP      C,SVNAM2        ; Numeric - Save in name
 2145   6E7E CD A3 68            CALL    CHKLTR          ; See if a letter
@@ -2162,12 +2162,12 @@
 2152   6E91 D6 24       CHARTY: SUB     '$'             ; String variable?
 2153   6E93 C2 A0 6E            JP      NZ,NOTSTR       ; No - Numeric variable
 2154   6E96 3C                  INC     A               ; A = 1 (string type)
-2155   6E97 32 AD 90            LD      (TYPE),A        ; Set type to string
+2155   6E97 32 AD 80            LD      (TYPE),A        ; Set type to string
 2156   6E9A 0F                  RRCA                    ; A = 80H , Flag for string
 2157   6E9B 81                  ADD     A,C             ; 2nd byte of name has bit 7 on
 2158   6E9C 4F                  LD      C,A             ; Resave second byte on name
 2159   6E9D CD 05 68            CALL    GETCHR          ; Get next character
-2160   6EA0 3A CB 90    NOTSTR: LD      A,(FORFLG)      ; Array name needed ?
+2160   6EA0 3A CB 80    NOTSTR: LD      A,(FORFLG)      ; Array name needed ?
 2161   6EA3 3D                  DEC     A
 2162   6EA4 CA 4D 6F            JP      Z,ARLDSV        ; Yes - Get array name
 2163   6EA7 F2 B0 6E            JP      P,NSCFOR        ; No array with "FOR" or "FN"
@@ -2176,17 +2176,17 @@
 2166   6EAD CA 25 6F            JP      Z,SBSCPT        ; Yes - Sort out subscript
 2167   6EB0             
 2168   6EB0 AF          NSCFOR: XOR     A               ; Simple variable
-2169   6EB1 32 CB 90            LD      (FORFLG),A      ; Clear "FOR" flag
+2169   6EB1 32 CB 80            LD      (FORFLG),A      ; Clear "FOR" flag
 2170   6EB4 E5                  PUSH    HL              ; Save code string address
 2171   6EB5 50                  LD      D,B             ; DE = Variable name to find
 2172   6EB6 59                  LD      E,C
-2173   6EB7 2A DE 90            LD      HL,(FNRGNM)     ; FN argument name
+2173   6EB7 2A DE 80            LD      HL,(FNRGNM)     ; FN argument name
 2174   6EBA CD 75 66            CALL    CPDEHL          ; Is it the FN argument?
-2175   6EBD 11 E0 90            LD      DE,FNARG        ; Point to argument value
+2175   6EBD 11 E0 80            LD      DE,FNARG        ; Point to argument value
 2176   6EC0 CA 95 75            JP      Z,POPHRT        ; Yes - Return FN argument value
-2177   6EC3 2A D8 90            LD      HL,(VAREND)     ; End of variables
+2177   6EC3 2A D8 80            LD      HL,(VAREND)     ; End of variables
 2178   6EC6 EB                  EX      DE,HL           ; Address of end of search
-2179   6EC7 2A D6 90            LD      HL,(PROGND)     ; Start of variables address
+2179   6EC7 2A D6 80            LD      HL,(PROGND)     ; Start of variables address
 2180   6ECA CD 75 66    FNDVAR: CALL    CPDEHL          ; End of variable list table?
 2181   6ECD CA E3 6E            JP      Z,CFEVAL        ; Yes - Called from EVAL?
 2182   6ED0 79                  LD      A,C             ; Get second byte of name
@@ -2214,17 +2214,17 @@
 2204   6EF1 E5                  PUSH    HL              ; Save code string address
 2205   6EF2 C5                  PUSH    BC              ; Save variable name
 2206   6EF3 01 06 00            LD      BC,6            ; 2 byte name plus 4 byte data
-2207   6EF6 2A DA 90            LD      HL,(ARREND)     ; End of arrays
+2207   6EF6 2A DA 80            LD      HL,(ARREND)     ; End of arrays
 2208   6EF9 E5                  PUSH    HL              ; Save end of arrays
 2209   6EFA 09                  ADD     HL,BC           ; Move up 6 bytes
 2210   6EFB C1                  POP     BC              ; Source address in BC
 2211   6EFC E5                  PUSH    HL              ; Save new end address
 2212   6EFD CD 79 63            CALL    MOVUP           ; Move arrays up
 2213   6F00 E1                  POP     HL              ; Restore new end address
-2214   6F01 22 DA 90            LD      (ARREND),HL     ; Set new end address
+2214   6F01 22 DA 80            LD      (ARREND),HL     ; Set new end address
 2215   6F04 60                  LD      H,B             ; End of variables to HL
 2216   6F05 69                  LD      L,C
-2217   6F06 22 D8 90            LD      (VAREND),HL     ; Set new end address
+2217   6F06 22 D8 80            LD      (VAREND),HL     ; Set new end address
 2218   6F09             
 2219   6F09 2B          ZEROLP: DEC     HL              ; Back through to zero variable
 2220   6F0A 36 00               LD      (HL),0          ; Zero byte in variable
@@ -2239,14 +2239,14 @@
 2229   6F18 E1                  POP     HL              ; Restore code string address
 2230   6F19 C9                  RET
 2231   6F1A             
-2232   6F1A 32 E7 90    RETNUL: LD      (FPEXP),A       ; Set result to zero
+2232   6F1A 32 E7 80    RETNUL: LD      (FPEXP),A       ; Set result to zero
 2233   6F1D 21 49 63            LD      HL,ZERBYT       ; Also set a null string
-2234   6F20 22 E4 90            LD      (FPREG),HL      ; Save for EVAL
+2234   6F20 22 E4 80            LD      (FPREG),HL      ; Save for EVAL
 2235   6F23 E1                  POP     HL              ; Restore code string address
 2236   6F24 C9                  RET
 2237   6F25             
 2238   6F25 E5          SBSCPT: PUSH    HL              ; Save code string address
-2239   6F26 2A AC 90            LD      HL,(LCRFLG)     ; Locate/Create and Type
+2239   6F26 2A AC 80            LD      HL,(LCRFLG)     ; Locate/Create and Type
 2240   6F29 E3                  EX      (SP),HL         ; Save and get code string
 2241   6F2A 57                  LD      D,A             ; Zero number of dimensions
 2242   6F2B D5          SCPTLP: PUSH    DE              ; Save number of dimensions
@@ -2265,20 +2265,20 @@
 2255   6F3B CA 2B 6F            JP      Z,SCPTLP        ; Yes - More subscripts
 2256   6F3E CD 7B 66            CALL    CHKSYN          ; Make sure ")" follows
 2257   6F41 29                  .BYTE      ")"
-2258   6F42 22 D0 90            LD      (NXTOPR),HL     ; Save code string address
+2258   6F42 22 D0 80            LD      (NXTOPR),HL     ; Save code string address
 2259   6F45 E1                  POP     HL              ; Get LCRFLG and TYPE
-2260   6F46 22 AC 90            LD      (LCRFLG),HL     ; Restore Locate/create & type
+2260   6F46 22 AC 80            LD      (LCRFLG),HL     ; Restore Locate/create & type
 2261   6F49 1E 00               LD      E,0             ; Flag not CSAVE* or CLOAD*
 2262   6F4B D5                  PUSH    DE              ; Save number of dimensions (D)
 2263   6F4C 11                  .BYTE      11H             ; Skip "PUSH HL" and "PUSH AF'
 2264   6F4D             
 2265   6F4D E5          ARLDSV: PUSH    HL              ; Save code string address
 2266   6F4E F5                  PUSH    AF              ; A = 00 , Flags set = Z,N
-2267   6F4F 2A D8 90            LD      HL,(VAREND)     ; Start of arrays
+2267   6F4F 2A D8 80            LD      HL,(VAREND)     ; Start of arrays
 2268   6F52 3E                  .BYTE      3EH             ; Skip "ADD HL,DE"
 2269   6F53 19          FNDARY: ADD     HL,DE           ; Move to next array start
 2270   6F54 EB                  EX      DE,HL
-2271   6F55 2A DA 90            LD      HL,(ARREND)     ; End of arrays
+2271   6F55 2A DA 80            LD      HL,(ARREND)     ; End of arrays
 2272   6F58 EB                  EX      DE,HL           ; Current array pointer
 2273   6F59 CD 75 66            CALL    CPDEHL          ; End of arrays found?
 2274   6F5C CA 85 6F            JP      Z,CREARY        ; Yes - Create array
@@ -2294,7 +2294,7 @@
 2284   6F6A 56                  LD      D,(HL)          ; Get MSB of next array address
 2285   6F6B 23                  INC     HL
 2286   6F6C C2 53 6F            JP      NZ,FNDARY       ; Not found - Keep looking
-2287   6F6F 3A AC 90            LD      A,(LCRFLG)      ; Found Locate or Create it?
+2287   6F6F 3A AC 80            LD      A,(LCRFLG)      ; Found Locate or Create it?
 2288   6F72 B7                  OR      A
 2289   6F73 C2 B6 63            JP      NZ,DDERR        ; Create - ?DD Error
 2290   6F76 F1                  POP     AF              ; Locate - Get number of dim'ns
@@ -2317,10 +2317,10 @@
 2307   6F91 CD 8A 63            CALL    CHKSTK          ; Check if enough memory
 2308   6F94 23                  INC     HL              ; Point to number of dimensions
 2309   6F95 23                  INC     HL
-2310   6F96 22 C5 90            LD      (CUROPR),HL     ; Save address of pointer
+2310   6F96 22 C5 80            LD      (CUROPR),HL     ; Save address of pointer
 2311   6F99 71                  LD      (HL),C          ; Set number of dimensions
 2312   6F9A 23                  INC     HL
-2313   6F9B 3A AC 90            LD      A,(LCRFLG)      ; Locate of Create?
+2313   6F9B 3A AC 80            LD      A,(LCRFLG)      ; Locate of Create?
 2314   6F9E 17                  RLA                     ; Carry set = Create
 2315   6F9F 79                  LD      A,C             ; Get number of dimensions
 2316   6FA0 01 0B 00    CRARLP: LD      BC,10+1         ; Default dimension size 10
@@ -2346,7 +2346,7 @@
 2336   6FBC 19                  ADD     HL,DE           ; Add bytes to array start
 2337   6FBD DA A2 63            JP      C,OMERR         ; Too big - Error
 2338   6FC0 CD 93 63            CALL    ENFMEM          ; See if enough memory
-2339   6FC3 22 DA 90            LD      (ARREND),HL     ; Save new end of array
+2339   6FC3 22 DA 80            LD      (ARREND),HL     ; Save new end of array
 2340   6FC6             
 2341   6FC6 2B          ZERARY: DEC     HL              ; Back through array data
 2342   6FC7 36 00               LD      (HL),0          ; Set array element to zero
@@ -2354,7 +2354,7 @@
 2344   6FCC C2 C6 6F            JP      NZ,ZERARY       ; No - Keep on going
 2345   6FCF 03                  INC     BC              ; Number of bytes + 1
 2346   6FD0 57                  LD      D,A             ; A=0
-2347   6FD1 2A C5 90            LD      HL,(CUROPR)     ; Get address of array
+2347   6FD1 2A C5 80            LD      HL,(CUROPR)     ; Get address of array
 2348   6FD4 5E                  LD      E,(HL)          ; Number of dimensions
 2349   6FD5 EB                  EX      DE,HL           ; To HL
 2350   6FD6 29                  ADD     HL,HL           ; Two bytes per dimension size
@@ -2396,21 +2396,21 @@
 2386   7004 C1                  POP     BC              ; Start of array
 2387   7005 09                  ADD     HL,BC           ; Point to element
 2388   7006 EB                  EX      DE,HL           ; Address of element to DE
-2389   7007 2A D0 90    ENDDIM: LD      HL,(NXTOPR)     ; Got code string address
+2389   7007 2A D0 80    ENDDIM: LD      HL,(NXTOPR)     ; Got code string address
 2390   700A C9                  RET
 2391   700B             
-2392   700B 2A DA 90    FRE:    LD      HL,(ARREND)     ; Start of free memory
+2392   700B 2A DA 80    FRE:    LD      HL,(ARREND)     ; Start of free memory
 2393   700E EB                  EX      DE,HL           ; To DE
 2394   700F 21 00 00            LD      HL,0            ; End of free memory
 2395   7012 39                  ADD     HL,SP           ; Current stack value
-2396   7013 3A AD 90            LD      A,(TYPE)        ; Dummy argument type
+2396   7013 3A AD 80            LD      A,(TYPE)        ; Dummy argument type
 2397   7016 B7                  OR      A
 2398   7017 CA 27 70            JP      Z,FRENUM        ; Numeric - Free variable space
 2399   701A CD 8E 72            CALL    GSTRCU          ; Current string to pool
 2400   701D CD 8E 71            CALL    GARBGE          ; Garbage collection
-2401   7020 2A 5A 90            LD      HL,(STRSPC)     ; Bottom of string space in use
+2401   7020 2A 5A 80            LD      HL,(STRSPC)     ; Bottom of string space in use
 2402   7023 EB                  EX      DE,HL           ; To DE
-2403   7024 2A C3 90            LD      HL,(STRBOT)     ; Bottom of string space
+2403   7024 2A C3 80            LD      HL,(STRBOT)     ; Bottom of string space
 2404   7027 7D          FRENUM: LD      A,L             ; Get LSB of end
 2405   7028 93                  SUB     E               ; Subtract LSB of beginning
 2406   7029 4F                  LD      C,A             ; Save difference if C
@@ -2419,12 +2419,12 @@
 2409   702C 41          ACPASS: LD      B,C             ; Return integer AC
 2410   702D 50          ABPASS: LD      D,B             ; Return integer AB
 2411   702E 1E 00               LD      E,0
-2412   7030 21 AD 90            LD      HL,TYPE         ; Point to type
+2412   7030 21 AD 80            LD      HL,TYPE         ; Point to type
 2413   7033 73                  LD      (HL),E          ; Set type to numeric
 2414   7034 06 90               LD      B,80H+16        ; 16 bit integer
 2415   7036 C3 6B 76            JP      RETINT          ; Return the integr
 2416   7039             
-2417   7039 3A AB 90    POS:    LD      A,(CURPOS)      ; Get cursor position
+2417   7039 3A AB 80    POS:    LD      A,(CURPOS)      ; Get cursor position
 2418   703C 47          PASSA:  LD      B,A             ; Put A into AB
 2419   703D AF                  XOR     A               ; Zero A
 2420   703E C3 2D 70            JP      ABPASS          ; Return integer AB
@@ -2474,14 +2474,14 @@
 2464   7084 66                  LD      H,(HL)          ; Get MSB of argument address
 2465   7085 6F                  LD      L,A             ; HL = Arg variable address
 2466   7086 E5                  PUSH    HL              ; Save it
-2467   7087 2A DE 90            LD      HL,(FNRGNM)     ; Get old argument name
+2467   7087 2A DE 80            LD      HL,(FNRGNM)     ; Get old argument name
 2468   708A E3                  EX      (SP),HL ;       ; Save old , Get new
-2469   708B 22 DE 90            LD      (FNRGNM),HL     ; Set new argument name
-2470   708E 2A E2 90            LD      HL,(FNARG+2)    ; Get LSB,NLSB of old arg value
+2469   708B 22 DE 80            LD      (FNRGNM),HL     ; Set new argument name
+2470   708E 2A E2 80            LD      HL,(FNARG+2)    ; Get LSB,NLSB of old arg value
 2471   7091 E5                  PUSH    HL              ; Save it
-2472   7092 2A E0 90            LD      HL,(FNARG)      ; Get MSB,EXP of old arg value
+2472   7092 2A E0 80            LD      HL,(FNARG)      ; Get MSB,EXP of old arg value
 2473   7095 E5                  PUSH    HL              ; Save it
-2474   7096 21 E0 90            LD      HL,FNARG        ; HL = Value of argument
+2474   7096 21 E0 80            LD      HL,FNARG        ; HL = Value of argument
 2475   7099 D5                  PUSH    DE              ; Save FN code string address
 2476   709A CD AC 76            CALL    FPTHL           ; Move FPREG to argument
 2477   709D E1                  POP     HL              ; Get FN code string address
@@ -2490,16 +2490,16 @@
 2480   70A2 CD 05 68            CALL    GETCHR          ; Get next character
 2481   70A5 C2 AD 63            JP      NZ,SNERR        ; Bad character in FN - Error
 2482   70A8 E1                  POP     HL              ; Get MSB,EXP of old arg
-2483   70A9 22 E0 90            LD      (FNARG),HL      ; Restore it
+2483   70A9 22 E0 80            LD      (FNARG),HL      ; Restore it
 2484   70AC E1                  POP     HL              ; Get LSB,NLSB of old arg
-2485   70AD 22 E2 90            LD      (FNARG+2),HL    ; Restore it
+2485   70AD 22 E2 80            LD      (FNARG+2),HL    ; Restore it
 2486   70B0 E1                  POP     HL              ; Get name of old arg
-2487   70B1 22 DE 90            LD      (FNRGNM),HL     ; Restore it
+2487   70B1 22 DE 80            LD      (FNRGNM),HL     ; Restore it
 2488   70B4 E1                  POP     HL              ; Restore code string address
 2489   70B5 C9                  RET
 2490   70B6             
 2491   70B6 E5          IDTEST: PUSH    HL              ; Save code string address
-2492   70B7 2A 5C 90            LD      HL,(LINEAT)     ; Get current line number
+2492   70B7 2A 5C 80            LD      HL,(LINEAT)     ; Get current line number
 2493   70BA 23                  INC     HL              ; -1 means direct statement
 2494   70BB 7C                  LD      A,H
 2495   70BC B5                  OR      L
@@ -2511,7 +2511,7 @@
 2501   70C4 CD 7B 66    CHEKFN: CALL    CHKSYN          ; Make sure FN follows
 2502   70C7 A7                  .BYTE      ZFN             ; "FN" token
 2503   70C8 3E 80               LD      A,80H
-2504   70CA 32 CB 90            LD      (FORFLG),A      ; Flag FN name to find
+2504   70CA 32 CB 80            LD      (FORFLG),A      ; Flag FN name to find
 2505   70CD B6                  OR      (HL)            ; FN name has bit 7 set
 2506   70CE 47                  LD      B,A             ; in first byte of name
 2507   70CF CD 6D 6E            CALL    GTFNAM          ; Get FN name
@@ -2541,7 +2541,7 @@
 2531   70F9 C9                  RET
 2532   70FA             
 2533   70FA CD 64 71    MKTMST: CALL    TESTR           ; See if enough string space
-2534   70FD 21 BF 90    CRTMST: LD      HL,TMPSTR       ; Temporary string
+2534   70FD 21 BF 80    CRTMST: LD      HL,TMPSTR       ; Temporary string
 2535   7100 E5                  PUSH    HL              ; Save it
 2536   7101 77                  LD      (HL),A          ; Save length of string
 2537   7102 23                  INC     HL
@@ -2573,14 +2573,14 @@
 2563   7126 EB                  EX      DE,HL           ; To DE
 2564   7127 79                  LD      A,C             ; Get length
 2565   7128 CD FD 70            CALL    CRTMST          ; Create string entry
-2566   712B 11 BF 90    TSTOPL: LD      DE,TMPSTR       ; Temporary string
-2567   712E 2A B1 90            LD      HL,(TMSTPT)     ; Temporary string pool pointer
-2568   7131 22 E4 90            LD      (FPREG),HL      ; Save address of string ptr
+2566   712B 11 BF 80    TSTOPL: LD      DE,TMPSTR       ; Temporary string
+2567   712E 2A B1 80            LD      HL,(TMSTPT)     ; Temporary string pool pointer
+2568   7131 22 E4 80            LD      (FPREG),HL      ; Save address of string ptr
 2569   7134 3E 01               LD      A,1
-2570   7136 32 AD 90            LD      (TYPE),A        ; Set type to string
+2570   7136 32 AD 80            LD      (TYPE),A        ; Set type to string
 2571   7139 CD AF 76            CALL    DETHL4          ; Move string to pool
 2572   713C CD 75 66            CALL    CPDEHL          ; Out of string pool?
-2573   713F 22 B1 90            LD      (TMSTPT),HL     ; Save new pointer
+2573   713F 22 B1 80            LD      (TMSTPT),HL     ; Save new pointer
 2574   7142 E1                  POP     HL              ; Restore code string address
 2575   7143 7E                  LD      A,(HL)          ; Get next code byte
 2576   7144 C0                  RET     NZ              ; Return if pool OK
@@ -2605,9 +2605,9 @@
 2595   7165 0E                  .BYTE      0EH             ; No garbage collection done
 2596   7166 F1          GRBDON: POP     AF              ; Garbage collection done
 2597   7167 F5                  PUSH    AF              ; Save status
-2598   7168 2A 5A 90            LD      HL,(STRSPC)     ; Bottom of string space in use
+2598   7168 2A 5A 80            LD      HL,(STRSPC)     ; Bottom of string space in use
 2599   716B EB                  EX      DE,HL           ; To DE
-2600   716C 2A C3 90            LD      HL,(STRBOT)     ; Bottom of string area
+2600   716C 2A C3 80            LD      HL,(STRBOT)     ; Bottom of string area
 2601   716F 2F                  CPL                     ; Negate length (Top down)
 2602   7170 4F                  LD      C,A             ; -Length to BC
 2603   7171 06 FF               LD      B,-1            ; BC = -ve length of string
@@ -2615,7 +2615,7 @@
 2605   7174 23                  INC     HL              ; Plus one for 2's complement
 2606   7175 CD 75 66            CALL    CPDEHL          ; Below string RAM area?
 2607   7178 DA 82 71            JP      C,TESTOS        ; Tidy up if not done else err
-2608   717B 22 C3 90            LD      (STRBOT),HL     ; Save new bottom of area
+2608   717B 22 C3 80            LD      (STRBOT),HL     ; Save new bottom of area
 2609   717E 23                  INC     HL              ; Point to first byte of string
 2610   717F EB                  EX      DE,HL           ; Address to DE
 2611   7180 F1          POPAF:  POP     AF              ; Throw away status push
@@ -2628,22 +2628,22 @@
 2618   7189 F5                  PUSH    AF              ; Save status
 2619   718A 01 66 71            LD      BC,GRBDON       ; Garbage collection done
 2620   718D C5                  PUSH    BC              ; Save for RETurn
-2621   718E 2A AF 90    GARBGE: LD      HL,(LSTRAM)     ; Get end of RAM pointer
-2622   7191 22 C3 90    GARBLP: LD      (STRBOT),HL     ; Reset string pointer
+2621   718E 2A AF 80    GARBGE: LD      HL,(LSTRAM)     ; Get end of RAM pointer
+2622   7191 22 C3 80    GARBLP: LD      (STRBOT),HL     ; Reset string pointer
 2623   7194 21 00 00            LD      HL,0
 2624   7197 E5                  PUSH    HL              ; Flag no string found
-2625   7198 2A 5A 90            LD      HL,(STRSPC)     ; Get bottom of string space
+2625   7198 2A 5A 80            LD      HL,(STRSPC)     ; Get bottom of string space
 2626   719B E5                  PUSH    HL              ; Save bottom of string space
-2627   719C 21 B3 90            LD      HL,TMSTPL       ; Temporary string pool
+2627   719C 21 B3 80            LD      HL,TMSTPL       ; Temporary string pool
 2628   719F EB          GRBLP:  EX      DE,HL
-2629   71A0 2A B1 90            LD      HL,(TMSTPT)     ; Temporary string pool pointer
+2629   71A0 2A B1 80            LD      HL,(TMSTPT)     ; Temporary string pool pointer
 2630   71A3 EB                  EX      DE,HL
 2631   71A4 CD 75 66            CALL    CPDEHL          ; Temporary string pool done?
 2632   71A7 01 9F 71            LD      BC,GRBLP        ; Loop until string pool done
 2633   71AA C2 F3 71            JP      NZ,STPOOL       ; No - See if in string area
-2634   71AD 2A D6 90            LD      HL,(PROGND)     ; Start of simple variables
+2634   71AD 2A D6 80            LD      HL,(PROGND)     ; Start of simple variables
 2635   71B0 EB          SMPVAR: EX      DE,HL
-2636   71B1 2A D8 90            LD      HL,(VAREND)     ; End of simple variables
+2636   71B1 2A D8 80            LD      HL,(VAREND)     ; End of simple variables
 2637   71B4 EB                  EX      DE,HL
 2638   71B5 CD 75 66            CALL    CPDEHL          ; All simple strings done?
 2639   71B8 CA C6 71            JP      Z,ARRLP         ; Yes - Do string arrays
@@ -2656,7 +2656,7 @@
 2646   71C5             
 2647   71C5 C1          GNXARY: POP     BC              ; Scrap address of this array
 2648   71C6 EB          ARRLP:  EX      DE,HL
-2649   71C7 2A DA 90            LD      HL,(ARREND)     ; End of string arrays
+2649   71C7 2A DA 80            LD      HL,(ARREND)     ; End of string arrays
 2650   71CA EB                  EX      DE,HL
 2651   71CB CD 75 66            CALL    CPDEHL          ; All string arrays done?
 2652   71CE CA 1C 72            JP      Z,SCNEND        ; Yes - Move string if found
@@ -2666,7 +2666,7 @@
 2656   71D6 09                  ADD     HL,BC           ; Start of next array
 2657   71D7 B7                  OR      A               ; Test type of array
 2658   71D8 F2 C5 71            JP      P,GNXARY        ; Numeric array - Ignore it
-2659   71DB 22 C5 90            LD      (CUROPR),HL     ; Save address of next array
+2659   71DB 22 C5 80            LD      (CUROPR),HL     ; Save address of next array
 2660   71DE E1                  POP     HL              ; Get address of num of dim'ns
 2661   71DF 4E                  LD      C,(HL)          ; BC = Number of dimensions
 2662   71E0 06 00               LD      B,0
@@ -2674,7 +2674,7 @@
 2664   71E3 09                  ADD     HL,BC
 2665   71E4 23                  INC     HL              ; Plus one for number of dim'ns
 2666   71E5 EB          GRBARY: EX      DE,HL
-2667   71E6 2A C5 90            LD      HL,(CUROPR)     ; Get address of next array
+2667   71E6 2A C5 80            LD      HL,(CUROPR)     ; Get address of next array
 2668   71E9 EB                  EX      DE,HL
 2669   71EA CD 75 66            CALL    CPDEHL          ; Is this array finished?
 2670   71ED CA C6 71            JP      Z,ARRLP         ; Yes - Get next one
@@ -2693,7 +2693,7 @@
 2683   71FF C8                  RET     Z               ; Null string - Return
 2684   7200 44                  LD      B,H             ; Save variable pointer
 2685   7201 4D                  LD      C,L
-2686   7202 2A C3 90            LD      HL,(STRBOT)     ; Bottom of new area
+2686   7202 2A C3 80            LD      HL,(STRBOT)     ; Bottom of new area
 2687   7205 CD 75 66            CALL    CPDEHL          ; String been done?
 2688   7208 60                  LD      H,B             ; Restore variable pointer
 2689   7209 69                  LD      L,C
@@ -2734,7 +2734,7 @@
 2724   722E 2B                  DEC     HL              ; Last byte in string
 2725   722F 44                  LD      B,H             ; Address to BC
 2726   7230 4D                  LD      C,L
-2727   7231 2A C3 90            LD      HL,(STRBOT)     ; Current bottom of string area
+2727   7231 2A C3 80            LD      HL,(STRBOT)     ; Current bottom of string area
 2728   7234 CD 7C 63            CALL    MOVSTR          ; Move string to new address
 2729   7237 E1                  POP     HL              ; Restore variable address
 2730   7238 71                  LD      (HL),C          ; Save new LSB of address
@@ -2747,14 +2747,14 @@
 2737   7241             
 2738   7241 C5          CONCAT: PUSH    BC              ; Save prec' opr & code string
 2739   7242 E5                  PUSH    HL              ; 
-2740   7243 2A E4 90            LD      HL,(FPREG)      ; Get first string
+2740   7243 2A E4 80            LD      HL,(FPREG)      ; Get first string
 2741   7246 E3                  EX      (SP),HL         ; Save first string
 2742   7247 CD FB 6C            CALL    OPRND           ; Get second string
 2743   724A E3                  EX      (SP),HL         ; Restore first string
 2744   724B CD 76 6C            CALL    TSTSTR          ; Make sure it's a string
 2745   724E 7E                  LD      A,(HL)          ; Get length of second string
 2746   724F E5                  PUSH    HL              ; Save first string
-2747   7250 2A E4 90            LD      HL,(FPREG)      ; Get second string
+2747   7250 2A E4 80            LD      HL,(FPREG)      ; Get second string
 2748   7253 E5                  PUSH    HL              ; Save second string
 2749   7254 86                  ADD     A,(HL)          ; Add length of second string
 2750   7255 1E 1C               LD      E,LS            ; ?LS Error
@@ -2765,7 +2765,7 @@
 2755   7261 E3                  EX      (SP),HL         ; Get first string
 2756   7262 CD 91 72            CALL    GSTRHL          ; Move to string pool if needed
 2757   7265 E5                  PUSH    HL              ; Save first string
-2758   7266 2A C1 90            LD      HL,(TMPSTR+2)   ; Temporary string address
+2758   7266 2A C1 80            LD      HL,(TMPSTR+2)   ; Temporary string address
 2759   7269 EB                  EX      DE,HL           ; To DE
 2760   726A CD 78 72            CALL    SSTSA           ; First string to string area
 2761   726D CD 78 72            CALL    SSTSA           ; Second string to string area
@@ -2793,7 +2793,7 @@
 2783   7288 C3 82 72            JP      TSALP           ; Loop until string moved
 2784   728B             
 2785   728B CD 76 6C    GETSTR: CALL    TSTSTR          ; Make sure it's a string
-2786   728E 2A E4 90    GSTRCU: LD      HL,(FPREG)      ; Get current string
+2786   728E 2A E4 80    GSTRCU: LD      HL,(FPREG)      ; Get current string
 2787   7291 EB          GSTRHL: EX      DE,HL           ; Save DE
 2788   7292 CD AC 72    GSTRDE: CALL    BAKTMP          ; Was it last tmp-str?
 2789   7295 EB                  EX      DE,HL           ; Restore DE
@@ -2803,16 +2803,16 @@
 2793   7299 59                  LD      E,C
 2794   729A 1B                  DEC     DE              ; Point to length
 2795   729B 4E                  LD      C,(HL)          ; Get string length
-2796   729C 2A C3 90            LD      HL,(STRBOT)     ; Current bottom of string area
+2796   729C 2A C3 80            LD      HL,(STRBOT)     ; Current bottom of string area
 2797   729F CD 75 66            CALL    CPDEHL          ; Last one in string area?
 2798   72A2 C2 AA 72            JP      NZ,POPHL        ; No - Return
 2799   72A5 47                  LD      B,A             ; Clear B (A=0)
 2800   72A6 09                  ADD     HL,BC           ; Remove string from str' area
-2801   72A7 22 C3 90            LD      (STRBOT),HL     ; Save new bottom of str' area
+2801   72A7 22 C3 80            LD      (STRBOT),HL     ; Save new bottom of str' area
 2802   72AA E1          POPHL:  POP     HL              ; Restore string
 2803   72AB C9                  RET
 2804   72AC             
-2805   72AC 2A B1 90    BAKTMP: LD      HL,(TMSTPT)     ; Get temporary string pool top
+2805   72AC 2A B1 80    BAKTMP: LD      HL,(TMSTPT)     ; Get temporary string pool top
 2806   72AF 2B                  DEC     HL              ; Back
 2807   72B0 46                  LD      B,(HL)          ; Get MSB of address
 2808   72B1 2B                  DEC     HL              ; Back
@@ -2821,7 +2821,7 @@
 2811   72B4 2B                  DEC     HL              ; Back
 2812   72B5 CD 75 66            CALL    CPDEHL          ; String last in string pool?
 2813   72B8 C0                  RET     NZ              ; Yes - Leave it
-2814   72B9 22 B1 90            LD      (TMSTPT),HL     ; Save new string pool top
+2814   72B9 22 B1 80            LD      (TMSTPT),HL     ; Save new string pool top
 2815   72BC C9                  RET
 2816   72BD             
 2817   72BD 01 3C 70    LEN:    LD      BC,PASSA        ; To return integer A
@@ -2829,7 +2829,7 @@
 2819   72C1 CD 8B 72    GETLEN: CALL    GETSTR          ; Get string and its length
 2820   72C4 AF                  XOR     A
 2821   72C5 57                  LD      D,A             ; Clear D
-2822   72C6 32 AD 90            LD      (TYPE),A        ; Set type to numeric
+2822   72C6 32 AD 80            LD      (TYPE),A        ; Set type to numeric
 2823   72C9 7E                  LD      A,(HL)          ; Get length of string
 2824   72CA B7                  OR      A               ; Set status flags
 2825   72CB C9                  RET
@@ -2849,7 +2849,7 @@
 2839   72DD 3E 01       CHR:    LD      A,1             ; One character string
 2840   72DF CD FA 70            CALL    MKTMST          ; Make a temporary string
 2841   72E2 CD D6 73            CALL    MAKINT          ; Make it integer A
-2842   72E5 2A C1 90            LD      HL,(TMPSTR+2)   ; Get address of string
+2842   72E5 2A C1 80            LD      HL,(TMPSTR+2)   ; Get address of string
 2843   72E8 73                  LD      (HL),E          ; Save character
 2844   72E9 C1          TOPOOL: POP     BC              ; Clean up stack
 2845   72EA C3 2B 71            JP      TSTOPL          ; Temporary string to pool
@@ -2966,12 +2966,12 @@
 2956   738F C9                  RET
 2957   7390             
 2958   7390 CD D6 73    INP:    CALL    MAKINT          ; Make it integer A
-2959   7393 32 3F 90            LD      (INPORT),A      ; Set input port
-2960   7396 CD 3E 90            CALL    INPSUB          ; Get input from port
+2959   7393 32 3F 80            LD      (INPORT),A      ; Set input port
+2960   7396 CD 3E 80            CALL    INPSUB          ; Get input from port
 2961   7399 C3 3C 70            JP      PASSA           ; Return integer A
 2962   739C             
 2963   739C CD C0 73    POUT:   CALL    SETIO           ; Set up port number
-2964   739F C3 06 90            JP      OUTSUB          ; Output data and return
+2964   739F C3 06 80            JP      OUTSUB          ; Output data and return
 2965   73A2             
 2966   73A2 CD C0 73    WAIT:   CALL    SETIO           ; Set up port number
 2967   73A5 F5                  PUSH    AF              ; Save AND mask
@@ -2983,15 +2983,15 @@
 2973   73B2 2C                  .BYTE      ','
 2974   73B3 CD D3 73            CALL    GETINT          ; Get integer 0-255 to XOR with
 2975   73B6 C1          NOXOR:  POP     BC              ; Restore AND mask
-2976   73B7 CD 3E 90    WAITLP: CALL    INPSUB          ; Get input
+2976   73B7 CD 3E 80    WAITLP: CALL    INPSUB          ; Get input
 2977   73BA AB                  XOR     E               ; Flip selected bits
 2978   73BB A0                  AND     B               ; Result non-zero?
 2979   73BC CA B7 73            JP      Z,WAITLP        ; No = keep waiting
 2980   73BF C9                  RET
 2981   73C0             
 2982   73C0 CD D3 73    SETIO:  CALL    GETINT          ; Get integer 0-255
-2983   73C3 32 3F 90            LD      (INPORT),A      ; Set input port
-2984   73C6 32 07 90            LD      (OTPORT),A      ; Set output port
+2983   73C3 32 3F 80            LD      (INPORT),A      ; Set input port
+2984   73C6 32 07 80            LD      (OTPORT),A      ; Set output port
 2985   73C9 CD 7B 66            CALL    CHKSYN          ; Make sure ',' follows
 2986   73CC 2C                  .BYTE      ','
 2987   73CD C3 D3 73            JP      GETINT          ; Get integer 0-255 and return
@@ -3033,7 +3033,7 @@
 3023   740E 78          FPADD:  LD      A,B             ; Get FP exponent
 3024   740F B7                  OR      A               ; Is number zero?
 3025   7410 C8                  RET     Z               ; Yes - Nothing to add
-3026   7411 3A E7 90            LD      A,(FPEXP)       ; Get FPREG exponent
+3026   7411 3A E7 80            LD      A,(FPEXP)       ; Get FPREG exponent
 3027   7414 B7                  OR      A               ; Is this number zero?
 3028   7415 CA 95 76            JP      Z,FPBCDE        ; Yes - Move BCDE to FPREG
 3029   7418 90                  SUB     B               ; BCDE number larger?
@@ -3054,7 +3054,7 @@
 3044   7430 F1                  POP     AF              ; Restore scaling factor
 3045   7431 CD D3 74            CALL    SCALE           ; Scale BCDE to same exponent
 3046   7434 B4                  OR      H               ; Result to be positive?
-3047   7435 21 E4 90            LD      HL,FPREG        ; Point to FPREG
+3047   7435 21 E4 80            LD      HL,FPREG        ; Point to FPREG
 3048   7438 F2 4E 74            JP      P,MINCDE        ; No - Subtract FPREG from CDE
 3049   743B CD B3 74            CALL    PLUCDE          ; Add FPREG to CDE
 3050   743E D2 94 74            JP      NC,RONDUP       ; No overflow - Round it up
@@ -3097,7 +3097,7 @@
 3087   746F FE E0               CP      -24-8           ; Was number zero?
 3088   7471 C2 62 74            JP      NZ,BNRMLP       ; No - Keep normalising
 3089   7474 AF          RESZER: XOR     A               ; Result is zero
-3090   7475 32 E7 90    SAVEXP: LD      (FPEXP),A       ; Save result as zero
+3090   7475 32 E7 80    SAVEXP: LD      (FPEXP),A       ; Save result as zero
 3091   7478 C9                  RET
 3092   7479             
 3093   7479 05          NORMAL: DEC     B               ; Count bits
@@ -3114,13 +3114,13 @@
 3104   7486 45                  LD      B,L
 3105   7487 B7                  OR      A               ; Any shifting done?
 3106   7488 CA 94 74            JP      Z,RONDUP        ; No - Round it up
-3107   748B 21 E7 90            LD      HL,FPEXP        ; Point to exponent
+3107   748B 21 E7 80            LD      HL,FPEXP        ; Point to exponent
 3108   748E 86                  ADD     A,(HL)          ; Add shifted bits
 3109   748F 77                  LD      (HL),A          ; Re-save exponent
 3110   7490 D2 74 74            JP      NC,RESZER       ; Underflow - Result is zero
 3111   7493 C8                  RET     Z               ; Result is zero
 3112   7494 78          RONDUP: LD      A,B             ; Get VLSB of number
-3113   7495 21 E7 90    RONDB:  LD      HL,FPEXP        ; Point to exponent
+3113   7495 21 E7 80    RONDB:  LD      HL,FPEXP        ; Point to exponent
 3114   7498 B7                  OR      A               ; Any rounding?
 3115   7499 FC A6 74            CALL    M,FPROND        ; Yes - Round number up
 3116   749C 46                  LD      B,(HL)          ; B = Exponent
@@ -3155,7 +3155,7 @@
 3145   74BD 4F                  LD      C,A             ; Save MSB of BCDE
 3146   74BE C9                  RET
 3147   74BF             
-3148   74BF 21 E8 90    COMPL:  LD      HL,SGNRES       ; Sign of result
+3148   74BF 21 E8 80    COMPL:  LD      HL,SGNRES       ; Sign of result
 3149   74C2 7E                  LD      A,(HL)          ; Get sign of result
 3150   74C3 2F                  CPL                     ; Negate it
 3151   74C4 77                  LD      (HL),A          ; Put it back
@@ -3212,7 +3212,7 @@
 3202   7508 CD 54 76    LOG:    CALL    TSTSGN          ; Test sign of value
 3203   750B B7                  OR      A
 3204   750C EA CC 68            JP      PE,FCERR        ; ?FC Error if <= zero
-3205   750F 21 E7 90            LD      HL,FPEXP        ; Point to exponent
+3205   750F 21 E7 80            LD      HL,FPEXP        ; Point to exponent
 3206   7512 7E                  LD      A,(HL)          ; Get exponent
 3207   7513 01 35 80            LD      BC,8035H        ; BCDE = SQR(1/2)
 3208   7516 11 F3 04            LD      DE,04F3H
@@ -3246,9 +3246,9 @@
 3236   754D 2E 00               LD      L,0             ; Flag add exponents
 3237   754F CD 12 76            CALL    ADDEXP          ; Add exponents
 3238   7552 79                  LD      A,C             ; Get MSB of multiplier
-3239   7553 32 F6 90            LD      (MULVAL),A      ; Save MSB of multiplier
+3239   7553 32 F6 80            LD      (MULVAL),A      ; Save MSB of multiplier
 3240   7556 EB                  EX      DE,HL
-3241   7557 22 F7 90            LD      (MULVAL+1),HL   ; Save rest of multiplier
+3241   7557 22 F7 80            LD      (MULVAL+1),HL   ; Save rest of multiplier
 3242   755A 01 00 00            LD      BC,0            ; Partial product (BCDE) = zero
 3243   755D 50                  LD      D,B
 3244   755E 58                  LD      E,B
@@ -3257,7 +3257,7 @@
 3247   7563 21 6B 75            LD      HL,MULT8        ; Address of 8 bit multiply
 3248   7566 E5                  PUSH    HL              ; Save for NMSB,MSB
 3249   7567 E5                  PUSH    HL              ; 
-3250   7568 21 E4 90            LD      HL,FPREG        ; Point to number
+3250   7568 21 E4 80            LD      HL,FPREG        ; Point to number
 3251   756B 7E          MULT8:  LD      A,(HL)          ; Get LSB of number
 3252   756C 23                  INC     HL              ; Point to NMSB
 3253   756D B7                  OR      A               ; Test LSB
@@ -3269,11 +3269,11 @@
 3259   7576 79                  LD      A,C             ; Get MSB
 3260   7577 D2 85 75            JP      NC,NOMADD       ; Bit was zero - Don't add
 3261   757A E5                  PUSH    HL              ; Save LSB and count
-3262   757B 2A F7 90            LD      HL,(MULVAL+1)   ; Get LSB and NMSB
+3262   757B 2A F7 80            LD      HL,(MULVAL+1)   ; Get LSB and NMSB
 3263   757E 19                  ADD     HL,DE           ; Add NMSB and LSB
 3264   757F EB                  EX      DE,HL           ; Leave sum in DE
 3265   7580 E1                  POP     HL              ; Restore MSB and count
-3266   7581 3A F6 90            LD      A,(MULVAL)      ; Get MSB of multiplier
+3266   7581 3A F6 80            LD      A,(MULVAL)      ; Get MSB of multiplier
 3267   7584 89                  ADC     A,C             ; Add MSB
 3268   7585 1F          NOMADD: RRA                     ; Shift MSB right
 3269   7586 4F                  LD      C,A             ; Re-save MSB
@@ -3313,28 +3313,28 @@
 3303   75B6 34                  INC     (HL)
 3304   75B7 2B                  DEC     HL              ; Point to MSB
 3305   75B8 7E                  LD      A,(HL)          ; Get MSB of dividend
-3306   75B9 32 12 90            LD      (DIV3),A        ; Save for subtraction
+3306   75B9 32 12 80            LD      (DIV3),A        ; Save for subtraction
 3307   75BC 2B                  DEC     HL
 3308   75BD 7E                  LD      A,(HL)          ; Get NMSB of dividend
-3309   75BE 32 0E 90            LD      (DIV2),A        ; Save for subtraction
+3309   75BE 32 0E 80            LD      (DIV2),A        ; Save for subtraction
 3310   75C1 2B                  DEC     HL
 3311   75C2 7E                  LD      A,(HL)          ; Get MSB of dividend
-3312   75C3 32 0A 90            LD      (DIV1),A        ; Save for subtraction
+3312   75C3 32 0A 80            LD      (DIV1),A        ; Save for subtraction
 3313   75C6 41                  LD      B,C             ; Get MSB
 3314   75C7 EB                  EX      DE,HL           ; NMSB,LSB to HL
 3315   75C8 AF                  XOR     A
 3316   75C9 4F                  LD      C,A             ; Clear MSB of quotient
 3317   75CA 57                  LD      D,A             ; Clear NMSB of quotient
 3318   75CB 5F                  LD      E,A             ; Clear LSB of quotient
-3319   75CC 32 15 90            LD      (DIV4),A        ; Clear overflow count
+3319   75CC 32 15 80            LD      (DIV4),A        ; Clear overflow count
 3320   75CF E5          DIVLP:  PUSH    HL              ; Save divisor
 3321   75D0 C5                  PUSH    BC
 3322   75D1 7D                  LD      A,L             ; Get LSB of number
-3323   75D2 CD 09 90            CALL    DIVSUP          ; Subt' divisor from dividend
+3323   75D2 CD 09 80            CALL    DIVSUP          ; Subt' divisor from dividend
 3324   75D5 DE 00               SBC     A,0             ; Count for overflows
 3325   75D7 3F                  CCF
 3326   75D8 D2 E2 75            JP      NC,RESDIV       ; Restore divisor if borrow
-3327   75DB 32 15 90            LD      (DIV4),A        ; Re-save overflow count
+3327   75DB 32 15 80            LD      (DIV4),A        ; Re-save overflow count
 3328   75DE F1                  POP     AF              ; Scrap divisor
 3329   75DF F1                  POP     AF
 3330   75E0 37                  SCF                     ; Set carry to
@@ -3361,15 +3361,15 @@
 3351   75F6 78                  LD      A,B             ; Get MSB of divisor
 3352   75F7 17                  RLA                     ; Double it
 3353   75F8 47                  LD      B,A             ; Put it back
-3354   75F9 3A 15 90            LD      A,(DIV4)        ; Get VLSB of quotient
+3354   75F9 3A 15 80            LD      A,(DIV4)        ; Get VLSB of quotient
 3355   75FC 17                  RLA                     ; Double it
-3356   75FD 32 15 90            LD      (DIV4),A        ; Put it back
+3356   75FD 32 15 80            LD      (DIV4),A        ; Put it back
 3357   7600 79                  LD      A,C             ; Get MSB of quotient
 3358   7601 B2                  OR      D               ; Merge NMSB
 3359   7602 B3                  OR      E               ; Merge LSB
 3360   7603 C2 CF 75            JP      NZ,DIVLP        ; Not done - Keep dividing
 3361   7606 E5                  PUSH    HL              ; Save divisor
-3362   7607 21 E7 90            LD      HL,FPEXP        ; Point to exponent
+3362   7607 21 E7 80            LD      HL,FPEXP        ; Point to exponent
 3363   760A 35                  DEC     (HL)            ; Divide by 2
 3364   760B E1                  POP     HL              ; Restore divisor
 3365   760C C2 CF 75            JP      NZ,DIVLP        ; Ok - Keep going
@@ -3379,7 +3379,7 @@
 3369   7613 B7                  OR      A               ; Test it
 3370   7614 CA 36 76            JP      Z,OVTST3        ; Zero - Result zero
 3371   7617 7D                  LD      A,L             ; Get add/subtract flag
-3372   7618 21 E7 90            LD      HL,FPEXP        ; Point to exponent
+3372   7618 21 E7 80            LD      HL,FPEXP        ; Point to exponent
 3373   761B AE                  XOR     (HL)            ; Add or subtract it
 3374   761C 80                  ADD     A,B             ; Add the other exponent
 3375   761D 47                  LD      B,A             ; Save new exponent
@@ -3411,15 +3411,15 @@
 3401   7645 DA BC 63            JP      C,OVERR         ; Overflow - ?OV Error
 3402   7648 47                  LD      B,A             ; Re-save exponent
 3403   7649 CD 0E 74            CALL    FPADD           ; Add BCDE to FPREG (Times 5)
-3404   764C 21 E7 90            LD      HL,FPEXP        ; Point to exponent
+3404   764C 21 E7 80            LD      HL,FPEXP        ; Point to exponent
 3405   764F 34                  INC     (HL)            ; Double number (Times 10)
 3406   7650 C0                  RET     NZ              ; Ok - Return
 3407   7651 C3 BC 63            JP      OVERR           ; Overflow error
 3408   7654             
-3409   7654 3A E7 90    TSTSGN: LD      A,(FPEXP)       ; Get sign of FPREG
+3409   7654 3A E7 80    TSTSGN: LD      A,(FPEXP)       ; Get sign of FPREG
 3410   7657 B7                  OR      A
 3411   7658 C8                  RET     Z               ; RETurn if number is zero
-3412   7659 3A E6 90            LD      A,(FPREG+2)     ; Get MSB of FPREG
+3412   7659 3A E6 80            LD      A,(FPREG+2)     ; Get MSB of FPREG
 3413   765C FE                  .BYTE      0FEH            ; Test sign
 3414   765D 2F          RETREL: CPL                     ; Invert sign
 3415   765E 17                  RLA                     ; Sign bit to carry
@@ -3431,7 +3431,7 @@
 3421   7663 CD 54 76    SGN:    CALL    TSTSGN          ; Test sign of FPREG
 3422   7666 06 88       FLGREL: LD      B,80H+8         ; 8 bit integer in exponent
 3423   7668 11 00 00            LD      DE,0            ; Zero NMSB and LSB
-3424   766B 21 E7 90    RETINT: LD      HL,FPEXP        ; Point to exponent
+3424   766B 21 E7 80    RETINT: LD      HL,FPEXP        ; Point to exponent
 3425   766E 4F                  LD      C,A             ; CDE = MSB,NMSB and LSB
 3426   766F 70                  LD      (HL),B          ; Save exponent
 3427   7670 06 00               LD      B,0             ; CDE = integer to normalise
@@ -3442,17 +3442,17 @@
 3432   7679             
 3433   7679 CD 54 76    ABS:    CALL    TSTSGN          ; Test sign of FPREG
 3434   767C F0                  RET     P               ; Return if positive
-3435   767D 21 E6 90    INVSGN: LD      HL,FPREG+2      ; Point to MSB
+3435   767D 21 E6 80    INVSGN: LD      HL,FPREG+2      ; Point to MSB
 3436   7680 7E                  LD      A,(HL)          ; Get sign of mantissa
 3437   7681 EE 80               XOR     80H             ; Invert sign of mantissa
 3438   7683 77                  LD      (HL),A          ; Re-save sign of mantissa
 3439   7684 C9                  RET
 3440   7685             
 3441   7685 EB          STAKFP: EX      DE,HL           ; Save code string address
-3442   7686 2A E4 90            LD      HL,(FPREG)      ; LSB,NLSB of FPREG
+3442   7686 2A E4 80            LD      HL,(FPREG)      ; LSB,NLSB of FPREG
 3443   7689 E3                  EX      (SP),HL         ; Stack them,get return
 3444   768A E5                  PUSH    HL              ; Re-save return
-3445   768B 2A E6 90            LD      HL,(FPREG+2)    ; MSB and exponent of FPREG
+3445   768B 2A E6 80            LD      HL,(FPREG+2)    ; MSB and exponent of FPREG
 3446   768E E3                  EX      (SP),HL         ; Stack them,get return
 3447   768F E5                  PUSH    HL              ; Re-save return
 3448   7690 EB                  EX      DE,HL           ; Restore code string address
@@ -3460,14 +3460,14 @@
 3450   7692             
 3451   7692 CD A3 76    PHLTFP: CALL    LOADFP          ; Number at HL to BCDE
 3452   7695 EB          FPBCDE: EX      DE,HL           ; Save code string address
-3453   7696 22 E4 90            LD      (FPREG),HL      ; Save LSB,NLSB of number
+3453   7696 22 E4 80            LD      (FPREG),HL      ; Save LSB,NLSB of number
 3454   7699 60                  LD      H,B             ; Exponent of number
 3455   769A 69                  LD      L,C             ; MSB of number
-3456   769B 22 E6 90            LD      (FPREG+2),HL    ; Save MSB and exponent
+3456   769B 22 E6 80            LD      (FPREG+2),HL    ; Save MSB and exponent
 3457   769E EB                  EX      DE,HL           ; Restore code string address
 3458   769F C9                  RET
 3459   76A0             
-3460   76A0 21 E4 90    BCDEFP: LD      HL,FPREG        ; Point to FPREG
+3460   76A0 21 E4 80    BCDEFP: LD      HL,FPREG        ; Point to FPREG
 3461   76A3 5E          LOADFP: LD      E,(HL)          ; Get LSB of number
 3462   76A4 23                  INC     HL
 3463   76A5 56                  LD      D,(HL)          ; Get NMSB of number
@@ -3478,7 +3478,7 @@
 3468   76AA 23          INCHL:  INC     HL              ; Used for conditional "INC HL"
 3469   76AB C9                  RET
 3470   76AC             
-3471   76AC 11 E4 90    FPTHL:  LD      DE,FPREG        ; Point to FPREG
+3471   76AC 11 E4 80    FPTHL:  LD      DE,FPREG        ; Point to FPREG
 3472   76AF 06 04       DETHL4: LD      B,4             ; 4 bytes to move
 3473   76B1 1A          DETHLB: LD      A,(DE)          ; Get source
 3474   76B2 77                  LD      (HL),A          ; Save destination
@@ -3488,7 +3488,7 @@
 3478   76B6 C2 B1 76            JP      NZ,DETHLB       ; Loop if more
 3479   76B9 C9                  RET
 3480   76BA             
-3481   76BA 21 E6 90    SIGNS:  LD      HL,FPREG+2      ; Point to MSB of FPREG
+3481   76BA 21 E6 80    SIGNS:  LD      HL,FPREG+2      ; Point to MSB of FPREG
 3482   76BD 7E                  LD      A,(HL)          ; Get MSB
 3483   76BE 07                  RLCA                    ; Old sign to carry
 3484   76BF 37                  SCF                     ; Set MSBit
@@ -3516,7 +3516,7 @@
 3506   76D8 CD 54 76            CALL    TSTSGN          ; Test sign of FPREG
 3507   76DB 79                  LD      A,C             ; Get MSB of number
 3508   76DC C8                  RET     Z               ; FPREG zero - Number's MSB
-3509   76DD 21 E6 90            LD      HL,FPREG+2      ; MSB of FPREG
+3509   76DD 21 E6 80            LD      HL,FPREG+2      ; MSB of FPREG
 3510   76E0 AE                  XOR     (HL)            ; Combine signs
 3511   76E1 79                  LD      A,C             ; Get MSB of number
 3512   76E2 F8                  RET     M               ; Exit if signs different
@@ -3576,10 +3576,10 @@
 3566   7725 0B                  DEC     BC              ; Decrement MSBs
 3567   7726 C9                  RET
 3568   7727             
-3569   7727 21 E7 90    INT:    LD      HL,FPEXP        ; Point to exponent
+3569   7727 21 E7 80    INT:    LD      HL,FPEXP        ; Point to exponent
 3570   772A 7E                  LD      A,(HL)          ; Get exponent
 3571   772B FE 98               CP      80H+24          ; Integer accuracy only?
-3572   772D 3A E4 90            LD      A,(FPREG)       ; Get LSB
+3572   772D 3A E4 80            LD      A,(FPREG)       ; Get LSB
 3573   7730 D0                  RET     NC              ; Yes - Already integer
 3574   7731 7E                  LD      A,(HL)          ; Get exponent
 3575   7732 CD FC 76            CALL    FPINT           ; F.P to integer
@@ -3706,7 +3706,7 @@
 3696   77F2 CD 6B 76            CALL    RETINT          ; Return the integer
 3697   77F5 21 4A 71            LD      HL,PRNUMS       ; Print number string
 3698   77F8 E5                  PUSH    HL              ; Save for return
-3699   77F9 21 E9 90    NUMASC: LD      HL,PBUFF        ; Convert number to ASCII
+3699   77F9 21 E9 80    NUMASC: LD      HL,PBUFF        ; Convert number to ASCII
 3700   77FC E5                  PUSH    HL              ; Save for return
 3701   77FD CD 54 76            CALL    TSTSGN          ; Test sign of FPREG
 3702   7800 36 20               LD      (HL),' '        ; Space at start
@@ -3879,9 +3879,9 @@
 3869   7921 7C                  LD      A,H             ; but don't affect flags
 3870   7922 1F                  RRA                     ; Exponent odd or even?
 3871   7923 E1          POWER2: POP     HL              ; Restore MSB and exponent
-3872   7924 22 E6 90            LD      (FPREG+2),HL    ; Save base in FPREG
+3872   7924 22 E6 80            LD      (FPREG+2),HL    ; Save base in FPREG
 3873   7927 E1                  POP     HL              ; LSBs of base
-3874   7928 22 E4 90            LD      (FPREG),HL      ; Save in FPREG
+3874   7928 22 E4 80            LD      (FPREG),HL      ; Save in FPREG
 3875   792B DC E8 78            CALL    C,NEGAFT        ; Odd power - Negate result
 3876   792E CC 7D 76            CALL    Z,INVSGN        ; Negative base - Negate it
 3877   7931 D5                  PUSH    DE              ; Save power
@@ -3895,7 +3895,7 @@
 3885   793E 01 38 81            LD      BC,08138H       ; BCDE = 1/Ln(2)
 3886   7941 11 3B AA            LD      DE,0AA3BH
 3887   7944 CD 49 75            CALL    FPMULT          ; Multiply value by 1/LN(2)
-3888   7947 3A E7 90            LD      A,(FPEXP)       ; Get exponent
+3888   7947 3A E7 80            LD      A,(FPEXP)       ; Get exponent
 3889   794A FE 88               CP      80H+8           ; Is it in range?
 3890   794C D2 30 76            JP      NC,OVTST1       ; No - Test for overflow
 3891   794F CD 27 77            CALL    INT             ; Get INT of FPREG
@@ -3959,11 +3959,11 @@
 3949   79C9 C3 B4 79            JP      SUMLP           ; More coefficients
 3950   79CC             
 3951   79CC CD 54 76    RND:    CALL    TSTSGN          ; Test sign of FPREG
-3952   79CF 21 19 90            LD      HL,SEED+2       ; Random number seed
+3952   79CF 21 19 80            LD      HL,SEED+2       ; Random number seed
 3953   79D2 FA 2D 7A            JP      M,RESEED        ; Negative - Re-seed
-3954   79D5 21 3A 90            LD      HL,LSTRND       ; Last random number
+3954   79D5 21 3A 80            LD      HL,LSTRND       ; Last random number
 3955   79D8 CD 92 76            CALL    PHLTFP          ; Move last RND to FPREG
-3956   79DB 21 19 90            LD      HL,SEED+2       ; Random number seed
+3956   79DB 21 19 80            LD      HL,SEED+2       ; Random number seed
 3957   79DE C8                  RET     Z               ; Return if RND(0)
 3958   79DF 86                  ADD     A,(HL)          ; Add (SEED)+2)
 3959   79E0 E6 07               AND     00000111B       ; 0 to 7
@@ -3976,13 +3976,13 @@
 3966   79E9 09                  ADD     HL,BC           ; Point to coefficient
 3967   79EA CD A3 76            CALL    LOADFP          ; Coefficient to BCDE
 3968   79ED CD 49 75            CALL    FPMULT  ;       ; Multiply FPREG by coefficient
-3969   79F0 3A 18 90            LD      A,(SEED+1)      ; Get (SEED+1)
+3969   79F0 3A 18 80            LD      A,(SEED+1)      ; Get (SEED+1)
 3970   79F3 3C                  INC     A               ; Add 1
 3971   79F4 E6 03               AND     00000011B       ; 0 to 3
 3972   79F6 06 00               LD      B,0
 3973   79F8 FE 01               CP      1               ; Is it zero?
 3974   79FA 88                  ADC     A,B             ; Yes - Make it 1
-3975   79FB 32 18 90            LD      (SEED+1),A      ; Re-save seed
+3975   79FB 32 18 80            LD      (SEED+1),A      ; Re-save seed
 3976   79FE 21 31 7A            LD      HL,RNDTAB-4     ; Addition table
 3977   7A01 87                  ADD     A,A             ; 4 bytes
 3978   7A02 87                  ADD     A,A             ; per entry
@@ -3998,7 +3998,7 @@
 3988   7A12 2B                  DEC     HL              ; Point to MSB
 3989   7A13 46                  LD      B,(HL)          ; Get MSB
 3990   7A14 36 80               LD      (HL),80H        ; Make value -0.5
-3991   7A16 21 17 90            LD      HL,SEED         ; Random number seed
+3991   7A16 21 17 80            LD      HL,SEED         ; Random number seed
 3992   7A19 34                  INC     (HL)            ; Count seed
 3993   7A1A 7E                  LD      A,(HL)          ; Get seed
 3994   7A1B D6 AB               SUB     171             ; Do it modulo 171
@@ -4008,7 +4008,7 @@
 3998   7A22 15                  DEC     D               ; with the
 3999   7A23 1C                  INC     E               ; number
 4000   7A24 CD 5F 74    RND2:   CALL    BNORM           ; Normalise number
-4001   7A27 21 3A 90            LD      HL,LSTRND       ; Save random number
+4001   7A27 21 3A 80            LD      HL,LSTRND       ; Save random number
 4002   7A2A C3 AC 76            JP      FPTHL           ; Move FPREG to last and return
 4003   7A2D             
 4004   7A2D 77          RESEED: LD      (HL),A          ; Re-seed random numbers
@@ -4077,7 +4077,7 @@
 4067   7ABD CD 54 76    ATN:    CALL    TSTSGN          ; Test sign of value
 4068   7AC0 FC E8 78            CALL    M,NEGAFT        ; Negate result after if -ve
 4069   7AC3 FC 7D 76            CALL    M,INVSGN        ; Negate value if -ve
-4070   7AC6 3A E7 90            LD      A,(FPEXP)       ; Get exponent
+4070   7AC6 3A E7 80            LD      A,(FPEXP)       ; Get exponent
 4071   7AC9 FE 81               CP      81H             ; Number less than 1?
 4072   7ACB DA DA 7A            JP      C,ATN1          ; Yes - Get arc tangnt
 4073   7ACE 01 00 81            LD      BC,8100H        ; BCDE = 1
@@ -4114,13 +4114,13 @@
 4104   7B11             
 4105   7B11 CD D3 73    WIDTH:  CALL    GETINT          ; Get integer 0-255
 4106   7B14 7B                  LD      A,E             ; Width to A
-4107   7B15 32 42 90            LD      (LWIDTH),A      ; Set width
+4107   7B15 32 42 80            LD      (LWIDTH),A      ; Set width
 4108   7B18 C9                  RET
 4109   7B19             
 4110   7B19 CD 72 6C    LINES:  CALL    GETNUM          ; Get a number
 4111   7B1C CD B7 68            CALL    DEINT           ; Get integer -32768 to 32767
-4112   7B1F ED 53 46 90         LD      (LINESC),DE     ; Set lines counter
-4113   7B23 ED 53 48 90         LD      (LINESN),DE     ; Set lines number
+4112   7B1F ED 53 46 80         LD      (LINESC),DE     ; Set lines counter
+4113   7B23 ED 53 48 80         LD      (LINESN),DE     ; Set lines number
 4114   7B27 C9                  RET
 4115   7B28             
 4116   7B28 CD B7 68    DEEK:   CALL    DEINT           ; Get integer -32768 to 32767
@@ -4151,7 +4151,7 @@
 4141   7B4A CD 75 6C    HEX: 	CALL	TSTNUM          ; Verify it's a number
 4142   7B4D CD B7 68            CALL	DEINT           ; Get integer -32768 to 32767
 4143   7B50 C5                  PUSH	BC              ; Save contents of BC
-4144   7B51 21 E9 90            LD	    HL,PBUFF
+4144   7B51 21 E9 80            LD	    HL,PBUFF
 4145   7B54 7A                  LD	    A,D             ; Get high order into A
 4146   7B55 FE 00               CP      $0
 4147   7B57 28 0C       		JR      Z,HEX2          ; Skip output if both high digits are zero
@@ -4180,7 +4180,7 @@
 4170   7B79 23                  INC     HL              ; Make sure PBUFF is terminated
 4171   7B7A 77                  LD      (HL),A          ; Store the double zero there
 4172   7B7B C1                  POP     BC              ; Get BC back
-4173   7B7C 21 E9 90            LD      HL,PBUFF        ; Reset to start of PBUFF
+4173   7B7C 21 E9 80            LD      HL,PBUFF        ; Reset to start of PBUFF
 4174   7B7F C3 DB 70            JP      STR1            ; Convert the PBUFF to a string and return it
 4175   7B82             
 4176   7B82 47          BYT2ASC	LD      B,A             ; Save original value
@@ -4251,7 +4251,7 @@
 4241   7BDD CD 75 6C    BIN:    CALL    TSTNUM          ; Verify it's a number
 4242   7BE0 CD B7 68            CALL    DEINT           ; Get integer -32768 to 32767
 4243   7BE3 C5          BIN2:   PUSH    BC              ; Save contents of BC
-4244   7BE4 21 E9 90            LD      HL,PBUFF
+4244   7BE4 21 E9 80            LD      HL,PBUFF
 4245   7BE7 06 11               LD      B,17            ; One higher than max char count
 4246   7BE9             ZEROSUP:                        ; Suppress leading zeros
 4247   7BE9 05                  DEC     B               ; Max 16 chars
@@ -4277,7 +4277,7 @@
 4267   7C06 23                  INC     HL              ; Make sure PBUFF is terminated
 4268   7C07 77                  LD      (HL),A          ; Store the double zero there
 4269   7C08 C1                  POP     BC
-4270   7C09 21 E9 90            LD      HL,PBUFF
+4270   7C09 21 E9 80            LD      HL,PBUFF
 4271   7C0C C3 DB 70            JP      STR1
 4272   7C0F             
 4273   7C0F             ; Convert "&Bnnnn" to FPREG
@@ -4328,7 +4328,7 @@
 4318   7C4C             
 4319   7C4C             
 4320   7C4C 3E 00       INITST: LD      A,0             ; Clear break flag
-4321   7C4E 32 4D 90            LD      (BRKFLG),A
+4321   7C4E 32 4D 80            LD      (BRKFLG),A
 4322   7C51 C3 18 60            JP      INIT
 4323   7C54             
 4324   7C54 ED 45       ARETN:  RETN                    ; Return from NMI
