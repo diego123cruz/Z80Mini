@@ -44,8 +44,12 @@ B2400:	.EQU	003FH	;2400 BAUD
 B4800:	.EQU	001BH	;4800 BAUD
 B9600:	.EQU	000BH	;9600 BAUD
 
-SYSTEM:	.EQU 	0FE00H	;INITIAL STACK POINTER
+SYSTEM:	.EQU 	0FD00H	;INITIAL STACK POINTER
 I2CDATA .EQU    0D000H 
+
+ADDR:    .EQU 0FEB0H   ;THE ADDRESS  
+DATA:    .EQU 0FEB2H   ;THE DATA
+MSGBUF:  .EQU 0FE00H   ;STRING HANDLING AREA
 
 BAUD:	 .EQU	0FFC0H	 ;BAUD RATE
 PUTCH:   .EQU   0FFAAH   ;OUTPUT A CHARACTER TO SERIAL
@@ -117,7 +121,7 @@ SHIFTKEYMAP:
 .BYTE   "`~-_=+;:'"
 .BYTE   22h
 .BYTE   "{}[]|",$5C,"<>?/"
-.BYTE   CTRLC, ",.     ", VT, LF
+.BYTE   CTRLC,",.",ESC,"    ", VT, LF
 
 
 
@@ -319,22 +323,15 @@ INICIO:
     LD HL, MSG_MONITOR
     CALL SNDLCDMSG
 
-    LD HL, MSG_MENU1
-    CALL SNDLCDMSG
-
-    LD HL, MSG_MENU2
-    CALL SNDLCDMSG
-
-    LD HL, MSG_MENU3
-    CALL SNDLCDMSG
-
-    LD HL, MSG_MENU4
-    CALL SNDLCDMSG
-
-    ;JP BASIC
+    LD A, '>'
+    CALL PRINTCHAR
 
 KEY:
     CALL KEYREADINIT
+
+    CP 'H'
+    CALL Z, SHOWHELP
+
     CP 'B'
     JP Z, BASIC
 
@@ -347,8 +344,27 @@ KEY:
     CP '1'
     CALL Z, I2CLIST
 
+    CP 'G'
+    CALL Z, GOJUMP
+
+    CP 'M'
+    CALL Z, MODIFY
+
+    LD A, CR 
+    CALL PRINTCHAR
+
+    LD A, '>' 
+    CALL PRINTCHAR
+
     JP  KEY
 
+RESETW:
+    LD A, CR
+    CALL PRINTCHAR
+
+    LD A, '>'
+    CALL PRINTCHAR
+    JP KEY
 
 INTEL_HEX:
     CALL INTHEX
@@ -356,10 +372,250 @@ INTEL_HEX:
     CALL delay
     JP INICIO
 
+SHOWHELP:
+    LD A, $0C ; limpar tela
+    CALL PRINTCHAR
+
+    LD HL, MSG_MENU1
+    CALL SNDLCDMSG
+
+    LD HL, MSG_MENU2
+    CALL SNDLCDMSG
+
+    LD HL, MSG_MENU3
+    CALL SNDLCDMSG
+
+    LD HL, MSG_MENU4
+    CALL SNDLCDMSG
+
+    LD HL, MSG_MENU5
+    CALL SNDLCDMSG
+
+    LD HL, MSG_MENU6
+    CALL SNDLCDMSG
+
+    RET
+
+
+;----------------------------
+; M DISPLAY AND MODIFY MEMORY
+;----------------------------
+MODIFY: LD A, 'M'
+        CALL PRINTCHAR
+     CALL  OUTSP
+;
+;GET THE ADDRESS        
+;
+       CALL  GETCHR 
+       RET   C        
+       LD    (ADDR+1),A  ;SAVE ADDRESS HIGH
+       CALL  GETCHR
+       RET   C
+       LD    (ADDR),A    ;SAVE ADDRESS LOW 
+;
+; DISPLAY ON A NEW LINE
+;       
+MDIFY1: CALL  TXCRLF       
+       LD    DE,(ADDR)    
+       LD    HL,MSGBUF   
+       CALL  WRDASC      ;CONVERT ADDRESS IN DE TO ASCII
+       LD    HL,MSGBUF
+       CALL  WRDOUT      ;OUTPUT THE ADDRESS
+       CALL  OUTSP    
+;      
+;GET THE DATA AT THE ADDRESS        
+;
+        LD   HL,(ADDR)       
+        LD   A,(HL)
+;
+; DISPLAY THE DATA
+;        
+       LD    HL,MSGBUF
+       CALL  BYTASC     ;CONVERT THE DATA BYTE IN A TO ASCII
+       LD    HL,MSGBUF
+       CALL  BYTOUT      ;OUTPUT THE BYTE
+       CALL  OUTSP
+;
+; GET NEW DATA,EXIT OR CONTINUE
+;
+       CALL  GETCHR
+       RET   C
+       LD    B,A         ;SAVE IT FOR LATER
+       LD    HL,(ADDR)
+       LD    (HL),A      ;PUT THE BYTE AT THE CURRENT ADDRESS
+       LD    A,B
+       CP    (HL)
+       JR    Z,MDIFY2
+       LD    A,'?'
+       CALL  PRINTCHAR       ;NOT THE SAME DATA, PROBABLY NO RAM THERE      
+;
+; INCREMENT THE ADDRESS
+;
+MDIFY2: INC   HL
+       LD    (ADDR),HL
+       JP    MDIFY1
 
 
 
+;------------------------------
+; GO <ADDR>
+; TRANSFERS EXECUTION TO <ADDR>
+;------------------------------
+GOJUMP: LD A, 'G'
+        CALL PRINTCHAR
+       CALL  OUTSP       
+       CALL  GETCHR      ;GET ADDRESS HIGH BYTE
+       RET   C
+       LD    (ADDR+1),A  ;SAVE ADDRESS HIGH
+       CALL  GETCHR      ;GET ADDRESS LOW BYTE
+       RET   C
+       LD    (ADDR),A    ;SAVE ADDRESS LOW 
+;
+; WAIT FOR A CR OR ESC
+;       
+GOJMP1: CALL  KEYREADINIT
+       CP    ESC         ;ESC KEY?
+       RET   Z
+       CP    CR
+       JR    NZ,GOJMP1
+       CALL  TXCRLF
+       POP   HL          ;POP THE UNUSED MENU RETURN ADDRESS FROM THE STACK
+       LD    HL,(ADDR)
+       JP    (HL)        ;GOOD LUCK WITH THAT!
 
+
+;---------------
+; OUTPUT A SPACE
+;---------------
+OUTSP:  LD    A,20H
+       CALL  PRINTCHAR
+       RET
+
+;-------------      
+; OUTPUT CRLF
+;------------
+TXCRLF: LD   A,CR
+       CALL PRINTCHAR   
+       RET
+
+;-----------------------------
+; GET A BYTE FROM THE TERMINAL
+;-----------------------------
+GETCHR: CALL KEYREADINIT ; read key
+       CP    ESC
+       JR    Z,GETOUT
+       LD    B,A                ;SAVE TO ECHO      
+       CALL  ASC2HEX
+       JR    NC,GETCHR          ;REJECT NON HEX CHARS    
+       LD    HL,DATA
+       LD    (HL),A 
+       LD    A,B         
+       CALL  PRINTCHAR             ;ECHO VALID HEX
+       
+GETNYB: CALL  KEYREADINIT
+       CP    ESC
+       JR    Z,GETOUT
+       LD    B,A               ;SAVE TO ECHO
+       CALL  ASC2HEX
+       JR    NC,GETNYB         ;REJECT NON HEX CHARS
+       RLD
+       LD    A,B
+       CALL  PRINTCHAR             ;ECHO VALID HEX
+       LD    A,(HL)
+       CALL  GETOUT            ;MAKE SURE WE CLEAR THE CARRY BY SETTING IT,
+       CCF                    ;AND THEN COMPLEMENTING IT
+       RET   
+GETOUT: SCF                    ;SET THE CARRY FLAG TO EXIT BACK TO MENU
+       RET
+
+
+;----------------------------------------
+; CONVERT ASCII CHARACTER INTO HEX NYBBLE
+;----------------------------------------
+; THIS ROUTINE IS FOR MASKING OUT KEYBOARD
+; ENTRY OTHER THAN HEXADECIMAL KEYS
+;
+;CONVERTS ASCII 0-9,A-F INTO HEX LSN
+;ENTRY : A= ASCII 0-9,A-F
+;EXIT  : CARRY =  1
+;          A= HEX 0-F IN LSN    
+;      : CARRY = 0
+;          A= OUT OF RANGE CHARACTER & 7FH
+; A AND F REGISTERS MODIFIED
+;
+ASC2HEX: AND   7FH        ;STRIP OUT PARITY
+       CP    30H
+       JR    C,AC2HEX3    ;LESS THAN 0
+       CP    3AH
+       JR    NC,AC2HEX2   ;MORE THAN 9
+AC2HEX1: SCF               ;SET THE CARRY - IS HEX
+       RET
+;     
+AC2HEX2: CP    41H
+       JR    C,AC2HEX3    ;LESS THAN A
+       CP    47H
+       JR    NC,AC2HEX3   ;MORE THAN F
+       SUB   07H        ;CONVERT TO NYBBLE
+       JR    AC2HEX1  
+AC2HEX3: AND   0FFH        ;RESET THE CARRY - NOT HEX
+       RET
+
+
+;----------------------     
+; SEND ASCII HEX VALUES        
+;----------------------
+;
+; OUTPUT THE 4 BYTE, WRDOUT
+; THE 2 BYTE, BYTOUT
+; OR THE SINGLE BYTE, NYBOUT
+; ASCII STRING AT HL TO THE SERIAL PORT
+;
+WRDOUT: CALL  BYTOUT
+BYTOUT: CALL  NYBOUT
+NYBOUT: LD    A,(HL)
+       CALL  PRINTCHAR
+       INC   HL
+       RET       
+;----------------
+;CONVERT TO ASCII 
+;----------------
+;
+; CONVERT A WORD,A BYTE OR A NYBBLE TO ASCII
+;
+;         ENTRY :  A = BINARY TO CONVERT
+;                  HL = CHARACTER BUFFER ADDRESS   
+;        EXIT   :  HL = POINTS TO LAST CHARACTER+1
+;   
+;        MODIFIES : DE
+
+WRDASC: LD    A,D         ;CONVERT AND
+       CALL  BYTASC      ;OUTPUT D
+       LD    A,E         ;THEN E
+;
+;CONVERT A BYTE TO ASCII 
+;
+BYTASC: PUSH  AF          ;SAVE A FOR SECOND NYBBLE 
+       RRCA              ;SHIFT HIGH NYBBLE ACROSS
+       RRCA
+       RRCA
+       RRCA
+       CALL NYBASC       ;CALL NYBBLE CONVERTER 
+       POP AF            ;RESTORE LOW NYBBLE
+
+;           
+; CONVERT A NYBBLE TO ASCII
+;
+NYBASC: AND   0FH         ;MASK OFF HIGH NYBBLE 
+       ADD   A,90H       ;CONVERT TO
+       DAA               ;ASCII
+       ADC   A,40H
+       DAA
+;            
+; SAVE IN STRING
+;
+INSBUF: LD    (HL),A
+       INC   HL 
+       RET 
 
 
 
@@ -1987,11 +2243,13 @@ I2C_RdPort: PUSH BC             ;Preserve registers
 
 
 WELLCOME: .db CS, CR, CR, LF,"Z80 Mini Iniciado", CR, LF, 00H
-MSG_MONITOR .db "Z80 MINI - Monitor v1",CR, 00H
+MSG_MONITOR .db "Z80 MINI, H TO HELP",CR, 00H
 MSG_MENU1 .db "B - Basic",CR, 00H
 MSG_MENU2 .db "I - Intel hex loader",CR, 00H
 MSG_MENU3 .db "R - RUN (JP $8000)",CR, 00H
 MSG_MENU4 .db "1 - I2C Scan",CR, 00H
+MSG_MENU5 .db "G AAAA - GO TO ADDR",CR, 00H
+MSG_MENU6 .db "M AAAA - MODIFY ADDR",CR,00H
 
 MSG_ILOAD .db $0C, "Intel HEX loader...", CR, 00H
 FILEOK    .DB      "FILE RECEIVED OK",CR,00H
