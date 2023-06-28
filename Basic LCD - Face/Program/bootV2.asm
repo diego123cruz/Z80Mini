@@ -47,9 +47,15 @@ B9600:	.EQU	000BH	;9600 BAUD
 SYSTEM:	.EQU 	0FD00H	;INITIAL STACK POINTER
 I2CDATA .EQU    0D000H 
 
-ADDR:    .EQU 0FEB0H   ;THE ADDRESS  
-DATA:    .EQU 0FEB2H   ;THE DATA
-MSGBUF:  .EQU 0FE00H   ;STRING HANDLING AREA
+I2CA_BLOCK: .EQU $AE            ;I2C device addess: 24LC256 (Copy from/to Mem)
+TIMEOUT:    .EQU 10000          ;Timeout loop counter
+
+ADDR:       .EQU 0FEB0H   ;THE ADDRESS  2 bytes
+ADDR_FROM   .EQU 0FEB2H   ;THE ADDRESS FROM  2 bytes
+ADDR_TO     .EQU 0FEB4H   ;THE ADDRESS TO 2 bytes
+ADDR_SIZE   .EQU 0FEB6H   ;THE ADDRESS SIZE 2 bytes
+DATA:       .EQU 0FEB8H   ;THE DATA
+MSGBUF:     .EQU 0FE00H   ;STRING HANDLING AREA
 
 BAUD:	 .EQU	0FFC0H	 ;BAUD RATE
 PUTCH:   .EQU   0FFAAH   ;OUTPUT A CHARACTER TO SERIAL
@@ -338,17 +344,23 @@ KEY:
     CP 'I'
     JP Z, INTEL_HEX
 
-    CP 'R'
-    JP Z, $8000
-
     CP '1'
     CALL Z, I2CLIST
+
+    CP '2'
+    CALL Z, I2CCPUTOMEM
+
+    CP '3'
+    CALL Z, I2CMEMTOCPU
 
     CP 'G'
     CALL Z, GOJUMP
 
     CP 'M'
     CALL Z, MODIFY
+
+    CP 'D'
+    CALL Z, DSPLAY
 
     LD A, CR 
     CALL PRINTCHAR
@@ -358,13 +370,247 @@ KEY:
 
     JP  KEY
 
-RESETW:
+
+;--------------------------
+; D DISPLAY MEMORY LOCATION
+;--------------------------
+DSPLAY: LD A, 'D'
+        CALL PRINTCHAR
+        CALL  OUTSP       ;A SPACE
+       CALL  GETCHR
+       RET   C         
+       LD    (ADDR+1),A  ;SAVE ADDRESS HIGH
+       CALL  GETCHR
+       RET   C
+       LD    (ADDR),A    ;SAVE ADDRESS LOW 
+;
+; WAIT FOR CR OR ESC
+;
+DPLAY1: CALL  KEYREADINIT
+       CP    ESC
+       RET   Z
+       CP    CR
+       JR    NZ,DPLAY1          
+       CALL  TXCRLF      ;NEWLINE
+;
+; DISPLAY THE LINE
+;
+DPLAY2: CALL  DPLINE
+       LD    (ADDR),DE   ;SAVE THE NEW ADDRESS
+;
+; DISPLAY MORE LINES OR EXIT
+;       
+DPLAY3: CALL  KEYREADINIT
+       JR    C,DPLAY3   
+       CP    CR        ;ENTER DISPLAYS THE NEXT LINE
+       JR    Z,DPLAY2
+       CP    ESC         ;ESC EXITS (SHIFT + C)
+       JR    NZ,DPLAY3     
+       RET   
+;-------------------------
+; DISPLAY A LINE OF MEMORY
+;-------------------------      
+DPLINE: LD    DE,(ADDR)   ;ADDRESS TO BE DISPLAYED
+       LD    HL,MSGBUF   ;HL POINTS TO WHERE THE OUTPUT STRING GOES
+;
+; DISPLAY THE ADDRESS
+;         
+       CALL  WRDASC     ;CONVERT ADDRESS IN DE TO ASCII
+       CALL  SPCBUF        
+;
+; DISPLAY 4 BYTES
+;
+       LD    B,4 ;16
+DLINE1: LD    A,(DE)
+       CALL  BYTASC
+       CALL  SPCBUF
+       INC   DE        
+       DJNZ  DLINE1
+       ;CALL  SPCBUF
+;
+; NOW DISPLAY THE ASCII CHARACTER
+; IF YOU ARE DISPLAYING NON-MEMORY AREAS THE BYTES READ AND THE ASCII COULD
+; BE DIFFERENT BETWEEN THE TWO PASSES!
+;
+       LD    DE,(ADDR)    
+       LD    B,4 ;16
+DLINE2: LD    A,(DE)   
+       CP    20H
+       JR    C,DOT
+       CP    7FH
+       JR    NC,DOT
+       JP    NDOT
+DOT:    LD    A,'.'
+NDOT:   CALL  INBUF
+       INC   DE       
+       DJNZ  DLINE2
+;         
+;TERMINATE AND DISPLAY STRING
+;       
+       CALL  BCRLF
+       LD    A,00H
+       LD    (HL),A
+       LD    HL,MSGBUF
+       CALL  SNDLCDMSG
+       RET
+
+
+;
+; PUT A SPACE IN THE BUFFER
+;
+SPCBUF: LD    A, 8 ;20H(32dec)
+INBUF:  LD    (HL),A
+       INC   HL
+       RET
+;
+; PUT A CR LF IN THE BUFFER
+;        
+BCRLF:  ;LD    A,CR  
+       ;CALL  INBUF  ;Display add CR automaticamente quando chegar na coluna 21
+       RET
+
+
+
+
+
+
+I2CMEMTOCPU:
+    ; Get parameters to copy a block from I2C memory to CPU memory
+;   On entry: DE = First address in I2C memory
+;             HL = First address in CPU memory
+;             BC = Number of bytes to be copied
+;             SCL = unknown, SDA = unknown
+;   On exit:  If successfully A = 0 and Z flagged
+;             If unsuccessfully A = Error and NZ flagged
+;             IX IY preserved
+
+    LD HL, MSG_MEM2CPU
+    CALL SNDLCDMSG
+
+    CALL GET_FROM_TO_SIZE
+
+;    DE = First address in I2C memory
+;    HL = First address in CPU memory
+;    BC = Number of bytes to be copied
+
+    LD DE, (ADDR_FROM)
+    LD HL, (ADDR_TO)
+    LD BC, (ADDR_SIZE)
+    CALL I2C_MemRd  
+
+    JP Z, I2CMEMTOCPU_OK
+    LD HL, MSG_COPYFAIL
+    CALL SNDLCDMSG
+    RET
+I2CMEMTOCPU_OK:
+    LD HL, MSG_COPYOK
+    CALL SNDLCDMSG
+    RET
+
+
+I2CCPUTOMEM:
+; Get parameters to copy a block from CPU memory to I2C memory
+;   On entry: DE = First address in I2C memory
+;             HL = First address in CPU memory
+;             BC = Number of bytes to be copied
+;             SCL = unknown, SDA = unknown
+;   On exit:  If successfully A = 0 and Z flagged
+;             If unsuccessfully A = Error and NZ flagged
+;             IX IY preserved
+; The 24LC64 requires blocks of data to be written in 64 byte (or less)
+; pages.
+    LD HL, MSG_CPU2MEM
+    CALL SNDLCDMSG
+
+    CALL GET_FROM_TO_SIZE
+
+;    DE = First address in I2C memory
+;    HL = First address in CPU memory
+;    BC = Number of bytes to be copied
+
+    LD HL, (ADDR_FROM)
+    LD DE, (ADDR_TO)
+    LD BC, (ADDR_SIZE)
+    CALL I2C_MemWr
+    
+    JP Z, I2CCPUTOMEM_OK
+    LD HL, MSG_COPYFAIL
+    CALL SNDLCDMSG
+    RET
+I2CCPUTOMEM_OK:
+    LD HL, MSG_COPYOK
+    CALL SNDLCDMSG
+    RET
+
+
+
+
+
+
+GET_FROM_TO_SIZE:
+    ; FROM
+    LD HL, MSG_FROM
+    CALL SNDLCDMSG
+    ;
+    ;GET THE ADDRESS  FROM
+    ;
+    CALL  GETCHR 
+    RET   C        
+    LD    (ADDR_FROM+1),A  ;SAVE ADDRESS HIGH
+    CALL  GETCHR
+    RET   C
+    LD    (ADDR_FROM),A    ;SAVE ADDRESS LOW
+
+    CALL  KEYREADINIT
+    CP    ESC         ;ESC KEY?
+    RET   Z
+    CP    CR
+    JR Z, GET_FROM_TO_SIZE_TO
     LD A, CR
     CALL PRINTCHAR
+    JP GET_FROM_TO_SIZE
 
-    LD A, '>'
-    CALL PRINTCHAR
-    JP KEY
+GET_FROM_TO_SIZE_TO:
+    ; TO
+    LD HL, MSG_TO
+    CALL SNDLCDMSG
+    ;
+    ;GET THE ADDRESS  TO
+    ;
+    CALL  GETCHR 
+    RET   C        
+    LD    (ADDR_TO+1),A  ;SAVE ADDRESS HIGH
+    CALL  GETCHR
+    RET   C
+    LD    (ADDR_TO),A    ;SAVE ADDRESS LOW
+
+    CALL  KEYREADINIT
+    CP    ESC         ;ESC KEY?
+    RET   Z
+    CP    CR
+    JR NZ, GET_FROM_TO_SIZE_TO
+
+GET_FROM_TO_SIZE_SIZE:
+    ; SIZE
+    LD HL, MSG_SIZE
+    CALL SNDLCDMSG
+    ;
+    ;GET THE SIZE
+    ;
+    CALL  GETCHR 
+    RET   C        
+    LD    (ADDR_SIZE+1),A  ;SAVE ADDRESS HIGH
+    CALL  GETCHR
+    RET   C
+    LD    (ADDR_SIZE),A    ;SAVE ADDRESS LOW
+
+    CALL  KEYREADINIT
+    CP    ESC         ;ESC KEY?
+    RET   Z
+    CP    CR
+    JR NZ, GET_FROM_TO_SIZE_SIZE
+    RET
+
 
 INTEL_HEX:
     CALL INTHEX
@@ -392,6 +638,12 @@ SHOWHELP:
     CALL SNDLCDMSG
 
     LD HL, MSG_MENU6
+    CALL SNDLCDMSG
+
+    LD HL, MSG_MENU7
+    CALL SNDLCDMSG
+
+    LD HL, MSG_MENU8
     CALL SNDLCDMSG
 
     RET
@@ -461,6 +713,13 @@ MDIFY2: INC   HL
 ; GO <ADDR>
 ; TRANSFERS EXECUTION TO <ADDR>
 ;------------------------------
+GOJUMP_new:
+    LD A, CR
+    CALL PRINTCHAR
+
+    LD A, '>'
+    CALL PRINTCHAR
+
 GOJUMP: LD A, 'G'
         CALL PRINTCHAR
        CALL  OUTSP       
@@ -477,7 +736,8 @@ GOJMP1: CALL  KEYREADINIT
        CP    ESC         ;ESC KEY?
        RET   Z
        CP    CR
-       JR    NZ,GOJMP1
+       ;JR    NZ,GOJMP1
+       JR NZ, GOJUMP_new
        CALL  TXCRLF
        POP   HL          ;POP THE UNUSED MENU RETURN ADDRESS FROM THE STACK
        LD    HL,(ADDR)
@@ -487,7 +747,7 @@ GOJMP1: CALL  KEYREADINIT
 ;---------------
 ; OUTPUT A SPACE
 ;---------------
-OUTSP:  LD    A,20H
+OUTSP:  LD    A, ' '
        CALL  PRINTCHAR
        RET
 
@@ -1028,7 +1288,7 @@ INIT_LCD:
 	call lcd_send_command
 
 	ld a, 01H
-	call lcd_send_command
+	call lcd_send_command_clear ;; clear
 
 	ld a, 02H
 	call lcd_send_command
@@ -1254,7 +1514,7 @@ boucle_ligne2:
 cls_TXT:
 	; # CLEAR DISPLAY IN TEXT MODE # 
 	ld a,%00000001 					; CLEAR DISPLAY -> " $01 "
-	call lcd_send_command		; CLEAR DISPLAY	
+	call lcd_send_command_clear		; CLEAR DISPLAY	
     ret
 
 ; ========================
@@ -1300,7 +1560,6 @@ Boucle16X:
 
 
 
-
 ;******************
 ;Send a command byte to the LCD
 ;Entry: A= command byte
@@ -1310,8 +1569,23 @@ lcd_send_command:
 	push bc				;Preserve
 	ld c, LCDCTRL   	;Command port
 	
-lcd_command_wait_loop:	;Busy wait
 	call delayLCD
+	
+	out (c),a			;Send command
+	pop bc				;Restore
+	ret
+
+
+;******************
+;Send a command byte to the LCD
+;Entry: A= command byte
+;Exit: All preserved
+;******************
+lcd_send_command_clear:
+	push bc				;Preserve
+	ld c, LCDCTRL   	;Command port
+	
+	call delayLCDclear
 	
 	out (c),a			;Send command
 	pop bc				;Restore
@@ -1366,7 +1640,18 @@ lcd_asciiz_done:
 ; Delay LCD
 ; =========================================================
 delayLCD:
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+	NOP
+    NOP
+    ret
 
+delayLCDclear:
 	NOP
 	NOP
 	NOP
@@ -1377,7 +1662,7 @@ delayLCD:
 	NOP
 	NOP
 	NOP
-	NOP ; KO
+	NOP
 	NOP
     NOP
     ret
@@ -1388,7 +1673,7 @@ delayLCD:
 ; =========================================================
 delay:
 	push bc                       ; 2.75 us
-    ld b, 255                     ; 1.75 us
+    ld b, 1                     ; 1.75 us
 delay_loop_b:
 	ld c, 255                     ; 1.75 us
 delay_loop:
@@ -1823,10 +2108,98 @@ LISTTEST:      CALL I2C_Open       ;Open I2C device for write
             XOR  A              ;Return with Z flagged
             RET
 
-LISTMsg:       .DB  "I2C device found at:",CR,0
 
 
 
+; Copy a block from I2C memory to CPU memory
+;   On entry: DE = First address in I2C memory
+;             HL = First address in CPU memory
+;             BC = Number of bytes to be copied
+;             SCL = unknown, SDA = unknown
+;   On exit:  If successfully A = 0 and Z flagged
+;             If unsuccessfully A = Error and NZ flagged
+;             IX IY preserved
+I2C_MemRd:  PUSH BC
+            LD   BC,TIMEOUT     ;Timeout loop counter
+I2C_MemRdRepeat:    LD   A,I2CA_BLOCK   ;I2C address to write to
+            CALL I2C_Open       ;Open for write
+            JR   Z,I2C_MemRdReady       ;If open okay then skip on
+            DEC  BC
+            LD   A,B
+            OR   C              ;Timeout?
+            JR   NZ,I2C_MemRdRepeat     ;No, so go try again
+            POP  BC
+            LD   A,ERR_TOUT     ;Error code
+            OR   A              ;Error, so NZ flagged
+            RET                 ;Return with error
+; Device opened okay
+I2C_MemRdReady:     POP  BC             ;Restore byte counter
+            LD   A,D            ;Address (hi) in I2C memory
+            CALL I2C_Write      ;Write address
+            LD   A,E            ;Address (lo) in I2C memory
+            CALL I2C_Write      ;Write address
+            LD   A,I2CA_BLOCK+1 ;I2C device to be read from
+            CALL I2C_Open       ;Open for read
+            RET  NZ             ;Abort if error
+I2C_MemRdRead:      DEC  BC             ;Decrement byte counter
+            LD   A,B
+            OR   C              ;Last byte to be read?
+            CALL I2C_Read       ;Read byte with no ack on last byte
+            LD   (HL),A         ;Write byte in CPU memory
+            INC  HL             ;Increment CPU memory pointer
+            LD   A,B
+            OR   C              ;Finished?
+            JR   NZ,I2C_MemRdRead       ;No, so go read next byte
+            CALL I2C_Stop       ;Generate I2C stop
+            XOR  A              ;Return with success (Z flagged)
+            RET
+
+
+; Copy a block from CPU memory to I2C memory
+;   On entry: DE = First address in I2C memory
+;             HL = First address in CPU memory
+;             BC = Number of bytes to be copied
+;             SCL = unknown, SDA = unknown
+;   On exit:  If successfully A = 0 and Z flagged
+;             If unsuccessfully A = Error and NZ flagged
+;             IX IY preserved
+; The 24LC64 requires blocks of data to be written in 64 byte (or less)
+; pages.
+I2C_MemWr:  PUSH BC
+            LD   BC,TIMEOUT     ;Timeout loop counter
+I2C_MemWrRepeat:    LD   A,I2CA_BLOCK   ;I2C address to write to
+            CALL I2C_Open       ;Open for write
+            JR   Z,I2C_MemWrReady       ;If open okay then skip on
+            DEC  BC
+            LD   A,B
+            OR   C              ;Timeout?
+            JR   NZ,I2C_MemWrRepeat     ;No, so go try again
+            POP  BC
+            LD   A,ERR_TOUT     ;Error code
+            OR   A              ;Error, so NZ flagged
+            RET                 ;Return with error
+; Device opened okay
+I2C_MemWrReady:     POP  BC             ;Restore byte counter
+I2C_MemWrBlock:     LD   A,D            ;Address (hi) in I2C memory
+            CALL I2C_Write      ;Write address
+            LD   A,E            ;Address (lo) in I2C memory
+            CALL I2C_Write      ;Write address
+I2C_MemWrWrite:     LD   A,(HL)         ;Get data byte from CPU memory
+            CALL I2C_Write      ;Read byte from I2C memory
+            INC  HL             ;Increment CPU memory pointer
+            INC  DE             ;Increment I2C memory pointer
+            DEC  BC             ;Decrement byte counter
+            LD   A,B
+            OR   C              ;Finished?
+            JR   Z,I2C_MemWrStore       ;Yes, so go store this page
+            LD   A,E            ;Get address in I2C memory (lo byte)
+            AND  63             ;64 byte page boundary?
+            JR   NZ,I2C_MemWrWrite      ;No, so go write another byte
+I2C_MemWrStore:     CALL I2C_Stop       ;Generate I2C stop
+            LD   A,B
+            OR   C              ;Finished?
+            JR   NZ,I2C_MemWr   ;No, so go write some more
+            RET   
 
 
 
@@ -2244,12 +2617,25 @@ I2C_RdPort: PUSH BC             ;Preserve registers
 
 WELLCOME: .db CS, CR, CR, LF,"Z80 Mini Iniciado", CR, LF, 00H
 MSG_MONITOR .db "Z80 MINI, H TO HELP",CR, 00H
-MSG_MENU1 .db "B - Basic",CR, 00H
-MSG_MENU2 .db "I - Intel hex loader",CR, 00H
-MSG_MENU3 .db "R - RUN (JP $8000)",CR, 00H
-MSG_MENU4 .db "1 - I2C Scan",CR, 00H
-MSG_MENU5 .db "G AAAA - GO TO ADDR",CR, 00H
-MSG_MENU6 .db "M AAAA - MODIFY ADDR",CR,00H
+
+MSG_MENU1 .db "I - Intel hex loader",CR, 00H
+MSG_MENU2 .db "B - Basic",CR, 00H
+MSG_MENU3 .db "D AAAA - DISPLAY",CR,00H
+MSG_MENU4 .db "M AAAA - MODIFY",CR,00H
+MSG_MENU5 .db "G AAAA - GO TO",CR, 00H
+MSG_MENU6 .db "1 - I2C Scan",CR, 00H
+MSG_MENU7 .db "2 - I2C PC -> MEM",CR, 00H
+MSG_MENU8 .db "3 - I2C MEM -> PC", 00H
+
+LISTMsg:    .DB  CS,"I2C device found at:",CR,0
+MSG_MEM2CPU .db CS,"COPY I2C MEM TO CPU",CR, 00H
+MSG_CPU2MEM .db CS,"COPY CPU TO I2C MEM",CR, 00H
+MSG_FROM    .db "FROM: ", 00H
+MSG_TO      .db CR,"TO: ", 00H
+MSG_SIZE    .db CR,"SIZE(BYTES): ", 00H
+MSG_COPYOK  .db CR,"COPY OK", 00H
+MSG_COPYFAIL  .db CR,"COPY FAIL", 00H
+
 
 MSG_ILOAD .db $0C, "Intel HEX loader...", CR, 00H
 FILEOK    .DB      "FILE RECEIVED OK",CR,00H
