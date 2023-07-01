@@ -34,6 +34,13 @@ CTRLU       .EQU    15H             ; Control "U"
 ESC         .EQU    1BH             ; Escape
 DEL         .EQU    7FH             ; Delete
 
+kCPUClock:  .EQU 4000000       ;CPU clock speed in Hz
+kDelayOH:   .EQU 36             ;Overhead for each 1ms in Tcycles
+kDelayLP:   .EQU 26             ;Inner loop time in Tcycles
+kDelayTA:   .EQU kCPUClock / 1000 ;CPU clock cycles per millisecond
+kDelayTB:   .EQU kDelayTA - kDelayOH  ;Cycles required for inner loop
+kDelayCnt:  .EQU kDelayTB / kDelayLP  ;Loop counter for inner loop
+
 BASIC       .EQU    $6000           ; inicio basic 6000H, workspace 9000H
 ;
 ; BAUD RATE CONSTANTS
@@ -56,6 +63,10 @@ ADDR_TO     .EQU 0FEB4H   ;THE ADDRESS TO 2 bytes
 ADDR_SIZE   .EQU 0FEB6H   ;THE ADDRESS SIZE 2 bytes
 DATA:       .EQU 0FEB8H   ;THE DATA
 MSGBUF:     .EQU 0FE00H   ;STRING HANDLING AREA
+
+PORT_SET    .EQU 0FFB0H ; 1 byte - Define port (input/output) Default 0xC0(onboard)
+PORT_OUT_VAL    .EQU 0FFB1H ; 1 byte - save value out port
+
 
 BAUD:	 .EQU	0FFC0H	 ;BAUD RATE
 PUTCH:   .EQU   0FFAAH   ;OUTPUT A CHARACTER TO SERIAL
@@ -111,10 +122,10 @@ RST08   JP  PRINTCHAR
 RST10   JP KEYREADINIT
 
         .ORG 0018H ; check break
-RST18   ;LD	A, 0
-        ;CP	0
-        ;RET
-	JP CHKKEY
+RST18   JP CHKKEY
+
+        .ORG 0030H
+RST30   JP APIHandler
 
 KEYMAP:
 .BYTE   "1234567890"
@@ -275,14 +286,17 @@ TABLE:
 
 
 
-
-
-
 ; -----------------------------------------------------------------------------
 ;   INICIO
 ; -----------------------------------------------------------------------------
 INICIO:
     LD  SP, SYSTEM
+
+    LD A, 0
+    LD (PORT_OUT_VAL), A
+
+    LD A, $c0
+    LD (PORT_SET), A
 
     ; init serial
     CALL  DELONE     ;WAIT A SEC SO THE HOST SEES TX HIGH  
@@ -370,6 +384,108 @@ KEY:
 
     JP  KEY
 
+
+; **********************************************************************
+; **  Public functions                                                **
+; **********************************************************************
+; API: Main entry point
+;   On entry: C = Function number
+;             A, DE = Parameters (as specified by function)
+;   On exit:  AF,BC,DE,HL = Return values (as specified by function)
+;             IX IY I AF' BC' DE' HL' preserved
+; This handler modifies: F, B, HL but preserves A, C, DE
+; Other registers depend on API function called
+APIHandler: LD   HL,APITable    ;Start of function address table
+            LD   B,A            ;Preserve A
+            LD   A,C            ;Get function number
+            CP   kAPILast+1     ;Supported function?
+            RET  NC             ;No, so abort
+            LD   A,B            ;Restore A
+            LD   B,0
+            ADD  HL,BC          ;Calculate table pointer..
+            ADD  HL,BC
+            LD   B,(HL)         ;Read function address from table..
+            INC  HL
+            LD   H,(HL)
+            LD   L,B
+            JP   (HL)           ;Jump to function address
+
+
+; API: Function address table
+; This table contains a list of addresses, one for each API function. 
+; Each is the address of the subroutine for the relevant function.
+APITable:   .DW  SysReset       ; 0x00 = System reset
+            .DW  InputCharKey   ; 0x01 = Input character KeyboardOnboard (Char in A)
+            .DW  OutLcdChar     ; 0x02 = Output character LCD (Char in A)
+            .DW  OutLcdNewLine  ; 0x03 = Output new line LCD
+            .DW  H_Delay        ; 0x04 = Delay in milliseconds
+            .DW  PrtSet         ; 0x05 = Set Port (Default C0)
+            .DW  PrtOWr         ; 0x06 = Write to output port
+            .DW  PrtORd         ; 0x07 = Read from output port
+            .DW  PrtIRd         ; 0x08 = Read from input port
+kAPILast:   .EQU $08           ;Last API function number
+
+
+SysReset:
+    JP INICIO
+
+InputCharKey:
+    JP KEYREADINIT
+
+OutLcdChar:
+    JP PRINTCHAR
+
+OutLcdNewLine:
+    LD A, CR
+    JP PRINTCHAR
+
+PrtSet:
+    LD (PORT_SET), A ; define a porta padrão de entrada e saida
+    RET
+
+PrtOWr:
+    LD B, A
+    LD A, (PORT_SET)
+    LD C, A
+    LD A, B
+    LD (PORT_OUT_VAL), A
+    out (C), A
+    RET
+
+PrtORd: ; Return value from output port
+    LD A, (PORT_OUT_VAL)
+    RET
+
+PrtIRd: ; Return value from input
+    LD A, (PORT_SET)
+    LD C, A
+    in A, (C)
+    RET
+
+
+; **********************************************************************
+; Delay by DE milliseconds
+;   On entry: DE = Delay time in milliseconds
+;   On exit:  AF BC DE HL IX IY I AF' BC' DE' HL' preserved
+H_Delay:    PUSH AF
+            PUSH BC
+            PUSH DE
+; 1 ms loop, DE times...        ;[=36]   [=29]    Overhead for each 1ms
+LoopDE:    LD   BC, kDelayCnt   ;[10]    [9]
+; Inner loop, BC times...       ;[=26]   [=20]    Loop time in Tcycles
+LoopBC:    DEC  BC             ;[6]     [4]
+            LD   A,C            ;[4]     [4]
+            OR   B              ;[4]     [4]
+            JP   NZ,LoopBC     ;[12/7]  [8/6] 
+; Have we looped once for each millisecond requested?
+            DEC  DE             ;[6]     [4]
+            LD   A,E            ;[4]     [4]
+            OR   D              ;[4]     [4]
+            JR   NZ, LoopDE     ;[12/7]  [8/6]
+            POP  DE
+            POP  BC
+            POP  AF
+            RET
 
 ;--------------------------
 ; D DISPLAY MEMORY LOCATION
@@ -1016,8 +1132,8 @@ ver_enter:
                 jp nz, ver_enter_incYOK
                 
                 CALL DISPLAY_SCROLL_UP
-                ld hl, DISPLAY
-                CALL print_image
+                ;ld hl, DISPLAY
+                ;CALL print_image <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
                 
                 jp print_char_fim
 
@@ -1033,8 +1149,8 @@ ver_limpa:
                 ;call    clear_lcd_screen
                 ;call    show_lcd_screen
                 call lcd_clear
-                ld hl, DISPLAY
-                call print_image
+                ;ld hl, DISPLAY
+                ;call print_image <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
                 LD A, 0
                 LD (LCD_TXT_X), A
                 LD (LCD_TXT_Y), A
@@ -1173,8 +1289,8 @@ printchar_loopWE:
     cp 0
     jp NZ, printchar_loopH
 
-    ld hl, DISPLAY
-    call print_image
+    ;ld hl, DISPLAY
+    ;call print_image <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 
     ; check auto x
@@ -1195,8 +1311,8 @@ printchar_loopWE:
     cp 8
     jp nz, incYOK
     CALL DISPLAY_SCROLL_UP
-    ld hl, DISPLAY
-    CALL print_image
+    ;ld hl, DISPLAY
+    ;CALL print_image <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     ld a, 0
     ld (LCD_TXT_X), a
     jp print_char_fim
@@ -1209,6 +1325,8 @@ incXOK:
     ld (LCD_TXT_X), a
 
 print_char_fim:
+    ld hl, DISPLAY
+    CALL print_image
     POP HL
     POP DE
     POP BC
