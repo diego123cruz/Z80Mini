@@ -66,6 +66,7 @@ MSGBUF:     .EQU 0FE00H   ;STRING HANDLING AREA
 
 PORT_SET    .EQU 0FFB0H ; 1 byte - Define port (input/output) Default 0xC0(onboard)
 PORT_OUT_VAL    .EQU 0FFB1H ; 1 byte - save value out port
+LCD_DATA        .EQU 0FFB2H ; 1byte
 
 
 BAUD:	 .EQU	0FFC0H	 ;BAUD RATE
@@ -414,16 +415,32 @@ APIHandler: LD   HL,APITable    ;Start of function address table
 ; API: Function address table
 ; This table contains a list of addresses, one for each API function. 
 ; Each is the address of the subroutine for the relevant function.
-APITable:   .DW  SysReset       ; 0x00 = System reset
-            .DW  InputCharKey   ; 0x01 = Input character KeyboardOnboard (Char in A)
-            .DW  OutLcdChar     ; 0x02 = Output character LCD (Char in A)
-            .DW  OutLcdNewLine  ; 0x03 = Output new line LCD
-            .DW  H_Delay        ; 0x04 = Delay in milliseconds
-            .DW  PrtSet         ; 0x05 = Set Port (Default C0)
-            .DW  PrtOWr         ; 0x06 = Write to output port
-            .DW  PrtORd         ; 0x07 = Read from output port
-            .DW  PrtIRd         ; 0x08 = Read from input port
-kAPILast:   .EQU $08           ;Last API function number
+APITable:   .DW  SysReset           ; 0x00 = System reset
+            .DW  InputCharKey       ; 0x01 = Input character KeyboardOnboard (Char in A)
+            .DW  OutLcdChar         ; 0x02 = Output character LCD (Char in A)
+            .DW  OutLcdNewLine      ; 0x03 = Output new line LCD
+            .DW  H_Delay            ; 0x04 = Delay in milliseconds
+            .DW  PrtSet             ; 0x05 = Set Port (Default C0)
+            .DW  PrtOWr             ; 0x06 = Write to output port
+            .DW  PrtORd             ; 0x07 = Read from output port
+            .DW  PrtIRd             ; 0x08 = Read from input port
+            .DW  PrintBufferChar    ; 0x09 = Print char to display buffer, with out show LCD (Chat in A)
+            .DW  DisplayImage128x64 ; 0x0A = Print image (Pointer in DE), 128x64, 1024 bytes
+            .DW  ClearDisplayBuffer ; 0x0B = Clear display buffer and show to lcd
+            .DW  ShowBufferDisplay  ; 0x0C = Show DISPLAY buffer to LCD
+            .DW  SysReset           ; 0x0D = Reserved
+            .DW  SysReset           ; 0x0E = Reserved
+            .DW  SysReset           ; 0x0F = Reserved
+            .DW  I2COpen            ; 0x10 = Start i2c (Device address in A)
+            .DW  I2CClose           ; 0x11 = Close i2c 
+            .DW  I2CRead            ; 0x12 = I2C Read
+            .DW  I2CWrite           ; 0x13 = I2C Write
+kAPILast:   .EQU $13                ;Last API function number
+
+
+
+
+
 
 
 SysReset:
@@ -461,6 +478,32 @@ PrtIRd: ; Return value from input
     LD C, A
     in A, (C)
     RET
+
+DisplayImage128x64:
+    LD H, D
+    LD L, E
+    JP print_image
+
+ClearDisplayBuffer:
+    CALL lcd_clear
+    LD HL, DISPLAY
+    JP print_image
+
+ShowBufferDisplay:
+    LD HL, DISPLAY
+    JP print_image
+
+I2COpen:
+    JP I2C_Open
+
+I2CClose:
+    JP I2C_Close
+
+I2CRead:
+    JP I2C_Read
+
+I2CWrite:
+    JP I2C_Write
 
 
 ; **********************************************************************
@@ -1087,8 +1130,26 @@ DELETE_CHAR:
     RET
 
 
+; Print char in buffer and show to lcd
 ; char in A
 PRINTCHAR:
+    PUSH AF
+    PUSH BC
+    PUSH DE
+    PUSH HL
+    CALL PrintBufferChar
+    LD HL, DISPLAY
+    CALL print_image
+    POP HL
+    POP DE
+    POP BC
+    POP AF
+    RET
+
+
+; Print char in buffer lcd (without show to lcd)
+; char in A
+PrintBufferChar:
     LD (LCD_CHAR), A ; save char to print
 
     PUSH AF
@@ -1325,8 +1386,8 @@ incXOK:
     ld (LCD_TXT_X), a
 
 print_char_fim:
-    ld hl, DISPLAY
-    CALL print_image
+    ;ld hl, DISPLAY
+    ;CALL print_image
     POP HL
     POP DE
     POP BC
@@ -1701,10 +1762,10 @@ lcd_send_command:
 ;******************
 lcd_send_command_clear:
 	push bc				;Preserve
-	ld c, LCDCTRL   	;Command port
 	
 	call delayLCDclear
 	
+    ld c, LCDCTRL   	;Command port
 	out (c),a			;Send command
 	pop bc				;Restore
 	ret
@@ -1716,15 +1777,17 @@ lcd_send_command_clear:
 ;******************
 lcd_send_data:
 	push bc				;Preserve
-	ld c, LCDCTRL	    ;Command port
 	
     ;Busy wait
 	call delayLCD
-	
-	ld c, LCDDATA	;Data port
+
+	ld c, LCDDATA	;Data port $71
 	out (c),a			;Send data
 	pop bc				;Restore
 	ret
+
+
+
 
 ;******************
 ;Send an asciiz string to the LCD
@@ -2022,11 +2085,13 @@ SNDLCDMSG: LD    B,128         ;128 CHARS MAX
 SDLCDMSG1: LD    A,(HL)        ;GET THE CHAR
        CP    00H          ;ZERO TERMINATOR?
        JR    Z,SDLCDMSG2      ;FOUND A ZERO TERMINATOR, EXIT  
-       CALL PRINTCHAR         ;TRANSMIT THE CHAR
+       CALL PrintBufferChar         ;TRANSMIT THE CHAR
        INC   HL
        DJNZ  SDLCDMSG1        ;128 CHARS MAX!    
-SDLCDMSG2: RET
-
+SDLCDMSG2: 
+    LD HL, DISPLAY
+    CALL print_image
+RET
 
 ;-----------------------------------------
 ; SEND AN ASCII STRING OUT THE SERIAL PORT
@@ -2557,7 +2622,7 @@ I2C_Close:  JP   I2C_Stop       ;Output stop condition
 ; I2C bus master interface
 ; The default device option is for SC126 or compatible
 
-I2C_PORT:   .EQU $20           ;Host I2C port address
+I2C_PORT:   .EQU $21           ;Host I2C port address
 I2C_SDA_WR: .EQU 7              ;Host I2C write SDA bit number
 I2C_SDA_RD: .EQU 7              ;Host I2C read SDA bit number
 I2C_SCL_WR: .EQU 0              ;Host I2C write SCL bit number
@@ -2744,6 +2809,14 @@ MSG_MENU5 .db "G AAAA - GO TO",CR, 00H
 MSG_MENU6 .db "1 - I2C Scan",CR, 00H
 MSG_MENU7 .db "2 - I2C PC -> MEM",CR, 00H
 MSG_MENU8 .db "3 - I2C MEM -> PC", 00H
+
+MSG_MENU9  .db "4 - I2C MEM -> PC", 00H
+MSG_MENU10 .db "5 - I2C MEM -> PC", 00H
+MSG_MENU11 .db "6 - I2C MEM -> PC", 00H
+MSG_MENU12 .db "7 - I2C MEM -> PC", 00H
+MSG_MENU13 .db "8 - I2C MEM -> PC", 00H
+MSG_MENU14 .db "9 - I2C MEM -> PC", 00H
+MSG_MENU15 .db "0 - I2C MEM -> PC", 00H
 
 LISTMsg:    .DB  CS,"I2C device found at:",CR,0
 MSG_MEM2CPU .db CS,"COPY I2C MEM TO CPU",CR, 00H
