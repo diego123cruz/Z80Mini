@@ -34,6 +34,19 @@ CTRLU       .EQU    15H             ; Control "U"
 ESC         .EQU    1BH             ; Escape
 DEL         .EQU    7FH             ; Delete
 
+KLEFT       .EQU    $B4             ; Key Left
+KRIGHT      .EQU    $B7             ; Key Right
+KUP         .EQU    $B5             ; Key Up
+KDOWN       .EQU    $B6             ; Key Down
+KF1         .EQU    $80             ; Key F1
+KF2         .EQU    $81             ; Key F2
+KF3         .EQU    $82             ; Key F3
+KF4         .EQU    $83             ; Key F4
+KF5         .EQU    $84             ; Key F5 (SHIFT)
+KF6         .EQU    $85             ; Key F6 (SHIFT)
+KF7         .EQU    $86             ; Key F7 (SHIFT)
+KF8         .EQU    $87             ; Key F8 (SHIFT)
+
 kCPUClock:  .EQU 4000000       ;CPU clock speed in Hz
 kDelayOH:   .EQU 36             ;Overhead for each 1ms in Tcycles
 kDelayLP:   .EQU 26             ;Inner loop time in Tcycles
@@ -128,18 +141,20 @@ RST18   JP CHKKEY
         .ORG 0030H
 RST30   JP APIHandler
 
+
 KEYMAP:
-.BYTE   "1234567890"
-.BYTE   "QWERTYUIOP"
-.BYTE   "ASDFGHJKL", CR
-.BYTE   CTRLC, "ZXCVBNM ", DEL
+.BYTE   "12345",KF1,"67890"
+.BYTE   KF2,"QWERT",KF3,"YUIOP"
+.BYTE   KF4,"ASDFG",KLEFT,"HJKL", CR
+.BYTE   KDOWN,CTRLC, "ZXCV",KRIGHT,"BNM ", DEL, KUP
 
 SHIFTKEYMAP:
-.BYTE   "!@#$%^&*()"
-.BYTE   "`~-_=+;:'"
-.BYTE   22h
-.BYTE   "{}[]|",$5C,"<>?/"
-.BYTE   CTRLC,",.",ESC,"    ", VT, LF
+.BYTE   "!@#$%",KF5,"^&*()"
+.BYTE   KF6,"`~-_=",KF7,"+;:'" 
+.BYTE 22h,
+.BYTE   KF8,"{}[]|",KLEFT,$5C,"<>?", CR
+.BYTE   KDOWN,ESC,"/,. ",KRIGHT,"    ", DEL, KUP
+
 
 
 
@@ -1902,7 +1917,7 @@ NEXTKEY:
     JP      Z, KEYOUT               ; Then check if there was a key pressed
 	OUT     (KEY_OUT), A		    ; Put current line to register
 	IN      A, (KEY_IN)		        ; Input Keys
-	AND     $1F                     ; only 5 bits
+	AND     $3F                     ; only 6 bits
 	SLA     H                       ; Next line
     INC     B
     CP      0                       ; Was key zero?
@@ -1923,9 +1938,9 @@ LOADSHIFT:
     LD      A, D
     ADD     A, SHIFTKEYMAP          ; In this case add the base for shift		
 ADDOFFSET:
-    ADD     A, 5                    ; Add 5 for every line
+    ADD     A, 6                    ; Add 6 for every line
     DJNZ    ADDOFFSET               ; Jump back (do while loop)
-	SUB     5                       ; Since do while is one too much
+	SUB     6                       ; Since do while is one too much
 TRANSKEY:
     XOR     B                       ; Empty B
 	LD      C, A                    ; A will be address in BC
