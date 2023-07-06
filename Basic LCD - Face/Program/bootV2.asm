@@ -64,7 +64,7 @@ B2400:	.EQU	003FH	;2400 BAUD
 B4800:	.EQU	001BH	;4800 BAUD
 B9600:	.EQU	000BH	;9600 BAUD
 
-SYSTEM:	.EQU 	0FD00H	;INITIAL STACK POINTER
+SYSTEM:	.EQU 	0F000H	;INITIAL STACK POINTER
 I2CDATA .EQU    0D000H 
 
 I2CA_BLOCK: .EQU $AE            ;I2C device addess: 24LC256 (Copy from/to Mem)
@@ -77,9 +77,13 @@ ADDR_SIZE   .EQU 0FEB6H   ;THE ADDRESS SIZE 2 bytes
 DATA:       .EQU 0FEB8H   ;THE DATA
 MSGBUF:     .EQU 0FE00H   ;STRING HANDLING AREA
 
-PORT_SET    .EQU 0FFB0H ; 1 byte - Define port (input/output) Default 0xC0(onboard)
+PORT_SET        .EQU 0FFB0H ; 1 byte - Define port (input/output) Default 0xC0(onboard)
 PORT_OUT_VAL    .EQU 0FFB1H ; 1 byte - save value out port
 LCD_DATA        .EQU 0FFB2H ; 1byte
+
+I2C_ADDR        .EQU $FFC0 ; 1 byte - device address
+I2C_RR          .EQU $FFC1 ; 1 byte - register
+I2C_DD          .EQU $FFC2 ; 1 byte - data
 
 
 BAUD:	 .EQU	0FFC0H	 ;BAUD RATE
@@ -346,12 +350,14 @@ INICIO:
     call cls_GRAPHIC
     call delay
 
+    ;call lcd_clear
+
+    ;ld hl, DISPLAY
+    ;call print_image
+
+    ;call delay
+RESET_WARM:
     call lcd_clear
-
-    ld hl, DISPLAY
-    call print_image
-
-    call delay
 
     ; Init LCD logical
     call INIT_TXT_LCD ; set cursor X Y to 0
@@ -368,20 +374,14 @@ KEY:
     CP 'H'
     CALL Z, SHOWHELP
 
-    CP 'B'
-    JP Z, BASIC
+    CP KF1
+    JP Z, $8000
 
-    CP 'I'
+    CP KF2
     JP Z, INTEL_HEX
 
-    CP '1'
-    CALL Z, I2CLIST
-
-    CP '2'
-    CALL Z, I2CCPUTOMEM
-
-    CP '3'
-    CALL Z, I2CMEMTOCPU
+    CP 'B'
+    JP Z, BASIC
 
     CP 'G'
     CALL Z, GOJUMP
@@ -392,9 +392,43 @@ KEY:
     CP 'D'
     CALL Z, DSPLAY
 
+    CP 'O'
+    CALL Z, OUTPORT
+
+    CP 'I'
+    CALL Z, INPORT
+
+    CP '1'
+    CALL Z, I2CLIST
+
+    CP '2'
+    CALL Z, I2CCPUTOMEM
+
+    CP '3'
+    CALL Z, I2CMEMTOCPU
+
+    CP '4'
+    CALL Z, I2C_WR_DD
+
+    CP '5'
+    CALL Z, I2C_WR_RR_DD
+
+    CP '6'
+    CALL Z, I2C_RD
+
+    CP '7'
+    CALL Z, I2C_RD_RR
+
+    
+
+
+
+
+
+
+
     LD A, CR 
     CALL PRINTCHAR
-
     LD A, '>' 
     CALL PRINTCHAR
 
@@ -521,6 +555,82 @@ I2CWrite:
     JP I2C_Write
 
 
+
+
+
+
+
+OUTPORT:
+    LD A, 'O'
+    CALL PrintBufferChar
+    CALL OUTSP ; space and show lcd
+
+    CALL  GETCHR 
+    RET   C
+    LD C, A
+
+    CALL OUTSP
+
+    CALL  GETCHR 
+    RET   C
+    OUT (C), A
+    RET
+
+
+INPORT:
+    LD A, 'I'
+    CALL PrintBufferChar
+    CALL OUTSP ; space and show lcd
+
+    CALL  GETCHR 
+    RET   C
+    LD C, A
+
+    IN A, (C)
+
+    LD B, A
+    PUSH BC
+    LD A, CR
+    CALL PRINTCHAR
+    POP BC
+    LD A, B
+
+    CALL CONV_A_HEX
+    RET
+
+
+
+
+
+
+;----------------
+;CONVERT A TO ASCII (HEX) AND SHOW LCD
+;----------------
+;
+;CONVERT A BYTE TO ASCII 
+;
+CONV_A_HEX: PUSH  AF          ;SAVE A FOR SECOND NYBBLE 
+       RRCA              ;SHIFT HIGH NYBBLE ACROSS
+       RRCA
+       RRCA
+       RRCA
+       CALL CONV_A_HEX_NYBASC       ;CALL NYBBLE CONVERTER 
+       POP AF            ;RESTORE LOW NYBBLE
+;           
+; CONVERT A NYBBLE TO ASCII
+;
+CONV_A_HEX_NYBASC: AND   0FH         ;MASK OFF HIGH NYBBLE 
+       ADD   A,90H       ;CONVERT TO
+       DAA               ;ASCII
+       ADC   A,40H
+       DAA
+;            
+; Print inlcd
+;
+    CALL PRINTCHAR
+    RET 
+
+
 ; **********************************************************************
 ; Delay by DE milliseconds
 ;   On entry: DE = Delay time in milliseconds
@@ -644,6 +754,185 @@ BCRLF:  ;LD    A,CR
        RET
 
 
+
+; --------------------------------------
+; I2C - Write one byte
+; --------------------------------------
+I2C_WR_DD:
+    LD A, $0C ; limpar tela
+    CALL PRINTCHAR
+
+    ; Show msg func
+    LD HL, MSG_I2C_WR_DD
+    CALL SNDLCDMSG
+
+    ; Device Address
+    CALL GET_DEV_ADDR ; get address
+
+I2C_WR_DD_LOOP:
+    ; Get Data
+    CALL GET_DEV_DD   ; get data
+
+    ; Send
+    LD A, (I2C_ADDR) ; Open
+    CALL I2C_Open
+
+    LD A, (I2C_DD)  ; Data
+    CALL I2C_Write
+ 
+    CALL I2C_Close  ; Close
+
+    JR I2C_WR_DD_LOOP
+
+    RET
+
+
+
+; --------------------------------------
+; I2C - Write register one byte
+; --------------------------------------
+I2C_WR_RR_DD:
+    LD A, $0C ; limpar tela
+    CALL PRINTCHAR
+
+    ; Show msg func
+    LD HL, MSG_I2C_WR_RR_DD
+    CALL SNDLCDMSG
+
+    ; Device Address
+    CALL GET_DEV_ADDR ; get address
+
+I2C_WR_RR_DD_LOOP:
+    ; Get register
+    CALL GET_DEV_RR ; get address
+
+    ; Get Data
+    CALL GET_DEV_DD   ; get data
+
+    ; Send
+    LD A, (I2C_ADDR) ; Open
+    CALL I2C_Open
+
+    LD A, (I2C_RR)  ; register
+    CALL I2C_Write
+
+    LD A, (I2C_DD)  ; Data
+    CALL I2C_Write
+
+    CALL I2C_Close  ; Close
+
+    JR I2C_WR_RR_DD_LOOP
+
+    RET
+
+
+; --------------------------------------
+; I2C - Read one byte
+; --------------------------------------
+I2C_RD:
+    LD A, $0C ; limpar tela
+    CALL PRINTCHAR
+
+    ; Show msg func
+    LD HL, MSG_I2C_RD
+    CALL SNDLCDMSG
+
+    ; Device Address
+    CALL GET_DEV_ADDR ; get address
+    CALL TXCRLF ; new line
+
+I2C_RD_LOOP:
+    ; Send
+    LD A, (I2C_ADDR) ; Open
+    INC A ; To read address + 1 (flag)
+    CALL I2C_Open
+
+    CALL I2C_Read      ; Read
+    PUSH AF
+
+    CALL I2C_Close     ; Close
+
+    ; Show
+    POP AF
+    CALL CONV_A_HEX ; Show A to (HEX) LCD
+    CALL TXCRLF ; new line
+
+    CALL KEYREADINIT
+    CP CTRLC
+    JP Z, RESET_WARM
+
+    JR I2C_RD_LOOP
+    RET
+
+
+; --------------------------------------
+; I2C - Read register one byte
+; --------------------------------------
+I2C_RD_RR:
+    LD A, $0C ; limpar tela
+    CALL PRINTCHAR
+
+    ; Show msg func
+    LD HL, MSG_I2C_RD_RR
+    CALL SNDLCDMSG
+
+    ; Device Address
+    CALL GET_DEV_ADDR ; get address
+
+I2C_RD_RR_LOOP:
+    ; Get register
+    CALL GET_DEV_RR ; get address
+    CALL TXCRLF ; new line
+
+    ; Send
+    LD A, (I2C_ADDR) ; Open
+    CALL I2C_Open
+
+    LD A, (I2C_RR)
+    CALL I2C_Write ; Register to read
+
+    LD A, (I2C_ADDR) ; Open
+    INC A ; To read address + 1 (flag)
+    CALL I2C_Open
+
+    CALL I2C_Read ; Read register
+    PUSH AF
+
+    CALL I2C_Close ; Close
+
+    ; Show
+    POP AF
+    CALL CONV_A_HEX ; Show A to (HEX) LCD
+
+    JR I2C_RD_RR_LOOP
+    RET
+
+
+GET_DEV_ADDR:
+    LD HL, MSG_DEV_ADDR
+    CALL SNDLCDMSG
+    CALL  GETCHR 
+    RET   C
+    LD (I2C_ADDR), A
+    RET
+
+GET_DEV_DD:
+    LD HL, MSG_DEV_DATA
+    CALL SNDLCDMSG
+
+    CALL  GETCHR 
+    RET   C
+    LD (I2C_DD), A
+    RET
+
+GET_DEV_RR:
+    LD HL, MSG_DEV_REG
+    CALL SNDLCDMSG
+
+    CALL  GETCHR 
+    RET   C
+    LD (I2C_RR), A
+    RET
 
 
 
@@ -796,6 +1085,9 @@ SHOWHELP:
     LD A, $0C ; limpar tela
     CALL PRINTCHAR
 
+    LD HL, MSG_MENU0
+    CALL SNDLCDMSG
+
     LD HL, MSG_MENU1
     CALL SNDLCDMSG
 
@@ -818,6 +1110,24 @@ SHOWHELP:
     CALL SNDLCDMSG
 
     LD HL, MSG_MENU8
+    CALL SNDLCDMSG
+
+    LD HL, MSG_MENU9
+    CALL SNDLCDMSG
+
+    LD HL, MSG_MENU10
+    CALL SNDLCDMSG
+
+    LD HL, MSG_MENU11
+    CALL SNDLCDMSG
+
+    LD HL, MSG_MENU12
+    CALL SNDLCDMSG
+
+    LD HL, MSG_MENU13
+    CALL SNDLCDMSG
+
+    LD HL, MSG_MENU14
     CALL SNDLCDMSG
 
     RET
@@ -926,7 +1236,7 @@ OUTSP:  LD    A, ' '
        RET
 
 ;-------------      
-; OUTPUT CRLF
+; OUTPUT CRLF (NEW LINE)
 ;------------
 TXCRLF: LD   A,CR
        CALL PRINTCHAR   
@@ -938,6 +1248,8 @@ TXCRLF: LD   A,CR
 GETCHR: CALL KEYREADINIT ; read key
        CP    ESC
        JR    Z,GETOUT
+       CP    CTRLC  ; key BK (reset)
+       JP    Z, RESET_WARM
        LD    B,A                ;SAVE TO ECHO      
        CALL  ASC2HEX
        JR    NC,GETCHR          ;REJECT NON HEX CHARS    
@@ -949,6 +1261,8 @@ GETCHR: CALL KEYREADINIT ; read key
 GETNYB: CALL  KEYREADINIT
        CP    ESC
        JR    Z,GETOUT
+       CP    CTRLC  ; key BK (reset)
+       JP    Z, RESET_WARM
        LD    B,A               ;SAVE TO ECHO
        CALL  ASC2HEX
        JR    NC,GETNYB         ;REJECT NON HEX CHARS
@@ -2816,31 +3130,42 @@ I2C_RdPort: PUSH BC             ;Preserve registers
 WELLCOME: .db CS, CR, CR, LF,"Z80 Mini Iniciado", CR, LF, 00H
 MSG_MONITOR .db "Z80 MINI, H TO HELP",CR, 00H
 
-MSG_MENU1 .db "I - Intel hex loader",CR, 00H
-MSG_MENU2 .db "B - Basic",CR, 00H
-MSG_MENU3 .db "D AAAA - DISPLAY",CR,00H
-MSG_MENU4 .db "M AAAA - MODIFY",CR,00H
-MSG_MENU5 .db "G AAAA - GO TO",CR, 00H
-MSG_MENU6 .db "1 - I2C Scan",CR, 00H
-MSG_MENU7 .db "2 - I2C PC -> MEM",CR, 00H
-MSG_MENU8 .db "3 - I2C MEM -> PC", 00H
+MSG_MENU0  .db "F1 RUN (JP $8000)",CR, 00H
+MSG_MENU1  .db "F2 Intel hex loader",CR, 00H
+MSG_MENU2  .db "B - Basic",CR, 00H
+MSG_MENU3  .db "D AAAA - DISPLAY",CR,00H
+MSG_MENU4  .db "M AAAA - MODIFY",CR,00H
+MSG_MENU5  .db "G AAAA - GO TO",CR, 00H
+MSG_MENU6  .db "O Out AA DD",CR, 00H
+MSG_MENU7  .db "I In AA",CR, 00H
+MSG_MENU8  .db "1 I2C Scan",CR, 00H
+MSG_MENU9  .db "2 I2C PC -> MEM",CR, 00H
+MSG_MENU10 .db "3 I2C MEM -> PC",CR, 00H
+MSG_MENU11 .db "4 I2C WRITE DD",CR, 00H
+MSG_MENU12 .db "5 I2C WRITE RR DD",CR, 00H
+MSG_MENU13 .db "6 I2C READ ONE BYTE",CR, 00H
+MSG_MENU14 .db "7 I2C READ RR BYTE", 00H ; ultimo não tem CR (nova linha)
 
-MSG_MENU9  .db "4 - I2C MEM -> PC", 00H
-MSG_MENU10 .db "5 - I2C MEM -> PC", 00H
-MSG_MENU11 .db "6 - I2C MEM -> PC", 00H
-MSG_MENU12 .db "7 - I2C MEM -> PC", 00H
-MSG_MENU13 .db "8 - I2C MEM -> PC", 00H
-MSG_MENU14 .db "9 - I2C MEM -> PC", 00H
-MSG_MENU15 .db "0 - I2C MEM -> PC", 00H
+
 
 LISTMsg:    .DB  CS,"I2C device found at:",CR,0
 MSG_MEM2CPU .db CS,"COPY I2C MEM TO CPU",CR, 00H
 MSG_CPU2MEM .db CS,"COPY CPU TO I2C MEM",CR, 00H
+
+MSG_I2C_WR_DD    .db CS,"WRITE ONE BYTE",CR, 00H
+MSG_I2C_WR_RR_DD .db CS,"WRITE REG ONE BYTE",CR, 00H
+MSG_I2C_RD       .db CS,"READ ONE BYTE",CR, 00H
+MSG_I2C_RD_RR    .db CS,"READ REG ONE BYTE",CR, 00H
+
 MSG_FROM    .db "FROM: ", 00H
 MSG_TO      .db CR,"TO: ", 00H
 MSG_SIZE    .db CR,"SIZE(BYTES): ", 00H
 MSG_COPYOK  .db CR,"COPY OK", 00H
 MSG_COPYFAIL  .db CR,"COPY FAIL", 00H
+
+MSG_DEV_ADDR  .db CR,"DEVICE ADDR(AA): ", 00H
+MSG_DEV_REG   .db CR,"REGISTER(RR): ", 00H
+MSG_DEV_DATA  .db CR,"DATA(DD): ", 00H
 
 
 MSG_ILOAD .db $0C, "Intel HEX loader...", CR, 00H
