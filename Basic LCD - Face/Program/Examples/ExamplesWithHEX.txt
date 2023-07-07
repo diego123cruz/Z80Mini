@@ -1,0 +1,575 @@
+; =======================================
+; Blink
+.org $8000
+ 
+loop:
+    LD A, $00
+    
+    LD C, $06 ; outPort Write
+    RST $30
+    
+    LD DE, $0400 ; 1000 ms
+    LD C, $04 ; delay
+    RST $30
+    
+    
+    LD A, $FF
+    LD C, $06 ; outPort Write
+    RST $30
+    
+    LD DE, $0400 ; 1000 ms
+    LD C, $04 ; delay
+    RST $30
+    
+    JP loop
+
+:108000003E000E06F71100040E04F73EFF0E06F7C1
+:098010001100040E04F7C3008006
+:00000001FF
+
+
+;=======================================
+; Input keyboard To Output port
+.org $8000
+
+    
+loop:
+    LD A, $00
+    
+    LD C, $01 ; Input keyboard
+    RST $30
+    
+    LD C, $06 ; outPort Write
+    RST $30
+    
+    JP loop
+
+:0B8000003E000E01F70E06F7C30080E3
+:00000001FF
+
+
+
+
+;=======================================
+; Read PCF8574 (I2C port $40) and show in LCD
+.org $8000
+
+loop:
+    LD A, $40+1
+    LD C, $10 ; i2c open
+    RST $30
+    
+    LD C, $12 ; i2c read
+    RST $30
+    
+    PUSH AF ; save A
+    
+    LD C, $11 ; i2c close
+    RST $30
+    
+    POP AF
+    
+    CALL BYTASC
+    
+    LD A, $0D
+    LD C, $02 ; display char lcd
+    RST $30
+    
+    JP loop
+    
+;----------------
+;CONVERT TO ASCII 
+;----------------
+;
+;CONVERT A BYTE TO ASCII 
+;
+BYTASC: PUSH  AF          ;SAVE A FOR SECOND NYBBLE 
+       RRCA              ;SHIFT HIGH NYBBLE ACROSS
+       RRCA
+       RRCA
+       RRCA
+       CALL NYBASC       ;CALL NYBBLE CONVERTER 
+       POP AF            ;RESTORE LOW NYBBLE
+;           
+; CONVERT A NYBBLE TO ASCII
+;
+NYBASC: AND   0FH         ;MASK OFF HIGH NYBBLE 
+       ADD   A,90H       ;CONVERT TO
+       DAA               ;ASCII
+       ADC   A,40H
+       DAA
+;            
+; Print inlcd
+;
+    LD C, $02 ; display char lcd
+    RST $30
+    RET 
+
+
+:108000003E410E10F70E12F7F50E11F7F1CD188064
+:108010003E0D0E02F7C30080F50F0F0F0FCD21802C
+:0D802000F1E60FC69027CE40270E02F7C9EB
+:00000001FF
+
+
+
+;=======================================
+; Read Encoder I2c and show in LCD
+.org $8000
+
+loop:
+    LD A, $10
+    LD C, $10 ; i2c open
+    RST $30
+    
+    LD A, $01
+    LD C, $13 ; i2c write
+    RST $30
+    
+    LD A, $10+1
+    LD C, $10 ; i2c open
+    RST $30
+    
+    LD C, $12 ; i2c read
+    RST $30
+    
+    PUSH AF
+    
+    LD C, $11 ; i2c close
+    RST $30
+    
+    POP AF
+    CALL BYTASC
+    
+    LD a, $0D
+    LD C, $02 ; display char lcd
+    RST $30
+    
+    JP loop
+    
+    
+;----------------
+;CONVERT TO ASCII 
+;----------------
+;
+;CONVERT A BYTE TO ASCII 
+;
+BYTASC: PUSH  AF          ;SAVE A FOR SECOND NYBBLE 
+       RRCA              ;SHIFT HIGH NYBBLE ACROSS
+       RRCA
+       RRCA
+       RRCA
+       CALL NYBASC       ;CALL NYBBLE CONVERTER 
+       POP AF            ;RESTORE LOW NYBBLE
+;           
+; CONVERT A NYBBLE TO ASCII
+;
+NYBASC: AND   0FH         ;MASK OFF HIGH NYBBLE 
+       ADD   A,90H       ;CONVERT TO
+       DAA               ;ASCII
+       ADC   A,40H
+       DAA
+;            
+; Print inlcd
+;
+    LD C, $02 ; display char lcd
+    RST $30
+    RET 
+
+
+
+:108000003E100E10F73E010E13F73E110E10F70E44
+:1080100012F7F50E11F7F1CD22803E0D0E02F7C3D7
+:108020000080F50F0F0F0FCD2B80F1E60FC69027C4
+:07803000CE40270E02F7C944
+:00000001FF
+
+
+;=======================================
+; Read I2C (Encoder, pot, irLine) and show in LCD
+.org $8000
+.org $8000
+
+loop:
+
+    ; Encoder
+    LD A, $10
+    LD C, $10 ; i2c open
+    RST $30
+    
+    LD A, $01
+    LD C, $13 ; i2c write
+    RST $30
+    
+    LD A, $10+1
+    LD C, $10 ; i2c open
+    RST $30
+    
+    LD C, $12 ; i2c read
+    RST $30
+    
+    PUSH AF
+    
+    LD C, $11 ; i2c close
+    RST $30
+    
+    POP AF
+    CALL BYTASC
+    
+    LD a, ' '
+    LD C, $09 ; display char lcd
+    RST $30
+    
+    
+    ; Pot
+    LD A, $10
+    LD C, $10 ; i2c open
+    RST $30
+    
+    LD A, $04
+    LD C, $13 ; i2c write
+    RST $30
+    
+    LD A, $10+1
+    LD C, $10 ; i2c open
+    RST $30
+    
+    LD C, $12 ; i2c read
+    RST $30
+    
+    PUSH AF
+    
+    LD C, $11 ; i2c close
+    RST $30
+    
+    POP AF
+    CALL BYTASC
+    
+    LD a, ' '
+    LD C, $09 ; display char lcd
+    RST $30
+    
+    
+    ; iR line
+    LD A, $10
+    LD C, $10 ; i2c open
+    RST $30
+    
+    LD A, $05
+    LD C, $13 ; i2c write
+    RST $30
+    
+    LD A, $10+1
+    LD C, $10 ; i2c open
+    RST $30
+    
+    LD C, $12 ; i2c read
+    RST $30
+    
+    PUSH AF
+    
+    LD C, $11 ; i2c close
+    RST $30
+    
+    POP AF
+    CALL BYTASC
+    
+    LD a, $0D
+    LD C, $02 ; display char lcd
+    RST $30
+    
+    JP loop
+    
+    
+;----------------
+;CONVERT TO ASCII 
+;----------------
+;
+;CONVERT A BYTE TO ASCII 
+;
+BYTASC: PUSH  AF          ;SAVE A FOR SECOND NYBBLE 
+       RRCA              ;SHIFT HIGH NYBBLE ACROSS
+       RRCA
+       RRCA
+       RRCA
+       CALL NYBASC       ;CALL NYBBLE CONVERTER 
+       POP AF            ;RESTORE LOW NYBBLE
+;           
+; CONVERT A NYBBLE TO ASCII
+;
+NYBASC: AND   0FH         ;MASK OFF HIGH NYBBLE 
+       ADD   A,90H       ;CONVERT TO
+       DAA               ;ASCII
+       ADC   A,40H
+       DAA
+;            
+; Print inlcd
+;
+    LD C, $09 ; display char lcd
+    RST $30
+    RET 
+
+
+:108000003E100E10F73E010E13F73E110E10F70E44
+:1080100012F7F50E11F7F1CD60803E200E09F73E04
+:10802000100E10F73E040E13F73E110E10F70E124D
+:10803000F7F50E11F7F1CD60803E200E09F73E10E6
+:108040000E10F73E050E13F73E110E10F70E12F745
+:10805000F50E11F7F1CD60803E0D0E02F7C30080E2
+:10806000F50F0F0F0FCD6980F1E60FC69027CE40B8
+:05807000270E09F7C90D
+:00000001FF
+
+
+
+
+
+; =======================================
+; TIME - Show time (RTC - Ricoh r223) onboard to display
+.org $8000
+loop:
+    LD A, $00 ; limpa sem atualizar o lcd
+    LD C, $0B ; limpa buffer
+    RST $30
+    
+    LD DE, $0604 ; set X=6, Y=4
+    LD C, $0D ; set cursor text
+    RST $30
+    
+    ; Hora
+    LD A, $64 ; To read is equal address +1
+    LD C, $10 ; I2C open, device id in A
+    RST $30 
+    
+    LD A, $20  ; register
+    LD C, $13
+    RST $30 ;I2C Write, value in A
+    
+    LD A, $64+1 ; To read is equal address +1
+    LD C, $10 ; I2C open, device id in A
+    RST $30 
+    
+    LD C, $12 ; I2C Read, return in A
+    RST $30 
+    
+    PUSH AF
+    
+    LD C, $11 ; I2C Close
+    RST $30  
+    
+    POP AF
+    
+    CALL lcd_print_data ; send A to display
+    LD A, ':'
+    CALL display ; send
+    
+    
+    ;Minutos
+    LD A, $64 ; To read is equal address +1
+    LD C, $10 ; I2C open, device id in A
+    RST $30 
+    
+    LD A, $10  ; register
+    LD C, $13
+    RST $30 ;I2C Write, value in A
+    
+    LD A, $64+1 ; To read is equal address +1
+    LD C, $10 ; I2C open, device id in A
+    RST $30 
+    
+    LD C, $12 ; I2C Read, return in A
+    RST $30 
+    
+    PUSH AF
+    
+    LD C, $11 ; I2C Close
+    RST $30  
+    
+    POP AF
+    
+    CALL lcd_print_data ; send A to display
+    LD A, ':'
+    CALL display ; send
+    
+    
+    ;segundos
+    LD A, $64 ; To read is equal address +1
+    LD C, $10 ; I2C open, device id in A
+    RST $30 
+    
+    LD A, $00  ; register
+    LD C, $13
+    RST $30 ;I2C Write, value in A
+    
+    LD A, $64+1 ; To read is equal address +1
+    LD C, $10 ; I2C open, device id in A
+    RST $30 
+    
+    LD C, $12 ; I2C Read, return in A
+    RST $30 
+    
+    PUSH AF
+    
+    LD C, $11 ; I2C Close
+    RST $30  
+    
+    POP AF
+    
+    CALL lcd_print_data ; send A to display
+    
+    LD C, $0C
+    RST $30 ;  show buffer to LCD
+    
+    
+    JP loop
+    
+    
+lcd_print_data:
+	push bc
+    push af
+    ld b, a
+    and 11110000b
+    rlca
+    rlca
+    rlca
+    rlca
+    add a, '0'
+    cp '9' + 1
+    jr c, print_12
+    add a, 'A' - '0' - 10
+print_12:
+    CALL display ; send to lcd
+    ld a, b
+    and 00001111b
+    add a, '0'
+    cp '9' + 1
+    jr c, print_22
+    add a, 'A' - '0' - 10
+print_22:
+    CALL display ; send to lcd
+    pop bc
+    pop af
+    ret
+    
+display:
+    PUSH AF
+    PUSH BC
+    
+    LD C, $09
+    RST $30 ; send to lcd
+    
+    POP BC
+    POP AF
+    RET
+    
+:108000003E000E0BF71104060E0DF73E640E10F73E
+:108010003E200E13F73E650E10F70E12F7F50E1107
+:10802000F7F1CD69803E3ACD8E803E640E10F73E6A
+:10803000100E13F73E650E10F70E12F7F50E11F73E
+:10804000F1CD69803E3ACD8E803E640E10F73E0041
+:108050000E13F73E650E10F70E12F7F50E11F7F13D
+:10806000CD69800E0CF7C30080C5F547E6F0070721
+:108070000707C630FE3A3802C607CD8E8078E60F75
+:10808000C630FE3A3802C607CD8E80C1F1C9F5C5AB
+:068090000E09F7C1F1C961
+:00000001FF
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+; print_diego
+PRINT_DIEGO:
+    ld a, (LCD_COOX)
+    ld b, A
+
+    ld a, (LCD_COOY)
+    ld c,A
+    call multiplication
+
+    ld a, (LCD_PRINT_H)
+    ld b, 0
+    ld c, 0
+print_clear_loopH:
+    push af
+    push hl
+
+    push hl
+    ld hl, (LCD_PRINT_IMAGE)
+    add hl, bc
+    ld a, (HL)
+    ld (LCD_TEMP),a
+    pop hl
+
+    ld a, (LCD_PRINT_W)
+print_clear_loopW:
+
+    push af
+    
+    ld a, (LCD_TEMP)
+    and 128
+    cp 0
+    jp z, print_clear_loopWC
+    call lcd_setPixel
+    JP print_clear_loopWE
+print_clear_loopWC:
+    call lcd_clearPixel
+print_clear_loopWE:
+    ld a, (LCD_TEMP)
+    sla a
+    ld (LCD_TEMP), a
+
+    pop af
+    
+
+    inc hl
+    dec A
+    cp 0
+    JP NZ, print_clear_loopW
+
+    pop hl
+    pop af
+
+    push de
+    ld d, 0
+    ld e, 128
+    add hl, de
+    pop de
+
+    inc bc
+    dec A
+    cp 0
+    jp NZ, print_clear_loopH
+
+    ld hl, DISPLAY
+    call print_image
+
+    RET

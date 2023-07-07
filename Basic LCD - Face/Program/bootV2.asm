@@ -461,7 +461,7 @@ APIHandler: LD   HL,APITable    ;Start of function address table
             JP   (HL)           ;Jump to function address
 
 
-; API: Function address table
+; API: Function address table (function in C)
 ; This table contains a list of addresses, one for each API function. 
 ; Each is the address of the subroutine for the relevant function.
 APITable:   .DW  SysReset           ; 0x00 = System reset
@@ -475,9 +475,9 @@ APITable:   .DW  SysReset           ; 0x00 = System reset
             .DW  PrtIRd             ; 0x08 = Read from input port
             .DW  PrintBufferChar    ; 0x09 = Print char to display buffer, with out show LCD (Chat in A)
             .DW  DisplayImage128x64 ; 0x0A = Print image (Pointer in DE), 128x64, 1024 bytes
-            .DW  ClearDisplayBuffer ; 0x0B = Clear display buffer and show to lcd
+            .DW  ClearDisplayBuffer ; 0x0B = Clear display buffer (A=$00 without show LCD, A > $00 show to LCD)
             .DW  ShowBufferDisplay  ; 0x0C = Show DISPLAY buffer to LCD
-            .DW  SysReset           ; 0x0D = Reserved
+            .DW  LcdSetCXY          ; 0x0D = LCD Cursor X (0-20), Y (0-7) value in D(X) E(Y)
             .DW  SysReset           ; 0x0E = Reserved
             .DW  SysReset           ; 0x0F = Reserved
             .DW  I2COpen            ; 0x10 = Start i2c (Device address in A)
@@ -534,9 +534,16 @@ DisplayImage128x64:
     JP print_image
 
 ClearDisplayBuffer:
+    PUSH AF
     CALL lcd_clear
+    POP AF
+    OR A
+    CP $00
+    JP Z, ClearDisplayBufferEnd
     LD HL, DISPLAY
     JP print_image
+ClearDisplayBufferEnd:
+    RET
 
 ShowBufferDisplay:
     LD HL, DISPLAY
@@ -554,6 +561,15 @@ I2CRead:
 I2CWrite:
     JP I2C_Write
 
+LcdSetCXY:
+    PUSH AF
+    LD A, D
+    LD (LCD_TXT_X), A
+
+    LD A, E
+    LD (LCD_TXT_Y), A
+    POP AF
+    RET
 
 
 
