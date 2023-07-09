@@ -12,6 +12,7 @@
 ;               - Keyboard: 40H
 ;               - Display:  70H (LCDCTRL), 71H (LCDDATA)
 ;               - User IN/OUT: C0H
+;               - Leds: 00H (Red B0-B3, Green B4-B7)
 ;
 ; -----------------------------------------------------------------------------
 LCDCTRL	    .EQU    70H
