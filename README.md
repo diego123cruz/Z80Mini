@@ -25,7 +25,7 @@ IN_C0h
 ## Z80Mini - BaseBoard
 ![Z80Mini](https://raw.githubusercontent.com/diego123cruz/Z80Mini/main/Z80Mini_BaseBoardPower.jpeg)
 
-[Schematic - All boards]([https://github.com/diego123cruz/Z80Mini/blob/main/Schematic/Z80Mini%20-%20All%20boards.PDF](https://github.com/diego123cruz/Z80Mini/blob/main/Schematic/Z80%20Mini%20-%20All%20boards.PDF))
+[Schematic - All boards](https://github.com/diego123cruz/Z80Mini/blob/main/Schematic/Z80%20Mini%20-%20All%20boards.PDF)
 
 
 
@@ -68,7 +68,7 @@ O circuito ou código-fonte podem conter partes dos projetos originais mencionad
 ### Basic LCD Graphic 128x64 V2 - Face
 ![Z80Mini](https://github.com/diego123cruz/Z80Mini/blob/main/Basic%20LCD%20-%20Face/Basic%20LCD%20V2%20(Graphic%20128x64)%20-%20Face.jpg)
 
-[Vídeo demo] (https://www.youtube.com/shorts/OemEQMpTLIQ)
+[Vídeo demo](https://www.youtube.com/shorts/OemEQMpTLIQ)
 
 Essa placa "Face" foi baseada no "Grant's 7-chip Z80 computer" - http://searle.walesz80.htm e "Z80 SINGLE BOARD COMPUTER" - http://d-fence.sytes.net/z80sbc/
 
