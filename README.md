@@ -74,7 +74,7 @@ O circuito ou código-fonte podem conter partes dos projetos originais mencionad
 
 
 ### Basic LCD V1 - Face
-![Z80Mini](https://github.com/diego123cruz/Z80Mini/blob/main/Basic%20LCD%20-%20Face/BasicLCD V1-Face.jpeg)
+![Z80Mini](https://github.com/diego123cruz/Z80Mini/blob/main/Basic%20LCD%20-%20Face/BasicLCD%20V1-Face.jpeg)
 
 [Vídeo demo](https://www.youtube.com/watch?v=0nLOt6mwVDU)
 
