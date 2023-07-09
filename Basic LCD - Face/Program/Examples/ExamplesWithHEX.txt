@@ -28,6 +28,32 @@ loop:
 :00000001FF
 
 
+
+; =======================================
+; Led biColor - Shift 
+.org $8000
+    ld a, 1
+loop:
+    rlc a
+    out(0), a
+    call delay
+    jp loop
+    
+    
+delay:
+    PUSH AF
+    LD DE, $00C8 ; 200ms
+    LD C, $04
+    RST $30
+    POP AF
+    RET
+
+:108000003E01CB07D300CD0C80C30280F511C80020
+:058010000E04F7F1C9A8
+:00000001FF
+
+
+
 ;=======================================
 ; Input keyboard To Output port
 .org $8000

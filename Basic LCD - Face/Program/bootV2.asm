@@ -119,7 +119,7 @@ LCD_TMP_POINT       .EQU    $E00E   ; 2 bytes ponteiro do pixel altural do print
 LCD_DELETE_CHAR     .EQU    $E00F   ; 1 byte, 0 não, ff delete proximo char
 LCD_AUTO_X          .EQU    $E010   ; 1 byte, 0 sim, ff nao
 
-DISPLAY             .EQU    $E500
+DISPLAY             .EQU    $E500   ; 1024 bytes
 
 LCD_TEMP        .EQU    $E110
 LCD_COOX        .EQU    $E102 ; 1 byte, local onde vai printar
@@ -436,7 +436,7 @@ KEY:
 
 
 ; **********************************************************************
-; **  Public functions                                                **
+; **  API - Public functions                                          **
 ; **********************************************************************
 ; API: Main entry point
 ;   On entry: C = Function number
@@ -2175,6 +2175,10 @@ delayLCD:
 	NOP
 	NOP
     NOP
+    NOP
+    NOP
+    NOP
+    NOP
     ret
 
 delayLCDclear:
@@ -2190,6 +2194,14 @@ delayLCDclear:
 	NOP
 	NOP
 	NOP
+    NOP
+    NOP
+    NOP
+    NOP
+    NOP
+    NOP
+    NOP
+    NOP
     NOP
     ret
 

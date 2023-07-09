@@ -119,7 +119,7 @@
 0119   0000             LCD_DELETE_CHAR     .EQU    $E00F   ; 1 byte, 0 não, ff delete proximo char
 0120   0000             LCD_AUTO_X          .EQU    $E010   ; 1 byte, 0 sim, ff nao
 0121   0000             
-0122   0000             DISPLAY             .EQU    $E500
+0122   0000             DISPLAY             .EQU    $E500   ; 1024 bytes
 0123   0000             
 0124   0000             LCD_TEMP        .EQU    $E110
 0125   0000             LCD_COOX        .EQU    $E102 ; 1 byte, local onde vai printar
@@ -137,10 +137,10 @@
 0137   0008 C3 57 0A    RST08   JP  PRINTCHAR
 0138   000B             
 0139   0010                     .ORG 0010H
-0140   0010 C3 88 0D    RST10   JP KEYREADINIT
+0140   0010 C3 94 0D    RST10   JP KEYREADINIT
 0141   0013             
 0142   0018                     .ORG 0018H ; check break
-0143   0018 C3 73 0D    RST18   JP CHKKEY
+0143   0018 C3 7F 0D    RST18   JP CHKKEY
 0144   001B             
 0145   0030                     .ORG 0030H
 0146   0030 C3 48 05    RST30   JP APIHandler
@@ -455,10 +455,10 @@
 0319   049D 32 B0 FF        LD (PORT_SET), A
 0320   04A0             
 0321   04A0                 ; init serial
-0322   04A0 CD 21 0F        CALL  DELONE     ;WAIT A SEC SO THE HOST SEES TX HIGH  
-0323   04A3 21 BC 0E        LD    HL,TXDATA
+0322   04A0 CD 2D 0F        CALL  DELONE     ;WAIT A SEC SO THE HOST SEES TX HIGH  
+0323   04A3 21 C8 0E        LD    HL,TXDATA
 0324   04A6 22 AA FF        LD    (PUTCH),HL ;USE THE BITBANG SERIAL TRANSMIT
-0325   04A9 21 E7 0E        LD    HL,RXDATA
+0325   04A9 21 F3 0E        LD    HL,RXDATA
 0326   04AC 22 AC FF        LD    (GETCH),HL  ;USE THE BITBANG SERIAL RECEIVE
 0327   04AF                 
 0328   04AF 21 1B 00        LD	HL,B4800
@@ -467,24 +467,24 @@
 0331   04B5 3E FF           LD A, $FF
 0332   04B7 D3 C0           OUT (SERIAL_TX_PORT), A
 0333   04B9             
-0334   04B9 21 0A 11        LD HL, WELLCOME
-0335   04BC CD A2 0E        CALL SNDMSG
+0334   04B9 21 16 11        LD HL, WELLCOME
+0335   04BC CD AE 0E        CALL SNDMSG
 0336   04BF             
 0337   04BF                 ; CALL INCH
 0338   04BF                 ; CALL OUTCH
 0339   04BF             
 0340   04BF                 ; Init LCD hardware
 0341   04BF CD D5 0B        CALL INIT_LCD
-0342   04C2 CD 64 0D        call delay
+0342   04C2 CD 70 0D        call delay
 0343   04C5             
 0344   04C5 CD ED 0C        call cls_TXT
-0345   04C8 CD 64 0D        call delay
+0345   04C8 CD 70 0D        call delay
 0346   04CB             
 0347   04CB CD 77 0C        CALL enable_grafic
-0348   04CE CD 64 0D        call delay
+0348   04CE CD 70 0D        call delay
 0349   04D1             
 0350   04D1 CD F3 0C        call cls_GRAPHIC
-0351   04D4 CD 64 0D        call delay
+0351   04D4 CD 70 0D        call delay
 0352   04D7             
 0353   04D7                 ;call lcd_clear
 0354   04D7             
@@ -498,14 +498,14 @@
 0362   04DA                 ; Init LCD logical
 0363   04DA CD C8 09        call INIT_TXT_LCD ; set cursor X Y to 0
 0364   04DD             
-0365   04DD 21 22 11        LD HL, MSG_MONITOR
-0366   04E0 CD 8F 0E        CALL SNDLCDMSG
+0365   04DD 21 2E 11        LD HL, MSG_MONITOR
+0366   04E0 CD 9B 0E        CALL SNDLCDMSG
 0367   04E3             
 0368   04E3 3E 3E           LD A, '>'
 0369   04E5 CD 57 0A        CALL PRINTCHAR
 0370   04E8             
 0371   04E8             KEY:
-0372   04E8 CD 88 0D        CALL KEYREADINIT
+0372   04E8 CD 94 0D        CALL KEYREADINIT
 0373   04EB             
 0374   04EB FE 48           CP 'H'
 0375   04ED CC 58 08        CALL Z, SHOWHELP
@@ -535,7 +535,7 @@
 0399   0515 CC F6 05        CALL Z, INPORT
 0400   0518             
 0401   0518 FE 31           CP '1'
-0402   051A CC 37 0F        CALL Z, I2CLIST
+0402   051A CC 43 0F        CALL Z, I2CLIST
 0403   051D             
 0404   051D FE 32           CP '2'
 0405   051F CC C1 07        CALL Z, I2CCPUTOMEM
@@ -572,7 +572,7 @@
 0436   0548             
 0437   0548             
 0438   0548             ; **********************************************************************
-0439   0548             ; **  Public functions                                                **
+0439   0548             ; **  API - Public functions                                          **
 0440   0548             ; **********************************************************************
 0441   0548             ; API: Main entry point
 0442   0548             ;   On entry: C = Function number
@@ -632,7 +632,7 @@
 0496   0582 C3 93 04        JP INICIO
 0497   0585             
 0498   0585             InputCharKey:
-0499   0585 C3 88 0D        JP KEYREADINIT
+0499   0585 C3 94 0D        JP KEYREADINIT
 0500   0588             
 0501   0588             OutLcdChar:
 0502   0588 C3 57 0A        JP PRINTCHAR
@@ -686,16 +686,16 @@
 0550   05C5 C3 90 0C        JP print_image
 0551   05C8             
 0552   05C8             I2COpen:
-0553   05C8 C3 4A 10        JP I2C_Open
+0553   05C8 C3 56 10        JP I2C_Open
 0554   05CB             
 0555   05CB             I2CClose:
-0556   05CB C3 51 10        JP I2C_Close
+0556   05CB C3 5D 10        JP I2C_Close
 0557   05CE             
 0558   05CE             I2CRead:
-0559   05CE C3 91 10        JP I2C_Read
+0559   05CE C3 9D 10        JP I2C_Read
 0560   05D1             
 0561   05D1             I2CWrite:
-0562   05D1 C3 54 10        JP I2C_Write
+0562   05D1 C3 60 10        JP I2C_Write
 0563   05D4             
 0564   05D4             LcdSetCXY:
 0565   05D4 F5              PUSH AF
@@ -822,7 +822,7 @@
 0686   0652             ;
 0687   0652             ; WAIT FOR CR OR ESC
 0688   0652             ;
-0689   0652 CD 88 0D    DPLAY1: CALL  KEYREADINIT
+0689   0652 CD 94 0D    DPLAY1: CALL  KEYREADINIT
 0690   0655 FE 1B              CP    ESC
 0691   0657 C8                 RET   Z
 0692   0658 FE 0D              CP    CR
@@ -836,7 +836,7 @@
 0700   0666             ;
 0701   0666             ; DISPLAY MORE LINES OR EXIT
 0702   0666             ;       
-0703   0666 CD 88 0D    DPLAY3: CALL  KEYREADINIT
+0703   0666 CD 94 0D    DPLAY3: CALL  KEYREADINIT
 0704   0669 38 FB              JR    C,DPLAY3   
 0705   066B FE 0D              CP    CR        ;ENTER DISPLAYS THE NEXT LINE
 0706   066D 28 F0              JR    Z,DPLAY2
@@ -887,7 +887,7 @@
 0751   06AA 3E 00              LD    A,00H
 0752   06AC 77                 LD    (HL),A
 0753   06AD 21 00 FE           LD    HL,MSGBUF
-0754   06B0 CD 8F 0E           CALL  SNDLCDMSG
+0754   06B0 CD 9B 0E           CALL  SNDLCDMSG
 0755   06B3 C9                 RET
 0756   06B4             
 0757   06B4             
@@ -915,8 +915,8 @@
 0779   06BC CD 57 0A        CALL PRINTCHAR
 0780   06BF             
 0781   06BF                 ; Show msg func
-0782   06BF 21 6F 12        LD HL, MSG_I2C_WR_DD
-0783   06C2 CD 8F 0E        CALL SNDLCDMSG
+0782   06BF 21 7B 12        LD HL, MSG_I2C_WR_DD
+0783   06C2 CD 9B 0E        CALL SNDLCDMSG
 0784   06C5             
 0785   06C5                 ; Device Address
 0786   06C5 CD 6F 07        CALL GET_DEV_ADDR ; get address
@@ -927,12 +927,12 @@
 0791   06CB             
 0792   06CB                 ; Send
 0793   06CB 3A C0 FF        LD A, (I2C_ADDR) ; Open
-0794   06CE CD 4A 10        CALL I2C_Open
+0794   06CE CD 56 10        CALL I2C_Open
 0795   06D1             
 0796   06D1 3A C2 FF        LD A, (I2C_DD)  ; Data
-0797   06D4 CD 54 10        CALL I2C_Write
+0797   06D4 CD 60 10        CALL I2C_Write
 0798   06D7              
-0799   06D7 CD 51 10        CALL I2C_Close  ; Close
+0799   06D7 CD 5D 10        CALL I2C_Close  ; Close
 0800   06DA             
 0801   06DA 18 EC           JR I2C_WR_DD_LOOP
 0802   06DC             
@@ -948,8 +948,8 @@
 0812   06DF CD 57 0A        CALL PRINTCHAR
 0813   06E2             
 0814   06E2                 ; Show msg func
-0815   06E2 21 80 12        LD HL, MSG_I2C_WR_RR_DD
-0816   06E5 CD 8F 0E        CALL SNDLCDMSG
+0815   06E2 21 8C 12        LD HL, MSG_I2C_WR_RR_DD
+0816   06E5 CD 9B 0E        CALL SNDLCDMSG
 0817   06E8             
 0818   06E8                 ; Device Address
 0819   06E8 CD 6F 07        CALL GET_DEV_ADDR ; get address
@@ -963,15 +963,15 @@
 0827   06F1             
 0828   06F1                 ; Send
 0829   06F1 3A C0 FF        LD A, (I2C_ADDR) ; Open
-0830   06F4 CD 4A 10        CALL I2C_Open
+0830   06F4 CD 56 10        CALL I2C_Open
 0831   06F7             
 0832   06F7 3A C1 FF        LD A, (I2C_RR)  ; register
-0833   06FA CD 54 10        CALL I2C_Write
+0833   06FA CD 60 10        CALL I2C_Write
 0834   06FD             
 0835   06FD 3A C2 FF        LD A, (I2C_DD)  ; Data
-0836   0700 CD 54 10        CALL I2C_Write
+0836   0700 CD 60 10        CALL I2C_Write
 0837   0703             
-0838   0703 CD 51 10        CALL I2C_Close  ; Close
+0838   0703 CD 5D 10        CALL I2C_Close  ; Close
 0839   0706             
 0840   0706 18 E3           JR I2C_WR_RR_DD_LOOP
 0841   0708             
@@ -986,8 +986,8 @@
 0850   070B CD 57 0A        CALL PRINTCHAR
 0851   070E             
 0852   070E                 ; Show msg func
-0853   070E 21 95 12        LD HL, MSG_I2C_RD
-0854   0711 CD 8F 0E        CALL SNDLCDMSG
+0853   070E 21 A1 12        LD HL, MSG_I2C_RD
+0854   0711 CD 9B 0E        CALL SNDLCDMSG
 0855   0714             
 0856   0714                 ; Device Address
 0857   0714 CD 6F 07        CALL GET_DEV_ADDR ; get address
@@ -997,19 +997,19 @@
 0861   071A                 ; Send
 0862   071A 3A C0 FF        LD A, (I2C_ADDR) ; Open
 0863   071D 3C              INC A ; To read address + 1 (flag)
-0864   071E CD 4A 10        CALL I2C_Open
+0864   071E CD 56 10        CALL I2C_Open
 0865   0721             
-0866   0721 CD 91 10        CALL I2C_Read      ; Read
+0866   0721 CD 9D 10        CALL I2C_Read      ; Read
 0867   0724 F5              PUSH AF
 0868   0725             
-0869   0725 CD 51 10        CALL I2C_Close     ; Close
+0869   0725 CD 5D 10        CALL I2C_Close     ; Close
 0870   0728             
 0871   0728                 ; Show
 0872   0728 F1              POP AF
 0873   0729 CD 12 06        CALL CONV_A_HEX ; Show A to (HEX) LCD
 0874   072C CD 48 09        CALL TXCRLF ; new line
 0875   072F             
-0876   072F CD 88 0D        CALL KEYREADINIT
+0876   072F CD 94 0D        CALL KEYREADINIT
 0877   0732 FE 03           CP CTRLC
 0878   0734 CA D7 04        JP Z, RESET_WARM
 0879   0737             
@@ -1025,8 +1025,8 @@
 0889   073C CD 57 0A        CALL PRINTCHAR
 0890   073F             
 0891   073F                 ; Show msg func
-0892   073F 21 A5 12        LD HL, MSG_I2C_RD_RR
-0893   0742 CD 8F 0E        CALL SNDLCDMSG
+0892   073F 21 B1 12        LD HL, MSG_I2C_RD_RR
+0893   0742 CD 9B 0E        CALL SNDLCDMSG
 0894   0745             
 0895   0745                 ; Device Address
 0896   0745 CD 6F 07        CALL GET_DEV_ADDR ; get address
@@ -1038,19 +1038,19 @@
 0902   074E             
 0903   074E                 ; Send
 0904   074E 3A C0 FF        LD A, (I2C_ADDR) ; Open
-0905   0751 CD 4A 10        CALL I2C_Open
+0905   0751 CD 56 10        CALL I2C_Open
 0906   0754             
 0907   0754 3A C1 FF        LD A, (I2C_RR)
-0908   0757 CD 54 10        CALL I2C_Write ; Register to read
+0908   0757 CD 60 10        CALL I2C_Write ; Register to read
 0909   075A             
 0910   075A 3A C0 FF        LD A, (I2C_ADDR) ; Open
 0911   075D 3C              INC A ; To read address + 1 (flag)
-0912   075E CD 4A 10        CALL I2C_Open
+0912   075E CD 56 10        CALL I2C_Open
 0913   0761             
-0914   0761 CD 91 10        CALL I2C_Read ; Read register
+0914   0761 CD 9D 10        CALL I2C_Read ; Read register
 0915   0764 F5              PUSH AF
 0916   0765             
-0917   0765 CD 51 10        CALL I2C_Close ; Close
+0917   0765 CD 5D 10        CALL I2C_Close ; Close
 0918   0768             
 0919   0768                 ; Show
 0920   0768 F1              POP AF
@@ -1061,16 +1061,16 @@
 0925   076F             
 0926   076F             
 0927   076F             GET_DEV_ADDR:
-0928   076F 21 E9 12        LD HL, MSG_DEV_ADDR
-0929   0772 CD 8F 0E        CALL SNDLCDMSG
+0928   076F 21 F5 12        LD HL, MSG_DEV_ADDR
+0929   0772 CD 9B 0E        CALL SNDLCDMSG
 0930   0775 CD 4E 09        CALL  GETCHR 
 0931   0778 D8              RET   C
 0932   0779 32 C0 FF        LD (I2C_ADDR), A
 0933   077C C9              RET
 0934   077D             
 0935   077D             GET_DEV_DD:
-0936   077D 21 0C 13        LD HL, MSG_DEV_DATA
-0937   0780 CD 8F 0E        CALL SNDLCDMSG
+0936   077D 21 18 13        LD HL, MSG_DEV_DATA
+0937   0780 CD 9B 0E        CALL SNDLCDMSG
 0938   0783             
 0939   0783 CD 4E 09        CALL  GETCHR 
 0940   0786 D8              RET   C
@@ -1078,8 +1078,8 @@
 0942   078A C9              RET
 0943   078B             
 0944   078B             GET_DEV_RR:
-0945   078B 21 FC 12        LD HL, MSG_DEV_REG
-0946   078E CD 8F 0E        CALL SNDLCDMSG
+0945   078B 21 08 13        LD HL, MSG_DEV_REG
+0946   078E CD 9B 0E        CALL SNDLCDMSG
 0947   0791             
 0948   0791 CD 4E 09        CALL  GETCHR 
 0949   0794 D8              RET   C
@@ -1099,8 +1099,8 @@
 0963   0799             ;             If unsuccessfully A = Error and NZ flagged
 0964   0799             ;             IX IY preserved
 0965   0799             
-0966   0799 21 43 12        LD HL, MSG_MEM2CPU
-0967   079C CD 8F 0E        CALL SNDLCDMSG
+0966   0799 21 4F 12        LD HL, MSG_MEM2CPU
+0967   079C CD 9B 0E        CALL SNDLCDMSG
 0968   079F             
 0969   079F CD E9 07        CALL GET_FROM_TO_SIZE
 0970   07A2             
@@ -1111,15 +1111,15 @@
 0975   07A2 ED 5B B2 FE     LD DE, (ADDR_FROM)
 0976   07A6 2A B4 FE        LD HL, (ADDR_TO)
 0977   07A9 ED 4B B6 FE     LD BC, (ADDR_SIZE)
-0978   07AD CD 61 0F        CALL I2C_MemRd  
+0978   07AD CD 6D 0F        CALL I2C_MemRd  
 0979   07B0             
 0980   07B0 CA BA 07        JP Z, I2CMEMTOCPU_OK
-0981   07B3 21 DE 12        LD HL, MSG_COPYFAIL
-0982   07B6 CD 8F 0E        CALL SNDLCDMSG
+0981   07B3 21 EA 12        LD HL, MSG_COPYFAIL
+0982   07B6 CD 9B 0E        CALL SNDLCDMSG
 0983   07B9 C9              RET
 0984   07BA             I2CMEMTOCPU_OK:
-0985   07BA 21 D5 12        LD HL, MSG_COPYOK
-0986   07BD CD 8F 0E        CALL SNDLCDMSG
+0985   07BA 21 E1 12        LD HL, MSG_COPYOK
+0986   07BD CD 9B 0E        CALL SNDLCDMSG
 0987   07C0 C9              RET
 0988   07C1             
 0989   07C1             
@@ -1134,8 +1134,8 @@
 0998   07C1             ;             IX IY preserved
 0999   07C1             ; The 24LC64 requires blocks of data to be written in 64 byte (or less)
 1000   07C1             ; pages.
-1001   07C1 21 59 12        LD HL, MSG_CPU2MEM
-1002   07C4 CD 8F 0E        CALL SNDLCDMSG
+1001   07C1 21 65 12        LD HL, MSG_CPU2MEM
+1002   07C4 CD 9B 0E        CALL SNDLCDMSG
 1003   07C7             
 1004   07C7 CD E9 07        CALL GET_FROM_TO_SIZE
 1005   07CA             
@@ -1146,15 +1146,15 @@
 1010   07CA 2A B2 FE        LD HL, (ADDR_FROM)
 1011   07CD ED 5B B4 FE     LD DE, (ADDR_TO)
 1012   07D1 ED 4B B6 FE     LD BC, (ADDR_SIZE)
-1013   07D5 CD 96 0F        CALL I2C_MemWr
+1013   07D5 CD A2 0F        CALL I2C_MemWr
 1014   07D8                 
 1015   07D8 CA E2 07        JP Z, I2CCPUTOMEM_OK
-1016   07DB 21 DE 12        LD HL, MSG_COPYFAIL
-1017   07DE CD 8F 0E        CALL SNDLCDMSG
+1016   07DB 21 EA 12        LD HL, MSG_COPYFAIL
+1017   07DE CD 9B 0E        CALL SNDLCDMSG
 1018   07E1 C9              RET
 1019   07E2             I2CCPUTOMEM_OK:
-1020   07E2 21 D5 12        LD HL, MSG_COPYOK
-1021   07E5 CD 8F 0E        CALL SNDLCDMSG
+1020   07E2 21 E1 12        LD HL, MSG_COPYOK
+1021   07E5 CD 9B 0E        CALL SNDLCDMSG
 1022   07E8 C9              RET
 1023   07E9             
 1024   07E9             
@@ -1164,8 +1164,8 @@
 1028   07E9             
 1029   07E9             GET_FROM_TO_SIZE:
 1030   07E9                 ; FROM
-1031   07E9 21 B9 12        LD HL, MSG_FROM
-1032   07EC CD 8F 0E        CALL SNDLCDMSG
+1031   07E9 21 C5 12        LD HL, MSG_FROM
+1032   07EC CD 9B 0E        CALL SNDLCDMSG
 1033   07EF                 ;
 1034   07EF                 ;GET THE ADDRESS  FROM
 1035   07EF                 ;
@@ -1176,7 +1176,7 @@
 1040   07F9 D8              RET   C
 1041   07FA 32 B2 FE        LD    (ADDR_FROM),A    ;SAVE ADDRESS LOW
 1042   07FD             
-1043   07FD CD 88 0D        CALL  KEYREADINIT
+1043   07FD CD 94 0D        CALL  KEYREADINIT
 1044   0800 FE 1B           CP    ESC         ;ESC KEY?
 1045   0802 C8              RET   Z
 1046   0803 FE 0D           CP    CR
@@ -1187,8 +1187,8 @@
 1051   080F             
 1052   080F             GET_FROM_TO_SIZE_TO:
 1053   080F                 ; TO
-1054   080F 21 C0 12        LD HL, MSG_TO
-1055   0812 CD 8F 0E        CALL SNDLCDMSG
+1054   080F 21 CC 12        LD HL, MSG_TO
+1055   0812 CD 9B 0E        CALL SNDLCDMSG
 1056   0815                 ;
 1057   0815                 ;GET THE ADDRESS  TO
 1058   0815                 ;
@@ -1199,7 +1199,7 @@
 1063   081F D8              RET   C
 1064   0820 32 B4 FE        LD    (ADDR_TO),A    ;SAVE ADDRESS LOW
 1065   0823             
-1066   0823 CD 88 0D        CALL  KEYREADINIT
+1066   0823 CD 94 0D        CALL  KEYREADINIT
 1067   0826 FE 1B           CP    ESC         ;ESC KEY?
 1068   0828 C8              RET   Z
 1069   0829 FE 0D           CP    CR
@@ -1207,8 +1207,8 @@
 1071   082D             
 1072   082D             GET_FROM_TO_SIZE_SIZE:
 1073   082D                 ; SIZE
-1074   082D 21 C6 12        LD HL, MSG_SIZE
-1075   0830 CD 8F 0E        CALL SNDLCDMSG
+1074   082D 21 D2 12        LD HL, MSG_SIZE
+1075   0830 CD 9B 0E        CALL SNDLCDMSG
 1076   0833                 ;
 1077   0833                 ;GET THE SIZE
 1078   0833                 ;
@@ -1219,7 +1219,7 @@
 1083   083D D8              RET   C
 1084   083E 32 B6 FE        LD    (ADDR_SIZE),A    ;SAVE ADDRESS LOW
 1085   0841             
-1086   0841 CD 88 0D        CALL  KEYREADINIT
+1086   0841 CD 94 0D        CALL  KEYREADINIT
 1087   0844 FE 1B           CP    ESC         ;ESC KEY?
 1088   0846 C8              RET   Z
 1089   0847 FE 0D           CP    CR
@@ -1228,59 +1228,59 @@
 1092   084C             
 1093   084C             
 1094   084C             INTEL_HEX:
-1095   084C CD DC 0D        CALL INTHEX
-1096   084F CD 64 0D        CALL delay
-1097   0852 CD 64 0D        CALL delay
+1095   084C CD E8 0D        CALL INTHEX
+1096   084F CD 70 0D        CALL delay
+1097   0852 CD 70 0D        CALL delay
 1098   0855 C3 93 04        JP INICIO
 1099   0858             
 1100   0858             SHOWHELP:
 1101   0858 3E 0C           LD A, $0C ; limpar tela
 1102   085A CD 57 0A        CALL PRINTCHAR
 1103   085D             
-1104   085D 21 37 11        LD HL, MSG_MENU0
-1105   0860 CD 8F 0E        CALL SNDLCDMSG
+1104   085D 21 43 11        LD HL, MSG_MENU0
+1105   0860 CD 9B 0E        CALL SNDLCDMSG
 1106   0863             
-1107   0863 21 4A 11        LD HL, MSG_MENU1
-1108   0866 CD 8F 0E        CALL SNDLCDMSG
+1107   0863 21 56 11        LD HL, MSG_MENU1
+1108   0866 CD 9B 0E        CALL SNDLCDMSG
 1109   0869             
-1110   0869 21 5F 11        LD HL, MSG_MENU2
-1111   086C CD 8F 0E        CALL SNDLCDMSG
+1110   0869 21 6B 11        LD HL, MSG_MENU2
+1111   086C CD 9B 0E        CALL SNDLCDMSG
 1112   086F             
-1113   086F 21 6A 11        LD HL, MSG_MENU3
-1114   0872 CD 8F 0E        CALL SNDLCDMSG
+1113   086F 21 76 11        LD HL, MSG_MENU3
+1114   0872 CD 9B 0E        CALL SNDLCDMSG
 1115   0875             
-1116   0875 21 7C 11        LD HL, MSG_MENU4
-1117   0878 CD 8F 0E        CALL SNDLCDMSG
+1116   0875 21 88 11        LD HL, MSG_MENU4
+1117   0878 CD 9B 0E        CALL SNDLCDMSG
 1118   087B             
-1119   087B 21 8D 11        LD HL, MSG_MENU5
-1120   087E CD 8F 0E        CALL SNDLCDMSG
+1119   087B 21 99 11        LD HL, MSG_MENU5
+1120   087E CD 9B 0E        CALL SNDLCDMSG
 1121   0881             
-1122   0881 21 9D 11        LD HL, MSG_MENU6
-1123   0884 CD 8F 0E        CALL SNDLCDMSG
+1122   0881 21 A9 11        LD HL, MSG_MENU6
+1123   0884 CD 9B 0E        CALL SNDLCDMSG
 1124   0887             
-1125   0887 21 AA 11        LD HL, MSG_MENU7
-1126   088A CD 8F 0E        CALL SNDLCDMSG
+1125   0887 21 B6 11        LD HL, MSG_MENU7
+1126   088A CD 9B 0E        CALL SNDLCDMSG
 1127   088D             
-1128   088D 21 B3 11        LD HL, MSG_MENU8
-1129   0890 CD 8F 0E        CALL SNDLCDMSG
+1128   088D 21 BF 11        LD HL, MSG_MENU8
+1129   0890 CD 9B 0E        CALL SNDLCDMSG
 1130   0893             
-1131   0893 21 BF 11        LD HL, MSG_MENU9
-1132   0896 CD 8F 0E        CALL SNDLCDMSG
+1131   0893 21 CB 11        LD HL, MSG_MENU9
+1132   0896 CD 9B 0E        CALL SNDLCDMSG
 1133   0899             
-1134   0899 21 D0 11        LD HL, MSG_MENU10
-1135   089C CD 8F 0E        CALL SNDLCDMSG
+1134   0899 21 DC 11        LD HL, MSG_MENU10
+1135   089C CD 9B 0E        CALL SNDLCDMSG
 1136   089F             
-1137   089F 21 E1 11        LD HL, MSG_MENU11
-1138   08A2 CD 8F 0E        CALL SNDLCDMSG
+1137   089F 21 ED 11        LD HL, MSG_MENU11
+1138   08A2 CD 9B 0E        CALL SNDLCDMSG
 1139   08A5             
-1140   08A5 21 F1 11        LD HL, MSG_MENU12
-1141   08A8 CD 8F 0E        CALL SNDLCDMSG
+1140   08A5 21 FD 11        LD HL, MSG_MENU12
+1141   08A8 CD 9B 0E        CALL SNDLCDMSG
 1142   08AB             
-1143   08AB 21 04 12        LD HL, MSG_MENU13
-1144   08AE CD 8F 0E        CALL SNDLCDMSG
+1143   08AB 21 10 12        LD HL, MSG_MENU13
+1144   08AE CD 9B 0E        CALL SNDLCDMSG
 1145   08B1             
-1146   08B1 21 19 12        LD HL, MSG_MENU14
-1147   08B4 CD 8F 0E        CALL SNDLCDMSG
+1146   08B1 21 25 12        LD HL, MSG_MENU14
+1147   08B4 CD 9B 0E        CALL SNDLCDMSG
 1148   08B7             
 1149   08B7 C9              RET
 1150   08B8             
@@ -1368,7 +1368,7 @@
 1232   0930             ;
 1233   0930             ; WAIT FOR A CR OR ESC
 1234   0930             ;       
-1235   0930 CD 88 0D    GOJMP1: CALL  KEYREADINIT
+1235   0930 CD 94 0D    GOJMP1: CALL  KEYREADINIT
 1236   0933 FE 1B              CP    ESC         ;ESC KEY?
 1237   0935 C8                 RET   Z
 1238   0936 FE 0D              CP    CR
@@ -1397,7 +1397,7 @@
 1261   094E             ;-----------------------------
 1262   094E             ; GET A BYTE FROM THE TERMINAL
 1263   094E             ;-----------------------------
-1264   094E CD 88 0D    GETCHR: CALL KEYREADINIT ; read key
+1264   094E CD 94 0D    GETCHR: CALL KEYREADINIT ; read key
 1265   0951 FE 1B              CP    ESC
 1266   0953 28 31              JR    Z,GETOUT
 1267   0955 FE 03              CP    CTRLC  ; key BK (reset)
@@ -1410,7 +1410,7 @@
 1274   0964 78                 LD    A,B         
 1275   0965 CD 57 0A           CALL  PRINTCHAR             ;ECHO VALID HEX
 1276   0968                    
-1277   0968 CD 88 0D    GETNYB: CALL  KEYREADINIT
+1277   0968 CD 94 0D    GETNYB: CALL  KEYREADINIT
 1278   096B FE 1B              CP    ESC
 1279   096D 28 17              JR    Z,GETOUT
 1280   096F FE 03              CP    CTRLC  ; key BK (reset)
@@ -2244,7 +2244,7 @@
 2108   0D23             lcd_send_command_clear:
 2109   0D23 C5          	push bc				;Preserve
 2110   0D24             	
-2111   0D24 CD 56 0D    	call delayLCDclear
+2111   0D24 CD 5A 0D    	call delayLCDclear
 2112   0D27             	
 2113   0D27 0E 70           ld c, LCDCTRL   	;Command port
 2114   0D29 ED 79       	out (c),a			;Send command
@@ -2311,13 +2311,13 @@
 2175   0D52 00          	NOP
 2176   0D53 00          	NOP
 2177   0D54 00              NOP
-2178   0D55 C9              ret
-2179   0D56             
-2180   0D56             delayLCDclear:
-2181   0D56 00          	NOP
-2182   0D57 00          	NOP
-2183   0D58 00          	NOP
-2184   0D59 00          	NOP
+2178   0D55 00              NOP
+2179   0D56 00              NOP
+2180   0D57 00              NOP
+2181   0D58 00              NOP
+2182   0D59 C9              ret
+2183   0D5A             
+2184   0D5A             delayLCDclear:
 2185   0D5A 00          	NOP
 2186   0D5B 00          	NOP
 2187   0D5C 00          	NOP
@@ -2326,1048 +2326,1060 @@
 2190   0D5F 00          	NOP
 2191   0D60 00          	NOP
 2192   0D61 00          	NOP
-2193   0D62 00              NOP
-2194   0D63 C9              ret
-2195   0D64             
-2196   0D64             	
-2197   0D64             ; =========================================================
-2198   0D64             ; Delay
-2199   0D64             ; =========================================================
-2200   0D64             delay:
-2201   0D64 C5          	push bc                       ; 2.75 us
-2202   0D65 06 01           ld b, 1                     ; 1.75 us
-2203   0D67             delay_loop_b:
-2204   0D67 0E FF       	ld c, 255                     ; 1.75 us
-2205   0D69             delay_loop:
-2206   0D69 0D          	dec c                         ; 1 us
-2207   0D6A C2 69 0D        jp nz, delay_loop             ; true = 3 us, false 1.75 us
-2208   0D6D 05              dec b                         ; 1 us
-2209   0D6E C2 67 0D        jp nz, delay_loop_b           ; true = 3 us, false 1.75 us
-2210   0D71 C1              pop bc                        ; 2.50 us
-2211   0D72 C9              ret   
-2212   0D73             
-2213   0D73             
-2214   0D73             ; Check break key
-2215   0D73 3E 40       CHKKEY: LD  A, $40
-2216   0D75 D3 40       	OUT (KEY_OUT), A ; line 4
-2217   0D77 DB 40       	IN  A, (KEY_IN)
-2218   0D79 FE 01       	CP  1
-2219   0D7B C2 83 0D    	JP  NZ, GRET
-2220   0D7E 3E 03       	LD  A, CTRLC
-2221   0D80 FE 00       	CP	0
-2222   0D82 C9          	RET
-2223   0D83             GRET:
-2224   0D83 3E 00       	LD  A, 0
-2225   0D85 FE 00       	CP 0
-2226   0D87 C9          	RET
-2227   0D88             
-2228   0D88             
-2229   0D88             
-2230   0D88             
-2231   0D88             ; -----------------------------------------------------------------------------
-2232   0D88             ;   KEYREAD - KEY In A
-2233   0D88             ; -----------------------------------------------------------------------------
-2234   0D88             KEYREADINIT:
-2235   0D88 C5              PUSH    BC
-2236   0D89 D5          	PUSH	DE
-2237   0D8A E5          	PUSH    HL
-2238   0D8B 1E 00       	LD      E, 0                    ; E will be the last pressed key
-2239   0D8D             READKEY:        
-2240   0D8D 26 01           LD      H, 1                    ; H is the line register, start with second
-2241   0D8F 06 00       	LD      B, 0                    ; Count lines for later multiplication	
-2242   0D91 16 00       	LD      D, 0                    ; DE will be the adress for mask
-2243   0D93             						
-2244   0D93             NEXTKEY:        
-2245   0D93 7C              LD      A, H						
-2246   0D94 FE 00           CP      0                       ; All lines tried? 
-2247   0D96 CA D1 0D        JP      Z, KEYOUT               ; Then check if there was a key pressed
-2248   0D99 D3 40       	OUT     (KEY_OUT), A		    ; Put current line to register
-2249   0D9B DB 40       	IN      A, (KEY_IN)		        ; Input Keys
-2250   0D9D E6 3F       	AND     $3F                     ; only 6 bits
-2251   0D9F CB 24       	SLA     H                       ; Next line
-2252   0DA1 04              INC     B
-2253   0DA2 FE 00           CP      0                       ; Was key zero?
-2254   0DA4 CA 93 0D        JP      Z, NEXTKEY              ; Then try again with next lines
-2255   0DA7 16 00           LD      D, 0                    ; In D will be the number of the key
-2256   0DA9             LOGARITHM:      
-2257   0DA9 14              INC     D	                    ; Add one per shift
-2258   0DAA CB 3F           SRL     A                       ; Shift key right
-2259   0DAC C2 A9 0D        JP      NZ, LOGARITHM		    ; If not zero shift again
-2260   0DAF 15              DEC     D                       ; Was too much
-2261   0DB0 DB 40       	IN      A, (KEY_IN)
-2262   0DB2 E6 80           AND     $80                     ; Check if first bit set (shift key pressed)
-2263   0DB4 C2 BD 0D        JP      NZ, LOADSHIFT		    ; Then jump to read with shift
-2264   0DB7 7A              LD      A, D                    ; Put read key into accu
-2265   0DB8 C6 33           ADD     A, KEYMAP               ; Add base of key map array
-2266   0DBA C3 C0 0D        JP      ADDOFFSET               ; Jump to load key
-2267   0DBD             LOADSHIFT:
-2268   0DBD 7A              LD      A, D
-2269   0DBE C6 63           ADD     A, SHIFTKEYMAP          ; In this case add the base for shift		
-2270   0DC0             ADDOFFSET:
-2271   0DC0 C6 06           ADD     A, 6                    ; Add 6 for every line
-2272   0DC2 10 FC           DJNZ    ADDOFFSET               ; Jump back (do while loop)
-2273   0DC4 D6 06       	SUB     6                       ; Since do while is one too much
-2274   0DC6             TRANSKEY:
-2275   0DC6 A8              XOR     B                       ; Empty B
-2276   0DC7 4F          	LD      C, A                    ; A will be address in BC
-2277   0DC8 0A          	LD      A, (BC)	                ; Load key
-2278   0DC9 BB          	CP      E                       ; Same key?
-2279   0DCA CA 8D 0D    	JP      Z, READKEY              ; Then from beginning
-2280   0DCD 5F          	LD      E, A                    ; Otherwise save new key
-2281   0DCE C3 8D 0D    	JP      READKEY	                ; And restart
-2282   0DD1             KEYOUT:
-2283   0DD1 7B              LD      A, E
-2284   0DD2 1E 00           LD      E, 0                    ; empty it
-2285   0DD4 B7              OR      A	                    ; Was a key read?
-2286   0DD5 CA 8D 0D        JP      Z, READKEY              ; If not restart
-2287   0DD8 E1              POP     HL
-2288   0DD9 D1              POP     DE
-2289   0DDA C1              POP     BC
-2290   0DDB C9              RET
-2291   0DDC             
-2292   0DDC             
-2293   0DDC             ;-----------------------
-2294   0DDC             ; RECEIVE INTEL HEX FILE
-2295   0DDC             ;-----------------------       
-2296   0DDC             INTHEX: 
-2297   0DDC 21 18 13           LD HL, MSG_ILOAD
-2298   0DDF CD 8F 0E           CALL  SNDLCDMSG
-2299   0DE2             
-2300   0DE2 21 18 13           LD HL, MSG_ILOAD
-2301   0DE5 CD A2 0E           CALL  SNDMSG
-2302   0DE8                    
+2193   0D62 00          	NOP
+2194   0D63 00          	NOP
+2195   0D64 00          	NOP
+2196   0D65 00          	NOP
+2197   0D66 00              NOP
+2198   0D67 00              NOP
+2199   0D68 00              NOP
+2200   0D69 00              NOP
+2201   0D6A 00              NOP
+2202   0D6B 00              NOP
+2203   0D6C 00              NOP
+2204   0D6D 00              NOP
+2205   0D6E 00              NOP
+2206   0D6F C9              ret
+2207   0D70             
+2208   0D70             	
+2209   0D70             ; =========================================================
+2210   0D70             ; Delay
+2211   0D70             ; =========================================================
+2212   0D70             delay:
+2213   0D70 C5          	push bc                       ; 2.75 us
+2214   0D71 06 01           ld b, 1                     ; 1.75 us
+2215   0D73             delay_loop_b:
+2216   0D73 0E FF       	ld c, 255                     ; 1.75 us
+2217   0D75             delay_loop:
+2218   0D75 0D          	dec c                         ; 1 us
+2219   0D76 C2 75 0D        jp nz, delay_loop             ; true = 3 us, false 1.75 us
+2220   0D79 05              dec b                         ; 1 us
+2221   0D7A C2 73 0D        jp nz, delay_loop_b           ; true = 3 us, false 1.75 us
+2222   0D7D C1              pop bc                        ; 2.50 us
+2223   0D7E C9              ret   
+2224   0D7F             
+2225   0D7F             
+2226   0D7F             ; Check break key
+2227   0D7F 3E 40       CHKKEY: LD  A, $40
+2228   0D81 D3 40       	OUT (KEY_OUT), A ; line 4
+2229   0D83 DB 40       	IN  A, (KEY_IN)
+2230   0D85 FE 01       	CP  1
+2231   0D87 C2 8F 0D    	JP  NZ, GRET
+2232   0D8A 3E 03       	LD  A, CTRLC
+2233   0D8C FE 00       	CP	0
+2234   0D8E C9          	RET
+2235   0D8F             GRET:
+2236   0D8F 3E 00       	LD  A, 0
+2237   0D91 FE 00       	CP 0
+2238   0D93 C9          	RET
+2239   0D94             
+2240   0D94             
+2241   0D94             
+2242   0D94             
+2243   0D94             ; -----------------------------------------------------------------------------
+2244   0D94             ;   KEYREAD - KEY In A
+2245   0D94             ; -----------------------------------------------------------------------------
+2246   0D94             KEYREADINIT:
+2247   0D94 C5              PUSH    BC
+2248   0D95 D5          	PUSH	DE
+2249   0D96 E5          	PUSH    HL
+2250   0D97 1E 00       	LD      E, 0                    ; E will be the last pressed key
+2251   0D99             READKEY:        
+2252   0D99 26 01           LD      H, 1                    ; H is the line register, start with second
+2253   0D9B 06 00       	LD      B, 0                    ; Count lines for later multiplication	
+2254   0D9D 16 00       	LD      D, 0                    ; DE will be the adress for mask
+2255   0D9F             						
+2256   0D9F             NEXTKEY:        
+2257   0D9F 7C              LD      A, H						
+2258   0DA0 FE 00           CP      0                       ; All lines tried? 
+2259   0DA2 CA DD 0D        JP      Z, KEYOUT               ; Then check if there was a key pressed
+2260   0DA5 D3 40       	OUT     (KEY_OUT), A		    ; Put current line to register
+2261   0DA7 DB 40       	IN      A, (KEY_IN)		        ; Input Keys
+2262   0DA9 E6 3F       	AND     $3F                     ; only 6 bits
+2263   0DAB CB 24       	SLA     H                       ; Next line
+2264   0DAD 04              INC     B
+2265   0DAE FE 00           CP      0                       ; Was key zero?
+2266   0DB0 CA 9F 0D        JP      Z, NEXTKEY              ; Then try again with next lines
+2267   0DB3 16 00           LD      D, 0                    ; In D will be the number of the key
+2268   0DB5             LOGARITHM:      
+2269   0DB5 14              INC     D	                    ; Add one per shift
+2270   0DB6 CB 3F           SRL     A                       ; Shift key right
+2271   0DB8 C2 B5 0D        JP      NZ, LOGARITHM		    ; If not zero shift again
+2272   0DBB 15              DEC     D                       ; Was too much
+2273   0DBC DB 40       	IN      A, (KEY_IN)
+2274   0DBE E6 80           AND     $80                     ; Check if first bit set (shift key pressed)
+2275   0DC0 C2 C9 0D        JP      NZ, LOADSHIFT		    ; Then jump to read with shift
+2276   0DC3 7A              LD      A, D                    ; Put read key into accu
+2277   0DC4 C6 33           ADD     A, KEYMAP               ; Add base of key map array
+2278   0DC6 C3 CC 0D        JP      ADDOFFSET               ; Jump to load key
+2279   0DC9             LOADSHIFT:
+2280   0DC9 7A              LD      A, D
+2281   0DCA C6 63           ADD     A, SHIFTKEYMAP          ; In this case add the base for shift		
+2282   0DCC             ADDOFFSET:
+2283   0DCC C6 06           ADD     A, 6                    ; Add 6 for every line
+2284   0DCE 10 FC           DJNZ    ADDOFFSET               ; Jump back (do while loop)
+2285   0DD0 D6 06       	SUB     6                       ; Since do while is one too much
+2286   0DD2             TRANSKEY:
+2287   0DD2 A8              XOR     B                       ; Empty B
+2288   0DD3 4F          	LD      C, A                    ; A will be address in BC
+2289   0DD4 0A          	LD      A, (BC)	                ; Load key
+2290   0DD5 BB          	CP      E                       ; Same key?
+2291   0DD6 CA 99 0D    	JP      Z, READKEY              ; Then from beginning
+2292   0DD9 5F          	LD      E, A                    ; Otherwise save new key
+2293   0DDA C3 99 0D    	JP      READKEY	                ; And restart
+2294   0DDD             KEYOUT:
+2295   0DDD 7B              LD      A, E
+2296   0DDE 1E 00           LD      E, 0                    ; empty it
+2297   0DE0 B7              OR      A	                    ; Was a key read?
+2298   0DE1 CA 99 0D        JP      Z, READKEY              ; If not restart
+2299   0DE4 E1              POP     HL
+2300   0DE5 D1              POP     DE
+2301   0DE6 C1              POP     BC
+2302   0DE7 C9              RET
 2303   0DE8             
-2304   0DE8 CD 07 0E           CALL  INTELH
-2305   0DEB 20 0D              JR    NZ,ITHEX1      
-2306   0DED             
-2307   0DED 21 2E 13           LD    HL,FILEOK
-2308   0DF0 CD 8F 0E           CALL  SNDLCDMSG   ;GOT FILE OK LCD
-2309   0DF3 21 2E 13           LD    HL,FILEOK
-2310   0DF6 CD A2 0E           CALL  SNDMSG      ;GOT FILE OK Serial
-2311   0DF9                    
-2312   0DF9 C9                 RET
-2313   0DFA 21 40 13    ITHEX1: LD    HL,CSUMERR
-2314   0DFD CD 8F 0E           CALL  SNDLCDMSG
-2315   0E00             
-2316   0E00 21 40 13           LD    HL,CSUMERR
-2317   0E03 CD A2 0E           CALL  SNDMSG      ;CHECKSUM ERROR
-2318   0E06                    
-2319   0E06 C9                 RET  
-2320   0E07             
-2321   0E07             
-2322   0E07             
-2323   0E07             
-2324   0E07             
-2325   0E07             ;-----------------------
-2326   0E07             ; RECEIVE INTEL HEX FILE
-2327   0E07             ;-----------------------
-2328   0E07 DD 21 00 F0 INTELH:	LD	IX,SYSTEM	;POINT TO SYSTEM VARIABLES
-2329   0E0B             ;
-2330   0E0B             ; WAIT FOR RECORD MARK
-2331   0E0B             ;
-2332   0E0B AF          INTEL1:	XOR	A
-2333   0E0C DD 77 03    	LD	(IX+3),A	;CLEAR CHECKSUM
-2334   0E0F CD E7 0E    	CALL	RXDATA	;WAIT FOR THE RECORD MARK
-2335   0E12 FE 3A       	CP	':'	;TO BE TRANSMITTED
-2336   0E14 20 F5       	JR	NZ,INTEL1	;NOT RECORD MARK
-2337   0E16             ;
-2338   0E16             ; GET RECORD LENGTH
-2339   0E16             ;
-2340   0E16 CD 63 0E    	CALL	GETBYT
-2341   0E19 DD 77 00    	LD	(IX+0),A	;NUMBER OF DATA BYTES
-2342   0E1C             ;
-2343   0E1C             ; GET ADDRESS FIELD
-2344   0E1C             ;
-2345   0E1C CD 63 0E    	CALL	GETBYT
-2346   0E1F DD 77 02    	LD	(IX+2),A	;LOAD ADDRESS HIGH BYTE
-2347   0E22 CD 63 0E    	CALL	GETBYT
-2348   0E25 DD 77 01    	LD	(IX+1),A	;LOAD ADDRESS LOW BYTE
-2349   0E28             ;
-2350   0E28             ; GET RECORD TYPE
-2351   0E28             ;
-2352   0E28 CD 63 0E    	CALL	GETBYT
-2353   0E2B 20 24       	JR	NZ,INTEL4	;END OF FILE RECORD
-2354   0E2D             ;
-2355   0E2D             ; READ IN THE DATA
-2356   0E2D             ;
-2357   0E2D DD 46 00    	LD	B,(IX+0)	;NUMBER OF DATA BYTES
-2358   0E30 DD 66 02    	LD	H,(IX+2)	;LOAD ADDRESS HIGH BYTE
-2359   0E33 DD 6E 01    	LD	L,(IX+1)	;LOAD ADDRESS LOW BYTE
-2360   0E36             
-2361   0E36 CD 63 0E    INTEL2:	CALL	GETBYT	;GET DATA BYTE
-2362   0E39 77          	LD	(HL),A	;STORE DATA BYTE
-2363   0E3A 23          	INC	HL
-2364   0E3B 10 F9       	DJNZ	INTEL2	;LOAD MORE BYTES
-2365   0E3D             ;
-2366   0E3D             ; GET CHECKSUM AND COMPARE
-2367   0E3D             ;
-2368   0E3D DD 7E 03    	LD	A,(IX+3)	;CONVERT CHECKSUM TO
-2369   0E40 ED 44       	NEG		;TWO'S COMPLEMENT
-2370   0E42 DD 77 04    	LD	(IX+4),A	;SAVE COMPUTED CHECKSUM
-2371   0E45 CD 63 0E    	CALL	GETBYT
-2372   0E48 DD 77 03    	LD	(IX+3),A	;SAVE RECORD CHECKSUM
-2373   0E4B DD BE 04    	CP	(IX+4)	;COMPARE CHECKSUM
-2374   0E4E 28 BB       	JR	Z,INTEL1	;CHECKSUM OK,NEXT RECORD
-2375   0E50 C9              RET             ;NZ=CHECKSUM ERROR
-2376   0E51             ;
-2377   0E51             ; END OF FILE RECORD
-2378   0E51             ;
-2379   0E51 DD 7E 03    INTEL4:	LD	A,(IX+3)	;CONVERT CHECKSUM TO
-2380   0E54 ED 44       	NEG		;TWO'S COMPLEMENT
-2381   0E56 DD 77 04    	LD	(IX+4),A	;SAVE COMPUTED CHECKSUM
-2382   0E59 CD 63 0E    	CALL	GETBYT
-2383   0E5C DD 77 03    	LD	(IX+3),A	;SAVE EOF CHECKSUM
-2384   0E5F DD BE 04    	CP	(IX+4)	;COMPARE CHECKSUM
-2385   0E62 C9          	RET  	    ;NZ=CHECKSUM ERROR
-2386   0E63             ;--------------------------
-2387   0E63             ; GET BYTE FROM SERIAL PORT
-2388   0E63             ;--------------------------
-2389   0E63 C5          GETBYT:	PUSH	BC
-2390   0E64 CD E7 0E    	CALL	RXDATA
-2391   0E67 CB 77       	BIT	6,A
-2392   0E69 28 02       	JR	Z,GETBT1
-2393   0E6B C6 09       	ADD	A,09H
-2394   0E6D E6 0F       GETBT1:	AND	0FH
-2395   0E6F CB 27       	SLA 	A
-2396   0E71 CB 27       	SLA	A
-2397   0E73 CB 27       	SLA	A
-2398   0E75 CB 27       	SLA	A
-2399   0E77 4F          	LD	C,A
-2400   0E78             ;
-2401   0E78             ; GET LOW NYBBLE
-2402   0E78             ;
-2403   0E78 CD E7 0E    	CALL	RXDATA
-2404   0E7B CB 77       	BIT	6,A
-2405   0E7D 28 02       	JR	Z,GETBT2
-2406   0E7F C6 09       	ADD	A,09H
-2407   0E81 E6 0F       GETBT2:	AND	0FH
-2408   0E83 B1          	OR	C
-2409   0E84 47          	LD	B,A
-2410   0E85 DD 86 03    	ADD	A,(IX+3)
-2411   0E88 DD 77 03    	LD	(IX+3),A	;ADD TO CHECKSUM
-2412   0E8B 78          	LD	A,B
-2413   0E8C A7          	AND	A	;CLEAR CARRY
-2414   0E8D C1              POP	BC
-2415   0E8E C9          	RET
-2416   0E8F             
-2417   0E8F             ;-----------------------------------------
-2418   0E8F             ; SEND AN ASCII STRING OUT LCD
-2419   0E8F             ;-----------------------------------------
-2420   0E8F             ; 
-2421   0E8F             ; SENDS A ZERO TERMINATED STRING OR 
-2422   0E8F             ; 128 CHARACTERS MAX. OUT LCD
-2423   0E8F             ;
-2424   0E8F             ;      ENTRY : HL = POINTER TO 00H TERMINATED STRING
-2425   0E8F             ;      EXIT  : NONE
-2426   0E8F             ;
-2427   0E8F             ;       MODIFIES : A,B,C
-2428   0E8F             ;          
-2429   0E8F 06 80       SNDLCDMSG: LD    B,128         ;128 CHARS MAX
-2430   0E91 7E          SDLCDMSG1: LD    A,(HL)        ;GET THE CHAR
-2431   0E92 FE 00              CP    00H          ;ZERO TERMINATOR?
-2432   0E94 28 06              JR    Z,SDLCDMSG2      ;FOUND A ZERO TERMINATOR, EXIT  
-2433   0E96 CD 69 0A           CALL PrintBufferChar         ;TRANSMIT THE CHAR
-2434   0E99 23                 INC   HL
-2435   0E9A 10 F5              DJNZ  SDLCDMSG1        ;128 CHARS MAX!    
-2436   0E9C             SDLCDMSG2: 
-2437   0E9C 21 00 E5        LD HL, DISPLAY
-2438   0E9F CD 90 0C        CALL print_image
-2439   0EA2             RET
-2440   0EA2             
-2441   0EA2             ;-----------------------------------------
-2442   0EA2             ; SEND AN ASCII STRING OUT THE SERIAL PORT
-2443   0EA2             ;-----------------------------------------
-2444   0EA2             ; 
-2445   0EA2             ; SENDS A ZERO TERMINATED STRING OR 
-2446   0EA2             ; 128 CHARACTERS MAX. OUT THE SERIAL PORT
-2447   0EA2             ;
-2448   0EA2             ;      ENTRY : HL = POINTER TO 00H TERMINATED STRING
-2449   0EA2             ;      EXIT  : NONE
-2450   0EA2             ;
-2451   0EA2             ;       MODIFIES : A,B,C
-2452   0EA2             ;          
-2453   0EA2 06 80       SNDMSG: LD    B,128         ;128 CHARS MAX
-2454   0EA4 7E          SDMSG1: LD    A,(HL)        ;GET THE CHAR
-2455   0EA5 FE 00              CP    00H          ;ZERO TERMINATOR?
-2456   0EA7 28 06              JR    Z,SDMSG2      ;FOUND A ZERO TERMINATOR, EXIT  
-2457   0EA9 CD B0 0E           CALL  OUTCH         ;TRANSMIT THE CHAR
-2458   0EAC 23                 INC   HL
-2459   0EAD 10 F5              DJNZ  SDMSG1        ;128 CHARS MAX!    
-2460   0EAF C9          SDMSG2: RET
-2461   0EB0             
-2462   0EB0             
-2463   0EB0             
-2464   0EB0             ;-----------------------------------
-2465   0EB0             ; OUTPUT A CHARACTER TO THE TERMINAL
-2466   0EB0             ;-----------------------------------       
-2467   0EB0 DD 2A AA FF OUTCH:  LD   IX,(PUTCH)
-2468   0EB4 DD E9              JP   (IX)
-2469   0EB6             ;------------------------------------
-2470   0EB6             ; INPUT A CHARACTER FROM THE TERMINAL
-2471   0EB6             ;------------------------------------
-2472   0EB6 DD 2A AC FF INCH:  LD   IX,(GETCH)
-2473   0EBA DD E9             JP   (IX)
+2304   0DE8             
+2305   0DE8             ;-----------------------
+2306   0DE8             ; RECEIVE INTEL HEX FILE
+2307   0DE8             ;-----------------------       
+2308   0DE8             INTHEX: 
+2309   0DE8 21 24 13           LD HL, MSG_ILOAD
+2310   0DEB CD 9B 0E           CALL  SNDLCDMSG
+2311   0DEE             
+2312   0DEE 21 24 13           LD HL, MSG_ILOAD
+2313   0DF1 CD AE 0E           CALL  SNDMSG
+2314   0DF4                    
+2315   0DF4             
+2316   0DF4 CD 13 0E           CALL  INTELH
+2317   0DF7 20 0D              JR    NZ,ITHEX1      
+2318   0DF9             
+2319   0DF9 21 3A 13           LD    HL,FILEOK
+2320   0DFC CD 9B 0E           CALL  SNDLCDMSG   ;GOT FILE OK LCD
+2321   0DFF 21 3A 13           LD    HL,FILEOK
+2322   0E02 CD AE 0E           CALL  SNDMSG      ;GOT FILE OK Serial
+2323   0E05                    
+2324   0E05 C9                 RET
+2325   0E06 21 4C 13    ITHEX1: LD    HL,CSUMERR
+2326   0E09 CD 9B 0E           CALL  SNDLCDMSG
+2327   0E0C             
+2328   0E0C 21 4C 13           LD    HL,CSUMERR
+2329   0E0F CD AE 0E           CALL  SNDMSG      ;CHECKSUM ERROR
+2330   0E12                    
+2331   0E12 C9                 RET  
+2332   0E13             
+2333   0E13             
+2334   0E13             
+2335   0E13             
+2336   0E13             
+2337   0E13             ;-----------------------
+2338   0E13             ; RECEIVE INTEL HEX FILE
+2339   0E13             ;-----------------------
+2340   0E13 DD 21 00 F0 INTELH:	LD	IX,SYSTEM	;POINT TO SYSTEM VARIABLES
+2341   0E17             ;
+2342   0E17             ; WAIT FOR RECORD MARK
+2343   0E17             ;
+2344   0E17 AF          INTEL1:	XOR	A
+2345   0E18 DD 77 03    	LD	(IX+3),A	;CLEAR CHECKSUM
+2346   0E1B CD F3 0E    	CALL	RXDATA	;WAIT FOR THE RECORD MARK
+2347   0E1E FE 3A       	CP	':'	;TO BE TRANSMITTED
+2348   0E20 20 F5       	JR	NZ,INTEL1	;NOT RECORD MARK
+2349   0E22             ;
+2350   0E22             ; GET RECORD LENGTH
+2351   0E22             ;
+2352   0E22 CD 6F 0E    	CALL	GETBYT
+2353   0E25 DD 77 00    	LD	(IX+0),A	;NUMBER OF DATA BYTES
+2354   0E28             ;
+2355   0E28             ; GET ADDRESS FIELD
+2356   0E28             ;
+2357   0E28 CD 6F 0E    	CALL	GETBYT
+2358   0E2B DD 77 02    	LD	(IX+2),A	;LOAD ADDRESS HIGH BYTE
+2359   0E2E CD 6F 0E    	CALL	GETBYT
+2360   0E31 DD 77 01    	LD	(IX+1),A	;LOAD ADDRESS LOW BYTE
+2361   0E34             ;
+2362   0E34             ; GET RECORD TYPE
+2363   0E34             ;
+2364   0E34 CD 6F 0E    	CALL	GETBYT
+2365   0E37 20 24       	JR	NZ,INTEL4	;END OF FILE RECORD
+2366   0E39             ;
+2367   0E39             ; READ IN THE DATA
+2368   0E39             ;
+2369   0E39 DD 46 00    	LD	B,(IX+0)	;NUMBER OF DATA BYTES
+2370   0E3C DD 66 02    	LD	H,(IX+2)	;LOAD ADDRESS HIGH BYTE
+2371   0E3F DD 6E 01    	LD	L,(IX+1)	;LOAD ADDRESS LOW BYTE
+2372   0E42             
+2373   0E42 CD 6F 0E    INTEL2:	CALL	GETBYT	;GET DATA BYTE
+2374   0E45 77          	LD	(HL),A	;STORE DATA BYTE
+2375   0E46 23          	INC	HL
+2376   0E47 10 F9       	DJNZ	INTEL2	;LOAD MORE BYTES
+2377   0E49             ;
+2378   0E49             ; GET CHECKSUM AND COMPARE
+2379   0E49             ;
+2380   0E49 DD 7E 03    	LD	A,(IX+3)	;CONVERT CHECKSUM TO
+2381   0E4C ED 44       	NEG		;TWO'S COMPLEMENT
+2382   0E4E DD 77 04    	LD	(IX+4),A	;SAVE COMPUTED CHECKSUM
+2383   0E51 CD 6F 0E    	CALL	GETBYT
+2384   0E54 DD 77 03    	LD	(IX+3),A	;SAVE RECORD CHECKSUM
+2385   0E57 DD BE 04    	CP	(IX+4)	;COMPARE CHECKSUM
+2386   0E5A 28 BB       	JR	Z,INTEL1	;CHECKSUM OK,NEXT RECORD
+2387   0E5C C9              RET             ;NZ=CHECKSUM ERROR
+2388   0E5D             ;
+2389   0E5D             ; END OF FILE RECORD
+2390   0E5D             ;
+2391   0E5D DD 7E 03    INTEL4:	LD	A,(IX+3)	;CONVERT CHECKSUM TO
+2392   0E60 ED 44       	NEG		;TWO'S COMPLEMENT
+2393   0E62 DD 77 04    	LD	(IX+4),A	;SAVE COMPUTED CHECKSUM
+2394   0E65 CD 6F 0E    	CALL	GETBYT
+2395   0E68 DD 77 03    	LD	(IX+3),A	;SAVE EOF CHECKSUM
+2396   0E6B DD BE 04    	CP	(IX+4)	;COMPARE CHECKSUM
+2397   0E6E C9          	RET  	    ;NZ=CHECKSUM ERROR
+2398   0E6F             ;--------------------------
+2399   0E6F             ; GET BYTE FROM SERIAL PORT
+2400   0E6F             ;--------------------------
+2401   0E6F C5          GETBYT:	PUSH	BC
+2402   0E70 CD F3 0E    	CALL	RXDATA
+2403   0E73 CB 77       	BIT	6,A
+2404   0E75 28 02       	JR	Z,GETBT1
+2405   0E77 C6 09       	ADD	A,09H
+2406   0E79 E6 0F       GETBT1:	AND	0FH
+2407   0E7B CB 27       	SLA 	A
+2408   0E7D CB 27       	SLA	A
+2409   0E7F CB 27       	SLA	A
+2410   0E81 CB 27       	SLA	A
+2411   0E83 4F          	LD	C,A
+2412   0E84             ;
+2413   0E84             ; GET LOW NYBBLE
+2414   0E84             ;
+2415   0E84 CD F3 0E    	CALL	RXDATA
+2416   0E87 CB 77       	BIT	6,A
+2417   0E89 28 02       	JR	Z,GETBT2
+2418   0E8B C6 09       	ADD	A,09H
+2419   0E8D E6 0F       GETBT2:	AND	0FH
+2420   0E8F B1          	OR	C
+2421   0E90 47          	LD	B,A
+2422   0E91 DD 86 03    	ADD	A,(IX+3)
+2423   0E94 DD 77 03    	LD	(IX+3),A	;ADD TO CHECKSUM
+2424   0E97 78          	LD	A,B
+2425   0E98 A7          	AND	A	;CLEAR CARRY
+2426   0E99 C1              POP	BC
+2427   0E9A C9          	RET
+2428   0E9B             
+2429   0E9B             ;-----------------------------------------
+2430   0E9B             ; SEND AN ASCII STRING OUT LCD
+2431   0E9B             ;-----------------------------------------
+2432   0E9B             ; 
+2433   0E9B             ; SENDS A ZERO TERMINATED STRING OR 
+2434   0E9B             ; 128 CHARACTERS MAX. OUT LCD
+2435   0E9B             ;
+2436   0E9B             ;      ENTRY : HL = POINTER TO 00H TERMINATED STRING
+2437   0E9B             ;      EXIT  : NONE
+2438   0E9B             ;
+2439   0E9B             ;       MODIFIES : A,B,C
+2440   0E9B             ;          
+2441   0E9B 06 80       SNDLCDMSG: LD    B,128         ;128 CHARS MAX
+2442   0E9D 7E          SDLCDMSG1: LD    A,(HL)        ;GET THE CHAR
+2443   0E9E FE 00              CP    00H          ;ZERO TERMINATOR?
+2444   0EA0 28 06              JR    Z,SDLCDMSG2      ;FOUND A ZERO TERMINATOR, EXIT  
+2445   0EA2 CD 69 0A           CALL PrintBufferChar         ;TRANSMIT THE CHAR
+2446   0EA5 23                 INC   HL
+2447   0EA6 10 F5              DJNZ  SDLCDMSG1        ;128 CHARS MAX!    
+2448   0EA8             SDLCDMSG2: 
+2449   0EA8 21 00 E5        LD HL, DISPLAY
+2450   0EAB CD 90 0C        CALL print_image
+2451   0EAE             RET
+2452   0EAE             
+2453   0EAE             ;-----------------------------------------
+2454   0EAE             ; SEND AN ASCII STRING OUT THE SERIAL PORT
+2455   0EAE             ;-----------------------------------------
+2456   0EAE             ; 
+2457   0EAE             ; SENDS A ZERO TERMINATED STRING OR 
+2458   0EAE             ; 128 CHARACTERS MAX. OUT THE SERIAL PORT
+2459   0EAE             ;
+2460   0EAE             ;      ENTRY : HL = POINTER TO 00H TERMINATED STRING
+2461   0EAE             ;      EXIT  : NONE
+2462   0EAE             ;
+2463   0EAE             ;       MODIFIES : A,B,C
+2464   0EAE             ;          
+2465   0EAE 06 80       SNDMSG: LD    B,128         ;128 CHARS MAX
+2466   0EB0 7E          SDMSG1: LD    A,(HL)        ;GET THE CHAR
+2467   0EB1 FE 00              CP    00H          ;ZERO TERMINATOR?
+2468   0EB3 28 06              JR    Z,SDMSG2      ;FOUND A ZERO TERMINATOR, EXIT  
+2469   0EB5 CD BC 0E           CALL  OUTCH         ;TRANSMIT THE CHAR
+2470   0EB8 23                 INC   HL
+2471   0EB9 10 F5              DJNZ  SDMSG1        ;128 CHARS MAX!    
+2472   0EBB C9          SDMSG2: RET
+2473   0EBC             
 2474   0EBC             
 2475   0EBC             
-2476   0EBC             
-2477   0EBC             ;------------------------
-2478   0EBC             ; SERIAL TRANSMIT ROUTINE
-2479   0EBC             ;------------------------
-2480   0EBC             ;TRANSMIT BYTE SERIALLY ON DOUT
-2481   0EBC             ;
-2482   0EBC             ; ENTRY : A = BYTE TO TRANSMIT
-2483   0EBC             ;  EXIT : NO REGISTERS MODIFIED
-2484   0EBC             ;
-2485   0EBC F5          TXDATA:	PUSH	AF
-2486   0EBD C5          	PUSH	BC
-2487   0EBE E5          	PUSH	HL
-2488   0EBF 2A C0 FF    	LD	HL,(BAUD)
-2489   0EC2 4F          	LD	C,A
-2490   0EC3             ;
-2491   0EC3             ; TRANSMIT START BIT
-2492   0EC3             ;
-2493   0EC3 AF          	XOR	A
-2494   0EC4 D3 C0       	OUT	(SERIAL_TX_PORT),A
-2495   0EC6 CD 14 0F    	CALL	BITIME
-2496   0EC9             ;
-2497   0EC9             ; TRANSMIT DATA
-2498   0EC9             ;
-2499   0EC9 06 08       	LD	B,08H
-2500   0ECB CB 09       	RRC	C
-2501   0ECD CB 09       NXTBIT:	RRC	C	;SHIFT BITS TO D6,
-2502   0ECF 79          	LD	A,C	;LSB FIRST AND OUTPUT
-2503   0ED0 E6 40       	AND	40H	;THEM FOR ONE BIT TIME.
-2504   0ED2 D3 C0       	OUT	(SERIAL_TX_PORT),A
-2505   0ED4 CD 14 0F    	CALL	BITIME
-2506   0ED7 10 F4       	DJNZ	NXTBIT
-2507   0ED9             ;
-2508   0ED9             ; SEND STOP BITS
-2509   0ED9             ;
-2510   0ED9 3E 40       	LD	A,40H
-2511   0EDB D3 C0       	OUT	(SERIAL_TX_PORT),A
-2512   0EDD CD 14 0F    	CALL	BITIME
-2513   0EE0 CD 14 0F    	CALL	BITIME
-2514   0EE3 E1          	POP	HL
-2515   0EE4 C1          	POP	BC
-2516   0EE5 F1          	POP	AF
-2517   0EE6 C9          	RET
-2518   0EE7             ;-----------------------
-2519   0EE7             ; SERIAL RECEIVE ROUTINE
-2520   0EE7             ;-----------------------
-2521   0EE7             ;RECEIVE SERIAL BYTE FROM DIN
-2522   0EE7             ;
-2523   0EE7             ; ENTRY : NONE
-2524   0EE7             ;  EXIT : A= RECEIVED BYTE IF CARRY CLEAR
-2525   0EE7             ;
-2526   0EE7             ; REGISTERS MODIFIED A AND F
-2527   0EE7             ;
-2528   0EE7 C5          RXDATA:	PUSH	BC
-2529   0EE8 E5          	PUSH	HL
-2530   0EE9             ;
-2531   0EE9             ; WAIT FOR START BIT 
-2532   0EE9             ;
-2533   0EE9 DB C0       RXDAT1: IN	A,(SERIAL_RX_PORT)
-2534   0EEB CB 7F       	    BIT	7,A
-2535   0EED 20 FA       	    JR	NZ,RXDAT1	;NO START BIT
-2536   0EEF             ;
-2537   0EEF             ; DETECTED START BIT
-2538   0EEF             ;
-2539   0EEF 2A C0 FF    	LD	HL,(BAUD)
-2540   0EF2 CB 3C       	SRL	H
-2541   0EF4 CB 1D       	RR	L 	;DELAY FOR HALF BIT TIME
-2542   0EF6 CD 14 0F    	CALL 	BITIME
-2543   0EF9 DB C0       	IN	A,(SERIAL_RX_PORT)
-2544   0EFB CB 7F       	BIT	7,A
-2545   0EFD 20 EA       	JR	NZ,RXDAT1	;START BIT NOT VALID
-2546   0EFF             ;
-2547   0EFF             ; DETECTED VALID START BIT,READ IN DATA
-2548   0EFF             ;
-2549   0EFF 06 08       	LD	B,08H
-2550   0F01 2A C0 FF    RXDAT2:	LD	HL,(BAUD)
-2551   0F04 CD 14 0F    	CALL	BITIME	;DELAY ONE BIT TIME
-2552   0F07 DB C0       	IN	A,(SERIAL_RX_PORT)
-2553   0F09 CB 17       	RL	A
-2554   0F0B CB 19       	RR	C	;SHIFT BIT INTO DATA REG
-2555   0F0D 10 F2       	DJNZ	RXDAT2
-2556   0F0F 79          	LD	A,C
-2557   0F10 B7          	OR	A	;CLEAR CARRY FLAG
-2558   0F11 E1              POP	HL
-2559   0F12 C1          	POP	BC
-2560   0F13 C9          	RET
-2561   0F14             ;---------------
-2562   0F14             ; BIT TIME DELAY
-2563   0F14             ;---------------
-2564   0F14             ;DELAY FOR ONE SERIAL BIT TIME
-2565   0F14             ;ENTRY : HL = DELAY TIME
-2566   0F14             ; NO REGISTERS MODIFIED
-2567   0F14             ;
-2568   0F14 E5          BITIME:	PUSH	HL
-2569   0F15 D5          	PUSH	DE
-2570   0F16 11 01 00    	LD	DE,0001H
-2571   0F19 ED 52       BITIM1:	SBC	HL,DE
-2572   0F1B D2 19 0F    	JP	NC,BITIM1
-2573   0F1E D1          	POP	DE
-2574   0F1F E1          	POP	HL
-2575   0F20 C9          	RET
-2576   0F21             
-2577   0F21             
-2578   0F21             ;-----------------
-2579   0F21             ; ONE SECOND DELAY
-2580   0F21             ;-----------------
-2581   0F21             ;
-2582   0F21             ; ENTRY : NONE
-2583   0F21             ; EXIT : FLAG REGISTER MODIFIED
-2584   0F21             ;
-2585   0F21 C5          DELONE:	PUSH	BC
-2586   0F22 D5          	PUSH	DE
-2587   0F23 E5          	PUSH	HL
-2588   0F24 11 01 00    	LD	DE,0001H
-2589   0F27 21 70 08    	LD	HL,0870H
-2590   0F2A 06 92       DELON1:	LD	B,92H
-2591   0F2C 10 FE       DELON2:	DJNZ	DELON2	;INNER LOOP
-2592   0F2E ED 52       	SBC	HL,DE
-2593   0F30 D2 2A 0F    	JP	NC,DELON1	;OUTER LOOP
-2594   0F33 E1          	POP	HL
-2595   0F34 D1          	POP	DE
-2596   0F35 C1          	POP	BC
-2597   0F36 C9          	RET
-2598   0F37             
-2599   0F37             
-2600   0F37             
-2601   0F37             
-2602   0F37             
-2603   0F37             
-2604   0F37             
-2605   0F37             ; **********************************************************************
-2606   0F37             ; List devices found on the I2C bus
-2607   0F37             ;
-2608   0F37             ; Test each I2C device address and reports any that acknowledge
-2609   0F37             
-2610   0F37 11 2C 12    I2CLIST:       LD   DE,LISTMsg        ;Address of message string
-2611   0F3A CD DA 0F                CALL StrOut         ;Output string
-2612   0F3D 16 00                   LD   D,0            ;First I2C device address to test
-2613   0F3F D5          LISTLOOP:      PUSH DE             ;Preserve DE
-2614   0F40 7A                      LD   A,D            ;Get device address to be tested
-2615   0F41 CD 58 0F                CALL LISTTEST          ;Test if device is present
-2616   0F44 D1                      POP  DE             ;Restore DE
-2617   0F45 20 07                   JR   NZ,LISTNEXT       ;Skip if no acknowledge
-2618   0F47 7A                      LD   A,D            ;Get address of device tested
-2619   0F48 CD 09 10                CALL HexOut         ;Output as two character hex 
-2620   0F4B CD D5 0F                CALL SpaceOut       ;Output space character
-2621   0F4E 14          LISTNEXT:      INC  D              ;Get next write address
-2622   0F4F 14                      INC  D
-2623   0F50 7A                      LD   A,D            ;Address of next device to test
-2624   0F51 B7                      OR   A              ;Have we tested all addresses?
-2625   0F52 20 EB                   JR   NZ,LISTLOOP       ;No, so loop again
-2626   0F54 CD D2 0F                CALL LineOut        ;Output new line
-2627   0F57 C9                      RET
-2628   0F58             
-2629   0F58             ; Test if device at I2C address A acknowledges
-2630   0F58             ;   On entry: A = I2C device address (8-bit, bit 0 = lo for write)
-2631   0F58             ;   On exit:  Z flagged if device acknowledges
-2632   0F58             ;             NZ flagged if devices does not acknowledge
-2633   0F58 CD 4A 10    LISTTEST:      CALL I2C_Open       ;Open I2C device for write
-2634   0F5B C0                      RET  NZ             ;Abort if failed to open
-2635   0F5C CD 51 10                CALL I2C_Close      ;Close I2C device 
-2636   0F5F AF                      XOR  A              ;Return with Z flagged
-2637   0F60 C9                      RET
-2638   0F61             
-2639   0F61             
-2640   0F61             
-2641   0F61             
-2642   0F61             ; Copy a block from I2C memory to CPU memory
-2643   0F61             ;   On entry: DE = First address in I2C memory
-2644   0F61             ;             HL = First address in CPU memory
-2645   0F61             ;             BC = Number of bytes to be copied
-2646   0F61             ;             SCL = unknown, SDA = unknown
-2647   0F61             ;   On exit:  If successfully A = 0 and Z flagged
-2648   0F61             ;             If unsuccessfully A = Error and NZ flagged
-2649   0F61             ;             IX IY preserved
-2650   0F61 C5          I2C_MemRd:  PUSH BC
-2651   0F62 01 10 27                LD   BC,TIMEOUT     ;Timeout loop counter
-2652   0F65 3E AE       I2C_MemRdRepeat:    LD   A,I2CA_BLOCK   ;I2C address to write to
-2653   0F67 CD 4A 10                CALL I2C_Open       ;Open for write
-2654   0F6A 28 0A                   JR   Z,I2C_MemRdReady       ;If open okay then skip on
-2655   0F6C 0B                      DEC  BC
-2656   0F6D 78                      LD   A,B
-2657   0F6E B1                      OR   C              ;Timeout?
-2658   0F6F 20 F4                   JR   NZ,I2C_MemRdRepeat     ;No, so go try again
-2659   0F71 C1                      POP  BC
-2660   0F72 3E 03                   LD   A,ERR_TOUT     ;Error code
-2661   0F74 B7                      OR   A              ;Error, so NZ flagged
-2662   0F75 C9                      RET                 ;Return with error
-2663   0F76             ; Device opened okay
-2664   0F76 C1          I2C_MemRdReady:     POP  BC             ;Restore byte counter
-2665   0F77 7A                      LD   A,D            ;Address (hi) in I2C memory
-2666   0F78 CD 54 10                CALL I2C_Write      ;Write address
-2667   0F7B 7B                      LD   A,E            ;Address (lo) in I2C memory
-2668   0F7C CD 54 10                CALL I2C_Write      ;Write address
-2669   0F7F 3E AF                   LD   A,I2CA_BLOCK+1 ;I2C device to be read from
-2670   0F81 CD 4A 10                CALL I2C_Open       ;Open for read
-2671   0F84 C0                      RET  NZ             ;Abort if error
-2672   0F85 0B          I2C_MemRdRead:      DEC  BC             ;Decrement byte counter
-2673   0F86 78                      LD   A,B
-2674   0F87 B1                      OR   C              ;Last byte to be read?
-2675   0F88 CD 91 10                CALL I2C_Read       ;Read byte with no ack on last byte
-2676   0F8B 77                      LD   (HL),A         ;Write byte in CPU memory
-2677   0F8C 23                      INC  HL             ;Increment CPU memory pointer
-2678   0F8D 78                      LD   A,B
-2679   0F8E B1                      OR   C              ;Finished?
-2680   0F8F 20 F4                   JR   NZ,I2C_MemRdRead       ;No, so go read next byte
-2681   0F91 CD C9 10                CALL I2C_Stop       ;Generate I2C stop
-2682   0F94 AF                      XOR  A              ;Return with success (Z flagged)
-2683   0F95 C9                      RET
-2684   0F96             
-2685   0F96             
-2686   0F96             ; Copy a block from CPU memory to I2C memory
-2687   0F96             ;   On entry: DE = First address in I2C memory
-2688   0F96             ;             HL = First address in CPU memory
-2689   0F96             ;             BC = Number of bytes to be copied
-2690   0F96             ;             SCL = unknown, SDA = unknown
-2691   0F96             ;   On exit:  If successfully A = 0 and Z flagged
-2692   0F96             ;             If unsuccessfully A = Error and NZ flagged
-2693   0F96             ;             IX IY preserved
-2694   0F96             ; The 24LC64 requires blocks of data to be written in 64 byte (or less)
-2695   0F96             ; pages.
-2696   0F96 C5          I2C_MemWr:  PUSH BC
-2697   0F97 01 10 27                LD   BC,TIMEOUT     ;Timeout loop counter
-2698   0F9A 3E AE       I2C_MemWrRepeat:    LD   A,I2CA_BLOCK   ;I2C address to write to
-2699   0F9C CD 4A 10                CALL I2C_Open       ;Open for write
-2700   0F9F 28 0A                   JR   Z,I2C_MemWrReady       ;If open okay then skip on
-2701   0FA1 0B                      DEC  BC
-2702   0FA2 78                      LD   A,B
-2703   0FA3 B1                      OR   C              ;Timeout?
-2704   0FA4 20 F4                   JR   NZ,I2C_MemWrRepeat     ;No, so go try again
-2705   0FA6 C1                      POP  BC
-2706   0FA7 3E 03                   LD   A,ERR_TOUT     ;Error code
-2707   0FA9 B7                      OR   A              ;Error, so NZ flagged
-2708   0FAA C9                      RET                 ;Return with error
-2709   0FAB             ; Device opened okay
-2710   0FAB C1          I2C_MemWrReady:     POP  BC             ;Restore byte counter
-2711   0FAC 7A          I2C_MemWrBlock:     LD   A,D            ;Address (hi) in I2C memory
-2712   0FAD CD 54 10                CALL I2C_Write      ;Write address
-2713   0FB0 7B                      LD   A,E            ;Address (lo) in I2C memory
-2714   0FB1 CD 54 10                CALL I2C_Write      ;Write address
-2715   0FB4 7E          I2C_MemWrWrite:     LD   A,(HL)         ;Get data byte from CPU memory
-2716   0FB5 CD 54 10                CALL I2C_Write      ;Read byte from I2C memory
-2717   0FB8 23                      INC  HL             ;Increment CPU memory pointer
-2718   0FB9 13                      INC  DE             ;Increment I2C memory pointer
-2719   0FBA 0B                      DEC  BC             ;Decrement byte counter
-2720   0FBB 78                      LD   A,B
-2721   0FBC B1                      OR   C              ;Finished?
-2722   0FBD 28 05                   JR   Z,I2C_MemWrStore       ;Yes, so go store this page
-2723   0FBF 7B                      LD   A,E            ;Get address in I2C memory (lo byte)
-2724   0FC0 E6 3F                   AND  63             ;64 byte page boundary?
-2725   0FC2 20 F0                   JR   NZ,I2C_MemWrWrite      ;No, so go write another byte
-2726   0FC4 CD C9 10    I2C_MemWrStore:     CALL I2C_Stop       ;Generate I2C stop
-2727   0FC7 78                      LD   A,B
-2728   0FC8 B1                      OR   C              ;Finished?
-2729   0FC9 20 CB                   JR   NZ,I2C_MemWr   ;No, so go write some more
-2730   0FCB C9                      RET   
-2731   0FCC             
-2732   0FCC             
-2733   0FCC             
-2734   0FCC             
-2735   0FCC             
-2736   0FCC             
-2737   0FCC             
-2738   0FCC             
-2739   0FCC             
-2740   0FCC             
-2741   0FCC             ; Display test result
-2742   0FCC             ;   On entry: DE = Address of null terminated string
-2743   0FCC             ;             H = First value ($H)
-2744   0FCC             ;             L = Second value ($L)
-2745   0FCC             ;   On exit:  HL IX IY preserved
-2746   0FCC             Result:     
-2747   0FCC C3 21 10                JP   String         ;Output result string to console
-2748   0FCF             
-2749   0FCF             
-2750   0FCF             ; Character output to console
-2751   0FCF             ;   On entry: A = Character to be output
-2752   0FCF             ;   On exit:  BC DE HL IX IY preserved
-2753   0FCF C3 E7 0F    CharOut:    JP   API_Cout
-2754   0FD2             
-2755   0FD2             ; New line output to console
-2756   0FD2             ;   On entry: No parameters required
-2757   0FD2             ;   On exit:  BC DE HL IX IY preserved
-2758   0FD2 C3 F1 0F    LineOut:    JP   API_Lout
-2759   0FD5             
-2760   0FD5             ; Space character ouput to console
-2761   0FD5             ;   On entry: No parameters required
-2762   0FD5             ;   On exit:  BC DE HL IX IY preserved
-2763   0FD5 3E 20       SpaceOut:   LD   A,$20
-2764   0FD7 C3 E7 0F                JP   API_Cout
-2765   0FDA             
-2766   0FDA             ; String output to console
-2767   0FDA             ;   On entry: DE = Address of string
-2768   0FDA             ;   On exit:  BC DE HL IX IY preserved
-2769   0FDA C3 FD 0F    StrOut:     JP   API_Sout
-2770   0FDD             
-2771   0FDD             
-2772   0FDD             ; Delay by DE milliseconds (approx)
-2773   0FDD             ;   On entry: DE = Delay time in milliseconds
-2774   0FDD             ;   On exit:  BC DE HL IX IY preserved
-2775   0FDD C5          API_Delay:  PUSH BC             ;Preserve registers
-2776   0FDE D5                      PUSH DE
-2777   0FDF E5                      PUSH HL
-2778   0FE0 CD 64 0D                CALL delay
-2779   0FE3 E1                      POP  HL             ;Restore registers
-2780   0FE4 D1                      POP  DE
-2781   0FE5 C1                      POP  BC
-2782   0FE6 C9                      RET
-2783   0FE7             
-2784   0FE7             
-2785   0FE7             ; Character output to console device
-2786   0FE7             ;   On entry: A = Character to be output
-2787   0FE7             ;   On exit:  BC DE HL IX IY preserved
-2788   0FE7 C5          API_Cout:   PUSH BC             ;Preserve registers
-2789   0FE8 D5                      PUSH DE
-2790   0FE9 E5                      PUSH HL
-2791   0FEA CD 08 00                CALL $0008
-2792   0FED E1                      POP  HL             ;Restore registers
-2793   0FEE D1                      POP  DE
-2794   0FEF C1                      POP  BC
-2795   0FF0 C9                      RET
-2796   0FF1             
-2797   0FF1             
-2798   0FF1             ; New line output to console device
-2799   0FF1             ;   On entry: No parameters required
-2800   0FF1             ;   On exit:  BC DE HL IX IY preserved
-2801   0FF1 C5          API_Lout:   PUSH BC             ;Preserve registers
-2802   0FF2 D5                      PUSH DE
-2803   0FF3 E5                      PUSH HL
-2804   0FF4 3E 0D                   LD A, CR ; enter char
-2805   0FF6 CD 08 00                CALL $0008
-2806   0FF9 E1                      POP  HL             ;Restore registers
-2807   0FFA D1                      POP  DE
-2808   0FFB C1                      POP  BC
-2809   0FFC C9                      RET
-2810   0FFD             
-2811   0FFD             
-2812   0FFD             ; String output to console device
-2813   0FFD             ;   On entry: DE = Address of string
-2814   0FFD             ;   On exit:  BC DE HL IX IY preserved
-2815   0FFD C5          API_Sout:   PUSH BC             ;Preserve registers
-2816   0FFE D5                      PUSH DE
-2817   0FFF E5                      PUSH HL
-2818   1000 62                      LD H, D
-2819   1001 6B                      LD L, E
-2820   1002 CD 8F 0E                CALL SNDLCDMSG
-2821   1005 E1                      POP  HL             ;Restore registers
-2822   1006 D1                      POP  DE
-2823   1007 C1                      POP  BC
-2824   1008 C9                      RET
-2825   1009             
-2826   1009             
-2827   1009             ; Hex byte output to console
-2828   1009             ;   On entry: A = Byte to be output in hex
-2829   1009             ;   On exit:  BC DE HL IX IY preserved
-2830   1009 F5          HexOut:     PUSH AF             ;Preserve byte to be output
-2831   100A 1F                      RRA                 ;Shift top nibble to
-2832   100B 1F                      RRA                 ;  botom four bits..
-2833   100C 1F                      RRA
-2834   100D 1F                      RRA
-2835   100E E6 0F                   AND  $0F           ;Mask off unwanted bits
-2836   1010 CD 16 10                CALL HexOutHex           ;Output hi nibble
-2837   1013 F1                      POP  AF             ;Restore byte to be output
-2838   1014 E6 0F                   AND  $0F           ;Mask off unwanted bits
-2839   1016             ; Output nibble as ascii character
-2840   1016 FE 0A       HexOutHex:       CP   $0A           ;Nibble > 10 ?
-2841   1018 38 02                   JR   C,HexOutSkip        ;No, so skip
-2842   101A C6 07                   ADD  A,7            ;Yes, so add 7
-2843   101C C6 30       HexOutSkip:      ADD  A,$30         ;Add ASCII '0'
-2844   101E C3 E7 0F                JP   API_Cout       ;Write character
-2845   1021             
-2846   1021             
-2847   1021             ; Output string at DE with substitutions
-2848   1021             ;   On entry: A = Address of device on I2C bus (write address)
-2849   1021             ;             DE = Address of null terminated string
-2850   1021             ;             H = Value to substitute for $H
-2851   1021             ;             L = Value to substitute for $L
-2852   1021             ;             B = Value to substitute for $B
-2853   1021             ;   On exit:  DE = Address of next location after this string
-2854   1021             ;             IX IY preserved
-2855   1021 1A          String:     LD   A,(DE)         ;Get character from string
-2856   1022 13                      INC  DE             ;Point to next character in string
-2857   1023 B7                      OR   A              ;Null ?
-2858   1024 C8                      RET  Z              ;Yes, so we're done
-2859   1025 FE 24                   CP   '$'            ;Substitue value?
-2860   1027 28 05                   JR   Z,StringSubst       ;Yes, so go handle substitution
-2861   1029 CD CF 0F                CALL CharOut        ;Output character to console
-2862   102C 18 F3                   JR   String         ;Go get next character from string
-2863   102E 1A          StringSubst:     LD   A,(DE)         ;Get character from string
-2864   102F 13                      INC  DE             ;Point to next character in string
-2865   1030 B7                      OR   A              ;Null ?
-2866   1031 C8                      RET  Z              ;Yes, so we're done
-2867   1032 FE 48                   CP   'H'            ;Register H
-2868   1034 20 03                   JR   NZ,StringNotH       ;No, so skip
-2869   1036 7C                      LD   A,H            ;Get value 'H'
-2870   1037 18 0C                   JR   StringGotIt         ;Go output it in hex
-2871   1039 FE 4C       StringNotH:      CP   'L'            ;Register L
-2872   103B 20 03                   JR   NZ,StringNotL       ;No, so skip
-2873   103D 7D                      LD   A,L            ;Get value 'L'
-2874   103E 18 05                   JR   StringGotIt         ;Go output it in hex
-2875   1040 FE 42       StringNotL:      CP   'B'            ;Register B
-2876   1042 20 04                   JR   NZ,StringNotB       ;No, so skip
-2877   1044 78                      LD   A,B            ;Get value 'L'
-2878   1045                         ;JR   @GotIt        ;Go output it in hex
-2879   1045 CD 09 10    StringGotIt:     CALL HexOut         ;Output write address in hex
-2880   1048 18 D7       StringNotB:      JR   String         ;Go get next character from string
-2881   104A             
-2882   104A             
-2883   104A             ; **********************************************************************
-2884   104A             ; I2C support functions
-2885   104A             
-2886   104A             ; I2C bus open device
-2887   104A             ;   On entry: A = Device address (bit zero is read flag)
-2888   104A             ;             SCL = unknown, SDA = unknown
-2889   104A             ;   On exit:  If successfully A = 0 and Z flagged
-2890   104A             ;             If unsuccessfully A = Error and NZ flagged
-2891   104A             ;             BC DE HL IX IY preserved
-2892   104A F5          I2C_Open:   PUSH AF
-2893   104B CD BE 10                CALL I2C_Start      ;Output start condition
-2894   104E F1                      POP  AF
-2895   104F 18 03                   JR   I2C_Write      ;Write data byte
-2896   1051             
-2897   1051             
-2898   1051             ; I2C bus close device
-2899   1051             ;   On entry: SCL = unknown, SDA = unknown
-2900   1051             ;   On exit:  If successfully A=0 and Z flagged
-2901   1051             ;             If unsuccessfully A=Error and NZ flagged
-2902   1051             ;             SCL = hi, SDA = hi
-2903   1051             ;             BC DE HL IX IY preserved
-2904   1051 C3 C9 10    I2C_Close:  JP   I2C_Stop       ;Output stop condition
-2905   1054             
-2906   1054             
-2907   1054             ; **********************************************************************
-2908   1054             ; **********************************************************************
-2909   1054             ; I2C bus master driver
-2910   1054             ; **********************************************************************
-2911   1054             ; **********************************************************************
-2912   1054             
-2913   1054             ; Functions provided are:
-2914   1054             ;     I2C_Start
-2915   1054             ;     I2C_Stop
-2916   1054             ;     I2C_Read
-2917   1054             ;     I2C_Write
-2918   1054             ;
-2919   1054             ; This code has delays between all I/O operations to ensure it works
-2920   1054             ; with the slowest I2C devices
-2921   1054             ;
-2922   1054             ; I2C transfer sequence
-2923   1054             ;   +-------+  +---------+  +---------+     +---------+  +-------+
-2924   1054             ;   | Start |  | Address |  | Data    | ... | Data    |  | Stop  |
-2925   1054             ;   |       |  | frame   |  | frame 1 |     | frame N |  |       |
-2926   1054             ;   +-------+  +---------+  +---------+     +---------+  +-------+
-2927   1054             ;
-2928   1054             ;
-2929   1054             ; Start condition                     Stop condition
-2930   1054             ; Output by master device             Output by master device
-2931   1054             ;       ----+                                      +----
-2932   1054             ; SDA       |                         SDA          |
-2933   1054             ;           +-------                        -------+
-2934   1054             ;       -------+                                +-------
-2935   1054             ; SCL          |                      SCL       |
-2936   1054             ;              +----                        ----+
-2937   1054             ;
-2938   1054             ;
-2939   1054             ; Address frame
-2940   1054             ; Clock and data output from master device
-2941   1054             ; Receiving device outputs acknowledge 
-2942   1054             ;        +-----+-----+-----+-----+-----+-----+-----+-----+     +---+
-2943   1054             ; SDA    | A 7 | A 6 | A 5 | A 4 | A 3 | A 2 | A 1 | R/W | ACK |   |
-2944   1054             ;     ---+-----+-----+-----+-----+-----+-----+-----+-----+-----+   +---
-2945   1054             ;          +-+   +-+   +-+   +-+   +-+   +-+   +-+   +-+   +-+
-2946   1054             ; SCL      | |   | |   | |   | |   | |   | |   | |   | |   | |
-2947   1054             ;     -----+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---------
-2948   1054             ;
-2949   1054             ;
-2950   1054             ; Data frame 
-2951   1054             ; Clock output by master device
-2952   1054             ; Data output by transmitting device
-2953   1054             ; Receiving device outputs acknowledge 
-2954   1054             ;        +-----+-----+-----+-----+-----+-----+-----+-----+     +---+
-2955   1054             ; SDA    | D 7 | D 6 | D 5 | D 4 | D 3 | D 2 | D 1 | D 0 | ACK |   |
-2956   1054             ;     ---+-----+-----+-----+-----+-----+-----+-----+-----+-----+   +---
-2957   1054             ;          +-+   +-+   +-+   +-+   +-+   +-+   +-+   +-+   +-+
-2958   1054             ; SCL      | |   | |   | |   | |   | |   | |   | |   | |   | |
-2959   1054             ;     -----+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---------
-2960   1054             ;
-2961   1054             
-2962   1054             
-2963   1054             ; **********************************************************************
-2964   1054             ; I2C constants
-2965   1054             
-2966   1054             
-2967   1054             ; I2C bus master interface
-2968   1054             ; The default device option is for SC126 or compatible
-2969   1054             
-2970   1054             I2C_PORT:   .EQU $21           ;Host I2C port address
-2971   1054             I2C_SDA_WR: .EQU 7              ;Host I2C write SDA bit number
-2972   1054             I2C_SDA_RD: .EQU 7              ;Host I2C read SDA bit number
-2973   1054             I2C_SCL_WR: .EQU 0              ;Host I2C write SCL bit number
-2974   1054             I2C_SCL_RD: .EQU 0              ;Host I2C read SCL bit number 
-2975   1054             I2C_QUIES:  .EQU 0b10000001     ;Host I2C output port quiescent value
-2976   1054             
-2977   1054             
-2978   1054             ; I2C support constants
-2979   1054             ERR_NONE:   .EQU 0              ;Error = None
-2980   1054             ERR_JAM:    .EQU 1              ;Error = Bus jammed [not used]
-2981   1054             ERR_NOACK:  .EQU 2              ;Error = No ackonowledge
-2982   1054             ERR_TOUT:   .EQU 3              ;Error = Timeout
-2983   1054             
-2984   1054             
-2985   1054             ; **********************************************************************
-2986   1054             ; Hardware dependent I2C bus functions
-2987   1054             
-2988   1054             
-2989   1054             ; I2C bus transmit frame (address or data)
-2990   1054             ;   On entry: A = Data byte, or
-2991   1054             ;                 Address byte (bit zero is read flag)
-2992   1054             ;             SCL = low, SDA = low
-2993   1054             ;   On exit:  If successful A=0 and Z flagged
-2994   1054             ;                SCL = lo, SDA = lo
-2995   1054             ;             If unsuccessful A=Error and NZ flagged
-2996   1054             ;                SCL = high, SDA = high, I2C closed
-2997   1054             ;             BC DE HL IX IY preserved
-2998   1054 C5          I2C_Write:  PUSH BC             ;Preserve registers
-2999   1055 D5                      PUSH DE
-3000   1056 57                      LD   D,A            ;Store byte to be written
-3001   1057 06 08                   LD   B,8            ;8 data bits, bit 7 first
-3002   1059 CB 12       I2C_WriteWr_Loop:   RL   D              ;Test M.S.Bit
-3003   105B 38 05                   JR   C,I2C_WriteBit_Hi      ;High, so skip
-3004   105D CD F0 10                CALL I2C_SDA_LO     ;SDA low   (SCL lo, SDA = data bit)
-3005   1060 18 03                   JR   I2C_WriteBit_Clk
-3006   1062 CD E9 10    I2C_WriteBit_Hi:    CALL I2C_SDA_HI     ;SDA high  (SCL lo, SDA = data bit)
-3007   1065 CD DB 10    I2C_WriteBit_Clk:   CALL I2C_SCL_HI     ;SCL high  (SCL hi, SDA = data bit)
-3008   1068 CD E2 10                CALL I2C_SCL_LO     ;SCL low   (SCL lo, SDA = data bit)
-3009   106B 10 EC                   DJNZ I2C_WriteWr_Loop
-3010   106D             ; Test for acknowledge from slave (receiver)
-3011   106D             ; On arriving here, SCL = lo, SDA = data bit
-3012   106D CD E9 10                CALL I2C_SDA_HI     ;SDA high  (SCL lo, SDA hi/ack)
-3013   1070 CD DB 10                CALL I2C_SCL_HI     ;SCL high  (SCL hi, SDA hi/ack)
-3014   1073 CD 01 11                CALL I2C_RdPort     ;Read SDA input
-3015   1076 47                      LD   B,A
-3016   1077 CD E2 10                CALL I2C_SCL_LO     ;SCL low   (SCL lo, SDA = hi)
-3017   107A CB 78                   BIT  I2C_SDA_RD,B
-3018   107C 20 04                   JR   NZ,I2C_WriteNoAck      ;Skip if no acknowledge
-3019   107E D1                      POP  DE             ;Restore registers
-3020   107F C1                      POP  BC
-3021   1080 AF                      XOR  A              ;Return success A=0 and Z flagged
-3022   1081 C9                      RET
-3023   1082             ; I2C STOP required as no acknowledge
-3024   1082             ; On arriving here, SCL = lo, SDA = hi
-3025   1082 CD F0 10    I2C_WriteNoAck:     CALL I2C_SDA_LO     ;SDA low   (SCL lo, SDA = lo)
-3026   1085 CD DB 10                CALL I2C_SCL_HI     ;SCL high  (SCL hi, SDA = lo)
-3027   1088 CD E9 10                CALL I2C_SDA_HI     ;SDA low   (SCL hi, SDA = hi)
-3028   108B D1                      POP  DE             ;Restore registers
-3029   108C C1                      POP  BC
-3030   108D 3E 02                   LD   A,ERR_NOACK    ;Return error = No Acknowledge
-3031   108F B7                      OR   A              ;  and NZ flagged
-3032   1090 C9                      RET
-3033   1091             
-3034   1091             
-3035   1091             ; I2C bus receive frame (data)
-3036   1091             ;   On entry: A = Acknowledge flag
-3037   1091             ;               If A != 0 the read is acknowledged
-3038   1091             ;             SCL low, SDA low
-3039   1091             ;   On exit:  If successful A = data byte and Z flagged
-3040   1091             ;               SCL = low, SDA = low
-3041   1091             ;             If unsuccessul* A = Error and NZ flagged
-3042   1091             ;               SCL = low, SDA = low
-3043   1091             ;             BC DE HL IX IY preserved
-3044   1091             ; *This function always returns successful
-3045   1091 C5          I2C_Read:   PUSH BC             ;Preserve registers
-3046   1092 D5                      PUSH DE
-3047   1093 5F                      LD   E,A            ;Store acknowledge flag
-3048   1094 06 08                   LD   B,8            ;8 data bits, 7 first
-3049   1096 CD E9 10                CALL I2C_SDA_HI     ;SDA high  (SCL lo, SDA hi/input)
-3050   1099 CD DB 10    I2C_ReadRd_Loop:   CALL I2C_SCL_HI     ;SCL high  (SCL hi, SDA hi/input)
-3051   109C CD 01 11                CALL I2C_RdPort     ;Read SDA input bit
-3052   109F 37                      SCF                 ;Set carry flag
-3053   10A0 CB 7F                   BIT  I2C_SDA_RD,A   ;SDA input high?
-3054   10A2 20 01                   JR   NZ, I2C_ReadRotate     ;Yes, skip with carry flag set
-3055   10A4 3F                      CCF                 ;Clear carry flag
-3056   10A5 CB 12       I2C_ReadRotate:    RL   D              ;Rotate result into D
-3057   10A7 CD E2 10                CALL I2C_SCL_LO     ;SCL low   (SCL lo, SDA hi/input)
-3058   10AA 10 ED                   DJNZ  I2C_ReadRd_Loop       ;Repeat for all 8 bits
-3059   10AC             ; Acknowledge input byte
-3060   10AC             ; On arriving here, SCL = lo, SDA = hi/input
-3061   10AC 7B                      LD   A,E            ;Get acknowledge flag
-3062   10AD B7                      OR   A              ;A = 0? (indicates no acknowledge)
-3063   10AE 28 03                   JR   Z, I2C_ReadNoAck       ;Yes, so skip acknowledge
-3064   10B0 CD F0 10                CALL I2C_SDA_LO     ;SDA low   (SCL lo, SDA lo)
-3065   10B3 CD DB 10    I2C_ReadNoAck:     CALL I2C_SCL_HI     ;SCL hi    (SCL hi, SDA lo)
-3066   10B6 CD E2 10                CALL I2C_SCL_LO     ;SCL low   (SCL lo, SDA lo)
-3067   10B9 7A                      LD   A,D            ;Get data byte received
-3068   10BA D1                      POP  DE             ;Restore registers
-3069   10BB C1                      POP  BC
-3070   10BC BF                      CP   A              ;Return success Z flagged
-3071   10BD C9                      RET
-3072   10BE             
-3073   10BE             
-3074   10BE             ; I2C bus start
-3075   10BE             ;   On entry: SCL = unknown, SDA = unknown
-3076   10BE             ;   On exit:  SCL = low, SDA = low
-3077   10BE             ;             A = 0 and Z flagged as we always succeed
-3078   10BE             ;             BC DE HL IX IY preserved
-3079   10BE             ; First ensure SDA and SCL are high
-3080   10BE CD D7 10    I2C_Start:  CALL I2C_INIT       ;Initialise I2C control port
-3081   10C1             ;           CALL I2C_SCL_HI     ;SCL high  (SCL hi, SDA ??)
-3082   10C1             ;           CALL I2C_SDA_HI     ;SDA high  (SCL hi, SDA hi)
-3083   10C1             ; Generate I2C start condition
-3084   10C1 CD F0 10                CALL I2C_SDA_LO     ;SDA low   (SCL hi, SDA lo)
-3085   10C4 CD E2 10                CALL I2C_SCL_LO     ;SCL low   (SCL lo, SDA lo)
-3086   10C7 AF                      XOR  A              ;Return success A=0 and Z flagged
-3087   10C8 C9                      RET
-3088   10C9             
-3089   10C9             
-3090   10C9             ; I2C bus stop 
-3091   10C9             ;   On entry: SCL = unknown, SDA = unknown
-3092   10C9             ;   On exit:  SCL = high, SDA = high
-3093   10C9             ;             A = 0 and Z flagged as we always succeed
-3094   10C9             ;             BC DE HL IX IY preserved
-3095   10C9             ; First ensure SDA and SCL are low
-3096   10C9 CD F0 10    I2C_Stop:   CALL I2C_SDA_LO     ;SDA low   (SCL hi, SDA lo)
-3097   10CC CD E2 10                CALL I2C_SCL_LO     ;SCL low   (SCL lo, SDA lo)
-3098   10CF             ; Generate stop condition
-3099   10CF CD DB 10                CALL I2C_SCL_HI     ;SCL high  (SCL hi, SDA lo)
-3100   10D2 CD E9 10                CALL I2C_SDA_HI     ;SDA low   (SCL hi, SDA hi)
-3101   10D5 AF                      XOR  A              ;Return success A=0 and Z flagged
-3102   10D6 C9                      RET
-3103   10D7             
-3104   10D7             
-3105   10D7             ; **********************************************************************
-3106   10D7             ; I2C bus simple I/O functions
-3107   10D7             ;   On entry: No parameters required
-3108   10D7             ;   On exit:  BC DE HL IX IY preserved
-3109   10D7             
-3110   10D7 3E 81       I2C_INIT:   LD   A,I2C_QUIES    ;I2C control port quiescent value
-3111   10D9 18 1A                   JR   I2C_WrPort
-3112   10DB             
-3113   10DB 3A 00 D0    I2C_SCL_HI: LD   A,(I2C_RAMCPY)
-3114   10DE CB C7                   SET  I2C_SCL_WR,A
-3115   10E0 18 13                   JR   I2C_WrPort
-3116   10E2             
-3117   10E2 3A 00 D0    I2C_SCL_LO: LD   A,(I2C_RAMCPY)
-3118   10E5 CB 87                   RES  I2C_SCL_WR,A
-3119   10E7 18 0C                   JR   I2C_WrPort
-3120   10E9             
-3121   10E9 3A 00 D0    I2C_SDA_HI: LD   A,(I2C_RAMCPY)
-3122   10EC CB FF                   SET  I2C_SDA_WR,A
-3123   10EE 18 05                   JR   I2C_WrPort
-3124   10F0             
-3125   10F0 3A 00 D0    I2C_SDA_LO: LD   A,(I2C_RAMCPY)
-3126   10F3 CB BF                   RES  I2C_SDA_WR,A
-3127   10F5                         ;JR   I2C_WrPort
-3128   10F5             
-3129   10F5 C5          I2C_WrPort: PUSH BC             ;Preserve registers
-3130   10F6 06 00                   LD   B,0            ;Set up BC for 16-bit
-3131   10F8 0E 21                   LD   C,I2C_PORT     ;  I/O address of I2C port
-3132   10FA ED 79                   OUT  (C),A          ;Write A to I2C I/O port
-3133   10FC 32 00 D0                LD   (I2C_RAMCPY),A ;Write A to RAM copy
-3134   10FF C1                      POP  BC             ;Restore registers
-3135   1100 C9                      RET
-3136   1101             
-3137   1101 C5          I2C_RdPort: PUSH BC             ;Preserve registers
-3138   1102 06 00                   LD   B,0            ;Set up BC for 16-bit
-3139   1104 0E 21                   LD   C,I2C_PORT     ;  I/O address of I2C port
-3140   1106 ED 78                   IN   A,(C)          ;Read A from I/O port
-3141   1108 C1                      POP  BC             ;Restore registers
-3142   1109 C9                      RET
-3143   110A             
-3144   110A             
-3145   110A             
-3146   110A 0C0D0D0A5A38WELLCOME: .db CS, CR, CR, LF,"Z80 Mini Iniciado", CR, LF, 00H
-3146   1110 30204D696E6920496E69636961646F0D0A00
-3147   1122 5A3830204D49MSG_MONITOR .db "Z80 MINI, H TO HELP",CR, 00H
-3147   1128 4E492C204820544F2048454C500D00
-3148   1137             
-3149   1137 46312052554EMSG_MENU0  .db "F1 RUN (JP $8000)",CR, 00H
-3149   113D 20284A50202438303030290D00
-3150   114A 463220496E74MSG_MENU1  .db "F2 Intel hex loader",CR, 00H
-3150   1150 656C20686578206C6F616465720D00
-3151   115F 42202D204261MSG_MENU2  .db "B - Basic",CR, 00H
-3151   1165 7369630D00
-3152   116A 442041414141MSG_MENU3  .db "D AAAA - DISPLAY",CR,00H
-3152   1170 202D20444953504C41590D00
-3153   117C 4D2041414141MSG_MENU4  .db "M AAAA - MODIFY",CR,00H
-3153   1182 202D204D4F444946590D00
-3154   118D 472041414141MSG_MENU5  .db "G AAAA - GO TO",CR, 00H
-3154   1193 202D20474F20544F0D00
-3155   119D 4F204F757420MSG_MENU6  .db "O Out AA DD",CR, 00H
-3155   11A3 41412044440D00
-3156   11AA 4920496E2041MSG_MENU7  .db "I In AA",CR, 00H
-3156   11B0 410D00
-3157   11B3 312049324320MSG_MENU8  .db "1 I2C Scan",CR, 00H
-3157   11B9 5363616E0D00
-3158   11BF 322049324320MSG_MENU9  .db "2 I2C PC -> MEM",CR, 00H
-3158   11C5 5043202D3E204D454D0D00
-3159   11D0 332049324320MSG_MENU10 .db "3 I2C MEM -> PC",CR, 00H
-3159   11D6 4D454D202D3E2050430D00
-3160   11E1 342049324320MSG_MENU11 .db "4 I2C WRITE DD",CR, 00H
-3160   11E7 57524954452044440D00
-3161   11F1 352049324320MSG_MENU12 .db "5 I2C WRITE RR DD",CR, 00H
-3161   11F7 57524954452052522044440D00
-3162   1204 362049324320MSG_MENU13 .db "6 I2C READ ONE BYTE",CR, 00H
-3162   120A 52454144204F4E4520425954450D00
-3163   1219 372049324320MSG_MENU14 .db "7 I2C READ RR BYTE", 00H ; ultimo não tem CR (nova linha)
-3163   121F 52454144205252204259544500
-3164   122C             
-3165   122C             
-3166   122C             
-3167   122C 0C4932432064LISTMsg:    .DB  CS,"I2C device found at:",CR,0
-3167   1232 657669636520666F756E642061743A0D00
-3168   1243 0C434F505920MSG_MEM2CPU .db CS,"COPY I2C MEM TO CPU",CR, 00H
-3168   1249 493243204D454D20544F204350550D00
-3169   1259 0C434F505920MSG_CPU2MEM .db CS,"COPY CPU TO I2C MEM",CR, 00H
-3169   125F 43505520544F20493243204D454D0D00
-3170   126F             
-3171   126F 0C5752495445MSG_I2C_WR_DD    .db CS,"WRITE ONE BYTE",CR, 00H
-3171   1275 204F4E4520425954450D00
-3172   1280 0C5752495445MSG_I2C_WR_RR_DD .db CS,"WRITE REG ONE BYTE",CR, 00H
-3172   1286 20524547204F4E4520425954450D00
-3173   1295 0C5245414420MSG_I2C_RD       .db CS,"READ ONE BYTE",CR, 00H
-3173   129B 4F4E4520425954450D00
-3174   12A5 0C5245414420MSG_I2C_RD_RR    .db CS,"READ REG ONE BYTE",CR, 00H
-3174   12AB 524547204F4E4520425954450D00
-3175   12B9             
-3176   12B9 46524F4D3A20MSG_FROM    .db "FROM: ", 00H
-3176   12BF 00
-3177   12C0 0D544F3A2000MSG_TO      .db CR,"TO: ", 00H
-3178   12C6 0D53495A4528MSG_SIZE    .db CR,"SIZE(BYTES): ", 00H
-3178   12CC 4259544553293A2000
-3179   12D5 0D434F505920MSG_COPYOK  .db CR,"COPY OK", 00H
-3179   12DB 4F4B00
-3180   12DE 0D434F505920MSG_COPYFAIL  .db CR,"COPY FAIL", 00H
-3180   12E4 4641494C00
-3181   12E9             
-3182   12E9 0D4445564943MSG_DEV_ADDR  .db CR,"DEVICE ADDR(AA): ", 00H
-3182   12EF 452041444452284141293A2000
-3183   12FC 0D5245474953MSG_DEV_REG   .db CR,"REGISTER(RR): ", 00H
-3183   1302 544552285252293A2000
-3184   130C 0D4441544128MSG_DEV_DATA  .db CR,"DATA(DD): ", 00H
-3184   1312 4444293A2000
-3185   1318             
-3186   1318             
-3187   1318 0C496E74656CMSG_ILOAD .db $0C, "Intel HEX loader...", CR, 00H
-3187   131E 20484558206C6F616465722E2E2E0D00
-3188   132E 46494C452052FILEOK    .DB      "FILE RECEIVED OK",CR,00H
-3188   1334 45434549564544204F4B0D00
-3189   1340 434845434B53CSUMERR   .DB    "CHECKSUM ERROR",CR,00H
-3189   1346 554D204552524F520D00
-3190   1350             
-3191   1350             
-3192   1350             
-3193   1350             ; **********************************************************************
-3194   1350             ; I2C workspace / variables in RAM
-3195   1350             
-3196   D000                         .ORG  I2CDATA
-3197   D000             
-3198   D000 00          I2C_RAMCPY: .DB  0              ;RAM copy of output port
-3199   D001             
-3200   D001 00          RESULTS:    .DB  0              ;Large block of results can start here
-3201   D002             
-3202   D002             .end
+2476   0EBC             ;-----------------------------------
+2477   0EBC             ; OUTPUT A CHARACTER TO THE TERMINAL
+2478   0EBC             ;-----------------------------------       
+2479   0EBC DD 2A AA FF OUTCH:  LD   IX,(PUTCH)
+2480   0EC0 DD E9              JP   (IX)
+2481   0EC2             ;------------------------------------
+2482   0EC2             ; INPUT A CHARACTER FROM THE TERMINAL
+2483   0EC2             ;------------------------------------
+2484   0EC2 DD 2A AC FF INCH:  LD   IX,(GETCH)
+2485   0EC6 DD E9             JP   (IX)
+2486   0EC8             
+2487   0EC8             
+2488   0EC8             
+2489   0EC8             ;------------------------
+2490   0EC8             ; SERIAL TRANSMIT ROUTINE
+2491   0EC8             ;------------------------
+2492   0EC8             ;TRANSMIT BYTE SERIALLY ON DOUT
+2493   0EC8             ;
+2494   0EC8             ; ENTRY : A = BYTE TO TRANSMIT
+2495   0EC8             ;  EXIT : NO REGISTERS MODIFIED
+2496   0EC8             ;
+2497   0EC8 F5          TXDATA:	PUSH	AF
+2498   0EC9 C5          	PUSH	BC
+2499   0ECA E5          	PUSH	HL
+2500   0ECB 2A C0 FF    	LD	HL,(BAUD)
+2501   0ECE 4F          	LD	C,A
+2502   0ECF             ;
+2503   0ECF             ; TRANSMIT START BIT
+2504   0ECF             ;
+2505   0ECF AF          	XOR	A
+2506   0ED0 D3 C0       	OUT	(SERIAL_TX_PORT),A
+2507   0ED2 CD 20 0F    	CALL	BITIME
+2508   0ED5             ;
+2509   0ED5             ; TRANSMIT DATA
+2510   0ED5             ;
+2511   0ED5 06 08       	LD	B,08H
+2512   0ED7 CB 09       	RRC	C
+2513   0ED9 CB 09       NXTBIT:	RRC	C	;SHIFT BITS TO D6,
+2514   0EDB 79          	LD	A,C	;LSB FIRST AND OUTPUT
+2515   0EDC E6 40       	AND	40H	;THEM FOR ONE BIT TIME.
+2516   0EDE D3 C0       	OUT	(SERIAL_TX_PORT),A
+2517   0EE0 CD 20 0F    	CALL	BITIME
+2518   0EE3 10 F4       	DJNZ	NXTBIT
+2519   0EE5             ;
+2520   0EE5             ; SEND STOP BITS
+2521   0EE5             ;
+2522   0EE5 3E 40       	LD	A,40H
+2523   0EE7 D3 C0       	OUT	(SERIAL_TX_PORT),A
+2524   0EE9 CD 20 0F    	CALL	BITIME
+2525   0EEC CD 20 0F    	CALL	BITIME
+2526   0EEF E1          	POP	HL
+2527   0EF0 C1          	POP	BC
+2528   0EF1 F1          	POP	AF
+2529   0EF2 C9          	RET
+2530   0EF3             ;-----------------------
+2531   0EF3             ; SERIAL RECEIVE ROUTINE
+2532   0EF3             ;-----------------------
+2533   0EF3             ;RECEIVE SERIAL BYTE FROM DIN
+2534   0EF3             ;
+2535   0EF3             ; ENTRY : NONE
+2536   0EF3             ;  EXIT : A= RECEIVED BYTE IF CARRY CLEAR
+2537   0EF3             ;
+2538   0EF3             ; REGISTERS MODIFIED A AND F
+2539   0EF3             ;
+2540   0EF3 C5          RXDATA:	PUSH	BC
+2541   0EF4 E5          	PUSH	HL
+2542   0EF5             ;
+2543   0EF5             ; WAIT FOR START BIT 
+2544   0EF5             ;
+2545   0EF5 DB C0       RXDAT1: IN	A,(SERIAL_RX_PORT)
+2546   0EF7 CB 7F       	    BIT	7,A
+2547   0EF9 20 FA       	    JR	NZ,RXDAT1	;NO START BIT
+2548   0EFB             ;
+2549   0EFB             ; DETECTED START BIT
+2550   0EFB             ;
+2551   0EFB 2A C0 FF    	LD	HL,(BAUD)
+2552   0EFE CB 3C       	SRL	H
+2553   0F00 CB 1D       	RR	L 	;DELAY FOR HALF BIT TIME
+2554   0F02 CD 20 0F    	CALL 	BITIME
+2555   0F05 DB C0       	IN	A,(SERIAL_RX_PORT)
+2556   0F07 CB 7F       	BIT	7,A
+2557   0F09 20 EA       	JR	NZ,RXDAT1	;START BIT NOT VALID
+2558   0F0B             ;
+2559   0F0B             ; DETECTED VALID START BIT,READ IN DATA
+2560   0F0B             ;
+2561   0F0B 06 08       	LD	B,08H
+2562   0F0D 2A C0 FF    RXDAT2:	LD	HL,(BAUD)
+2563   0F10 CD 20 0F    	CALL	BITIME	;DELAY ONE BIT TIME
+2564   0F13 DB C0       	IN	A,(SERIAL_RX_PORT)
+2565   0F15 CB 17       	RL	A
+2566   0F17 CB 19       	RR	C	;SHIFT BIT INTO DATA REG
+2567   0F19 10 F2       	DJNZ	RXDAT2
+2568   0F1B 79          	LD	A,C
+2569   0F1C B7          	OR	A	;CLEAR CARRY FLAG
+2570   0F1D E1              POP	HL
+2571   0F1E C1          	POP	BC
+2572   0F1F C9          	RET
+2573   0F20             ;---------------
+2574   0F20             ; BIT TIME DELAY
+2575   0F20             ;---------------
+2576   0F20             ;DELAY FOR ONE SERIAL BIT TIME
+2577   0F20             ;ENTRY : HL = DELAY TIME
+2578   0F20             ; NO REGISTERS MODIFIED
+2579   0F20             ;
+2580   0F20 E5          BITIME:	PUSH	HL
+2581   0F21 D5          	PUSH	DE
+2582   0F22 11 01 00    	LD	DE,0001H
+2583   0F25 ED 52       BITIM1:	SBC	HL,DE
+2584   0F27 D2 25 0F    	JP	NC,BITIM1
+2585   0F2A D1          	POP	DE
+2586   0F2B E1          	POP	HL
+2587   0F2C C9          	RET
+2588   0F2D             
+2589   0F2D             
+2590   0F2D             ;-----------------
+2591   0F2D             ; ONE SECOND DELAY
+2592   0F2D             ;-----------------
+2593   0F2D             ;
+2594   0F2D             ; ENTRY : NONE
+2595   0F2D             ; EXIT : FLAG REGISTER MODIFIED
+2596   0F2D             ;
+2597   0F2D C5          DELONE:	PUSH	BC
+2598   0F2E D5          	PUSH	DE
+2599   0F2F E5          	PUSH	HL
+2600   0F30 11 01 00    	LD	DE,0001H
+2601   0F33 21 70 08    	LD	HL,0870H
+2602   0F36 06 92       DELON1:	LD	B,92H
+2603   0F38 10 FE       DELON2:	DJNZ	DELON2	;INNER LOOP
+2604   0F3A ED 52       	SBC	HL,DE
+2605   0F3C D2 36 0F    	JP	NC,DELON1	;OUTER LOOP
+2606   0F3F E1          	POP	HL
+2607   0F40 D1          	POP	DE
+2608   0F41 C1          	POP	BC
+2609   0F42 C9          	RET
+2610   0F43             
+2611   0F43             
+2612   0F43             
+2613   0F43             
+2614   0F43             
+2615   0F43             
+2616   0F43             
+2617   0F43             ; **********************************************************************
+2618   0F43             ; List devices found on the I2C bus
+2619   0F43             ;
+2620   0F43             ; Test each I2C device address and reports any that acknowledge
+2621   0F43             
+2622   0F43 11 38 12    I2CLIST:       LD   DE,LISTMsg        ;Address of message string
+2623   0F46 CD E6 0F                CALL StrOut         ;Output string
+2624   0F49 16 00                   LD   D,0            ;First I2C device address to test
+2625   0F4B D5          LISTLOOP:      PUSH DE             ;Preserve DE
+2626   0F4C 7A                      LD   A,D            ;Get device address to be tested
+2627   0F4D CD 64 0F                CALL LISTTEST          ;Test if device is present
+2628   0F50 D1                      POP  DE             ;Restore DE
+2629   0F51 20 07                   JR   NZ,LISTNEXT       ;Skip if no acknowledge
+2630   0F53 7A                      LD   A,D            ;Get address of device tested
+2631   0F54 CD 15 10                CALL HexOut         ;Output as two character hex 
+2632   0F57 CD E1 0F                CALL SpaceOut       ;Output space character
+2633   0F5A 14          LISTNEXT:      INC  D              ;Get next write address
+2634   0F5B 14                      INC  D
+2635   0F5C 7A                      LD   A,D            ;Address of next device to test
+2636   0F5D B7                      OR   A              ;Have we tested all addresses?
+2637   0F5E 20 EB                   JR   NZ,LISTLOOP       ;No, so loop again
+2638   0F60 CD DE 0F                CALL LineOut        ;Output new line
+2639   0F63 C9                      RET
+2640   0F64             
+2641   0F64             ; Test if device at I2C address A acknowledges
+2642   0F64             ;   On entry: A = I2C device address (8-bit, bit 0 = lo for write)
+2643   0F64             ;   On exit:  Z flagged if device acknowledges
+2644   0F64             ;             NZ flagged if devices does not acknowledge
+2645   0F64 CD 56 10    LISTTEST:      CALL I2C_Open       ;Open I2C device for write
+2646   0F67 C0                      RET  NZ             ;Abort if failed to open
+2647   0F68 CD 5D 10                CALL I2C_Close      ;Close I2C device 
+2648   0F6B AF                      XOR  A              ;Return with Z flagged
+2649   0F6C C9                      RET
+2650   0F6D             
+2651   0F6D             
+2652   0F6D             
+2653   0F6D             
+2654   0F6D             ; Copy a block from I2C memory to CPU memory
+2655   0F6D             ;   On entry: DE = First address in I2C memory
+2656   0F6D             ;             HL = First address in CPU memory
+2657   0F6D             ;             BC = Number of bytes to be copied
+2658   0F6D             ;             SCL = unknown, SDA = unknown
+2659   0F6D             ;   On exit:  If successfully A = 0 and Z flagged
+2660   0F6D             ;             If unsuccessfully A = Error and NZ flagged
+2661   0F6D             ;             IX IY preserved
+2662   0F6D C5          I2C_MemRd:  PUSH BC
+2663   0F6E 01 10 27                LD   BC,TIMEOUT     ;Timeout loop counter
+2664   0F71 3E AE       I2C_MemRdRepeat:    LD   A,I2CA_BLOCK   ;I2C address to write to
+2665   0F73 CD 56 10                CALL I2C_Open       ;Open for write
+2666   0F76 28 0A                   JR   Z,I2C_MemRdReady       ;If open okay then skip on
+2667   0F78 0B                      DEC  BC
+2668   0F79 78                      LD   A,B
+2669   0F7A B1                      OR   C              ;Timeout?
+2670   0F7B 20 F4                   JR   NZ,I2C_MemRdRepeat     ;No, so go try again
+2671   0F7D C1                      POP  BC
+2672   0F7E 3E 03                   LD   A,ERR_TOUT     ;Error code
+2673   0F80 B7                      OR   A              ;Error, so NZ flagged
+2674   0F81 C9                      RET                 ;Return with error
+2675   0F82             ; Device opened okay
+2676   0F82 C1          I2C_MemRdReady:     POP  BC             ;Restore byte counter
+2677   0F83 7A                      LD   A,D            ;Address (hi) in I2C memory
+2678   0F84 CD 60 10                CALL I2C_Write      ;Write address
+2679   0F87 7B                      LD   A,E            ;Address (lo) in I2C memory
+2680   0F88 CD 60 10                CALL I2C_Write      ;Write address
+2681   0F8B 3E AF                   LD   A,I2CA_BLOCK+1 ;I2C device to be read from
+2682   0F8D CD 56 10                CALL I2C_Open       ;Open for read
+2683   0F90 C0                      RET  NZ             ;Abort if error
+2684   0F91 0B          I2C_MemRdRead:      DEC  BC             ;Decrement byte counter
+2685   0F92 78                      LD   A,B
+2686   0F93 B1                      OR   C              ;Last byte to be read?
+2687   0F94 CD 9D 10                CALL I2C_Read       ;Read byte with no ack on last byte
+2688   0F97 77                      LD   (HL),A         ;Write byte in CPU memory
+2689   0F98 23                      INC  HL             ;Increment CPU memory pointer
+2690   0F99 78                      LD   A,B
+2691   0F9A B1                      OR   C              ;Finished?
+2692   0F9B 20 F4                   JR   NZ,I2C_MemRdRead       ;No, so go read next byte
+2693   0F9D CD D5 10                CALL I2C_Stop       ;Generate I2C stop
+2694   0FA0 AF                      XOR  A              ;Return with success (Z flagged)
+2695   0FA1 C9                      RET
+2696   0FA2             
+2697   0FA2             
+2698   0FA2             ; Copy a block from CPU memory to I2C memory
+2699   0FA2             ;   On entry: DE = First address in I2C memory
+2700   0FA2             ;             HL = First address in CPU memory
+2701   0FA2             ;             BC = Number of bytes to be copied
+2702   0FA2             ;             SCL = unknown, SDA = unknown
+2703   0FA2             ;   On exit:  If successfully A = 0 and Z flagged
+2704   0FA2             ;             If unsuccessfully A = Error and NZ flagged
+2705   0FA2             ;             IX IY preserved
+2706   0FA2             ; The 24LC64 requires blocks of data to be written in 64 byte (or less)
+2707   0FA2             ; pages.
+2708   0FA2 C5          I2C_MemWr:  PUSH BC
+2709   0FA3 01 10 27                LD   BC,TIMEOUT     ;Timeout loop counter
+2710   0FA6 3E AE       I2C_MemWrRepeat:    LD   A,I2CA_BLOCK   ;I2C address to write to
+2711   0FA8 CD 56 10                CALL I2C_Open       ;Open for write
+2712   0FAB 28 0A                   JR   Z,I2C_MemWrReady       ;If open okay then skip on
+2713   0FAD 0B                      DEC  BC
+2714   0FAE 78                      LD   A,B
+2715   0FAF B1                      OR   C              ;Timeout?
+2716   0FB0 20 F4                   JR   NZ,I2C_MemWrRepeat     ;No, so go try again
+2717   0FB2 C1                      POP  BC
+2718   0FB3 3E 03                   LD   A,ERR_TOUT     ;Error code
+2719   0FB5 B7                      OR   A              ;Error, so NZ flagged
+2720   0FB6 C9                      RET                 ;Return with error
+2721   0FB7             ; Device opened okay
+2722   0FB7 C1          I2C_MemWrReady:     POP  BC             ;Restore byte counter
+2723   0FB8 7A          I2C_MemWrBlock:     LD   A,D            ;Address (hi) in I2C memory
+2724   0FB9 CD 60 10                CALL I2C_Write      ;Write address
+2725   0FBC 7B                      LD   A,E            ;Address (lo) in I2C memory
+2726   0FBD CD 60 10                CALL I2C_Write      ;Write address
+2727   0FC0 7E          I2C_MemWrWrite:     LD   A,(HL)         ;Get data byte from CPU memory
+2728   0FC1 CD 60 10                CALL I2C_Write      ;Read byte from I2C memory
+2729   0FC4 23                      INC  HL             ;Increment CPU memory pointer
+2730   0FC5 13                      INC  DE             ;Increment I2C memory pointer
+2731   0FC6 0B                      DEC  BC             ;Decrement byte counter
+2732   0FC7 78                      LD   A,B
+2733   0FC8 B1                      OR   C              ;Finished?
+2734   0FC9 28 05                   JR   Z,I2C_MemWrStore       ;Yes, so go store this page
+2735   0FCB 7B                      LD   A,E            ;Get address in I2C memory (lo byte)
+2736   0FCC E6 3F                   AND  63             ;64 byte page boundary?
+2737   0FCE 20 F0                   JR   NZ,I2C_MemWrWrite      ;No, so go write another byte
+2738   0FD0 CD D5 10    I2C_MemWrStore:     CALL I2C_Stop       ;Generate I2C stop
+2739   0FD3 78                      LD   A,B
+2740   0FD4 B1                      OR   C              ;Finished?
+2741   0FD5 20 CB                   JR   NZ,I2C_MemWr   ;No, so go write some more
+2742   0FD7 C9                      RET   
+2743   0FD8             
+2744   0FD8             
+2745   0FD8             
+2746   0FD8             
+2747   0FD8             
+2748   0FD8             
+2749   0FD8             
+2750   0FD8             
+2751   0FD8             
+2752   0FD8             
+2753   0FD8             ; Display test result
+2754   0FD8             ;   On entry: DE = Address of null terminated string
+2755   0FD8             ;             H = First value ($H)
+2756   0FD8             ;             L = Second value ($L)
+2757   0FD8             ;   On exit:  HL IX IY preserved
+2758   0FD8             Result:     
+2759   0FD8 C3 2D 10                JP   String         ;Output result string to console
+2760   0FDB             
+2761   0FDB             
+2762   0FDB             ; Character output to console
+2763   0FDB             ;   On entry: A = Character to be output
+2764   0FDB             ;   On exit:  BC DE HL IX IY preserved
+2765   0FDB C3 F3 0F    CharOut:    JP   API_Cout
+2766   0FDE             
+2767   0FDE             ; New line output to console
+2768   0FDE             ;   On entry: No parameters required
+2769   0FDE             ;   On exit:  BC DE HL IX IY preserved
+2770   0FDE C3 FD 0F    LineOut:    JP   API_Lout
+2771   0FE1             
+2772   0FE1             ; Space character ouput to console
+2773   0FE1             ;   On entry: No parameters required
+2774   0FE1             ;   On exit:  BC DE HL IX IY preserved
+2775   0FE1 3E 20       SpaceOut:   LD   A,$20
+2776   0FE3 C3 F3 0F                JP   API_Cout
+2777   0FE6             
+2778   0FE6             ; String output to console
+2779   0FE6             ;   On entry: DE = Address of string
+2780   0FE6             ;   On exit:  BC DE HL IX IY preserved
+2781   0FE6 C3 09 10    StrOut:     JP   API_Sout
+2782   0FE9             
+2783   0FE9             
+2784   0FE9             ; Delay by DE milliseconds (approx)
+2785   0FE9             ;   On entry: DE = Delay time in milliseconds
+2786   0FE9             ;   On exit:  BC DE HL IX IY preserved
+2787   0FE9 C5          API_Delay:  PUSH BC             ;Preserve registers
+2788   0FEA D5                      PUSH DE
+2789   0FEB E5                      PUSH HL
+2790   0FEC CD 70 0D                CALL delay
+2791   0FEF E1                      POP  HL             ;Restore registers
+2792   0FF0 D1                      POP  DE
+2793   0FF1 C1                      POP  BC
+2794   0FF2 C9                      RET
+2795   0FF3             
+2796   0FF3             
+2797   0FF3             ; Character output to console device
+2798   0FF3             ;   On entry: A = Character to be output
+2799   0FF3             ;   On exit:  BC DE HL IX IY preserved
+2800   0FF3 C5          API_Cout:   PUSH BC             ;Preserve registers
+2801   0FF4 D5                      PUSH DE
+2802   0FF5 E5                      PUSH HL
+2803   0FF6 CD 08 00                CALL $0008
+2804   0FF9 E1                      POP  HL             ;Restore registers
+2805   0FFA D1                      POP  DE
+2806   0FFB C1                      POP  BC
+2807   0FFC C9                      RET
+2808   0FFD             
+2809   0FFD             
+2810   0FFD             ; New line output to console device
+2811   0FFD             ;   On entry: No parameters required
+2812   0FFD             ;   On exit:  BC DE HL IX IY preserved
+2813   0FFD C5          API_Lout:   PUSH BC             ;Preserve registers
+2814   0FFE D5                      PUSH DE
+2815   0FFF E5                      PUSH HL
+2816   1000 3E 0D                   LD A, CR ; enter char
+2817   1002 CD 08 00                CALL $0008
+2818   1005 E1                      POP  HL             ;Restore registers
+2819   1006 D1                      POP  DE
+2820   1007 C1                      POP  BC
+2821   1008 C9                      RET
+2822   1009             
+2823   1009             
+2824   1009             ; String output to console device
+2825   1009             ;   On entry: DE = Address of string
+2826   1009             ;   On exit:  BC DE HL IX IY preserved
+2827   1009 C5          API_Sout:   PUSH BC             ;Preserve registers
+2828   100A D5                      PUSH DE
+2829   100B E5                      PUSH HL
+2830   100C 62                      LD H, D
+2831   100D 6B                      LD L, E
+2832   100E CD 9B 0E                CALL SNDLCDMSG
+2833   1011 E1                      POP  HL             ;Restore registers
+2834   1012 D1                      POP  DE
+2835   1013 C1                      POP  BC
+2836   1014 C9                      RET
+2837   1015             
+2838   1015             
+2839   1015             ; Hex byte output to console
+2840   1015             ;   On entry: A = Byte to be output in hex
+2841   1015             ;   On exit:  BC DE HL IX IY preserved
+2842   1015 F5          HexOut:     PUSH AF             ;Preserve byte to be output
+2843   1016 1F                      RRA                 ;Shift top nibble to
+2844   1017 1F                      RRA                 ;  botom four bits..
+2845   1018 1F                      RRA
+2846   1019 1F                      RRA
+2847   101A E6 0F                   AND  $0F           ;Mask off unwanted bits
+2848   101C CD 22 10                CALL HexOutHex           ;Output hi nibble
+2849   101F F1                      POP  AF             ;Restore byte to be output
+2850   1020 E6 0F                   AND  $0F           ;Mask off unwanted bits
+2851   1022             ; Output nibble as ascii character
+2852   1022 FE 0A       HexOutHex:       CP   $0A           ;Nibble > 10 ?
+2853   1024 38 02                   JR   C,HexOutSkip        ;No, so skip
+2854   1026 C6 07                   ADD  A,7            ;Yes, so add 7
+2855   1028 C6 30       HexOutSkip:      ADD  A,$30         ;Add ASCII '0'
+2856   102A C3 F3 0F                JP   API_Cout       ;Write character
+2857   102D             
+2858   102D             
+2859   102D             ; Output string at DE with substitutions
+2860   102D             ;   On entry: A = Address of device on I2C bus (write address)
+2861   102D             ;             DE = Address of null terminated string
+2862   102D             ;             H = Value to substitute for $H
+2863   102D             ;             L = Value to substitute for $L
+2864   102D             ;             B = Value to substitute for $B
+2865   102D             ;   On exit:  DE = Address of next location after this string
+2866   102D             ;             IX IY preserved
+2867   102D 1A          String:     LD   A,(DE)         ;Get character from string
+2868   102E 13                      INC  DE             ;Point to next character in string
+2869   102F B7                      OR   A              ;Null ?
+2870   1030 C8                      RET  Z              ;Yes, so we're done
+2871   1031 FE 24                   CP   '$'            ;Substitue value?
+2872   1033 28 05                   JR   Z,StringSubst       ;Yes, so go handle substitution
+2873   1035 CD DB 0F                CALL CharOut        ;Output character to console
+2874   1038 18 F3                   JR   String         ;Go get next character from string
+2875   103A 1A          StringSubst:     LD   A,(DE)         ;Get character from string
+2876   103B 13                      INC  DE             ;Point to next character in string
+2877   103C B7                      OR   A              ;Null ?
+2878   103D C8                      RET  Z              ;Yes, so we're done
+2879   103E FE 48                   CP   'H'            ;Register H
+2880   1040 20 03                   JR   NZ,StringNotH       ;No, so skip
+2881   1042 7C                      LD   A,H            ;Get value 'H'
+2882   1043 18 0C                   JR   StringGotIt         ;Go output it in hex
+2883   1045 FE 4C       StringNotH:      CP   'L'            ;Register L
+2884   1047 20 03                   JR   NZ,StringNotL       ;No, so skip
+2885   1049 7D                      LD   A,L            ;Get value 'L'
+2886   104A 18 05                   JR   StringGotIt         ;Go output it in hex
+2887   104C FE 42       StringNotL:      CP   'B'            ;Register B
+2888   104E 20 04                   JR   NZ,StringNotB       ;No, so skip
+2889   1050 78                      LD   A,B            ;Get value 'L'
+2890   1051                         ;JR   @GotIt        ;Go output it in hex
+2891   1051 CD 15 10    StringGotIt:     CALL HexOut         ;Output write address in hex
+2892   1054 18 D7       StringNotB:      JR   String         ;Go get next character from string
+2893   1056             
+2894   1056             
+2895   1056             ; **********************************************************************
+2896   1056             ; I2C support functions
+2897   1056             
+2898   1056             ; I2C bus open device
+2899   1056             ;   On entry: A = Device address (bit zero is read flag)
+2900   1056             ;             SCL = unknown, SDA = unknown
+2901   1056             ;   On exit:  If successfully A = 0 and Z flagged
+2902   1056             ;             If unsuccessfully A = Error and NZ flagged
+2903   1056             ;             BC DE HL IX IY preserved
+2904   1056 F5          I2C_Open:   PUSH AF
+2905   1057 CD CA 10                CALL I2C_Start      ;Output start condition
+2906   105A F1                      POP  AF
+2907   105B 18 03                   JR   I2C_Write      ;Write data byte
+2908   105D             
+2909   105D             
+2910   105D             ; I2C bus close device
+2911   105D             ;   On entry: SCL = unknown, SDA = unknown
+2912   105D             ;   On exit:  If successfully A=0 and Z flagged
+2913   105D             ;             If unsuccessfully A=Error and NZ flagged
+2914   105D             ;             SCL = hi, SDA = hi
+2915   105D             ;             BC DE HL IX IY preserved
+2916   105D C3 D5 10    I2C_Close:  JP   I2C_Stop       ;Output stop condition
+2917   1060             
+2918   1060             
+2919   1060             ; **********************************************************************
+2920   1060             ; **********************************************************************
+2921   1060             ; I2C bus master driver
+2922   1060             ; **********************************************************************
+2923   1060             ; **********************************************************************
+2924   1060             
+2925   1060             ; Functions provided are:
+2926   1060             ;     I2C_Start
+2927   1060             ;     I2C_Stop
+2928   1060             ;     I2C_Read
+2929   1060             ;     I2C_Write
+2930   1060             ;
+2931   1060             ; This code has delays between all I/O operations to ensure it works
+2932   1060             ; with the slowest I2C devices
+2933   1060             ;
+2934   1060             ; I2C transfer sequence
+2935   1060             ;   +-------+  +---------+  +---------+     +---------+  +-------+
+2936   1060             ;   | Start |  | Address |  | Data    | ... | Data    |  | Stop  |
+2937   1060             ;   |       |  | frame   |  | frame 1 |     | frame N |  |       |
+2938   1060             ;   +-------+  +---------+  +---------+     +---------+  +-------+
+2939   1060             ;
+2940   1060             ;
+2941   1060             ; Start condition                     Stop condition
+2942   1060             ; Output by master device             Output by master device
+2943   1060             ;       ----+                                      +----
+2944   1060             ; SDA       |                         SDA          |
+2945   1060             ;           +-------                        -------+
+2946   1060             ;       -------+                                +-------
+2947   1060             ; SCL          |                      SCL       |
+2948   1060             ;              +----                        ----+
+2949   1060             ;
+2950   1060             ;
+2951   1060             ; Address frame
+2952   1060             ; Clock and data output from master device
+2953   1060             ; Receiving device outputs acknowledge 
+2954   1060             ;        +-----+-----+-----+-----+-----+-----+-----+-----+     +---+
+2955   1060             ; SDA    | A 7 | A 6 | A 5 | A 4 | A 3 | A 2 | A 1 | R/W | ACK |   |
+2956   1060             ;     ---+-----+-----+-----+-----+-----+-----+-----+-----+-----+   +---
+2957   1060             ;          +-+   +-+   +-+   +-+   +-+   +-+   +-+   +-+   +-+
+2958   1060             ; SCL      | |   | |   | |   | |   | |   | |   | |   | |   | |
+2959   1060             ;     -----+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---------
+2960   1060             ;
+2961   1060             ;
+2962   1060             ; Data frame 
+2963   1060             ; Clock output by master device
+2964   1060             ; Data output by transmitting device
+2965   1060             ; Receiving device outputs acknowledge 
+2966   1060             ;        +-----+-----+-----+-----+-----+-----+-----+-----+     +---+
+2967   1060             ; SDA    | D 7 | D 6 | D 5 | D 4 | D 3 | D 2 | D 1 | D 0 | ACK |   |
+2968   1060             ;     ---+-----+-----+-----+-----+-----+-----+-----+-----+-----+   +---
+2969   1060             ;          +-+   +-+   +-+   +-+   +-+   +-+   +-+   +-+   +-+
+2970   1060             ; SCL      | |   | |   | |   | |   | |   | |   | |   | |   | |
+2971   1060             ;     -----+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---+ +---------
+2972   1060             ;
+2973   1060             
+2974   1060             
+2975   1060             ; **********************************************************************
+2976   1060             ; I2C constants
+2977   1060             
+2978   1060             
+2979   1060             ; I2C bus master interface
+2980   1060             ; The default device option is for SC126 or compatible
+2981   1060             
+2982   1060             I2C_PORT:   .EQU $21           ;Host I2C port address
+2983   1060             I2C_SDA_WR: .EQU 7              ;Host I2C write SDA bit number
+2984   1060             I2C_SDA_RD: .EQU 7              ;Host I2C read SDA bit number
+2985   1060             I2C_SCL_WR: .EQU 0              ;Host I2C write SCL bit number
+2986   1060             I2C_SCL_RD: .EQU 0              ;Host I2C read SCL bit number 
+2987   1060             I2C_QUIES:  .EQU 0b10000001     ;Host I2C output port quiescent value
+2988   1060             
+2989   1060             
+2990   1060             ; I2C support constants
+2991   1060             ERR_NONE:   .EQU 0              ;Error = None
+2992   1060             ERR_JAM:    .EQU 1              ;Error = Bus jammed [not used]
+2993   1060             ERR_NOACK:  .EQU 2              ;Error = No ackonowledge
+2994   1060             ERR_TOUT:   .EQU 3              ;Error = Timeout
+2995   1060             
+2996   1060             
+2997   1060             ; **********************************************************************
+2998   1060             ; Hardware dependent I2C bus functions
+2999   1060             
+3000   1060             
+3001   1060             ; I2C bus transmit frame (address or data)
+3002   1060             ;   On entry: A = Data byte, or
+3003   1060             ;                 Address byte (bit zero is read flag)
+3004   1060             ;             SCL = low, SDA = low
+3005   1060             ;   On exit:  If successful A=0 and Z flagged
+3006   1060             ;                SCL = lo, SDA = lo
+3007   1060             ;             If unsuccessful A=Error and NZ flagged
+3008   1060             ;                SCL = high, SDA = high, I2C closed
+3009   1060             ;             BC DE HL IX IY preserved
+3010   1060 C5          I2C_Write:  PUSH BC             ;Preserve registers
+3011   1061 D5                      PUSH DE
+3012   1062 57                      LD   D,A            ;Store byte to be written
+3013   1063 06 08                   LD   B,8            ;8 data bits, bit 7 first
+3014   1065 CB 12       I2C_WriteWr_Loop:   RL   D              ;Test M.S.Bit
+3015   1067 38 05                   JR   C,I2C_WriteBit_Hi      ;High, so skip
+3016   1069 CD FC 10                CALL I2C_SDA_LO     ;SDA low   (SCL lo, SDA = data bit)
+3017   106C 18 03                   JR   I2C_WriteBit_Clk
+3018   106E CD F5 10    I2C_WriteBit_Hi:    CALL I2C_SDA_HI     ;SDA high  (SCL lo, SDA = data bit)
+3019   1071 CD E7 10    I2C_WriteBit_Clk:   CALL I2C_SCL_HI     ;SCL high  (SCL hi, SDA = data bit)
+3020   1074 CD EE 10                CALL I2C_SCL_LO     ;SCL low   (SCL lo, SDA = data bit)
+3021   1077 10 EC                   DJNZ I2C_WriteWr_Loop
+3022   1079             ; Test for acknowledge from slave (receiver)
+3023   1079             ; On arriving here, SCL = lo, SDA = data bit
+3024   1079 CD F5 10                CALL I2C_SDA_HI     ;SDA high  (SCL lo, SDA hi/ack)
+3025   107C CD E7 10                CALL I2C_SCL_HI     ;SCL high  (SCL hi, SDA hi/ack)
+3026   107F CD 0D 11                CALL I2C_RdPort     ;Read SDA input
+3027   1082 47                      LD   B,A
+3028   1083 CD EE 10                CALL I2C_SCL_LO     ;SCL low   (SCL lo, SDA = hi)
+3029   1086 CB 78                   BIT  I2C_SDA_RD,B
+3030   1088 20 04                   JR   NZ,I2C_WriteNoAck      ;Skip if no acknowledge
+3031   108A D1                      POP  DE             ;Restore registers
+3032   108B C1                      POP  BC
+3033   108C AF                      XOR  A              ;Return success A=0 and Z flagged
+3034   108D C9                      RET
+3035   108E             ; I2C STOP required as no acknowledge
+3036   108E             ; On arriving here, SCL = lo, SDA = hi
+3037   108E CD FC 10    I2C_WriteNoAck:     CALL I2C_SDA_LO     ;SDA low   (SCL lo, SDA = lo)
+3038   1091 CD E7 10                CALL I2C_SCL_HI     ;SCL high  (SCL hi, SDA = lo)
+3039   1094 CD F5 10                CALL I2C_SDA_HI     ;SDA low   (SCL hi, SDA = hi)
+3040   1097 D1                      POP  DE             ;Restore registers
+3041   1098 C1                      POP  BC
+3042   1099 3E 02                   LD   A,ERR_NOACK    ;Return error = No Acknowledge
+3043   109B B7                      OR   A              ;  and NZ flagged
+3044   109C C9                      RET
+3045   109D             
+3046   109D             
+3047   109D             ; I2C bus receive frame (data)
+3048   109D             ;   On entry: A = Acknowledge flag
+3049   109D             ;               If A != 0 the read is acknowledged
+3050   109D             ;             SCL low, SDA low
+3051   109D             ;   On exit:  If successful A = data byte and Z flagged
+3052   109D             ;               SCL = low, SDA = low
+3053   109D             ;             If unsuccessul* A = Error and NZ flagged
+3054   109D             ;               SCL = low, SDA = low
+3055   109D             ;             BC DE HL IX IY preserved
+3056   109D             ; *This function always returns successful
+3057   109D C5          I2C_Read:   PUSH BC             ;Preserve registers
+3058   109E D5                      PUSH DE
+3059   109F 5F                      LD   E,A            ;Store acknowledge flag
+3060   10A0 06 08                   LD   B,8            ;8 data bits, 7 first
+3061   10A2 CD F5 10                CALL I2C_SDA_HI     ;SDA high  (SCL lo, SDA hi/input)
+3062   10A5 CD E7 10    I2C_ReadRd_Loop:   CALL I2C_SCL_HI     ;SCL high  (SCL hi, SDA hi/input)
+3063   10A8 CD 0D 11                CALL I2C_RdPort     ;Read SDA input bit
+3064   10AB 37                      SCF                 ;Set carry flag
+3065   10AC CB 7F                   BIT  I2C_SDA_RD,A   ;SDA input high?
+3066   10AE 20 01                   JR   NZ, I2C_ReadRotate     ;Yes, skip with carry flag set
+3067   10B0 3F                      CCF                 ;Clear carry flag
+3068   10B1 CB 12       I2C_ReadRotate:    RL   D              ;Rotate result into D
+3069   10B3 CD EE 10                CALL I2C_SCL_LO     ;SCL low   (SCL lo, SDA hi/input)
+3070   10B6 10 ED                   DJNZ  I2C_ReadRd_Loop       ;Repeat for all 8 bits
+3071   10B8             ; Acknowledge input byte
+3072   10B8             ; On arriving here, SCL = lo, SDA = hi/input
+3073   10B8 7B                      LD   A,E            ;Get acknowledge flag
+3074   10B9 B7                      OR   A              ;A = 0? (indicates no acknowledge)
+3075   10BA 28 03                   JR   Z, I2C_ReadNoAck       ;Yes, so skip acknowledge
+3076   10BC CD FC 10                CALL I2C_SDA_LO     ;SDA low   (SCL lo, SDA lo)
+3077   10BF CD E7 10    I2C_ReadNoAck:     CALL I2C_SCL_HI     ;SCL hi    (SCL hi, SDA lo)
+3078   10C2 CD EE 10                CALL I2C_SCL_LO     ;SCL low   (SCL lo, SDA lo)
+3079   10C5 7A                      LD   A,D            ;Get data byte received
+3080   10C6 D1                      POP  DE             ;Restore registers
+3081   10C7 C1                      POP  BC
+3082   10C8 BF                      CP   A              ;Return success Z flagged
+3083   10C9 C9                      RET
+3084   10CA             
+3085   10CA             
+3086   10CA             ; I2C bus start
+3087   10CA             ;   On entry: SCL = unknown, SDA = unknown
+3088   10CA             ;   On exit:  SCL = low, SDA = low
+3089   10CA             ;             A = 0 and Z flagged as we always succeed
+3090   10CA             ;             BC DE HL IX IY preserved
+3091   10CA             ; First ensure SDA and SCL are high
+3092   10CA CD E3 10    I2C_Start:  CALL I2C_INIT       ;Initialise I2C control port
+3093   10CD             ;           CALL I2C_SCL_HI     ;SCL high  (SCL hi, SDA ??)
+3094   10CD             ;           CALL I2C_SDA_HI     ;SDA high  (SCL hi, SDA hi)
+3095   10CD             ; Generate I2C start condition
+3096   10CD CD FC 10                CALL I2C_SDA_LO     ;SDA low   (SCL hi, SDA lo)
+3097   10D0 CD EE 10                CALL I2C_SCL_LO     ;SCL low   (SCL lo, SDA lo)
+3098   10D3 AF                      XOR  A              ;Return success A=0 and Z flagged
+3099   10D4 C9                      RET
+3100   10D5             
+3101   10D5             
+3102   10D5             ; I2C bus stop 
+3103   10D5             ;   On entry: SCL = unknown, SDA = unknown
+3104   10D5             ;   On exit:  SCL = high, SDA = high
+3105   10D5             ;             A = 0 and Z flagged as we always succeed
+3106   10D5             ;             BC DE HL IX IY preserved
+3107   10D5             ; First ensure SDA and SCL are low
+3108   10D5 CD FC 10    I2C_Stop:   CALL I2C_SDA_LO     ;SDA low   (SCL hi, SDA lo)
+3109   10D8 CD EE 10                CALL I2C_SCL_LO     ;SCL low   (SCL lo, SDA lo)
+3110   10DB             ; Generate stop condition
+3111   10DB CD E7 10                CALL I2C_SCL_HI     ;SCL high  (SCL hi, SDA lo)
+3112   10DE CD F5 10                CALL I2C_SDA_HI     ;SDA low   (SCL hi, SDA hi)
+3113   10E1 AF                      XOR  A              ;Return success A=0 and Z flagged
+3114   10E2 C9                      RET
+3115   10E3             
+3116   10E3             
+3117   10E3             ; **********************************************************************
+3118   10E3             ; I2C bus simple I/O functions
+3119   10E3             ;   On entry: No parameters required
+3120   10E3             ;   On exit:  BC DE HL IX IY preserved
+3121   10E3             
+3122   10E3 3E 81       I2C_INIT:   LD   A,I2C_QUIES    ;I2C control port quiescent value
+3123   10E5 18 1A                   JR   I2C_WrPort
+3124   10E7             
+3125   10E7 3A 00 D0    I2C_SCL_HI: LD   A,(I2C_RAMCPY)
+3126   10EA CB C7                   SET  I2C_SCL_WR,A
+3127   10EC 18 13                   JR   I2C_WrPort
+3128   10EE             
+3129   10EE 3A 00 D0    I2C_SCL_LO: LD   A,(I2C_RAMCPY)
+3130   10F1 CB 87                   RES  I2C_SCL_WR,A
+3131   10F3 18 0C                   JR   I2C_WrPort
+3132   10F5             
+3133   10F5 3A 00 D0    I2C_SDA_HI: LD   A,(I2C_RAMCPY)
+3134   10F8 CB FF                   SET  I2C_SDA_WR,A
+3135   10FA 18 05                   JR   I2C_WrPort
+3136   10FC             
+3137   10FC 3A 00 D0    I2C_SDA_LO: LD   A,(I2C_RAMCPY)
+3138   10FF CB BF                   RES  I2C_SDA_WR,A
+3139   1101                         ;JR   I2C_WrPort
+3140   1101             
+3141   1101 C5          I2C_WrPort: PUSH BC             ;Preserve registers
+3142   1102 06 00                   LD   B,0            ;Set up BC for 16-bit
+3143   1104 0E 21                   LD   C,I2C_PORT     ;  I/O address of I2C port
+3144   1106 ED 79                   OUT  (C),A          ;Write A to I2C I/O port
+3145   1108 32 00 D0                LD   (I2C_RAMCPY),A ;Write A to RAM copy
+3146   110B C1                      POP  BC             ;Restore registers
+3147   110C C9                      RET
+3148   110D             
+3149   110D C5          I2C_RdPort: PUSH BC             ;Preserve registers
+3150   110E 06 00                   LD   B,0            ;Set up BC for 16-bit
+3151   1110 0E 21                   LD   C,I2C_PORT     ;  I/O address of I2C port
+3152   1112 ED 78                   IN   A,(C)          ;Read A from I/O port
+3153   1114 C1                      POP  BC             ;Restore registers
+3154   1115 C9                      RET
+3155   1116             
+3156   1116             
+3157   1116             
+3158   1116 0C0D0D0A5A38WELLCOME: .db CS, CR, CR, LF,"Z80 Mini Iniciado", CR, LF, 00H
+3158   111C 30204D696E6920496E69636961646F0D0A00
+3159   112E 5A3830204D49MSG_MONITOR .db "Z80 MINI, H TO HELP",CR, 00H
+3159   1134 4E492C204820544F2048454C500D00
+3160   1143             
+3161   1143 46312052554EMSG_MENU0  .db "F1 RUN (JP $8000)",CR, 00H
+3161   1149 20284A50202438303030290D00
+3162   1156 463220496E74MSG_MENU1  .db "F2 Intel hex loader",CR, 00H
+3162   115C 656C20686578206C6F616465720D00
+3163   116B 42202D204261MSG_MENU2  .db "B - Basic",CR, 00H
+3163   1171 7369630D00
+3164   1176 442041414141MSG_MENU3  .db "D AAAA - DISPLAY",CR,00H
+3164   117C 202D20444953504C41590D00
+3165   1188 4D2041414141MSG_MENU4  .db "M AAAA - MODIFY",CR,00H
+3165   118E 202D204D4F444946590D00
+3166   1199 472041414141MSG_MENU5  .db "G AAAA - GO TO",CR, 00H
+3166   119F 202D20474F20544F0D00
+3167   11A9 4F204F757420MSG_MENU6  .db "O Out AA DD",CR, 00H
+3167   11AF 41412044440D00
+3168   11B6 4920496E2041MSG_MENU7  .db "I In AA",CR, 00H
+3168   11BC 410D00
+3169   11BF 312049324320MSG_MENU8  .db "1 I2C Scan",CR, 00H
+3169   11C5 5363616E0D00
+3170   11CB 322049324320MSG_MENU9  .db "2 I2C PC -> MEM",CR, 00H
+3170   11D1 5043202D3E204D454D0D00
+3171   11DC 332049324320MSG_MENU10 .db "3 I2C MEM -> PC",CR, 00H
+3171   11E2 4D454D202D3E2050430D00
+3172   11ED 342049324320MSG_MENU11 .db "4 I2C WRITE DD",CR, 00H
+3172   11F3 57524954452044440D00
+3173   11FD 352049324320MSG_MENU12 .db "5 I2C WRITE RR DD",CR, 00H
+3173   1203 57524954452052522044440D00
+3174   1210 362049324320MSG_MENU13 .db "6 I2C READ ONE BYTE",CR, 00H
+3174   1216 52454144204F4E4520425954450D00
+3175   1225 372049324320MSG_MENU14 .db "7 I2C READ RR BYTE", 00H ; ultimo não tem CR (nova linha)
+3175   122B 52454144205252204259544500
+3176   1238             
+3177   1238             
+3178   1238             
+3179   1238 0C4932432064LISTMsg:    .DB  CS,"I2C device found at:",CR,0
+3179   123E 657669636520666F756E642061743A0D00
+3180   124F 0C434F505920MSG_MEM2CPU .db CS,"COPY I2C MEM TO CPU",CR, 00H
+3180   1255 493243204D454D20544F204350550D00
+3181   1265 0C434F505920MSG_CPU2MEM .db CS,"COPY CPU TO I2C MEM",CR, 00H
+3181   126B 43505520544F20493243204D454D0D00
+3182   127B             
+3183   127B 0C5752495445MSG_I2C_WR_DD    .db CS,"WRITE ONE BYTE",CR, 00H
+3183   1281 204F4E4520425954450D00
+3184   128C 0C5752495445MSG_I2C_WR_RR_DD .db CS,"WRITE REG ONE BYTE",CR, 00H
+3184   1292 20524547204F4E4520425954450D00
+3185   12A1 0C5245414420MSG_I2C_RD       .db CS,"READ ONE BYTE",CR, 00H
+3185   12A7 4F4E4520425954450D00
+3186   12B1 0C5245414420MSG_I2C_RD_RR    .db CS,"READ REG ONE BYTE",CR, 00H
+3186   12B7 524547204F4E4520425954450D00
+3187   12C5             
+3188   12C5 46524F4D3A20MSG_FROM    .db "FROM: ", 00H
+3188   12CB 00
+3189   12CC 0D544F3A2000MSG_TO      .db CR,"TO: ", 00H
+3190   12D2 0D53495A4528MSG_SIZE    .db CR,"SIZE(BYTES): ", 00H
+3190   12D8 4259544553293A2000
+3191   12E1 0D434F505920MSG_COPYOK  .db CR,"COPY OK", 00H
+3191   12E7 4F4B00
+3192   12EA 0D434F505920MSG_COPYFAIL  .db CR,"COPY FAIL", 00H
+3192   12F0 4641494C00
+3193   12F5             
+3194   12F5 0D4445564943MSG_DEV_ADDR  .db CR,"DEVICE ADDR(AA): ", 00H
+3194   12FB 452041444452284141293A2000
+3195   1308 0D5245474953MSG_DEV_REG   .db CR,"REGISTER(RR): ", 00H
+3195   130E 544552285252293A2000
+3196   1318 0D4441544128MSG_DEV_DATA  .db CR,"DATA(DD): ", 00H
+3196   131E 4444293A2000
+3197   1324             
+3198   1324             
+3199   1324 0C496E74656CMSG_ILOAD .db $0C, "Intel HEX loader...", CR, 00H
+3199   132A 20484558206C6F616465722E2E2E0D00
+3200   133A 46494C452052FILEOK    .DB      "FILE RECEIVED OK",CR,00H
+3200   1340 45434549564544204F4B0D00
+3201   134C 434845434B53CSUMERR   .DB    "CHECKSUM ERROR",CR,00H
+3201   1352 554D204552524F520D00
+3202   135C             
+3203   135C             
+3204   135C             
+3205   135C             ; **********************************************************************
+3206   135C             ; I2C workspace / variables in RAM
+3207   135C             
+3208   D000                         .ORG  I2CDATA
+3209   D000             
+3210   D000 00          I2C_RAMCPY: .DB  0              ;RAM copy of output port
+3211   D001             
+3212   D001 00          RESULTS:    .DB  0              ;Large block of results can start here
+3213   D002             
+3214   D002             .end
 tasm: Number of errors = 0
