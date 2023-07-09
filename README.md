@@ -73,13 +73,17 @@ O circuito ou código-fonte podem conter partes dos projetos originais mencionad
 
 
 
-### Basic LCD - Face
-![Z80Mini](https://github.com/diego123cruz/Z80Mini/blob/main/Basic%20LCD%20-%20Face/BasicLCD-Face.jpeg)
+### Basic LCD V1 - Face
+![Z80Mini](https://github.com/diego123cruz/Z80Mini/blob/main/Basic%20LCD%20-%20Face/BasicLCD V1-Face.jpeg)
 
 [Vídeo demo](https://www.youtube.com/watch?v=0nLOt6mwVDU)
 
 [Vídeo detalhes](https://www.youtube.com/watch?v=qB5lAR5NyGU)
 
+
+### Basic LCD Graphic 128x64 V2 - Face
+![Z80Mini](https://github.com/diego123cruz/Z80Mini/blob/main/Basic%20LCD%20-%20Face/Basic LCD V2 (Graphic 128x64) - Face.jpg)
+[Vídeo demo] (https://www.youtube.com/shorts/OemEQMpTLIQ)
 
 Essa placa "Face" foi baseada no "Grant's 7-chip Z80 computer" - http://searle.walesz80.htm e "Z80 SINGLE BOARD COMPUTER" - http://d-fence.sytes.net/z80sbc/
 
