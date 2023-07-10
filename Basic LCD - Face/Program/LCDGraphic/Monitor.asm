@@ -170,7 +170,7 @@ DLINE1: LD    A,(DE)
 ; BE DIFFERENT BETWEEN THE TWO PASSES!
 ;
        LD    DE,(ADDR)    
-       LD    B,4 ;16
+       LD    B,4 ; 4 bytes
 DLINE2: LD    A,(DE)   
        CP    20H
        JR    C,DOT

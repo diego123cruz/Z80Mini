@@ -553,6 +553,10 @@ enable_grafic:
 
 ;==========================
 print_image:
+        PUSH AF
+        PUSH BC
+        PUSH DE
+        PUSH HL
 PLOT_TO_LCD:	
         LD HL, DISPLAY
         LD C, 80H
@@ -578,6 +582,11 @@ PLOT_COLUMN:
         INC C
         BIT 6, C 		;Is Row = 64?
         JR Z, PLOT_ROW
+
+        POP HL
+        POP DE
+        POP BC
+        POP AF
         RET
         
 ; Delay for LCD write
@@ -861,17 +870,18 @@ delayLCDclear:
 ;
 ;       MODIFIES : A,B,C
 ;          
-SNDLCDMSG: LD    B,128         ;128 CHARS MAX
+SNDLCDMSG:
+    LD    B,128         ;128 CHARS MAX
 SDLCDMSG1: LD    A,(HL)        ;GET THE CHAR
-       CP    00H          ;ZERO TERMINATOR?
-       JR    Z,SDLCDMSG2      ;FOUND A ZERO TERMINATOR, EXIT  
-       CALL PrintBufferChar         ;TRANSMIT THE CHAR
-       INC   HL
-       DJNZ  SDLCDMSG1        ;128 CHARS MAX!    
+    CP    00H          ;ZERO TERMINATOR?
+    JR    Z,SDLCDMSG2      ;FOUND A ZERO TERMINATOR, EXIT  
+    CALL PrintBufferChar         ;TRANSMIT THE CHAR
+    INC   HL
+    DJNZ  SDLCDMSG1        ;128 CHARS MAX!    
 SDLCDMSG2: 
     LD HL, DISPLAY
     CALL print_image
-RET
+    RET
 
 
 

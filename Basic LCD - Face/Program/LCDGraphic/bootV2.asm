@@ -132,7 +132,7 @@ ADDR_SIZE           .EQU    $F42B   ; 2 bytes - THE ADDRESS SIZE
 PORT_SET            .EQU    $F42D   ; 1 byte - Define port (input/output) Default 0xC0(onboard)
 PORT_OUT_VAL        .EQU    $F42E   ; 1 byte - save value out port
 LCD_DATA            .EQU    $F42F   ; 1 byte
-BAUD:	            .EQU	$F430   ;2 bytes - BAUD RATE
+BAUD:	            .EQU    $F430   ;2 bytes - BAUD RATE
 PUTCH:              .EQU    $F432   ;2 bytes - OUTPUT A CHARACTER TO SERIAL
 GETCH:              .EQU    $F434   ;2 bytes - WAIT FOR A CHARACTER FROM SERIAL
 LCD_CHAR            .EQU    $F435   ; 1 byte char ex: 'A'

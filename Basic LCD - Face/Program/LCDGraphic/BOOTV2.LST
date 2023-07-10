@@ -1,6 +1,6 @@
 ; --------------------------------------
 ; zasm: assemble "bootV2.asm"
-; date: 2023-07-10 00:46:39
+; date: 2023-07-10 15:03:18
 ; --------------------------------------
 
 
@@ -138,7 +138,7 @@ ADDR_SIZE           .EQU    $F42B   ; 2 bytes - THE ADDRESS SIZE
 PORT_SET            .EQU    $F42D   ; 1 byte - Define port (input/output) Default 0xC0(onboard)
 PORT_OUT_VAL        .EQU    $F42E   ; 1 byte - save value out port
 LCD_DATA            .EQU    $F42F   ; 1 byte
-BAUD:	            .EQU	$F430   ;2 bytes - BAUD RATE
+BAUD:	            .EQU    $F430   ;2 bytes - BAUD RATE
 PUTCH:              .EQU    $F432   ;2 bytes - OUTPUT A CHARACTER TO SERIAL
 GETCH:              .EQU    $F434   ;2 bytes - WAIT FOR A CHARACTER FROM SERIAL
 LCD_CHAR            .EQU    $F435   ; 1 byte char ex: 'A'
@@ -895,6 +895,10 @@ enable_grafic:
 
 ;==========================
 print_image:
+        PUSH AF
+        PUSH BC
+        PUSH DE
+        PUSH HL
 PLOT_TO_LCD:	
         LD HL, DISPLAY
         LD C, 80H
@@ -920,6 +924,11 @@ PLOT_COLUMN:
         INC C
         BIT 6, C 		;Is Row = 64?
         JR Z, PLOT_ROW
+
+        POP HL
+        POP DE
+        POP BC
+        POP AF
         RET
         
 ; Delay for LCD write
@@ -1203,17 +1212,18 @@ delayLCDclear:
 ;
 ;       MODIFIES : A,B,C
 ;          
-SNDLCDMSG: LD    B,128         ;128 CHARS MAX
+SNDLCDMSG:
+    LD    B,128         ;128 CHARS MAX
 SDLCDMSG1: LD    A,(HL)        ;GET THE CHAR
-       CP    00H          ;ZERO TERMINATOR?
-       JR    Z,SDLCDMSG2      ;FOUND A ZERO TERMINATOR, EXIT  
-       CALL PrintBufferChar         ;TRANSMIT THE CHAR
-       INC   HL
-       DJNZ  SDLCDMSG1        ;128 CHARS MAX!    
+    CP    00H          ;ZERO TERMINATOR?
+    JR    Z,SDLCDMSG2      ;FOUND A ZERO TERMINATOR, EXIT  
+    CALL PrintBufferChar         ;TRANSMIT THE CHAR
+    INC   HL
+    DJNZ  SDLCDMSG1        ;128 CHARS MAX!    
 SDLCDMSG2: 
     LD HL, DISPLAY
     CALL print_image
-RET
+    RET
 
 
 
@@ -2402,7 +2412,7 @@ DLINE1: LD    A,(DE)
 ; BE DIFFERENT BETWEEN THE TWO PASSES!
 ;
        LD    DE,(ADDR)    
-       LD    B,4 ;16
+       LD    B,4 ; 4 bytes
 DLINE2: LD    A,(DE)   
        CP    20H
        JR    C,DOT
@@ -3199,7 +3209,7 @@ CSUMERR   .DB    "CHECKSUM ERROR",CR,00H
 
 ; +++ segments +++
 
-#CODE          = $0000 =     0,  size = $1344 =  4932
+#CODE          = $0000 =     0,  size = $134D =  4941
 
 ; +++ global symbols +++
 
@@ -3211,8 +3221,8 @@ ADDR             = $F425 = 62501          bootV2.asm:128
 ADDR_FROM        = $F427 = 62503          bootV2.asm:129
 ADDR_SIZE        = $F42B = 62507          bootV2.asm:131
 ADDR_TO          = $F429 = 62505          bootV2.asm:130
-APIHandler       = $093F =  2367          API.asm:11
-APITable         = $0951 =  2385          API.asm:30
+APIHandler       = $0948 =  2376          API.asm:11
+APITable         = $095A =  2394          API.asm:30
 ASC2HEX          = $00CD =   205          Keyboard.asm:64
 B1200            = $0080 =   128          bootV2.asm:86 (unused)
 B2400            = $003F =    63          bootV2.asm:87 (unused)
@@ -3221,20 +3231,20 @@ B4800            = $001B =    27          bootV2.asm:88
 B9600            = $000B =    11          bootV2.asm:89 (unused)
 BASIC            = $6000 = 24576          bootV2.asm:77
 BAUD             = $F430 = 62512          bootV2.asm:135
-BCRLF            = $0DC2 =  3522          Monitor.asm:205
-BITIM1           = $0CA4 =  3236          SoftSerial.asm:172
-BITIME           = $0C9F =  3231          SoftSerial.asm:169
+BCRLF            = $0DCB =  3531          Monitor.asm:205
+BITIM1           = $0CAD =  3245          SoftSerial.asm:172
+BITIME           = $0CA8 =  3240          SoftSerial.asm:169
 BKSP             = $0008 =     8          bootV2.asm:35 (unused)
-BYTASC           = $1005 =  4101          Monitor.asm:673
-BYTOUT           = $0FF7 =  4087          Monitor.asm:647
-Boucle16X        = $04C3 =  1219          LCDGraphic.asm:712
-Boucle32X        = $04B5 =  1205          LCDGraphic.asm:701
+BYTASC           = $100E =  4110          Monitor.asm:673
+BYTOUT           = $1000 =  4096          Monitor.asm:647
+Boucle16X        = $04CB =  1227          LCDGraphic.asm:721
+Boucle32X        = $04BD =  1213          LCDGraphic.asm:710
 CHKKEY           = $00E8 =   232          Keyboard.asm:85
-CONV_A_HEX       = $10A3 =  4259          Utils.asm:7
-CONV_A_HEX_NYBASC = $10AC =  4268          Utils.asm:17
+CONV_A_HEX       = $10AC =  4268          Utils.asm:7
+CONV_A_HEX_NYBASC = $10B5 =  4277          Utils.asm:17
 CR               = $000D =    13          bootV2.asm:39
 CS               = $000C =    12          bootV2.asm:38
-CSUMERR          = $1334 =  4916          Strings.asm:44
+CSUMERR          = $133D =  4925          Strings.asm:44
 CTRLC            = $0003 =     3          bootV2.asm:33
 CTRLG            = $0007 =     7          bootV2.asm:34 (unused)
 CTRLO            = $000F =    15          bootV2.asm:40 (unused)
@@ -3242,130 +3252,130 @@ CTRLQ            = $0011 =    17          bootV2.asm:41 (unused)
 CTRLR            = $0012 =    18          bootV2.asm:42 (unused)
 CTRLS            = $0013 =    19          bootV2.asm:43 (unused)
 CTRLU            = $0015 =    21          bootV2.asm:44 (unused)
-ClearDisplayBuffer = $09A7 =  2471          API.asm:99
-ClearDisplayBufferEnd = $09B8 =  2488          API.asm:108
+ClearDisplayBuffer = $09B0 =  2480          API.asm:99
+ClearDisplayBufferEnd = $09C1 =  2497          API.asm:108
 DATA             = $F420 = 62496          bootV2.asm:123
 DEL              = $007F =   127          bootV2.asm:46
-DELAY_MS         = $0446 =  1094          LCDGraphic.asm:586
-DELAY_US         = $0443 =  1091          LCDGraphic.asm:584
+DELAY_MS         = $044E =  1102          LCDGraphic.asm:595
+DELAY_US         = $044B =  1099          LCDGraphic.asm:593
 DELETE_CHAR      = $01F0 =   496          LCDGraphic.asm:123
-DELON1           = $0C20 =  3104          SoftSerial.asm:33
-DELON2           = $0C22 =  3106          SoftSerial.asm:34
-DELONE           = $0C17 =  3095          SoftSerial.asm:28
+DELON1           = $0C29 =  3113          SoftSerial.asm:33
+DELON2           = $0C2B =  3115          SoftSerial.asm:34
+DELONE           = $0C20 =  3104          SoftSerial.asm:28
 DISPLAY          = $F000 = 61440          bootV2.asm:121
 DISPLAY_SCROLL_UP = $0189 =   393          LCDGraphic.asm:49
-DLINE1           = $0D8C =  3468          Monitor.asm:161
-DLINE2           = $0D9C =  3484          Monitor.asm:174
-DOT              = $0DA8 =  3496          Monitor.asm:180
-DPLAY1           = $0D5B =  3419          Monitor.asm:126
-DPLAY2           = $0D68 =  3432          Monitor.asm:135
-DPLAY3           = $0D6F =  3439          Monitor.asm:140
-DPLINE           = $0D7D =  3453          Monitor.asm:150
-DSPLAY           = $0D45 =  3397          Monitor.asm:114
-DisplayImage128x64 = $09A2 =  2466          API.asm:94
-Div_HL_D         = $10EF =  4335          Utils.asm:112
+DLINE1           = $0D95 =  3477          Monitor.asm:161
+DLINE2           = $0DA5 =  3493          Monitor.asm:174
+DOT              = $0DB1 =  3505          Monitor.asm:180
+DPLAY1           = $0D64 =  3428          Monitor.asm:126
+DPLAY2           = $0D71 =  3441          Monitor.asm:135
+DPLAY3           = $0D78 =  3448          Monitor.asm:140
+DPLINE           = $0D86 =  3462          Monitor.asm:150
+DSPLAY           = $0D4E =  3406          Monitor.asm:114
+DisplayImage128x64 = $09AB =  2475          API.asm:94
+Div_HL_D         = $10F8 =  4344          Utils.asm:112
 ERR_JAM          = $0001 =     1          I2C.asm:98 (unused)
 ERR_NOACK        = $0002 =     2          I2C.asm:99
 ERR_NONE         = $0000 =     0          I2C.asm:97 (unused)
 ERR_TOUT         = $0003 =     3          I2C.asm:100
 ESC              = $001B =    27          bootV2.asm:45
-FILEOK           = $1322 =  4898          Strings.asm:43
-GETBT1           = $0A67 =  2663          LoaderIntel.asm:102
-GETBT2           = $0A7B =  2683          LoaderIntel.asm:115
-GETBYT           = $0A5D =  2653          LoaderIntel.asm:97
+FILEOK           = $132B =  4907          Strings.asm:43
+GETBT1           = $0A70 =  2672          LoaderIntel.asm:102
+GETBT2           = $0A84 =  2692          LoaderIntel.asm:115
+GETBYT           = $0A66 =  2662          LoaderIntel.asm:97
 GETCH            = $F434 = 62516          bootV2.asm:137
 GETCHR           = $0093 =   147          Keyboard.asm:18
 GETNYB           = $00AD =   173          Keyboard.asm:31
 GETOUT           = $00CB =   203          Keyboard.asm:46
-GET_DEV_ADDR     = $0EAB =  3755          Monitor.asm:411
-GET_DEV_DD       = $0EB9 =  3769          Monitor.asm:419
-GET_DEV_RR       = $0EC7 =  3783          Monitor.asm:428
-GET_FROM_TO_SIZE = $0F25 =  3877          Monitor.asm:513
-GET_FROM_TO_SIZE_SIZE = $0F69 =  3945          Monitor.asm:556
-GET_FROM_TO_SIZE_TO = $0F4B =  3915          Monitor.asm:536
-GOJMP1           = $1091 =  4241          Monitor.asm:781 (unused)
-GOJUMP           = $107B =  4219          Monitor.asm:769
-GOJUMP_new       = $1071 =  4209          Monitor.asm:762
+GET_DEV_ADDR     = $0EB4 =  3764          Monitor.asm:411
+GET_DEV_DD       = $0EC2 =  3778          Monitor.asm:419
+GET_DEV_RR       = $0ED0 =  3792          Monitor.asm:428
+GET_FROM_TO_SIZE = $0F2E =  3886          Monitor.asm:513
+GET_FROM_TO_SIZE_SIZE = $0F72 =  3954          Monitor.asm:556
+GET_FROM_TO_SIZE_TO = $0F54 =  3924          Monitor.asm:536
+GOJMP1           = $109A =  4250          Monitor.asm:781 (unused)
+GOJUMP           = $1084 =  4228          Monitor.asm:769
+GOJUMP_new       = $107A =  4218          Monitor.asm:762
 GRET             = $00F8 =   248          Keyboard.asm:93
-H_Delay          = $10CD =  4301          Utils.asm:66
-HexOut           = $0BDE =  3038          I2C.asm:404
-HexOutHex        = $0BEB =  3051          I2C.asm:414
-HexOutSkip       = $0BF1 =  3057          I2C.asm:417
+H_Delay          = $10D6 =  4310          Utils.asm:66
+HexOut           = $0BE7 =  3047          I2C.asm:404
+HexOutHex        = $0BF4 =  3060          I2C.asm:414
+HexOutSkip       = $0BFA =  3066          I2C.asm:417
 I2CA_BLOCK       = $00AE =   174          bootV2.asm:102
-I2CCPUTOMEM      = $0EFD =  3837          Monitor.asm:474
-I2CCPUTOMEM_OK   = $0F1E =  3870          Monitor.asm:503
-I2CClose         = $09C2 =  2498          API.asm:118
-I2CLIST          = $0B49 =  2889          I2C.asm:278
-I2CMEMTOCPU      = $0ED5 =  3797          Monitor.asm:440
-I2CMEMTOCPU_OK   = $0EF6 =  3830          Monitor.asm:468
-I2COpen          = $09BF =  2495          API.asm:115
-I2CRead          = $09C5 =  2501          API.asm:121
-I2CWrite         = $09C8 =  2504          API.asm:124
+I2CCPUTOMEM      = $0F06 =  3846          Monitor.asm:474
+I2CCPUTOMEM_OK   = $0F27 =  3879          Monitor.asm:503
+I2CClose         = $09CB =  2507          API.asm:118
+I2CLIST          = $0B52 =  2898          I2C.asm:278
+I2CMEMTOCPU      = $0EDE =  3806          Monitor.asm:440
+I2CMEMTOCPU_OK   = $0EFF =  3839          Monitor.asm:468
+I2COpen          = $09C8 =  2504          API.asm:115
+I2CRead          = $09CE =  2510          API.asm:121
+I2CWrite         = $09D1 =  2513          API.asm:124
 I2C_ADDR         = $F422 = 62498          bootV2.asm:125
-I2C_Close        = $0A90 =  2704          I2C.asm:22
+I2C_Close        = $0A99 =  2713          I2C.asm:22
 I2C_DD           = $F424 = 62500          bootV2.asm:127
-I2C_INIT         = $0B16 =  2838          I2C.asm:228
-I2C_MemRd        = $0B73 =  2931          I2C.asm:318
-I2C_MemRdRead    = $0B97 =  2967          I2C.asm:340
-I2C_MemRdReady   = $0B88 =  2952          I2C.asm:332
-I2C_MemRdRepeat  = $0B77 =  2935          I2C.asm:320
-I2C_MemWr        = $0BA8 =  2984          I2C.asm:364
-I2C_MemWrBlock   = $0BBE =  3006          I2C.asm:379 (unused)
-I2C_MemWrReady   = $0BBD =  3005          I2C.asm:378
-I2C_MemWrRepeat  = $0BAC =  2988          I2C.asm:366
-I2C_MemWrStore   = $0BD6 =  3030          I2C.asm:394
-I2C_MemWrWrite   = $0BC6 =  3014          I2C.asm:383
-I2C_Open         = $0A89 =  2697          I2C.asm:10
+I2C_INIT         = $0B1F =  2847          I2C.asm:228
+I2C_MemRd        = $0B7C =  2940          I2C.asm:318
+I2C_MemRdRead    = $0BA0 =  2976          I2C.asm:340
+I2C_MemRdReady   = $0B91 =  2961          I2C.asm:332
+I2C_MemRdRepeat  = $0B80 =  2944          I2C.asm:320
+I2C_MemWr        = $0BB1 =  2993          I2C.asm:364
+I2C_MemWrBlock   = $0BC7 =  3015          I2C.asm:379 (unused)
+I2C_MemWrReady   = $0BC6 =  3014          I2C.asm:378
+I2C_MemWrRepeat  = $0BB5 =  2997          I2C.asm:366
+I2C_MemWrStore   = $0BDF =  3039          I2C.asm:394
+I2C_MemWrWrite   = $0BCF =  3023          I2C.asm:383
+I2C_Open         = $0A92 =  2706          I2C.asm:10
 I2C_PORT         = $0021 =    33          I2C.asm:88
 I2C_QUIES        = $0081 =   129          I2C.asm:93
 I2C_RAMCPY       = $F421 = 62497          bootV2.asm:124
-I2C_RD           = $0E45 =  3653          Monitor.asm:332
-I2C_RD_LOOP      = $0E56 =  3670          Monitor.asm:344
-I2C_RD_RR        = $0E76 =  3702          Monitor.asm:371
-I2C_RD_RR_LOOP   = $0E84 =  3716          Monitor.asm:382
+I2C_RD           = $0E4E =  3662          Monitor.asm:332
+I2C_RD_LOOP      = $0E5F =  3679          Monitor.asm:344
+I2C_RD_RR        = $0E7F =  3711          Monitor.asm:371
+I2C_RD_RR_LOOP   = $0E8D =  3725          Monitor.asm:382
 I2C_RR           = $F423 = 62499          bootV2.asm:126
-I2C_RdPort       = $0B40 =  2880          I2C.asm:254
-I2C_Read         = $0AD0 =  2768          I2C.asm:163
-I2C_ReadNoAck    = $0AF2 =  2802          I2C.asm:183
-I2C_ReadRd_Loop  = $0AD8 =  2776          I2C.asm:168
-I2C_ReadRotate   = $0AE4 =  2788          I2C.asm:174
-I2C_SCL_HI       = $0B1A =  2842          I2C.asm:231
-I2C_SCL_LO       = $0B21 =  2849          I2C.asm:235
+I2C_RdPort       = $0B49 =  2889          I2C.asm:254
+I2C_Read         = $0AD9 =  2777          I2C.asm:163
+I2C_ReadNoAck    = $0AFB =  2811          I2C.asm:183
+I2C_ReadRd_Loop  = $0AE1 =  2785          I2C.asm:168
+I2C_ReadRotate   = $0AED =  2797          I2C.asm:174
+I2C_SCL_HI       = $0B23 =  2851          I2C.asm:231
+I2C_SCL_LO       = $0B2A =  2858          I2C.asm:235
 I2C_SCL_RD       = $0000 =     0          I2C.asm:92 (unused)
 I2C_SCL_WR       = $0000 =     0          I2C.asm:91
-I2C_SDA_HI       = $0B28 =  2856          I2C.asm:239
-I2C_SDA_LO       = $0B2F =  2863          I2C.asm:243
+I2C_SDA_HI       = $0B31 =  2865          I2C.asm:239
+I2C_SDA_LO       = $0B38 =  2872          I2C.asm:243
 I2C_SDA_RD       = $0007 =     7          I2C.asm:90
 I2C_SDA_WR       = $0007 =     7          I2C.asm:89
-I2C_Start        = $0AFD =  2813          I2C.asm:198
-I2C_Stop         = $0B08 =  2824          I2C.asm:214
-I2C_WR_DD        = $0DF6 =  3574          Monitor.asm:261
-I2C_WR_DD_LOOP   = $0E04 =  3588          Monitor.asm:272
-I2C_WR_RR_DD     = $0E19 =  3609          Monitor.asm:294
-I2C_WR_RR_DD_LOOP = $0E27 =  3623          Monitor.asm:305
-I2C_WrPort       = $0B34 =  2868          I2C.asm:246
-I2C_Write        = $0A93 =  2707          I2C.asm:116
-I2C_WriteBit_Clk = $0AA4 =  2724          I2C.asm:125
-I2C_WriteBit_Hi  = $0AA1 =  2721          I2C.asm:124
-I2C_WriteNoAck   = $0AC1 =  2753          I2C.asm:143
-I2C_WriteWr_Loop = $0A98 =  2712          I2C.asm:120
-INBUF            = $0DBF =  3519          Monitor.asm:199
-INCH             = $0C41 =  3137          SoftSerial.asm:73 (unused)
+I2C_Start        = $0B06 =  2822          I2C.asm:198
+I2C_Stop         = $0B11 =  2833          I2C.asm:214
+I2C_WR_DD        = $0DFF =  3583          Monitor.asm:261
+I2C_WR_DD_LOOP   = $0E0D =  3597          Monitor.asm:272
+I2C_WR_RR_DD     = $0E22 =  3618          Monitor.asm:294
+I2C_WR_RR_DD_LOOP = $0E30 =  3632          Monitor.asm:305
+I2C_WrPort       = $0B3D =  2877          I2C.asm:246
+I2C_Write        = $0A9C =  2716          I2C.asm:116
+I2C_WriteBit_Clk = $0AAD =  2733          I2C.asm:125
+I2C_WriteBit_Hi  = $0AAA =  2730          I2C.asm:124
+I2C_WriteNoAck   = $0ACA =  2762          I2C.asm:143
+I2C_WriteWr_Loop = $0AA1 =  2721          I2C.asm:120
+INBUF            = $0DC8 =  3528          Monitor.asm:199
+INCH             = $0C4A =  3146          SoftSerial.asm:73 (unused)
 INIT_LCD         = $0151 =   337          LCDGraphic.asm:13
-INIT_SOFTSERIAL  = $0BF7 =  3063          SoftSerial.asm:3
+INIT_SOFTSERIAL  = $0C00 =  3072          SoftSerial.asm:3
 INIT_TXT_LCD     = $0170 =   368          LCDGraphic.asm:36
-INPORT           = $0DDA =  3546          Monitor.asm:236
-INSBUF           = $1016 =  4118          Monitor.asm:691 (unused)
-INTEL1           = $0A05 =  2565          LoaderIntel.asm:40
-INTEL2           = $0A30 =  2608          LoaderIntel.asm:69
-INTEL4           = $0A4B =  2635          LoaderIntel.asm:87
-INTELH           = $0A01 =  2561          LoaderIntel.asm:36
-INTEL_HEX        = $0F88 =  3976          Monitor.asm:578
-INTHEX           = $09D6 =  2518          LoaderIntel.asm:4
-ITHEX1           = $09F4 =  2548          LoaderIntel.asm:21
-InputCharKey     = $097C =  2428          API.asm:61
+INPORT           = $0DE3 =  3555          Monitor.asm:236
+INSBUF           = $101F =  4127          Monitor.asm:691 (unused)
+INTEL1           = $0A0E =  2574          LoaderIntel.asm:40
+INTEL2           = $0A39 =  2617          LoaderIntel.asm:69
+INTEL4           = $0A54 =  2644          LoaderIntel.asm:87
+INTELH           = $0A0A =  2570          LoaderIntel.asm:36
+INTEL_HEX        = $0F91 =  3985          Monitor.asm:578
+INTHEX           = $09DF =  2527          LoaderIntel.asm:4
+ITHEX1           = $09FD =  2557          LoaderIntel.asm:21
+InputCharKey     = $0985 =  2437          API.asm:61
 KDOWN            = $00B6 =   182          bootV2.asm:54
-KEY              = $0CE5 =  3301          Monitor.asm:40
+KEY              = $0CEE =  3310          Monitor.asm:40
 KEYMAP           = $0033 =    51          Keyboard.asm:1
 KEYOUT           = $0146 =   326          Keyboard.asm:151
 KEYREADINIT      = $00FD =   253          Keyboard.asm:103
@@ -3409,127 +3419,126 @@ LCD_TXT_X_TMP    = $F43D = 62525          bootV2.asm:144
 LCD_TXT_Y        = $F439 = 62521          bootV2.asm:141
 LCD_TXT_Y_TMP    = $F43F = 62527          bootV2.asm:145
 LF               = $000A =    10          bootV2.asm:36
-LISTLOOP         = $0B51 =  2897          I2C.asm:281
-LISTMsg          = $1220 =  4640          Strings.asm:22
-LISTNEXT         = $0B60 =  2912          I2C.asm:289
-LISTTEST         = $0B6A =  2922          I2C.asm:301
+LISTLOOP         = $0B5A =  2906          I2C.asm:281
+LISTMsg          = $1229 =  4649          Strings.asm:22
+LISTNEXT         = $0B69 =  2921          I2C.asm:289
+LISTTEST         = $0B73 =  2931          I2C.asm:301
 LOADSHIFT        = $0132 =   306          Keyboard.asm:136
 LOGARITHM        = $011E =   286          Keyboard.asm:125
-LcdSetCXY        = $09CB =  2507          API.asm:127
-LineOut          = $10BC =  4284          Utils.asm:40
-LoopBC           = $10D3 =  4307          Utils.asm:72
-LoopDE           = $10D0 =  4304          Utils.asm:70
-MDIFY1           = $102F =  4143          Monitor.asm:716
-MDIFY2           = $106A =  4202          Monitor.asm:752
-MODIFY           = $1019 =  4121          Monitor.asm:701
+LcdSetCXY        = $09D4 =  2516          API.asm:127
+LineOut          = $10C5 =  4293          Utils.asm:40
+LoopBC           = $10DC =  4316          Utils.asm:72
+LoopDE           = $10D9 =  4313          Utils.asm:70
+MDIFY1           = $1038 =  4152          Monitor.asm:716
+MDIFY2           = $1073 =  4211          Monitor.asm:752
+MODIFY           = $1022 =  4130          Monitor.asm:701
 MSGBUF           = $F401 = 62465          bootV2.asm:122
-MSG_COPYFAIL     = $12D2 =  4818          Strings.asm:35
-MSG_COPYOK       = $12C9 =  4809          Strings.asm:34
-MSG_CPU2MEM      = $124D =  4685          Strings.asm:24
-MSG_DEV_ADDR     = $12DD =  4829          Strings.asm:37
-MSG_DEV_DATA     = $1300 =  4864          Strings.asm:39
-MSG_DEV_REG      = $12F0 =  4848          Strings.asm:38
-MSG_FROM         = $12AD =  4781          Strings.asm:31
-MSG_I2C_RD       = $1289 =  4745          Strings.asm:28
-MSG_I2C_RD_RR    = $1299 =  4761          Strings.asm:29
-MSG_I2C_WR_DD    = $1263 =  4707          Strings.asm:26
-MSG_I2C_WR_RR_DD = $1274 =  4724          Strings.asm:27
-MSG_ILOAD        = $130C =  4876          Strings.asm:42
-MSG_MEM2CPU      = $1237 =  4663          Strings.asm:23
-MSG_MENU0        = $112B =  4395          Strings.asm:4
-MSG_MENU1        = $113E =  4414          Strings.asm:5
-MSG_MENU10       = $11C4 =  4548          Strings.asm:14
-MSG_MENU11       = $11D5 =  4565          Strings.asm:15
-MSG_MENU12       = $11E5 =  4581          Strings.asm:16
-MSG_MENU13       = $11F8 =  4600          Strings.asm:17
-MSG_MENU14       = $120D =  4621          Strings.asm:18
-MSG_MENU2        = $1153 =  4435          Strings.asm:6
-MSG_MENU3        = $115E =  4446          Strings.asm:7
-MSG_MENU4        = $1170 =  4464          Strings.asm:8
-MSG_MENU5        = $1181 =  4481          Strings.asm:9
-MSG_MENU6        = $1191 =  4497          Strings.asm:10
-MSG_MENU7        = $119E =  4510          Strings.asm:11
-MSG_MENU8        = $11A7 =  4519          Strings.asm:12
-MSG_MENU9        = $11B3 =  4531          Strings.asm:13
-MSG_MONITOR      = $1116 =  4374          Strings.asm:2
-MSG_SIZE         = $12BA =  4794          Strings.asm:33
-MSG_TO           = $12B4 =  4788          Strings.asm:32
-NDOT             = $0DAA =  3498          Monitor.asm:181
+MSG_COPYFAIL     = $12DB =  4827          Strings.asm:35
+MSG_COPYOK       = $12D2 =  4818          Strings.asm:34
+MSG_CPU2MEM      = $1256 =  4694          Strings.asm:24
+MSG_DEV_ADDR     = $12E6 =  4838          Strings.asm:37
+MSG_DEV_DATA     = $1309 =  4873          Strings.asm:39
+MSG_DEV_REG      = $12F9 =  4857          Strings.asm:38
+MSG_FROM         = $12B6 =  4790          Strings.asm:31
+MSG_I2C_RD       = $1292 =  4754          Strings.asm:28
+MSG_I2C_RD_RR    = $12A2 =  4770          Strings.asm:29
+MSG_I2C_WR_DD    = $126C =  4716          Strings.asm:26
+MSG_I2C_WR_RR_DD = $127D =  4733          Strings.asm:27
+MSG_ILOAD        = $1315 =  4885          Strings.asm:42
+MSG_MEM2CPU      = $1240 =  4672          Strings.asm:23
+MSG_MENU0        = $1134 =  4404          Strings.asm:4
+MSG_MENU1        = $1147 =  4423          Strings.asm:5
+MSG_MENU10       = $11CD =  4557          Strings.asm:14
+MSG_MENU11       = $11DE =  4574          Strings.asm:15
+MSG_MENU12       = $11EE =  4590          Strings.asm:16
+MSG_MENU13       = $1201 =  4609          Strings.asm:17
+MSG_MENU14       = $1216 =  4630          Strings.asm:18
+MSG_MENU2        = $115C =  4444          Strings.asm:6
+MSG_MENU3        = $1167 =  4455          Strings.asm:7
+MSG_MENU4        = $1179 =  4473          Strings.asm:8
+MSG_MENU5        = $118A =  4490          Strings.asm:9
+MSG_MENU6        = $119A =  4506          Strings.asm:10
+MSG_MENU7        = $11A7 =  4519          Strings.asm:11
+MSG_MENU8        = $11B0 =  4528          Strings.asm:12
+MSG_MENU9        = $11BC =  4540          Strings.asm:13
+MSG_MONITOR      = $111F =  4383          Strings.asm:2
+MSG_SIZE         = $12C3 =  4803          Strings.asm:33
+MSG_TO           = $12BD =  4797          Strings.asm:32
+NDOT             = $0DB3 =  3507          Monitor.asm:181
 NEXTKEY          = $0108 =   264          Keyboard.asm:113
-NXTBIT           = $0C58 =  3160          SoftSerial.asm:102
-NYBASC           = $100E =  4110          Monitor.asm:683
-NYBOUT           = $0FFA =  4090          Monitor.asm:648
-OUTCH            = $0C3B =  3131          SoftSerial.asm:68
-OUTPORT          = $0DC3 =  3523          Monitor.asm:215
+NXTBIT           = $0C61 =  3169          SoftSerial.asm:102
+NYBASC           = $1017 =  4119          Monitor.asm:683
+NYBOUT           = $1003 =  4099          Monitor.asm:648
+OUTCH            = $0C44 =  3140          SoftSerial.asm:68
+OUTPORT          = $0DCC =  3532          Monitor.asm:215
 OUTSP            = $01E4 =   484          LCDGraphic.asm:111
-OutLcdChar       = $097F =  2431          API.asm:64
-OutLcdNewLine    = $0982 =  2434          API.asm:67
-PLOT_COLUMN      = $0434 =  1076          LCDGraphic.asm:572
-PLOT_ROW         = $041D =  1053          LCDGraphic.asm:559
-PLOT_TO_LCD      = $0418 =  1048          LCDGraphic.asm:556 (unused)
+OutLcdChar       = $0988 =  2440          API.asm:64
+OutLcdNewLine    = $098B =  2443          API.asm:67
+PLOT_COLUMN      = $0438 =  1080          LCDGraphic.asm:576
+PLOT_ROW         = $0421 =  1057          LCDGraphic.asm:563
+PLOT_TO_LCD      = $041C =  1052          LCDGraphic.asm:560 (unused)
 PORT_OUT_VAL     = $F42E = 62510          bootV2.asm:133
 PORT_SET         = $F42D = 62509          bootV2.asm:132
 PRINTCHAR        = $020B =   523          LCDGraphic.asm:144
 PUTCH            = $F432 = 62514          bootV2.asm:136
 PrintBufferChar  = $021D =   541          LCDGraphic.asm:161
-PrtIRd           = $099B =  2459          API.asm:88
-PrtORd           = $0997 =  2455          API.asm:84
-PrtOWr           = $098B =  2443          API.asm:75
-PrtSet           = $0987 =  2439          API.asm:71
+PrtIRd           = $09A4 =  2468          API.asm:88
+PrtORd           = $09A0 =  2464          API.asm:84
+PrtOWr           = $0994 =  2452          API.asm:75
+PrtSet           = $0990 =  2448          API.asm:71
 READKEY          = $0102 =   258          Keyboard.asm:108
-RESET_WARM       = $0CD4 =  3284          Monitor.asm:28
-RET              = $053F =  1343          LCDGraphic.asm:874 (unused)
+RESET_WARM       = $0CDD =  3293          Monitor.asm:28
 RST00            = $0000 =     0          bootV2.asm:160 (unused)
 RST08            = $0008 =     8          bootV2.asm:164 (unused)
 RST10            = $0010 =    16          bootV2.asm:167 (unused)
 RST18            = $0018 =    24          bootV2.asm:170 (unused)
 RST30            = $0030 =    48          bootV2.asm:173 (unused)
-RXDAT1           = $0C74 =  3188          SoftSerial.asm:134
-RXDAT2           = $0C8C =  3212          SoftSerial.asm:151
-RXDATA           = $0C72 =  3186          SoftSerial.asm:129
-SDLCDMSG1        = $052E =  1326          LCDGraphic.asm:865
-SDLCDMSG2        = $0539 =  1337          LCDGraphic.asm:871
-SDMSG1           = $0C2F =  3119          SoftSerial.asm:55
-SDMSG2           = $0C3A =  3130          SoftSerial.asm:61
+RXDAT1           = $0C7D =  3197          SoftSerial.asm:134
+RXDAT2           = $0C95 =  3221          SoftSerial.asm:151
+RXDATA           = $0C7B =  3195          SoftSerial.asm:129
+SDLCDMSG1        = $0536 =  1334          LCDGraphic.asm:875
+SDLCDMSG2        = $0541 =  1345          LCDGraphic.asm:881
+SDMSG1           = $0C38 =  3128          SoftSerial.asm:55
+SDMSG2           = $0C43 =  3139          SoftSerial.asm:61
 SERIAL_RX_PORT   = $00C0 =   192          bootV2.asm:91
 SERIAL_TX_PORT   = $00C0 =   192          bootV2.asm:92
 SHIFTKEYMAP      = $0063 =    99          Keyboard.asm:7
-SHOWHELP         = $0F94 =  3988          Monitor.asm:584
-SNDLCDMSG        = $052C =  1324          LCDGraphic.asm:864
-SNDMSG           = $0C2D =  3117          SoftSerial.asm:54
-SPCBUF           = $0DBD =  3517          Monitor.asm:198
-START_MONITOR    = $0CAC =  3244          Monitor.asm:4
+SHOWHELP         = $0F9D =  3997          Monitor.asm:584
+SNDLCDMSG        = $0534 =  1332          LCDGraphic.asm:873
+SNDMSG           = $0C36 =  3126          SoftSerial.asm:54
+SPCBUF           = $0DC6 =  3526          Monitor.asm:198
+START_MONITOR    = $0CB5 =  3253          Monitor.asm:4
 SYSTEM           = $FFF0 = 65520          bootV2.asm:97
-ShowBufferDisplay = $09B9 =  2489          API.asm:111
-SpaceOut         = $10B8 =  4280          Utils.asm:32
-StrOut           = $10C1 =  4289          Utils.asm:49
-SysReset         = $0979 =  2425          API.asm:58
-TABLE            = $053F =  1343          LCDGraphic.asm:893
+ShowBufferDisplay = $09C2 =  2498          API.asm:111
+SpaceOut         = $10C1 =  4289          Utils.asm:32
+StrOut           = $10CA =  4298          Utils.asm:49
+SysReset         = $0982 =  2434          API.asm:58
+TABLE            = $0548 =  1352          LCDGraphic.asm:903
 TIMEOUT          = $2710 = 10000          bootV2.asm:103
 TRANSKEY         = $013B =   315          Keyboard.asm:143 (unused)
 TXCRLF           = $01EA =   490          LCDGraphic.asm:118
-TXDATA           = $0C47 =  3143          SoftSerial.asm:86
+TXDATA           = $0C50 =  3152          SoftSerial.asm:86
 VT               = $000B =    11          bootV2.asm:37 (unused)
-WELLCOME         = $10FE =  4350          Strings.asm:1
-WRDASC           = $1000 =  4096          Monitor.asm:667
-WRDOUT           = $0FF4 =  4084          Monitor.asm:646
-_end             = $1344 =  4932          bootV2.asm:159 (unused)
-_loop            = $10F2 =  4338          Utils.asm:115
-_overflow        = $10F9 =  4345          Utils.asm:121
-_size            = $1344 =  4932          bootV2.asm:159 (unused)
-_skip            = $10FB =  4347          Utils.asm:124
+WELLCOME         = $1107 =  4359          Strings.asm:1
+WRDASC           = $1009 =  4105          Monitor.asm:667
+WRDOUT           = $0FFD =  4093          Monitor.asm:646
+_end             = $134D =  4941          bootV2.asm:159 (unused)
+_loop            = $10FB =  4347          Utils.asm:115
+_overflow        = $1102 =  4354          Utils.asm:121
+_size            = $134D =  4941          bootV2.asm:159 (unused)
+_skip            = $1104 =  4356          Utils.asm:124
 _z80_            = $0001 =     1          bootV2.asm:1 (unused)
 ajustX           = $0299 =   665          LCDGraphic.asm:263
 ajustXOK         = $029C =   668          LCDGraphic.asm:265
-boucle_colonne   = $0455 =  1109          LCDGraphic.asm:607
-boucle_colonne2  = $0480 =  1152          LCDGraphic.asm:644
-boucle_ligne     = $0463 =  1123          LCDGraphic.asm:618
-boucle_ligne2    = $048E =  1166          LCDGraphic.asm:655
-cls_GRAPHIC      = $04AF =  1199          LCDGraphic.asm:690
-cls_TXT          = $04A9 =  1193          LCDGraphic.asm:682
+boucle_colonne   = $045D =  1117          LCDGraphic.asm:616
+boucle_colonne2  = $0488 =  1160          LCDGraphic.asm:653
+boucle_ligne     = $046B =  1131          LCDGraphic.asm:627
+boucle_ligne2    = $0496 =  1174          LCDGraphic.asm:664
+cls_GRAPHIC      = $04B7 =  1207          LCDGraphic.asm:699
+cls_TXT          = $04B1 =  1201          LCDGraphic.asm:691
 delay            = $036D =   877          LCDGraphic.asm:413
-delayLCD         = $0508 =  1288          LCDGraphic.asm:812
-delayLCDclear    = $0516 =  1302          LCDGraphic.asm:828
+delayLCD         = $0510 =  1296          LCDGraphic.asm:821
+delayLCDclear    = $051E =  1310          LCDGraphic.asm:837
 delay_loop       = $0372 =   882          LCDGraphic.asm:418
 delay_loop_b     = $0370 =   880          LCDGraphic.asm:416
 enable_grafic    = $03FF =  1023          LCDGraphic.asm:539
@@ -3542,28 +3551,28 @@ kDelayLP         = $001A =    26          bootV2.asm:69
 kDelayOH         = $0024 =    36          bootV2.asm:68
 kDelayTA         = $0FA0 =  4000          bootV2.asm:70
 kDelayTB         = $0F7C =  3964          bootV2.asm:71
-lcd_asciiz_char_loop = $04F5 =  1269          LCDGraphic.asm:789
-lcd_asciiz_done  = $0505 =  1285          LCDGraphic.asm:804
-lcd_asciiz_wait_loop = $04F7 =  1271          LCDGraphic.asm:792 (unused)
+lcd_asciiz_char_loop = $04FD =  1277          LCDGraphic.asm:798
+lcd_asciiz_done  = $050D =  1293          LCDGraphic.asm:813
+lcd_asciiz_wait_loop = $04FF =  1279          LCDGraphic.asm:801 (unused)
 lcd_clear        = $03F1 =  1009          LCDGraphic.asm:513
 lcd_clearPixel   = $03B5 =   949          LCDGraphic.asm:470
 lcd_clearPixel_bit = $03DD =   989          LCDGraphic.asm:490
 lcd_clearPixel_fim = $03E6 =   998          LCDGraphic.asm:496
-lcd_send_asciiz  = $04F3 =  1267          LCDGraphic.asm:786 (unused)
-lcd_send_command = $04D5 =  1237          LCDGraphic.asm:736
-lcd_send_command_clear = $04DF =  1247          LCDGraphic.asm:752
-lcd_send_data    = $04E9 =  1257          LCDGraphic.asm:767
+lcd_send_asciiz  = $04FB =  1275          LCDGraphic.asm:795 (unused)
+lcd_send_command = $04DD =  1245          LCDGraphic.asm:745
+lcd_send_command_clear = $04E7 =  1255          LCDGraphic.asm:761
+lcd_send_data    = $04F1 =  1265          LCDGraphic.asm:776
 lcd_setPixel     = $037C =   892          LCDGraphic.asm:430
 lcd_setPixel_bit = $03A4 =   932          LCDGraphic.asm:451
 lcd_setPixel_fim = $03AD =   941          LCDGraphic.asm:457
 multY            = $02B1 =   689          LCDGraphic.asm:279
 multYfim         = $02BA =   698          LCDGraphic.asm:286
 multYfimok       = $02C0 =   704          LCDGraphic.asm:290
-multiplication   = $10E2 =  4322          Utils.asm:92
-multiplicationLOOP = $10EB =  4331          Utils.asm:99
+multiplication   = $10EB =  4331          Utils.asm:92
+multiplicationLOOP = $10F4 =  4340          Utils.asm:99
 print_char_fim   = $0368 =   872          LCDGraphic.asm:397
 print_image      = $0418 =  1048          LCDGraphic.asm:555
-print_image2     = $044C =  1100          LCDGraphic.asm:593 (unused)
+print_image2     = $0454 =  1108          LCDGraphic.asm:602 (unused)
 print_lcd        = $027A =   634          LCDGraphic.asm:239
 printchar_loopH  = $02D0 =   720          LCDGraphic.asm:302
 printchar_loopW  = $02DC =   732          LCDGraphic.asm:309
@@ -3576,5 +3585,5 @@ ver_limpa        = $0261 =   609          LCDGraphic.asm:215
 ver_line         = $0273 =   627          LCDGraphic.asm:230
 
 
-total time: 0.0251 sec.
+total time: 0.0253 sec.
 no errors
