@@ -15,9 +15,15 @@ MSG_MENU10 .db "3 I2C MEM -> PC",CR, 00H
 MSG_MENU11 .db "4 I2C WRITE DD",CR, 00H
 MSG_MENU12 .db "5 I2C WRITE RR DD",CR, 00H
 MSG_MENU13 .db "6 I2C READ ONE BYTE",CR, 00H
-MSG_MENU14 .db "7 I2C READ RR BYTE", 00H ; ultimo não tem CR (nova linha)
+MSG_MENU14 .db "7 I2C READ RR BYTE", CR, 00H 
+MSG_MENU15 .db "8 Read Memory", 00H ; ultimo não tem CR (nova linha)
+
+MSG_MENU_CONTINUE .db "CONTINUE...", 00H
 
 
+MSG_READFILE_EXE .db "_EXE", 00H
+MSG_READFILE_IMG .db "_IMG", 00H
+MSG_READFILE_TXT .db "_TXT", 00H
 
 LISTMsg:    .DB  CS,"I2C device found at:",CR,0
 MSG_MEM2CPU .db CS,"COPY I2C MEM TO CPU",CR, 00H
@@ -38,6 +44,7 @@ MSG_DEV_ADDR  .db CR,"DEVICE ADDR(AA): ", 00H
 MSG_DEV_REG   .db CR,"REGISTER(RR): ", 00H
 MSG_DEV_DATA  .db CR,"DATA(DD): ", 00H
 
+MSG_BASIC .db "(C)old or (w)arm ?",CR, 00H
 
 MSG_ILOAD .db $0C, "Intel HEX loader...", CR, 00H
 FILEOK    .DB      "FILE RECEIVED OK",CR,00H

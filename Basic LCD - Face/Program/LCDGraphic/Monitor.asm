@@ -50,7 +50,7 @@ KEY:
     JP Z, INTEL_HEX
 
     CP 'B'
-    JP Z, BASIC
+    JP Z, START_BASIC
 
     CP 'G'
     CALL Z, GOJUMP
@@ -65,7 +65,7 @@ KEY:
     CALL Z, OUTPORT
 
     CP 'I'
-    CALL Z, INPORT
+    CALL Z, INPORT_MON
 
     CP '1'
     CALL Z, I2CLIST
@@ -88,7 +88,8 @@ KEY:
     CP '7'
     CALL Z, I2C_RD_RR
 
-    
+    CP '8'
+    CALL Z, READ_MEM_FILES
 
 
 
@@ -105,6 +106,231 @@ KEY:
 
 
 
+;--------------------------
+; Start basic
+;--------------------------
+START_BASIC:
+    LD A, CS
+    CALL PRINTCHAR
+
+    LD HL, MSG_BASIC
+    CALL SNDLCDMSG
+START_BASIC_KEY:
+    CALL KEYREADINIT ; read key
+    CP    'C' ; Cold
+    JP    Z, BASIC
+    CP    'W'  ; Warm
+    JP    Z, BASIC_W
+    JP START_BASIC_KEY
+
+
+
+;--------------------------
+; Read memory
+;--------------------------
+READ_MEM_FILES:
+    LD DE, $0000 ; start "D"
+READ_MEM_NEXT:
+    CALL READ_IIC_DE
+    OR A
+    CP 'D'
+    CALL Z, READ_FILE
+
+    RET
+
+READ_FILE:
+    LD A, CR
+    CALL PRINTCHAR ; new line
+    LD A, CR
+    CALL PRINTCHAR ; new line
+    LD B, 16
+READ_NAME:
+    INC DE
+    CALL READ_IIC_DE
+    OR A
+    CP 0
+    CALL NZ, PRINTCHAR
+    DEC B
+    JP NZ, READ_NAME
+
+READ_MEM_KEY:
+
+    ; Show commands
+    PUSH DE
+    INC DE
+    CALL READ_IIC_DE
+    OR A
+    CP 0
+    CALL Z, SHOW_MSG_EXE
+    CP 1
+    CALL Z, SHOW_MSG_IMG
+    CP 2
+    CALL Z, SHOW_MSG_TXT
+    POP DE
+
+    ; wait command
+    CALL KEYREADINIT ; read key
+    CP    CTRLC ; key BK, read next
+    JP    Z, READ_MEM_STEP
+    CP    CR  ; key Enter, execute
+    JP    NZ, READ_MEM_KEY
+
+    ;read type
+    INC DE
+    CALL READ_IIC_DE
+    OR A
+    CP 0
+    JP Z, READ_FILE_EXE
+    CP 1
+    JP Z, READ_FILE_IMG
+    CP 2
+    JP Z, READ_FILE_TXT
+    RET
+
+READ_MEM_STEP:
+    INC DE ; type
+
+    INC DE ; size H
+    CALL READ_IIC_DE
+    LD H, A
+
+    INC DE ; size L
+    CALL READ_IIC_DE
+    LD L, A
+
+READ_MEM_STEP_L:
+    INC DE ; step file
+    DEC HL
+    LD A, H
+    OR L
+    JP NZ, READ_MEM_STEP_L
+    INC DE ; end
+    INC DE ; nex start
+    JP READ_MEM_NEXT
+
+
+
+
+
+READ_FILE_EXE:
+    ; read size H
+    INC DE
+    CALL READ_IIC_DE
+    LD B, A
+
+    ; read size L
+    INC DE
+    CALL READ_IIC_DE
+    LD C, A
+
+    INC DE ; first byte file
+    LD HL, $8000 ; memory user
+
+    CALL I2C_MemRd
+    POP HL ; return
+    JP $8000
+
+    RET
+
+READ_FILE_IMG:
+    ; read size H
+    INC DE
+    CALL READ_IIC_DE
+    LD B, A
+
+    ; read size L
+    INC DE
+    CALL READ_IIC_DE
+    LD C, A
+
+    INC DE ; first byte file
+    LD HL, $8000 ; memory user
+
+    CALL I2C_MemRd
+
+    LD H, $80
+    LD L, $00
+    CALL print_image
+
+READ_FILE_IMG_K:
+    CALL KEYREADINIT ; read key
+    CP    CTRLC ; key BK, read next
+    JP    NZ, READ_FILE_IMG_K
+
+    RET
+
+READ_FILE_TXT:
+    LD A, $0C ; clear screen
+    CALL PRINTCHAR
+
+    ; read size H
+    INC DE
+    CALL READ_IIC_DE
+    LD B, A
+
+    ; read size L
+    INC DE
+    CALL READ_IIC_DE
+    LD C, A
+
+    INC DE ; first byte file
+
+READ_FILE_TXT_L:
+    CALL READ_IIC_DE
+    CALL PRINTCHAR
+    INC DE ; step file
+    DEC BC
+    LD A, B
+    OR C
+    JP NZ, READ_FILE_TXT_L
+    INC DE ; end
+    INC DE ; nex start    
+    RET
+
+
+SHOW_MSG_EXE:
+    LD HL, MSG_READFILE_EXE
+    CALL SNDLCDMSG
+    RET
+
+SHOW_MSG_IMG:
+    LD HL, MSG_READFILE_IMG
+    CALL SNDLCDMSG
+    RET
+
+SHOW_MSG_TXT:
+    LD HL, MSG_READFILE_TXT
+    CALL SNDLCDMSG
+    RET
+
+
+
+
+; Read byte in i2c, address in DE, return byte in A
+READ_IIC_DE:
+    PUSH BC
+    PUSH DE
+    PUSH HL
+    LD   A, I2CA_BLOCK   ;I2C address to write to
+    CALL I2C_Open
+    LD   A, D           ;Address (hi) in I2C memory
+    CALL I2C_Write      ;Write address
+    LD   A,E            ;Address (lo) in I2C memory
+    CALL I2C_Write      ;Write address
+    LD   A,I2CA_BLOCK+1 ;I2C device to be read from
+    CALL I2C_Open       ;Open for read
+    CALL I2C_Read
+    PUSH AF
+    CALL I2C_Stop       ;Generate I2C stop
+    POP AF
+    POP HL
+    POP DE
+    POP BC
+    RET
+
+
+
+
 
 
 
@@ -114,10 +340,10 @@ KEY:
 DSPLAY: LD A, 'D'
         CALL PRINTCHAR
         CALL  OUTSP       ;A SPACE
-       CALL  GETCHR
+       CALL  GETCHR_KEYBOARD
        RET   C         
        LD    (ADDR+1),A  ;SAVE ADDRESS HIGH
-       CALL  GETCHR
+       CALL  GETCHR_KEYBOARD
        RET   C
        LD    (ADDR),A    ;SAVE ADDRESS LOW 
 ;
@@ -217,13 +443,13 @@ OUTPORT:
     CALL PrintBufferChar
     CALL OUTSP ; space and show lcd
 
-    CALL  GETCHR 
+    CALL  GETCHR_KEYBOARD 
     RET   C
     LD C, A
 
     CALL OUTSP
 
-    CALL  GETCHR 
+    CALL  GETCHR_KEYBOARD 
     RET   C
     OUT (C), A
     RET
@@ -233,12 +459,12 @@ OUTPORT:
 ; Read input port and show value to LCD
 ; I AA - Port address in AA
 ;----------------------------------------------
-INPORT:
+INPORT_MON:
     LD A, 'I'
     CALL PrintBufferChar
     CALL OUTSP ; space and show lcd
 
-    CALL  GETCHR 
+    CALL  GETCHR_KEYBOARD 
     RET   C
     LD C, A
 
@@ -411,7 +637,7 @@ I2C_RD_RR_LOOP:
 GET_DEV_ADDR:
     LD HL, MSG_DEV_ADDR
     CALL SNDLCDMSG
-    CALL  GETCHR 
+    CALL  GETCHR_KEYBOARD 
     RET   C
     LD (I2C_ADDR), A
     RET
@@ -420,7 +646,7 @@ GET_DEV_DD:
     LD HL, MSG_DEV_DATA
     CALL SNDLCDMSG
 
-    CALL  GETCHR 
+    CALL  GETCHR_KEYBOARD 
     RET   C
     LD (I2C_DD), A
     RET
@@ -429,7 +655,7 @@ GET_DEV_RR:
     LD HL, MSG_DEV_REG
     CALL SNDLCDMSG
 
-    CALL  GETCHR 
+    CALL  GETCHR_KEYBOARD 
     RET   C
     LD (I2C_RR), A
     RET
@@ -517,10 +743,10 @@ GET_FROM_TO_SIZE:
     ;
     ;GET THE ADDRESS  FROM
     ;
-    CALL  GETCHR 
+    CALL  GETCHR_KEYBOARD 
     RET   C        
     LD    (ADDR_FROM+1),A  ;SAVE ADDRESS HIGH
-    CALL  GETCHR
+    CALL  GETCHR_KEYBOARD
     RET   C
     LD    (ADDR_FROM),A    ;SAVE ADDRESS LOW
 
@@ -540,10 +766,10 @@ GET_FROM_TO_SIZE_TO:
     ;
     ;GET THE ADDRESS  TO
     ;
-    CALL  GETCHR 
+    CALL  GETCHR_KEYBOARD 
     RET   C        
     LD    (ADDR_TO+1),A  ;SAVE ADDRESS HIGH
-    CALL  GETCHR
+    CALL  GETCHR_KEYBOARD
     RET   C
     LD    (ADDR_TO),A    ;SAVE ADDRESS LOW
 
@@ -560,10 +786,10 @@ GET_FROM_TO_SIZE_SIZE:
     ;
     ;GET THE SIZE
     ;
-    CALL  GETCHR 
+    CALL  GETCHR_KEYBOARD 
     RET   C        
     LD    (ADDR_SIZE+1),A  ;SAVE ADDRESS HIGH
-    CALL  GETCHR
+    CALL  GETCHR_KEYBOARD
     RET   C
     LD    (ADDR_SIZE),A    ;SAVE ADDRESS LOW
 
@@ -580,6 +806,18 @@ INTEL_HEX:
     CALL delay
     CALL delay
     JP START_MONITOR
+
+
+
+BREAK_CONTINUE:
+    LD HL, MSG_MENU_CONTINUE
+    CALL SNDLCDMSG
+BREAK_CONTINUE_LOOP:
+    CALL  KEYREADINIT
+    CP    CR         ;ENTER KEY?
+    JP   NZ, BREAK_CONTINUE_LOOP
+    RET
+
 
 SHOWHELP:
     LD A, $0C ; limpar tela
@@ -606,6 +844,10 @@ SHOWHELP:
     LD HL, MSG_MENU6
     CALL SNDLCDMSG
 
+    CALL BREAK_CONTINUE ; <------------
+    LD A, $0C ; limpar tela
+    CALL PRINTCHAR
+
     LD HL, MSG_MENU7
     CALL SNDLCDMSG
 
@@ -627,7 +869,14 @@ SHOWHELP:
     LD HL, MSG_MENU13
     CALL SNDLCDMSG
 
+    CALL BREAK_CONTINUE ; <------------
+    LD A, $0C ; limpar tela
+    CALL PRINTCHAR
+
     LD HL, MSG_MENU14
+    CALL SNDLCDMSG
+
+    LD HL, MSG_MENU15
     CALL SNDLCDMSG
 
     RET
@@ -704,10 +953,10 @@ MODIFY: LD A, 'M'
 ;
 ;GET THE ADDRESS        
 ;
-       CALL  GETCHR 
+       CALL  GETCHR_KEYBOARD 
        RET   C        
        LD    (ADDR+1),A  ;SAVE ADDRESS HIGH
-       CALL  GETCHR
+       CALL  GETCHR_KEYBOARD
        RET   C
        LD    (ADDR),A    ;SAVE ADDRESS LOW 
 ;
@@ -736,7 +985,7 @@ MDIFY1: CALL  TXCRLF
 ;
 ; GET NEW DATA,EXIT OR CONTINUE
 ;
-       CALL  GETCHR
+       CALL  GETCHR_KEYBOARD
        RET   C
        LD    B,A         ;SAVE IT FOR LATER
        LD    HL,(ADDR)
@@ -769,10 +1018,10 @@ GOJUMP_new:
 GOJUMP: LD A, 'G'
         CALL PRINTCHAR
        CALL  OUTSP       
-       CALL  GETCHR      ;GET ADDRESS HIGH BYTE
+       CALL  GETCHR_KEYBOARD      ;GET ADDRESS HIGH BYTE
        RET   C
        LD    (ADDR+1),A  ;SAVE ADDRESS HIGH
-       CALL  GETCHR      ;GET ADDRESS LOW BYTE
+       CALL  GETCHR_KEYBOARD      ;GET ADDRESS LOW BYTE
        RET   C
        LD    (ADDR),A    ;SAVE ADDRESS LOW 
 ;

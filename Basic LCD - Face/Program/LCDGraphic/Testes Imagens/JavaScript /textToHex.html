@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Conversor de Texto para Hexadecimal</title>
+</head>
+<body>
+  <h1>Conversor de Texto para Hexadecimal</h1>
+  <p>Insira o texto (máximo de 168 caracteres):</p>
+  <textarea id="textInput" rows="8" cols="21" wrap="hard" maxlength="167"></textarea>
+  <button onclick="convertToHex()">Converter</button>
+  <p>Texto convertido em hexadecimal:</p>
+  <div id="hexOutput"></div>
+
+  <script>
+    function textToHexadecimal(text) {
+      let hexString = "";
+      for (let i = 0; i < text.length; i++) {
+        const charCode = text.charCodeAt(i).toString(16).toUpperCase();
+        const paddedCharCode = ("00" + charCode).slice(-2);
+        hexString += "0x" + paddedCharCode + ", ";
+      }
+
+
+      console.log(hexString.length)
+      // Preenche com "0x00" caso o texto tenha menos de 168 caracteres
+      while (hexString.length < 1002) {
+        hexString += "0x00, ";
+      }
+
+      return hexString.substr(0, 1002);
+    }
+
+    function convertToHex() {
+      const textInput = document.getElementById("textInput").value;
+      const hexadecimalResult = textToHexadecimal(textInput);
+      document.getElementById("hexOutput").innerText = hexadecimalResult;
+      console.log(hexadecimalResult);
+    }
+  </script>
+</body>
+</html>

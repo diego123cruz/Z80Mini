@@ -506,96 +506,254 @@ display:
 
 
 
+; ---------------------------------------
+; Teste Display SSD1306 - I2C
+; --------------------------------------
 
+.org $8000
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-; print_diego
-PRINT_DIEGO:
-    ld a, (LCD_COOX)
-    ld b, A
-
-    ld a, (LCD_COOY)
-    ld c,A
-    call multiplication
-
-    ld a, (LCD_PRINT_H)
-    ld b, 0
-    ld c, 0
-print_clear_loopH:
-    push af
-    push hl
-
-    push hl
-    ld hl, (LCD_PRINT_IMAGE)
-    add hl, bc
-    ld a, (HL)
-    ld (LCD_TEMP),a
-    pop hl
-
-    ld a, (LCD_PRINT_W)
-print_clear_loopW:
-
-    push af
+inicio:
+    ; display on
+    LD a, $AF
+    CALL send_cmd
     
-    ld a, (LCD_TEMP)
-    and 128
-    cp 0
-    jp z, print_clear_loopWC
-    call lcd_setPixel
-    JP print_clear_loopWE
-print_clear_loopWC:
-    call lcd_clearPixel
-print_clear_loopWE:
-    ld a, (LCD_TEMP)
-    sla a
-    ld (LCD_TEMP), a
-
-    pop af
+    ; set display normal
+    LD a, $A6
+    CALL send_cmd
+    
+    ; Page mode
+    LD a, $02
+    CALL send_cmd
+    
+    ; Charge Pump
+    LD a, $8d
+    CALL send_cmd
+    
+    LD a, $14
+    CALL send_cmd
+    
+    
+    
+    LD a, $00
+    LD ($9001), a
+    
+loop:
+    ; set cursor 0,0
+    LD a, $00       ; set column lower address
+    CALL send_cmd
+    
+    LD a, $10       ; set column higher address
+    CALL send_cmd
+    
+    LD a, $B0       ; set page address
+    CALL send_cmd
+    
+    
+    LD a, $B0 ; page 0
+    LD ($9000), a
+    
+loop_clear:
+    ; set cursor 0,0
+    LD a, $00       ; set column lower address
+    CALL send_cmd
+    
+    LD a, $10       ; set column higher address
+    CALL send_cmd
+    
+    LD a, ($9000)       ; set page address
+    CALL send_cmd
+    
     
 
-    inc hl
-    dec A
-    cp 0
-    JP NZ, print_clear_loopW
+    LD BC, $80
+loop_clear_line:
+    PUSH BC
+    CALL delay
+    LD a, ($9001)
+    CALL send_data
+    
+    POP BC
+    DEC  BC           
+    LD   A,C           
+    OR   B              
+    JP   NZ, loop_clear_line
+    
+    
 
-    pop hl
-    pop af
+    LD a, ($9000)
+    inc a
+    LD ($9000), a
+    CP $B8
+    jp NZ, loop_clear
+    
+    
+    
+    
+    ld a, ($9001)
+    inc a
+    ld ($9001), a
+    JP loop
 
-    push de
-    ld d, 0
-    ld e, 128
-    add hl, de
-    pop de
 
-    inc bc
-    dec A
-    cp 0
-    jp NZ, print_clear_loopH
 
-    ld hl, DISPLAY
-    call print_image
-
+delay:
+    NOP
     RET
+    LD DE, $0F
+    LD C, $04 ; delay
+    RST $30
+    RET
+
+
+; command in A
+send_cmd:
+    PUSH AF
+    LD A, $78
+    LD C, $10 ; i2c open
+    RST $30
+    
+    LD A, $80
+    LD C, $13 ; i2c write
+    RST $30
+    
+    POP AF
+    LD C, $13 ; i2c write
+    RST $30
+    
+    LD C, $11 ; i2c close
+    RST $30
+    RET
+    
+; data in A
+send_data:
+    PUSH AF
+    LD A, $78
+    LD C, $10 ; i2c open
+    RST $30
+    
+    LD A, $40
+    LD C, $13 ; i2c write
+    RST $30
+    
+    POP AF
+    LD C, $13 ; i2c write
+    RST $30
+    
+    LD C, $11 ; i2c close
+    RST $30
+    RET
+
+
+:108000003EAFCD75803EA6CD75803E02CD75803EDB
+:108010008DCD75803E14CD75803E003201903E00BE
+:10802000CD75803E10CD75803EB0CD75803EB032AE
+:1080300000903E00CD75803E10CD75803A0090CD09
+:108040007580018000C5CD6C803A0190CD8880C1DB
+:108050000B79B0C245803A00903C320090FEB8C225
+:1080600032803A01903C320190C31E8000C9110F4A
+:10807000000E04F7C9F53E780E10F73E800E13F798
+:10808000F10E13F70E11F7C9F53E780E10F73E40CA
+:0B8090000E13F7F10E13F70E11F7C9E5
+:00000001FF
+
+
+
+
+
+
+
+
+
+
+; Print 8x8 image
+; A = X,Y
+; 
+; xxxx xxxx
+;   Y    X
+;
+; DE = Image to print
+
+DISPLAY             .EQU    $F000 ; 1024 bytes
+clear8x8            .EQU    $013F
+print8x8            .EQU    $013C
+DisplayImage128x64  .EQU    $011E
+BufferImage128x64   .EQU    $012A
+
+.org $8000
+
+inicio:
+    LD DE, $0100
+    CALL DisplayImage128x64
+    
+    CALL delay
+    
+    LD A, $00  ; X = (0-15), Y = (0-7)
+    LD DE, image_open
+    CALL print8x8
+    CALL show_lcd
+    CALL delay
+    
+    LD A, $00
+loop:
+    INC A
+    PUSH AF
+    PUSH AF
+    DEC A
+    CALL clear8x8
+    POP AF
+    LD DE, image_close
+    CALL print8x8
+    CALL show_lcd
+    CALL delay
+    POP AF
+    
+    INC A
+    PUSH AF
+    PUSH AF
+    DEC A
+    CALL clear8x8
+    POP AF
+    LD DE, image_open
+    CALL print8x8
+    CALL show_lcd
+    CALL delay
+    POP AF
+    CP $80
+    JP Z, $00
+    jp loop
+
+
+; show buffer to lcd
+show_lcd:
+    ld c, $0C
+    RST $30
+    RET
+    
+delay:
+    LD DE, $FF
+    LD C, $04 ; delay
+    RST $30
+    RET
+    
+image_open:  .db 0x3E, 0x41, 0x92, 0x84, 0x88, 0x86, 0x41, 0x3E
+image_close: .db 0x3C, 0x42, 0x91, 0x81, 0x8E, 0x81, 0x42, 0x3C
+
+
+:10800000110001CD1E01CD4F803E00115680CD3CA8
+:1080100001CD4B80CD4F803E003CF5F53DCD3F017D
+:10802000F1115E80CD3C01CD4B80CD4F80F13CF510
+:10803000F53DCD3F01F1115680CD3C01CD4B80CDBA
+:108040004F80F1FE80CA0000C319800E0CF7C911E1
+:10805000FF000E04F7C93E4192848886413E3C42AF
+:0680600091818E81423C7B
+:00000001FF
+
+
+
+
+
+
+
+
+
+

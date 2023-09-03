@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Visualizar Imagem em Preto e Branco</title>
+</head>
+<body>
+  <h1>Visualizar Imagem em Preto e Branco</h1>
+  <p>Insira os dados da imagem no formato 0x00, 0x00...:</p>
+  <textarea id="imageData" rows="10" cols="50"></textarea>
+  <button onclick="renderImage()">Visualizar Imagem</button>
+  <canvas id="canvas" width="128" height="64" style="border: 1px solid rgb(155, 155, 155);"></canvas>
+
+  <script>
+
+    var text_color_index = 0x0;
+    var background_color_index = 0x0a;
+    /* 0 - Black, 1 - dark blue, 2 - dark green, 3 - dark cyan,
+     * 4 - dark red, 5 - dark purple, 6 - brown, 7 - light grey,
+     * 8 - dark grey, 9 - blue, 10 - green, 11 - cyan,
+     * 12 - red, 13 - purple, 14 - yellow, 15 - white */
+     const palette16 = [ "#000000", "#0000aa", "#00aa00", "#00aaaa",
+                        "#aa0000", "#aa00aa", "#aa5500", "#aaaaaa",
+                        "#555555", "#5555ff", "#55ff55", "#55ffff",
+                        "#ff5555", "#ff55ff", "#ffff55", "#ffffff" ];
+
+
+    function drawCharacter(ctx, image) {
+        console.clear();
+        const bitmaps = image;
+        var index = 0;
+        var xx = 0;
+        for(var y=0; y<64; y++) {
+            for(var x=0; x<16; x++) {
+                const line = bitmaps[index];
+                for (var bits = 0; bits < 8; bits++) {
+                    const bit = (line >> (7 - bits)) & 1;
+                    ctx.fillStyle = (bit == 1) ? palette16[text_color_index] :
+                                                palette16[background_color_index];
+                    ctx.fillRect(xx, y, 1, 1);
+                    xx++;
+                }
+                index++;
+            }
+            xx=0;
+        }
+    }
+
+
+    function renderImage() {
+      const imageDataString = document.getElementById("imageData").value;
+      const imageDataArray = imageDataString.trim().split(",");
+      const imageData = imageDataArray.map(hex => parseInt(hex, 16));
+
+      const canvas = document.getElementById("canvas");
+      const context = canvas.getContext("2d");
+
+      
+
+      context.clearRect(0, 0, canvas.width, canvas.height);
+
+      navigator.clipboard.readText().then((clipboardText) => {
+          alert(clipboardText);
+        })
+
+
+      drawCharacter(context, imageData)
+    }
+  </script>
+</body>
+</html>

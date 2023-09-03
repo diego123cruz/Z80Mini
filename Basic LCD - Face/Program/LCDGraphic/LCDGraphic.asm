@@ -511,6 +511,8 @@ lcd_clearPixel_fim
 
 ;;--------------------------------------------------
 lcd_clear:
+    PUSH HL
+    PUSH DE
     ;; HL = start address of block
     ld hl, DISPLAY
 
@@ -530,6 +532,8 @@ lcd_clear:
 
     ;; fill memory
     ldir
+    POP DE
+    POP HL
     ret
 
 
@@ -558,7 +562,7 @@ print_image:
         PUSH DE
         PUSH HL
 PLOT_TO_LCD:	
-        LD HL, DISPLAY
+        ;LD HL, DISPLAY
         LD C, 80H
 PLOT_ROW:	
         LD A, C
@@ -589,6 +593,7 @@ PLOT_COLUMN:
         POP AF
         RET
         
+
 ; Delay for LCD write
 DELAY_US:	
         LD DE, $0004 ;DELAY BETWEEN, was 0010H
@@ -599,97 +604,14 @@ DELAY_MS:
         JR NZ, DELAY_MS ;INSTRUCTIONS
         RET
 
-print_image2:						; LOAD 128*64 bits (16*8 Byte) of data into the LCD screen
-									; HL content the data address
-    push af
-	push de
-	push bc
-
-
-; premiere partie : X de 0 à 127 / Y de 0 à 32
-
-	ld a,32
-	ld d,a							; boucle Y
-	ld a,0
-	ld e,a
-	
-boucle_colonne:
-		ld a,$80					; coordonnée Y (0)
-		add a,e
-		call lcd_send_command
-		
-		ld a,$80					; coordonnée X (0)		
-		call lcd_send_command
-		
-		ld a,8
-		ld b,a						; boucle X
-		
-boucle_ligne:	
-			ld a,(hl)
-			call lcd_send_data
-			inc hl
-			ld a,(hl)
-			call lcd_send_data		; auto-increment on screen address
-			inc hl
-			dec b
-			XOR a
-			OR b
-			jp nz,boucle_ligne		; tant qu'on a pas fait 7 
-		
-		dec d
-		inc e
-		XOR a
-		OR d
-		jp nz,boucle_colonne
-		
-
-; seconde partie : X de 128 à 255 / Y de 0 à 32
-
-	ld a,32
-	ld d,a							; boucle Y
-	ld a,0
-	ld e,a
-	
-boucle_colonne2:
-		ld a,$80					; coordonnée Y (0)
-		add a, e
-		call lcd_send_command
-		
-		ld a,$88					; coordonnée X (8)		
-		call lcd_send_command
-		
-		ld a,8
-		ld b,a						; boucle X
-		
-boucle_ligne2:	
-			ld a,(hl)
-			call lcd_send_data
-			inc hl
-			ld a,(hl)
-			call lcd_send_data		; auto-increment on screen address
-			inc hl
-			dec b
-			XOR a
-			OR b
-			jp nz,boucle_ligne2		; tant qu'on a pas fait 7 
-		
-		dec d
-		inc e
-		XOR a
-		OR d
-		jp nz,boucle_colonne2
-
-	pop bc
-	pop de
-    pop af
-
-    ret
-
-
 
 ; ======================
 cls_TXT:
 	; # CLEAR DISPLAY IN TEXT MODE # 
+	ld a,%00000001 					; CLEAR DISPLAY -> " $01 "
+	call lcd_send_command_clear		; CLEAR DISPLAY	
+
+    ; # CLEAR DISPLAY IN TEXT MODE # 
 	ld a,%00000001 					; CLEAR DISPLAY -> " $01 "
 	call lcd_send_command_clear		; CLEAR DISPLAY	
     ret
@@ -884,14 +806,111 @@ SDLCDMSG2:
     RET
 
 
+;-----------------------------------------
+; SEND AN ASCII STRING TO BUFFER
+;-----------------------------------------
+; 
+; SENDS A ZERO TERMINATED STRING OR 
+; 128 CHARACTERS MAX. TO BUFFER (NOT SHOW LCD)
+;
+;      ENTRY : HL = POINTER TO 00H TERMINATED STRING
+;      EXIT  : NONE
+;
+;       MODIFIES : A,B,C
+;          
+SNDBUFFERMSG:
+    LD    B,128         ;128 CHARS MAX
+SDBUFFERMSG1: LD    A,(HL)        ;GET THE CHAR
+    CP    00H          ;ZERO TERMINATOR?
+    JR    Z,SDBUFFERMSG2      ;FOUND A ZERO TERMINATOR, EXIT  
+    CALL PrintBufferChar         ;TRANSMIT THE CHAR
+    INC   HL
+    DJNZ  SDBUFFERMSG1        ;128 CHARS MAX!    
+SDBUFFERMSG2: 
+    RET
+
+
+; Fill 8x8 with zero
+; Print in buffer only
+; A = X Y
+Clear8x8:
+    PUSH AF ; save A
+    ; GET X
+    AND $0F
+    LD B, 0
+    LD C, A
+    LD HL, DISPLAY
+    ADD HL, BC
+    ; GET Y
+    POP AF ; recupera A
+    RRA
+    RRA
+    RRA
+    RRA
+    AND $0F
+    JP Z, clear8x8_Y_OK
+    LD B, A
+    LD DE, $0080
+clear8x8_Y:
+    ADD HL, DE
+    DJNZ clear8x8_Y
+; Start print
+clear8x8_Y_OK:
+    LD A, $00 ; byte to clear
+    LD (HL), A
+    LD B, 7
+clear8x8_loop:
+    LD DE, $0010 ; soma 16 bytes
+    ADD HL, DE ; next line
+    LD A, $00 ; byte to clear
+    LD (HL), A
+    DJNZ clear8x8_loop
+    RET
 
 
 
-
-
-
-
-
+; Print 8x8 bits in buffer
+; A = Y[7b-4b] X[3b-0b]
+; DE = Image pointer
+Print8x8:
+    PUSH DE ; save image pointer DE
+    PUSH AF ; save A
+    ; GET X
+    AND $0F
+    LD B, 0
+    LD C, A
+    LD HL, DISPLAY
+    ADD HL, BC
+    ; GET Y
+    POP AF ; recupera A
+    RRA
+    RRA
+    RRA
+    RRA
+    AND $0F
+    JP Z, print8x8_Y_OK
+    LD B, A
+    LD DE, $0080
+print8x8_Y:
+    ADD HL, DE
+    DJNZ print8x8_Y
+; Start print
+print8x8_Y_OK:
+    POP DE
+    LD A, (DE)
+    LD (HL), A
+    LD B, 7
+print8x8_loop:
+    PUSH DE
+    LD DE, $0010 ; soma 16 bytes
+    ADD HL, DE ; next line
+    POP DE
+    INC DE ; next byte
+    LD A, (DE)
+    LD (HL), A
+    DJNZ print8x8_loop
+    ;CALL show_lcd
+    RET
 
 
 

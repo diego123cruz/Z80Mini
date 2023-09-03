@@ -1,29 +1,18 @@
-KEYMAP:
-.BYTE   "12345",KF1,"67890"
-.BYTE   KF2,"QWERT",KF3,"YUIOP"
-.BYTE   KF4,"ASDFG",KLEFT,"HJKL", CR
-.BYTE   KDOWN,CTRLC, "ZXCV",KRIGHT,"BNM ", DEL, KUP
 
-SHIFTKEYMAP:
-.BYTE   "!@#$%",KF5,"^&*()"
-.BYTE   KF6,"`~-_=",KF7,"+;:'" 
-.BYTE   22h
-.BYTE   KF8,"{}[]|",KLEFT,$5C,"<>?", CR
-.BYTE   KDOWN,ESC,"/,. ",KRIGHT,"    ", DEL, KUP
 
 
 ;-----------------------------
 ; GET A BYTE FROM KEYBOARD
 ;-----------------------------
-GETCHR: CALL KEYREADINIT ; read key
+GETCHR_KEYBOARD: CALL KEYREADINIT ; read key
        CP    ESC
        JR    Z,GETOUT
        CP    CTRLC  ; key BK (reset)
        JP    Z, RESET_WARM
        LD    B,A                ;SAVE TO ECHO      
        CALL  ASC2HEX
-       JR    NC,GETCHR          ;REJECT NON HEX CHARS    
-       LD    HL, DATA
+       JR    NC,GETCHR_KEYBOARD          ;REJECT NON HEX CHARS    
+       LD    HL, DATABYTE
        LD    (HL), A 
        LD    A,B         
        CALL  PRINTCHAR             ;ECHO VALID HEX

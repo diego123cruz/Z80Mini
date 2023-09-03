@@ -1,0 +1,16 @@
+{
+   "Logging" : {
+      "Flush" : false,
+      "LogToFile" : false,
+      "MaxFileSize" : 10485760,
+      "MaxUiLogLines" : 5000
+   },
+   "frmMain" : {
+      "AlwaysOnTop" : false,
+      "AppHeight" : 201,
+      "AppPositionX" : 327,
+      "AppPositionY" : 300,
+      "AppWidth" : 420,
+      "Maximized" : false
+   }
+}

@@ -16,7 +16,7 @@
 ;
 ;
 ;         Compiler: https://k1.spdns.de/Develop/Projects/zasm/Distributions/
-;         Command line: 
+;         Command line: ./zasm --z80 -w --bin  bootV2.asm
 ;
 ;
 ; -----------------------------------------------------------------------------
@@ -38,7 +38,7 @@ VT          .equ    0BH             ;
 CS          .EQU    0CH             ; Clear screen
 CR          .EQU    0DH             ; Carriage return [Enter]
 CTRLO       .EQU    0FH             ; Control "O"
-CTRLQ	    .EQU	11H		        ; Control "Q"
+CTRLQ	    .EQU    11H		    ; Control "Q"
 CTRLR       .EQU    12H             ; Control "R"
 CTRLS       .EQU    13H             ; Control "S"
 CTRLU       .EQU    15H             ; Control "U"
@@ -75,6 +75,7 @@ kDelayCnt:  .EQU kDelayTB / kDelayLP  ;Loop counter for inner loop
 ; MS BASIC ENTRY POINT
 ; -----------------------------------------------------------------------------
 BASIC       .EQU    $6000           ; inicio basic 6000H, workspace 9000H
+BASIC_W     .EQU    BASIC+2
 
 ; -----------------------------------------------------------------------------
 ; SOFTWARE SERIAL
@@ -120,7 +121,7 @@ LCD_LINE4   .EQU    98H
 
 DISPLAY             .EQU    $F000   ; 1024 bytes - Display buffer
 MSGBUF:             .EQU    $F401   ; 32 bytes - STRING HANDLING AREA
-DATA:               .EQU    $F420   ; 1 byte - THE DATA
+DATABYTE:           .EQU    $F420   ; 1 byte - THE DATA
 I2C_RAMCPY:         .EQU    $F421   ; 1 byte - RAM copy of output port
 I2C_ADDR            .EQU    $F422   ; 1 byte - device address
 I2C_RR              .EQU    $F423   ; 1 byte - register
@@ -148,12 +149,12 @@ LCD_CHAR_W          .EQU    $F442   ; 1 byte largura do char
 LCD_TMP_POINT       .EQU    $F443   ; 2 bytes ponteiro do pixel altural do print
 LCD_DELETE_CHAR     .EQU    $F445   ; 1 byte, 0 não, ff delete proximo char
 LCD_AUTO_X          .EQU    $F446   ; 1 byte, 0 sim, ff nao
-LCD_TEMP            .EQU    $F447 ; 1 byte
-LCD_COOX            .EQU    $F448 ; 1 byte, local onde vai printar
-LCD_COOY            .EQU    $F449 ; 1 byte
-LCD_PRINT_H         .EQU    $F44A ; 1 byte, tamanho do que vai printar
-LCD_PRINT_W         .EQU    $F44B ; 1 byte
-LCD_PRINT_IMAGE     .EQU    $F44C ; 2 bytes
+LCD_TEMP            .EQU    $F447   ; 1 byte
+LCD_COOX            .EQU    $F448   ; 1 byte, local onde vai printar
+LCD_COOY            .EQU    $F449   ; 1 byte
+LCD_PRINT_H         .EQU    $F44A   ; 1 byte, tamanho do que vai printar
+LCD_PRINT_W         .EQU    $F44B   ; 1 byte
+LCD_PRINT_IMAGE     .EQU    $F44C   ; 2 bytes
 
 
         .ORG 0
@@ -169,19 +170,46 @@ RST10   JP KEYREADINIT
         .ORG 0018H ; check break
 RST18   JP CHKKEY
 
+RST20   .ORG 0020H
+        RET
+
+RST28   .ORG 0028H
+        RET
+
         .ORG 0030H
 RST30   JP APIHandler
 
+RST38   .ORG 0038H ; INT - MASKABLE INTERRUPT MODE-1
+        RETI
 
+RST66   .ORG 0066H ; NMI - Non­maskable Interrupt 
+        RETN
+
+
+; Não remover daqui...
+KEYMAP:
+.BYTE   "12345",KF1,"67890"
+.BYTE   KF2,"QWERT",KF3,"YUIOP"
+.BYTE   KF4,"ASDFG",KLEFT,"HJKL", CR
+.BYTE   KDOWN,CTRLC, "ZXCV",KRIGHT,"BNM ", DEL, KUP
+
+SHIFTKEYMAP:
+.BYTE   "!@#$%",KF5,"^&*()"
+.BYTE   KF6,"`~-_=",KF7,"+;:'" 
+.BYTE   22h
+.BYTE   KF8,"{}[]|",KLEFT,$5C,"<>?", CR
+.BYTE   KDOWN,ESC,"/,. ",KRIGHT,"    ", DEL, KUP
+
+
+API     .ORG 0100H ; API POINTER
+#include "API.asm" ; manter essa ordem...
 #include "Keyboard.asm"
 #include "LCDGraphic.asm"
-#include "API.asm"
 #include "LoaderIntel.asm"
 #include "I2C.asm"
 #include "SoftSerial.asm"
 #include "Monitor.asm"
 #include "Utils.asm"
 #include "Strings.asm"
-
-
+#include "basicV2.asm"
 .end
