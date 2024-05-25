@@ -252,6 +252,7 @@ FNCTAB: .WORD   SGN
         .WORD   LEFT
         .WORD   RIGHT
         .WORD   MID
+        
 
 ; RESERVED WORD LIST
 
@@ -278,7 +279,7 @@ WORDS:  .BYTE   'E'+80H,"ND"
         .BYTE   'D'+80H,"EF"
         .BYTE   'P'+80H,"OKE"
         .BYTE   'D'+80H,"OKE"
-        .BYTE   'S'+80H,"CREEN"
+        .BYTE   'T'+80H,"IME" ; time i2c
         .BYTE   'L'+80H,"INES"
         .BYTE   'C'+80H,"LS"
         .BYTE   'W'+80H,"IDTH"
@@ -292,6 +293,7 @@ WORDS:  .BYTE   'E'+80H,"ND"
         .BYTE   'C'+80H,"LOAD"
         .BYTE   'C'+80H,"SAVE"
         .BYTE   'N'+80H,"EW"
+        
 
         .BYTE   'T'+80H,"AB("
         .BYTE   'T'+80H,"O"
@@ -367,7 +369,7 @@ WORDTB: .WORD   PEND
         .WORD   DEF
         .WORD   POKE
         .WORD   DOKE
-        .WORD   REM
+        .WORD   TIME
         .WORD   LINES
         .WORD   CLS
         .WORD   WIDTH
@@ -378,9 +380,10 @@ WORDTB: .WORD   PEND
         .WORD   CONT
         .WORD   LIST
         .WORD   CLEAR
-        .WORD   REM
-        .WORD   REM
+        .WORD   EELOAD ; LOAD
+        .WORD   EESAVE ; SAVE
         .WORD   NEW
+        
 
 ; RESERVED WORD TOKEN VALUES
 
@@ -4333,6 +4336,189 @@ TSTBIT: PUSH    AF              ; Save bit mask
 
 OUTNCR: CALL    OUTC            ; Output character in A
         JP      PRNTCRLF        ; Output CRLF
+
+
+
+
+EELOAD:
+        PUSH AF
+        PUSH HL
+        PUSH DE
+        PUSH BC
+
+        LD DE, $0000
+        LD HL, $8000 ; BASIC
+        LD BC, $2000 ; copy 8kb from EEPROM I2C
+        CALL I2CMEMTOCPU_BASIC
+
+        LD A, CR ; new line
+        CALL MONOUT
+
+        POP BC
+        POP DE
+        POP HL
+        POP AF 
+        RET
+
+
+EESAVE:
+        PUSH AF
+        PUSH HL
+        PUSH DE
+        PUSH BC
+
+        LD HL, $8000
+        LD DE, $0000
+        LD BC, $2000 ; save 8kb to EEPROM I2C
+        CALL I2CCPUTOMEM_BASIC
+
+        LD A, CR ; new line
+        CALL MONOUT
+
+        POP BC
+        POP DE
+        POP HL
+        POP AF
+        RET
+
+TIME:
+        PUSH AF
+        PUSH HL
+        PUSH DE
+        PUSH BC
+        ; Hora
+        LD A, $64 ; To read is equal address +1
+        LD C, $10 ; I2C open, device id in A
+        RST $30 
+    
+        LD A, $20  ; register
+        LD C, $13
+        RST $30 ;I2C Write, value in A
+        
+        LD A, $64+1 ; To read is equal address +1
+        LD C, $10 ; I2C open, device id in A
+        RST $30 
+        
+        LD C, $12 ; I2C Read, return in A
+        RST $30 
+        
+        PUSH AF
+        
+        LD C, $11 ; I2C Close
+        RST $30  
+        
+        POP AF
+        
+        CALL lcd_print_data ; send A to display
+        LD A, ':'
+        CALL display ; send
+        
+        
+        ;Minutos
+        LD A, $64 ; To read is equal address +1
+        LD C, $10 ; I2C open, device id in A
+        RST $30 
+        
+        LD A, $10  ; register
+        LD C, $13
+        RST $30 ;I2C Write, value in A
+        
+        LD A, $64+1 ; To read is equal address +1
+        LD C, $10 ; I2C open, device id in A
+        RST $30 
+        
+        LD C, $12 ; I2C Read, return in A
+        RST $30 
+        
+        PUSH AF
+        
+        LD C, $11 ; I2C Close
+        RST $30  
+        
+        POP AF
+        
+        CALL lcd_print_data ; send A to display
+        LD A, ':'
+        CALL display ; send
+        
+        
+        ;segundos
+        LD A, $64 ; To read is equal address +1
+        LD C, $10 ; I2C open, device id in A
+        RST $30 
+        
+        LD A, $00  ; register
+        LD C, $13
+        RST $30 ;I2C Write, value in A
+        
+        LD A, $64+1 ; To read is equal address +1
+        LD C, $10 ; I2C open, device id in A
+        RST $30 
+        
+        LD C, $12 ; I2C Read, return in A
+        RST $30 
+        
+        PUSH AF
+        
+        LD C, $11 ; I2C Close
+        RST $30  
+        
+        POP AF
+        
+        CALL lcd_print_data ; send A to display
+
+        LD C, $0C
+        RST $30 ;  show buffer to LCD
+
+        LD A, CR ; new line
+        CALL MONOUT
+
+        POP BC
+        POP DE
+        POP HL
+        POP AF
+        RET
+
+
+
+lcd_print_data:
+	push bc
+        push af
+        ld b, a
+        and 11110000b
+        rlca
+        rlca
+        rlca
+        rlca
+        add a, '0'
+        cp '9' + 1
+        jr c, print_12
+        add a, 'A' - '0' - 10
+print_12:
+        CALL display ; send to lcd
+        ld a, b
+        and 00001111b
+        add a, '0'
+        cp '9' + 1
+        jr c, print_22
+        add a, 'A' - '0' - 10
+print_22:
+        CALL display ; send to lcd
+        pop bc
+        pop af
+        ret
+    
+display:
+        PUSH AF
+        PUSH BC
+        
+        LD C, $09
+        RST $30 ; send to lcd
+        
+        POP BC
+        POP AF
+        RET
+
 
 .end
 

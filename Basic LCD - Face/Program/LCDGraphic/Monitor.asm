@@ -685,6 +685,7 @@ I2CMEMTOCPU:
     LD DE, (ADDR_FROM)
     LD HL, (ADDR_TO)
     LD BC, (ADDR_SIZE)
+I2CMEMTOCPU_BASIC:
     CALL I2C_MemRd  
 
     JP Z, I2CMEMTOCPU_OK
@@ -717,9 +718,11 @@ I2CCPUTOMEM:
 ;    HL = First address in CPU memory
 ;    BC = Number of bytes to be copied
 
+
     LD HL, (ADDR_FROM)
     LD DE, (ADDR_TO)
     LD BC, (ADDR_SIZE)
+I2CCPUTOMEM_BASIC:
     CALL I2C_MemWr
     
     JP Z, I2CCPUTOMEM_OK
