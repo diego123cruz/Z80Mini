@@ -17,6 +17,8 @@
 ;
 ;         Compiler: https://k1.spdns.de/Develop/Projects/zasm/Distributions/
 ;         Command line: ./zasm --z80 -w --bin  bootV2.asm
+;               
+;         INTEL HEX      ./zasm --z80 -w -x bootV2.asm 
 ;
 ;
 ;         GRAVAÇÃO (32kb):

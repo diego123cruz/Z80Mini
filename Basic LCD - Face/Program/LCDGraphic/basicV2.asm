@@ -216,173 +216,174 @@ BRKRET: CALL    CLREG           ; Clear registers and stack
 
 BFREE:  .BYTE   " Bytes free",CR,LF,0,0
 
-SIGNON: .BYTE   "Z80 BASIC Ver 4.7b",CR,LF
-        .BYTE   "Copyright ",40,"C",41
-        .BYTE   " 1978 by Microsoft",CR,LF,0,0
+SIGNON: .BYTE "Z80 BASIC v4.7b",CR,CR,0,0
+        ;.BYTE   "Z80 BASIC Ver 4.7b",CR,LF
+        ;.BYTE   "Copyright ",40,"C",41
+        ;.BYTE   " 1978 by Microsoft",CR,LF,0,0
 
 MEMMSG: .BYTE   "Memory top",0
 
 ; FUNCTION ADDRESS TABLE
 
-FNCTAB: .WORD   SGN
-        .WORD   INT
-        .WORD   ABS
-        .WORD   USR
-        .WORD   FRE
-        .WORD   INP
-        .WORD   POS
-        .WORD   SQR
-        .WORD   RND
-        .WORD   LOG
-        .WORD   EXP
-        .WORD   COS
-        .WORD   SIN
-        .WORD   TAN
-        .WORD   ATN
-        .WORD   PEEK
-        .WORD   DEEK
-        .WORD   POINT
-        .WORD   LEN
-        .WORD   STR
-        .WORD   VAL
-        .WORD   ASC
-        .WORD   CHR
-        .WORD   HEX
-        .WORD   BIN
-        .WORD   LEFT
-        .WORD   RIGHT
-        .WORD   MID
+FNCTAB: .WORD   SGN             ; $B6
+        .WORD   INT             ; $B7
+        .WORD   ABS             ; $B8
+        .WORD   USR             ; $B9
+        .WORD   FRE             ; $BA
+        .WORD   INP             ; $BB
+        .WORD   POS             ; $BC
+        .WORD   SQR             ; $BD
+        .WORD   RND             ; $BE
+        .WORD   LOG             ; $BF
+        .WORD   EXP             ; $C0
+        .WORD   COS             ; $C1
+        .WORD   SIN             ; $C2
+        .WORD   TAN             ; $C3
+        .WORD   ATN             ; $C4
+        .WORD   PEEK            ; $C5
+        .WORD   DEEK            ; $C6
+        .WORD   POINT           ; $C7
+        .WORD   LEN             ; $C8
+        .WORD   STR             ; $C9
+        .WORD   VAL             ; $CA
+        .WORD   ASC             ; $CB
+        .WORD   CHR             ; $CC
+        .WORD   HEX             ; $CD
+        .WORD   BIN             ; $CE
+        .WORD   LEFT            ; $CF
+        .WORD   RIGHT           ; $D0
+        .WORD   MID             ; $D1
         
 
 ; RESERVED WORD LIST
 
-WORDS:  .BYTE   'E'+80H,"ND"
-        .BYTE   'F'+80H,"OR"
-        .BYTE   'N'+80H,"EXT"
-        .BYTE   'D'+80H,"ATA"
-        .BYTE   'I'+80H,"NPUT"
-        .BYTE   'D'+80H,"IM"
-        .BYTE   'R'+80H,"EAD"
-        .BYTE   'L'+80H,"ET"
-        .BYTE   'G'+80H,"OTO"
-        .BYTE   'R'+80H,"UN"
-        .BYTE   'I'+80H,"F"
-        .BYTE   'R'+80H,"ESTORE"
-        .BYTE   'G'+80H,"OSUB"
-        .BYTE   'R'+80H,"ETURN"
-        .BYTE   'R'+80H,"EM"
-        .BYTE   'S'+80H,"TOP"
-        .BYTE   'O'+80H,"UT"
-        .BYTE   'O'+80H,"N"
-        .BYTE   'N'+80H,"ULL"
-        .BYTE   'W'+80H,"AIT"
-        .BYTE   'D'+80H,"EF"
-        .BYTE   'P'+80H,"OKE"
-        .BYTE   'D'+80H,"OKE"
-        .BYTE   'T'+80H,"IME" ; time i2c
-        .BYTE   'L'+80H,"INES"
-        .BYTE   'C'+80H,"LS"
-        .BYTE   'W'+80H,"IDTH"
-        .BYTE   'M'+80H,"ONITOR"
-        .BYTE   'S'+80H,"ET"
-        .BYTE   'R'+80H,"ESET"
-        .BYTE   'P'+80H,"RINT"
-        .BYTE   'C'+80H,"ONT"
-        .BYTE   'L'+80H,"IST"
-        .BYTE   'C'+80H,"LEAR"
-        .BYTE   'C'+80H,"LOAD"
-        .BYTE   'C'+80H,"SAVE"
-        .BYTE   'N'+80H,"EW"
+WORDS:  .BYTE   'E'+80H,"ND"            ; $80  WORDTB
+        .BYTE   'F'+80H,"OR"            ; $81
+        .BYTE   'N'+80H,"EXT"           ; $82
+        .BYTE   'D'+80H,"ATA"           ; $83
+        .BYTE   'I'+80H,"NPUT"          ; $84
+        .BYTE   'D'+80H,"IM"            ; $85
+        .BYTE   'R'+80H,"EAD"           ; $86
+        .BYTE   'L'+80H,"ET"            ; $87
+        .BYTE   'G'+80H,"OTO"           ; $88
+        .BYTE   'R'+80H,"UN"            ; $89
+        .BYTE   'I'+80H,"F"             ; $8A
+        .BYTE   'R'+80H,"ESTORE"        ; $8B
+        .BYTE   'G'+80H,"OSUB"          ; $8C
+        .BYTE   'R'+80H,"ETURN"         ; $8D
+        .BYTE   'R'+80H,"EM"            ; $8E
+        .BYTE   'S'+80H,"TOP"           ; $8F
+        .BYTE   'O'+80H,"UT"            ; $90
+        .BYTE   'O'+80H,"N"             ; $91
+        .BYTE   'N'+80H,"ULL"           ; $92
+        .BYTE   'W'+80H,"AIT"           ; $93
+        .BYTE   'D'+80H,"EF"            ; $94
+        .BYTE   'P'+80H,"OKE"           ; $95
+        .BYTE   'D'+80H,"OKE"           ; $96
+        .BYTE   'T'+80H,"IME" ;time i2c ; $97 ; LIVRE
+        .BYTE   'L'+80H,"INES"          ; $98
+        .BYTE   'C'+80H,"LS"            ; $99
+        .BYTE   'W'+80H,"IDTH"          ; $9A
+        .BYTE   'M'+80H,"ONITOR"        ; $9B
+        .BYTE   'S'+80H,"ET"            ; $9C
+        .BYTE   'R'+80H,"ESET"          ; $9D
+        .BYTE   'P'+80H,"RINT"          ; $9E
+        .BYTE   'C'+80H,"ONT"           ; $9F
+        .BYTE   'L'+80H,"IST"           ; $A0
+        .BYTE   'C'+80H,"LEAR"          ; $A1
+        .BYTE   'C'+80H,"LOAD"          ; $A2
+        .BYTE   'C'+80H,"SAVE"          ; $A3
+        .BYTE   'N'+80H,"EW"            ; $A4
         
 
-        .BYTE   'T'+80H,"AB("
-        .BYTE   'T'+80H,"O"
-        .BYTE   'F'+80H,"N"
-        .BYTE   'S'+80H,"PC("
-        .BYTE   'T'+80H,"HEN"
-        .BYTE   'N'+80H,"OT"
-        .BYTE   'S'+80H,"TEP"
+        .BYTE   'T'+80H,"AB("           ; $A5
+        .BYTE   'T'+80H,"O"             ; $A6
+        .BYTE   'F'+80H,"N"             ; $A7
+        .BYTE   'S'+80H,"PC("           ; $A8
+        .BYTE   'T'+80H,"HEN"           ; $A9
+        .BYTE   'N'+80H,"OT"            ; $AA
+        .BYTE   'S'+80H,"TEP"           ; $AB
 
-        .BYTE   '+'+80H
-        .BYTE   '-'+80H
-        .BYTE   '*'+80H
-        .BYTE   '/'+80H
-        .BYTE   '^'+80H
-        .BYTE   'A'+80H,"ND"
-        .BYTE   'O'+80H,"R"
-        .BYTE   '>'+80H
-        .BYTE   '='+80H
-        .BYTE   '<'+80H
+        .BYTE   '+'+80H                 ; $AC
+        .BYTE   '-'+80H                 ; $AD
+        .BYTE   '*'+80H                 ; $AE
+        .BYTE   '/'+80H                 ; $AF
+        .BYTE   '^'+80H                 ; $B0
+        .BYTE   'A'+80H,"ND"            ; $B1
+        .BYTE   'O'+80H,"R"             ; $B2
+        .BYTE   '>'+80H                 ; $B3
+        .BYTE   '='+80H                 ; $B4
+        .BYTE   '<'+80H                 ; $B5
 
-        .BYTE   'S'+80H,"GN"
-        .BYTE   'I'+80H,"NT"
-        .BYTE   'A'+80H,"BS"
-        .BYTE   'U'+80H,"SR"
-        .BYTE   'F'+80H,"RE"
-        .BYTE   'I'+80H,"NP"
-        .BYTE   'P'+80H,"OS"
-        .BYTE   'S'+80H,"QR"
-        .BYTE   'R'+80H,"ND"
-        .BYTE   'L'+80H,"OG"
-        .BYTE   'E'+80H,"XP"
-        .BYTE   'C'+80H,"OS"
-        .BYTE   'S'+80H,"IN"
-        .BYTE   'T'+80H,"AN"
-        .BYTE   'A'+80H,"TN"
-        .BYTE   'P'+80H,"EEK"
-        .BYTE   'D'+80H,"EEK"
-        .BYTE   'P'+80H,"OINT"
-        .BYTE   'L'+80H,"EN"
-        .BYTE   'S'+80H,"TR$"
-        .BYTE   'V'+80H,"AL"
-        .BYTE   'A'+80H,"SC"
-        .BYTE   'C'+80H,"HR$"
-        .BYTE   'H'+80H,"EX$"
-        .BYTE   'B'+80H,"IN$"
-        .BYTE   'L'+80H,"EFT$"
-        .BYTE   'R'+80H,"IGHT$"
-        .BYTE   'M'+80H,"ID$"
+        .BYTE   'S'+80H,"GN"            ; $B6  FNCTAB
+        .BYTE   'I'+80H,"NT"            ; $B7
+        .BYTE   'A'+80H,"BS"            ; $B8
+        .BYTE   'U'+80H,"SR"            ; $B9
+        .BYTE   'F'+80H,"RE"            ; $BA
+        .BYTE   'I'+80H,"NP"            ; $BB
+        .BYTE   'P'+80H,"OS"            ; $BC
+        .BYTE   'S'+80H,"QR"            ; $BD
+        .BYTE   'R'+80H,"ND"            ; $BE
+        .BYTE   'L'+80H,"OG"            ; $BF
+        .BYTE   'E'+80H,"XP"            ; $C0
+        .BYTE   'C'+80H,"OS"            ; $C1
+        .BYTE   'S'+80H,"IN"            ; $C2
+        .BYTE   'T'+80H,"AN"            ; $C3
+        .BYTE   'A'+80H,"TN"            ; $C4
+        .BYTE   'P'+80H,"EEK"           ; $C5
+        .BYTE   'D'+80H,"EEK"           ; $C6
+        .BYTE   'P'+80H,"OINT"          ; $C7
+        .BYTE   'L'+80H,"EN"            ; $C8
+        .BYTE   'S'+80H,"TR$"           ; $C9
+        .BYTE   'V'+80H,"AL"            ; $CA
+        .BYTE   'A'+80H,"SC"            ; $CB
+        .BYTE   'C'+80H,"HR$"           ; $CC
+        .BYTE   'H'+80H,"EX$"           ; $CD
+        .BYTE   'B'+80H,"IN$"           ; $CE
+        .BYTE   'L'+80H,"EFT$"          ; $CF
+        .BYTE   'R'+80H,"IGHT$"         ; $D0
+        .BYTE   'M'+80H,"ID$"           ; $D1
         .BYTE   80H             ; End of list marker
 
 ; KEYWORD ADDRESS TABLE
 
-WORDTB: .WORD   PEND
-        .WORD   FOR
-        .WORD   NEXT
-        .WORD   DATA
-        .WORD   INPUT
-        .WORD   DIM
-        .WORD   READ
-        .WORD   LET
-        .WORD   GOTO
-        .WORD   RUN
-        .WORD   IF
-        .WORD   RESTOR
-        .WORD   GOSUB
-        .WORD   RETURN
-        .WORD   REM
-        .WORD   STOP
-        .WORD   POUT
-        .WORD   ON
-        .WORD   NULL
-        .WORD   WAIT
-        .WORD   DEF
-        .WORD   POKE
-        .WORD   DOKE
-        .WORD   TIME
-        .WORD   LINES
-        .WORD   CLS
-        .WORD   WIDTH
-        .WORD   MONITR
-        .WORD   PSET
-        .WORD   RESET
-        .WORD   PRINT
-        .WORD   CONT
-        .WORD   LIST
-        .WORD   CLEAR
-        .WORD   EELOAD ; LOAD
-        .WORD   EESAVE ; SAVE
-        .WORD   NEW
+WORDTB: .WORD   PEND            ; $80
+        .WORD   FOR             ; $81
+        .WORD   NEXT            ; $82
+        .WORD   DATA            ; $83
+        .WORD   INPUT           ; $84
+        .WORD   DIM             ; $85
+        .WORD   READ            ; $86
+        .WORD   LET             ; $87
+        .WORD   GOTO            ; $88
+        .WORD   RUN             ; $89
+        .WORD   IF              ; $8A
+        .WORD   RESTOR          ; $8B
+        .WORD   GOSUB           ; $8C
+        .WORD   RETURN          ; $8D
+        .WORD   REM             ; $8E
+        .WORD   STOP            ; $8F
+        .WORD   POUT            ; $90
+        .WORD   ON              ; $91
+        .WORD   NULL            ; $92
+        .WORD   WAIT            ; $93
+        .WORD   DEF             ; $94
+        .WORD   POKE            ; $95
+        .WORD   DOKE            ; $96
+        .WORD   REM             ; $97 ; LIVRE
+        .WORD   LINES           ; $98
+        .WORD   CLS             ; $99
+        .WORD   WIDTH           ; $9A
+        .WORD   MONITR          ; $9B
+        .WORD   PSET            ; $9C
+        .WORD   RESET           ; $9D
+        .WORD   PRINT           ; $9E
+        .WORD   CONT            ; $9F
+        .WORD   LIST            ; $A0
+        .WORD   CLEAR           ; $A1
+        .WORD   EELOAD ; LOAD   ; $A2
+        .WORD   EESAVE ; SAVE   ; $A3
+        .WORD   NEW             ; $A4
         
 
 ; RESERVED WORD TOKEN VALUES
@@ -793,7 +794,7 @@ CRNCLP: LD      A,(HL)          ; Get byte
         CP      ' '             ; Is it a space?
         JP      Z,MOVDIR        ; Yes - Copy direct
         LD      B,A             ; Save character
-        CP      '"'             ; Is it a quote?
+        CP      '"'             ; Is it a quote? "
         JP      Z,CPYLIT        ; Yes - Copy literal string
         OR      A               ; Is it end of buffer?
         JP      Z,ENDBUF        ; Yes - End buffer
@@ -1664,7 +1665,7 @@ BADINP: LD      A,(READFG)      ; READ or INPUT?
 
 INPUT:  CALL    IDTEST          ; Test for illegal direct
         LD      A,(HL)          ; Get character after "INPUT"
-        CP      '"'             ; Is there a prompt string?
+        CP      '"'             ; Is there a prompt string? "
         LD      A,0             ; Clear A and leave flags
         LD      (CTLOFG),A      ; Enable output
         JP      NZ,NOPMPT       ; No prompt - get input
@@ -1725,7 +1726,7 @@ ANTVLU: LD      A,(TYPE)        ; Check data type
         CALL    GETCHR          ; Get next character
         LD      D,A             ; Save input character
         LD      B,A             ; Again
-        CP      '"'             ; Start of literal sting?
+        CP      '"'             ; Start of literal sting? "
         JP      Z,STRENT        ; Yes - Create string entry
         LD      A,(READFG)      ; "READ" or "INPUT" ?
         OR      A
@@ -1975,7 +1976,7 @@ FNOFST: LD      B,0             ; Get address of function
         CALL    GETCHR          ; Get next character
         LD      A,C             ; Get adjusted token value
         CP      2*(ZLEFT-ZSGN)-1; Adj' LEFT$,RIGHT$ or MID$ ?
-        JP      C,FNVAL         ; No - Do function
+        JP      C,FNVAL         ; No - Do function (if A<N got FNVAL)
         CALL    OPNPAR          ; Evaluate expression  (X,...
         CALL    CHKSYN          ; Make sure ',' follows
         .BYTE      ','
@@ -2546,7 +2547,7 @@ SVSTAD: INC     HL
         RET
 
 CRTST:  DEC     HL              ; DEC - INCed after
-QTSTR:  LD      B,'"'           ; Terminating quote
+QTSTR:  LD      B,'"'           ; Terminating quote "
         LD      D,B             ; Quote to D
 DTSTR:  PUSH    HL              ; Save start
         LD      C,-1            ; Set counter to -1
@@ -2958,7 +2959,7 @@ MIDNUM: POP     BC              ; Get return address
         LD      B,E             ; Number to B
         RET
 
-INP:    CALL    MAKINT          ; Make it integer A
+INP:    CALL    MAKINT          ; Make it integer A                 
         LD      (INPORT),A      ; Set input port
         CALL    INPSUB          ; Get input from port
         JP      PASSA           ; Return integer A
@@ -4337,9 +4338,6 @@ TSTBIT: PUSH    AF              ; Save bit mask
 OUTNCR: CALL    OUTC            ; Output character in A
         JP      PRNTCRLF        ; Output CRLF
 
-
-
-
 EELOAD:
         PUSH AF
         PUSH HL
@@ -4381,143 +4379,6 @@ EESAVE:
         POP AF
         RET
 
-TIME:
-        PUSH AF
-        PUSH HL
-        PUSH DE
-        PUSH BC
-        ; Hora
-        LD A, $64 ; To read is equal address +1
-        LD C, $10 ; I2C open, device id in A
-        RST $30 
-    
-        LD A, $20  ; register
-        LD C, $13
-        RST $30 ;I2C Write, value in A
-        
-        LD A, $64+1 ; To read is equal address +1
-        LD C, $10 ; I2C open, device id in A
-        RST $30 
-        
-        LD C, $12 ; I2C Read, return in A
-        RST $30 
-        
-        PUSH AF
-        
-        LD C, $11 ; I2C Close
-        RST $30  
-        
-        POP AF
-        
-        CALL lcd_print_data ; send A to display
-        LD A, ':'
-        CALL display ; send
-        
-        
-        ;Minutos
-        LD A, $64 ; To read is equal address +1
-        LD C, $10 ; I2C open, device id in A
-        RST $30 
-        
-        LD A, $10  ; register
-        LD C, $13
-        RST $30 ;I2C Write, value in A
-        
-        LD A, $64+1 ; To read is equal address +1
-        LD C, $10 ; I2C open, device id in A
-        RST $30 
-        
-        LD C, $12 ; I2C Read, return in A
-        RST $30 
-        
-        PUSH AF
-        
-        LD C, $11 ; I2C Close
-        RST $30  
-        
-        POP AF
-        
-        CALL lcd_print_data ; send A to display
-        LD A, ':'
-        CALL display ; send
-        
-        
-        ;segundos
-        LD A, $64 ; To read is equal address +1
-        LD C, $10 ; I2C open, device id in A
-        RST $30 
-        
-        LD A, $00  ; register
-        LD C, $13
-        RST $30 ;I2C Write, value in A
-        
-        LD A, $64+1 ; To read is equal address +1
-        LD C, $10 ; I2C open, device id in A
-        RST $30 
-        
-        LD C, $12 ; I2C Read, return in A
-        RST $30 
-        
-        PUSH AF
-        
-        LD C, $11 ; I2C Close
-        RST $30  
-        
-        POP AF
-        
-        CALL lcd_print_data ; send A to display
-
-        LD C, $0C
-        RST $30 ;  show buffer to LCD
-
-        LD A, CR ; new line
-        CALL MONOUT
-
-        POP BC
-        POP DE
-        POP HL
-        POP AF
-        RET
-
-
-
-lcd_print_data:
-	push bc
-        push af
-        ld b, a
-        and 11110000b
-        rlca
-        rlca
-        rlca
-        rlca
-        add a, '0'
-        cp '9' + 1
-        jr c, print_12
-        add a, 'A' - '0' - 10
-print_12:
-        CALL display ; send to lcd
-        ld a, b
-        and 00001111b
-        add a, '0'
-        cp '9' + 1
-        jr c, print_22
-        add a, 'A' - '0' - 10
-print_22:
-        CALL display ; send to lcd
-        pop bc
-        pop af
-        ret
-    
-display:
-        PUSH AF
-        PUSH BC
-        
-        LD C, $09
-        RST $30 ; send to lcd
-        
-        POP BC
-        POP AF
-        RET
 
 
 .end

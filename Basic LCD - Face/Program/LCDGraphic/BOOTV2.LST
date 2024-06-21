@@ -1,6 +1,6 @@
 ; --------------------------------------
 ; zasm: assemble "bootV2.asm"
-; date: 2024-05-24 21:56:26
+; date: 2024-06-21 20:22:39
 ; --------------------------------------
 
 
@@ -23,6 +23,8 @@
 ;
 ;         Compiler: https://k1.spdns.de/Develop/Projects/zasm/Distributions/
 ;         Command line: ./zasm --z80 -w --bin  bootV2.asm
+;               
+;         INTEL HEX      ./zasm --z80 -w -x bootV2.asm 
 ;
 ;
 ;         GRAVAÇÃO (32kb):
@@ -3765,173 +3767,174 @@ BRKRET: CALL    CLREG           ; Clear registers and stack
 
 BFREE:  .BYTE   " Bytes free",CR,LF,0,0
 
-SIGNON: .BYTE   "Z80 BASIC Ver 4.7b",CR,LF
-        .BYTE   "Copyright ",40,"C",41
-        .BYTE   " 1978 by Microsoft",CR,LF,0,0
+SIGNON: .BYTE "Z80 BASIC v4.7b",CR,CR,0,0
+        ;.BYTE   "Z80 BASIC Ver 4.7b",CR,LF
+        ;.BYTE   "Copyright ",40,"C",41
+        ;.BYTE   " 1978 by Microsoft",CR,LF,0,0
 
 MEMMSG: .BYTE   "Memory top",0
 
 ; FUNCTION ADDRESS TABLE
 
-FNCTAB: .WORD   SGN
-        .WORD   INT
-        .WORD   ABS
-        .WORD   USR
-        .WORD   FRE
-        .WORD   INP
-        .WORD   POS
-        .WORD   SQR
-        .WORD   RND
-        .WORD   LOG
-        .WORD   EXP
-        .WORD   COS
-        .WORD   SIN
-        .WORD   TAN
-        .WORD   ATN
-        .WORD   PEEK
-        .WORD   DEEK
-        .WORD   POINT
-        .WORD   LEN
-        .WORD   STR
-        .WORD   VAL
-        .WORD   ASC
-        .WORD   CHR
-        .WORD   HEX
-        .WORD   BIN
-        .WORD   LEFT
-        .WORD   RIGHT
-        .WORD   MID
+FNCTAB: .WORD   SGN             ; $B6
+        .WORD   INT             ; $B7
+        .WORD   ABS             ; $B8
+        .WORD   USR             ; $B9
+        .WORD   FRE             ; $BA
+        .WORD   INP             ; $BB
+        .WORD   POS             ; $BC
+        .WORD   SQR             ; $BD
+        .WORD   RND             ; $BE
+        .WORD   LOG             ; $BF
+        .WORD   EXP             ; $C0
+        .WORD   COS             ; $C1
+        .WORD   SIN             ; $C2
+        .WORD   TAN             ; $C3
+        .WORD   ATN             ; $C4
+        .WORD   PEEK            ; $C5
+        .WORD   DEEK            ; $C6
+        .WORD   POINT           ; $C7
+        .WORD   LEN             ; $C8
+        .WORD   STR             ; $C9
+        .WORD   VAL             ; $CA
+        .WORD   ASC             ; $CB
+        .WORD   CHR             ; $CC
+        .WORD   HEX             ; $CD
+        .WORD   BIN             ; $CE
+        .WORD   LEFT            ; $CF
+        .WORD   RIGHT           ; $D0
+        .WORD   MID             ; $D1
         
 
 ; RESERVED WORD LIST
 
-WORDS:  .BYTE   'E'+80H,"ND"
-        .BYTE   'F'+80H,"OR"
-        .BYTE   'N'+80H,"EXT"
-        .BYTE   'D'+80H,"ATA"
-        .BYTE   'I'+80H,"NPUT"
-        .BYTE   'D'+80H,"IM"
-        .BYTE   'R'+80H,"EAD"
-        .BYTE   'L'+80H,"ET"
-        .BYTE   'G'+80H,"OTO"
-        .BYTE   'R'+80H,"UN"
-        .BYTE   'I'+80H,"F"
-        .BYTE   'R'+80H,"ESTORE"
-        .BYTE   'G'+80H,"OSUB"
-        .BYTE   'R'+80H,"ETURN"
-        .BYTE   'R'+80H,"EM"
-        .BYTE   'S'+80H,"TOP"
-        .BYTE   'O'+80H,"UT"
-        .BYTE   'O'+80H,"N"
-        .BYTE   'N'+80H,"ULL"
-        .BYTE   'W'+80H,"AIT"
-        .BYTE   'D'+80H,"EF"
-        .BYTE   'P'+80H,"OKE"
-        .BYTE   'D'+80H,"OKE"
-        .BYTE   'T'+80H,"IME" ; time i2c
-        .BYTE   'L'+80H,"INES"
-        .BYTE   'C'+80H,"LS"
-        .BYTE   'W'+80H,"IDTH"
-        .BYTE   'M'+80H,"ONITOR"
-        .BYTE   'S'+80H,"ET"
-        .BYTE   'R'+80H,"ESET"
-        .BYTE   'P'+80H,"RINT"
-        .BYTE   'C'+80H,"ONT"
-        .BYTE   'L'+80H,"IST"
-        .BYTE   'C'+80H,"LEAR"
-        .BYTE   'C'+80H,"LOAD"
-        .BYTE   'C'+80H,"SAVE"
-        .BYTE   'N'+80H,"EW"
+WORDS:  .BYTE   'E'+80H,"ND"            ; $80  WORDTB
+        .BYTE   'F'+80H,"OR"            ; $81
+        .BYTE   'N'+80H,"EXT"           ; $82
+        .BYTE   'D'+80H,"ATA"           ; $83
+        .BYTE   'I'+80H,"NPUT"          ; $84
+        .BYTE   'D'+80H,"IM"            ; $85
+        .BYTE   'R'+80H,"EAD"           ; $86
+        .BYTE   'L'+80H,"ET"            ; $87
+        .BYTE   'G'+80H,"OTO"           ; $88
+        .BYTE   'R'+80H,"UN"            ; $89
+        .BYTE   'I'+80H,"F"             ; $8A
+        .BYTE   'R'+80H,"ESTORE"        ; $8B
+        .BYTE   'G'+80H,"OSUB"          ; $8C
+        .BYTE   'R'+80H,"ETURN"         ; $8D
+        .BYTE   'R'+80H,"EM"            ; $8E
+        .BYTE   'S'+80H,"TOP"           ; $8F
+        .BYTE   'O'+80H,"UT"            ; $90
+        .BYTE   'O'+80H,"N"             ; $91
+        .BYTE   'N'+80H,"ULL"           ; $92
+        .BYTE   'W'+80H,"AIT"           ; $93
+        .BYTE   'D'+80H,"EF"            ; $94
+        .BYTE   'P'+80H,"OKE"           ; $95
+        .BYTE   'D'+80H,"OKE"           ; $96
+        .BYTE   'T'+80H,"IME" ;time i2c ; $97 ; LIVRE
+        .BYTE   'L'+80H,"INES"          ; $98
+        .BYTE   'C'+80H,"LS"            ; $99
+        .BYTE   'W'+80H,"IDTH"          ; $9A
+        .BYTE   'M'+80H,"ONITOR"        ; $9B
+        .BYTE   'S'+80H,"ET"            ; $9C
+        .BYTE   'R'+80H,"ESET"          ; $9D
+        .BYTE   'P'+80H,"RINT"          ; $9E
+        .BYTE   'C'+80H,"ONT"           ; $9F
+        .BYTE   'L'+80H,"IST"           ; $A0
+        .BYTE   'C'+80H,"LEAR"          ; $A1
+        .BYTE   'C'+80H,"LOAD"          ; $A2
+        .BYTE   'C'+80H,"SAVE"          ; $A3
+        .BYTE   'N'+80H,"EW"            ; $A4
         
 
-        .BYTE   'T'+80H,"AB("
-        .BYTE   'T'+80H,"O"
-        .BYTE   'F'+80H,"N"
-        .BYTE   'S'+80H,"PC("
-        .BYTE   'T'+80H,"HEN"
-        .BYTE   'N'+80H,"OT"
-        .BYTE   'S'+80H,"TEP"
+        .BYTE   'T'+80H,"AB("           ; $A5
+        .BYTE   'T'+80H,"O"             ; $A6
+        .BYTE   'F'+80H,"N"             ; $A7
+        .BYTE   'S'+80H,"PC("           ; $A8
+        .BYTE   'T'+80H,"HEN"           ; $A9
+        .BYTE   'N'+80H,"OT"            ; $AA
+        .BYTE   'S'+80H,"TEP"           ; $AB
 
-        .BYTE   '+'+80H
-        .BYTE   '-'+80H
-        .BYTE   '*'+80H
-        .BYTE   '/'+80H
-        .BYTE   '^'+80H
-        .BYTE   'A'+80H,"ND"
-        .BYTE   'O'+80H,"R"
-        .BYTE   '>'+80H
-        .BYTE   '='+80H
-        .BYTE   '<'+80H
+        .BYTE   '+'+80H                 ; $AC
+        .BYTE   '-'+80H                 ; $AD
+        .BYTE   '*'+80H                 ; $AE
+        .BYTE   '/'+80H                 ; $AF
+        .BYTE   '^'+80H                 ; $B0
+        .BYTE   'A'+80H,"ND"            ; $B1
+        .BYTE   'O'+80H,"R"             ; $B2
+        .BYTE   '>'+80H                 ; $B3
+        .BYTE   '='+80H                 ; $B4
+        .BYTE   '<'+80H                 ; $B5
 
-        .BYTE   'S'+80H,"GN"
-        .BYTE   'I'+80H,"NT"
-        .BYTE   'A'+80H,"BS"
-        .BYTE   'U'+80H,"SR"
-        .BYTE   'F'+80H,"RE"
-        .BYTE   'I'+80H,"NP"
-        .BYTE   'P'+80H,"OS"
-        .BYTE   'S'+80H,"QR"
-        .BYTE   'R'+80H,"ND"
-        .BYTE   'L'+80H,"OG"
-        .BYTE   'E'+80H,"XP"
-        .BYTE   'C'+80H,"OS"
-        .BYTE   'S'+80H,"IN"
-        .BYTE   'T'+80H,"AN"
-        .BYTE   'A'+80H,"TN"
-        .BYTE   'P'+80H,"EEK"
-        .BYTE   'D'+80H,"EEK"
-        .BYTE   'P'+80H,"OINT"
-        .BYTE   'L'+80H,"EN"
-        .BYTE   'S'+80H,"TR$"
-        .BYTE   'V'+80H,"AL"
-        .BYTE   'A'+80H,"SC"
-        .BYTE   'C'+80H,"HR$"
-        .BYTE   'H'+80H,"EX$"
-        .BYTE   'B'+80H,"IN$"
-        .BYTE   'L'+80H,"EFT$"
-        .BYTE   'R'+80H,"IGHT$"
-        .BYTE   'M'+80H,"ID$"
+        .BYTE   'S'+80H,"GN"            ; $B6  FNCTAB
+        .BYTE   'I'+80H,"NT"            ; $B7
+        .BYTE   'A'+80H,"BS"            ; $B8
+        .BYTE   'U'+80H,"SR"            ; $B9
+        .BYTE   'F'+80H,"RE"            ; $BA
+        .BYTE   'I'+80H,"NP"            ; $BB
+        .BYTE   'P'+80H,"OS"            ; $BC
+        .BYTE   'S'+80H,"QR"            ; $BD
+        .BYTE   'R'+80H,"ND"            ; $BE
+        .BYTE   'L'+80H,"OG"            ; $BF
+        .BYTE   'E'+80H,"XP"            ; $C0
+        .BYTE   'C'+80H,"OS"            ; $C1
+        .BYTE   'S'+80H,"IN"            ; $C2
+        .BYTE   'T'+80H,"AN"            ; $C3
+        .BYTE   'A'+80H,"TN"            ; $C4
+        .BYTE   'P'+80H,"EEK"           ; $C5
+        .BYTE   'D'+80H,"EEK"           ; $C6
+        .BYTE   'P'+80H,"OINT"          ; $C7
+        .BYTE   'L'+80H,"EN"            ; $C8
+        .BYTE   'S'+80H,"TR$"           ; $C9
+        .BYTE   'V'+80H,"AL"            ; $CA
+        .BYTE   'A'+80H,"SC"            ; $CB
+        .BYTE   'C'+80H,"HR$"           ; $CC
+        .BYTE   'H'+80H,"EX$"           ; $CD
+        .BYTE   'B'+80H,"IN$"           ; $CE
+        .BYTE   'L'+80H,"EFT$"          ; $CF
+        .BYTE   'R'+80H,"IGHT$"         ; $D0
+        .BYTE   'M'+80H,"ID$"           ; $D1
         .BYTE   80H             ; End of list marker
 
 ; KEYWORD ADDRESS TABLE
 
-WORDTB: .WORD   PEND
-        .WORD   FOR
-        .WORD   NEXT
-        .WORD   DATA
-        .WORD   INPUT
-        .WORD   DIM
-        .WORD   READ
-        .WORD   LET
-        .WORD   GOTO
-        .WORD   RUN
-        .WORD   IF
-        .WORD   RESTOR
-        .WORD   GOSUB
-        .WORD   RETURN
-        .WORD   REM
-        .WORD   STOP
-        .WORD   POUT
-        .WORD   ON
-        .WORD   NULL
-        .WORD   WAIT
-        .WORD   DEF
-        .WORD   POKE
-        .WORD   DOKE
-        .WORD   TIME
-        .WORD   LINES
-        .WORD   CLS
-        .WORD   WIDTH
-        .WORD   MONITR
-        .WORD   PSET
-        .WORD   RESET
-        .WORD   PRINT
-        .WORD   CONT
-        .WORD   LIST
-        .WORD   CLEAR
-        .WORD   EELOAD ; LOAD
-        .WORD   EESAVE ; SAVE
-        .WORD   NEW
+WORDTB: .WORD   PEND            ; $80
+        .WORD   FOR             ; $81
+        .WORD   NEXT            ; $82
+        .WORD   DATA            ; $83
+        .WORD   INPUT           ; $84
+        .WORD   DIM             ; $85
+        .WORD   READ            ; $86
+        .WORD   LET             ; $87
+        .WORD   GOTO            ; $88
+        .WORD   RUN             ; $89
+        .WORD   IF              ; $8A
+        .WORD   RESTOR          ; $8B
+        .WORD   GOSUB           ; $8C
+        .WORD   RETURN          ; $8D
+        .WORD   REM             ; $8E
+        .WORD   STOP            ; $8F
+        .WORD   POUT            ; $90
+        .WORD   ON              ; $91
+        .WORD   NULL            ; $92
+        .WORD   WAIT            ; $93
+        .WORD   DEF             ; $94
+        .WORD   POKE            ; $95
+        .WORD   DOKE            ; $96
+        .WORD   REM             ; $97 ; LIVRE
+        .WORD   LINES           ; $98
+        .WORD   CLS             ; $99
+        .WORD   WIDTH           ; $9A
+        .WORD   MONITR          ; $9B
+        .WORD   PSET            ; $9C
+        .WORD   RESET           ; $9D
+        .WORD   PRINT           ; $9E
+        .WORD   CONT            ; $9F
+        .WORD   LIST            ; $A0
+        .WORD   CLEAR           ; $A1
+        .WORD   EELOAD ; LOAD   ; $A2
+        .WORD   EESAVE ; SAVE   ; $A3
+        .WORD   NEW             ; $A4
         
 
 ; RESERVED WORD TOKEN VALUES
@@ -4342,7 +4345,7 @@ CRNCLP: LD      A,(HL)          ; Get byte
         CP      ' '             ; Is it a space?
         JP      Z,MOVDIR        ; Yes - Copy direct
         LD      B,A             ; Save character
-        CP      '"'             ; Is it a quote?
+        CP      '"'             ; Is it a quote? "
         JP      Z,CPYLIT        ; Yes - Copy literal string
         OR      A               ; Is it end of buffer?
         JP      Z,ENDBUF        ; Yes - End buffer
@@ -5213,7 +5216,7 @@ BADINP: LD      A,(READFG)      ; READ or INPUT?
 
 INPUT:  CALL    IDTEST          ; Test for illegal direct
         LD      A,(HL)          ; Get character after "INPUT"
-        CP      '"'             ; Is there a prompt string?
+        CP      '"'             ; Is there a prompt string? "
         LD      A,0             ; Clear A and leave flags
         LD      (CTLOFG),A      ; Enable output
         JP      NZ,NOPMPT       ; No prompt - get input
@@ -5274,7 +5277,7 @@ ANTVLU: LD      A,(TYPE)        ; Check data type
         CALL    GETCHR          ; Get next character
         LD      D,A             ; Save input character
         LD      B,A             ; Again
-        CP      '"'             ; Start of literal sting?
+        CP      '"'             ; Start of literal sting? "
         JP      Z,STRENT        ; Yes - Create string entry
         LD      A,(READFG)      ; "READ" or "INPUT" ?
         OR      A
@@ -5524,7 +5527,7 @@ FNOFST: LD      B,0             ; Get address of function
         CALL    GETCHR          ; Get next character
         LD      A,C             ; Get adjusted token value
         CP      2*(ZLEFT-ZSGN)-1; Adj' LEFT$,RIGHT$ or MID$ ?
-        JP      C,FNVAL         ; No - Do function
+        JP      C,FNVAL         ; No - Do function (if A<N got FNVAL)
         CALL    OPNPAR          ; Evaluate expression  (X,...
         CALL    CHKSYN          ; Make sure ',' follows
         .BYTE      ','
@@ -6095,7 +6098,7 @@ SVSTAD: INC     HL
         RET
 
 CRTST:  DEC     HL              ; DEC - INCed after
-QTSTR:  LD      B,'"'           ; Terminating quote
+QTSTR:  LD      B,'"'           ; Terminating quote "
         LD      D,B             ; Quote to D
 DTSTR:  PUSH    HL              ; Save start
         LD      C,-1            ; Set counter to -1
@@ -6507,7 +6510,7 @@ MIDNUM: POP     BC              ; Get return address
         LD      B,E             ; Number to B
         RET
 
-INP:    CALL    MAKINT          ; Make it integer A
+INP:    CALL    MAKINT          ; Make it integer A                 
         LD      (INPORT),A      ; Set input port
         CALL    INPSUB          ; Get input from port
         JP      PASSA           ; Return integer A
@@ -7886,9 +7889,6 @@ TSTBIT: PUSH    AF              ; Save bit mask
 OUTNCR: CALL    OUTC            ; Output character in A
         JP      PRNTCRLF        ; Output CRLF
 
-
-
-
 EELOAD:
         PUSH AF
         PUSH HL
@@ -7930,143 +7930,6 @@ EESAVE:
         POP AF
         RET
 
-TIME:
-        PUSH AF
-        PUSH HL
-        PUSH DE
-        PUSH BC
-        ; Hora
-        LD A, $64 ; To read is equal address +1
-        LD C, $10 ; I2C open, device id in A
-        RST $30 
-    
-        LD A, $20  ; register
-        LD C, $13
-        RST $30 ;I2C Write, value in A
-        
-        LD A, $64+1 ; To read is equal address +1
-        LD C, $10 ; I2C open, device id in A
-        RST $30 
-        
-        LD C, $12 ; I2C Read, return in A
-        RST $30 
-        
-        PUSH AF
-        
-        LD C, $11 ; I2C Close
-        RST $30  
-        
-        POP AF
-        
-        CALL lcd_print_data ; send A to display
-        LD A, ':'
-        CALL display ; send
-        
-        
-        ;Minutos
-        LD A, $64 ; To read is equal address +1
-        LD C, $10 ; I2C open, device id in A
-        RST $30 
-        
-        LD A, $10  ; register
-        LD C, $13
-        RST $30 ;I2C Write, value in A
-        
-        LD A, $64+1 ; To read is equal address +1
-        LD C, $10 ; I2C open, device id in A
-        RST $30 
-        
-        LD C, $12 ; I2C Read, return in A
-        RST $30 
-        
-        PUSH AF
-        
-        LD C, $11 ; I2C Close
-        RST $30  
-        
-        POP AF
-        
-        CALL lcd_print_data ; send A to display
-        LD A, ':'
-        CALL display ; send
-        
-        
-        ;segundos
-        LD A, $64 ; To read is equal address +1
-        LD C, $10 ; I2C open, device id in A
-        RST $30 
-        
-        LD A, $00  ; register
-        LD C, $13
-        RST $30 ;I2C Write, value in A
-        
-        LD A, $64+1 ; To read is equal address +1
-        LD C, $10 ; I2C open, device id in A
-        RST $30 
-        
-        LD C, $12 ; I2C Read, return in A
-        RST $30 
-        
-        PUSH AF
-        
-        LD C, $11 ; I2C Close
-        RST $30  
-        
-        POP AF
-        
-        CALL lcd_print_data ; send A to display
-
-        LD C, $0C
-        RST $30 ;  show buffer to LCD
-
-        LD A, CR ; new line
-        CALL MONOUT
-
-        POP BC
-        POP DE
-        POP HL
-        POP AF
-        RET
-
-
-
-lcd_print_data:
-	push bc
-        push af
-        ld b, a
-        and 11110000b
-        rlca
-        rlca
-        rlca
-        rlca
-        add a, '0'
-        cp '9' + 1
-        jr c, print_12
-        add a, 'A' - '0' - 10
-print_12:
-        CALL display ; send to lcd
-        ld a, b
-        and 00001111b
-        add a, '0'
-        cp '9' + 1
-        jr c, print_22
-        add a, 'A' - '0' - 10
-print_22:
-        CALL display ; send to lcd
-        pop bc
-        pop af
-        ret
-    
-display:
-        PUSH AF
-        PUSH BC
-        
-        LD C, $09
-        RST $30 ; send to lcd
-        
-        POP BC
-        POP AF
-        RET
 
 
 .end
@@ -8076,351 +7939,351 @@ display:
 
 ; +++ segments +++
 
-#CODE          = $0000 =     0,  size = $7D2B = 32043
+#CODE          = $0000 =     0,  size = $7C71 = 31857
 
 ; +++ global symbols +++
 
-ABPASS         = $702B = 28715          basicV2.asm:2413
-ABS            = $7677 = 30327          basicV2.asm:3436
+ABPASS         = $7007 = 28679          basicV2.asm:2414
+ABS            = $7653 = 30291          basicV2.asm:3437
 AC2HEX1        = $0234 =   564          Keyboard.asm:58
 AC2HEX2        = $0236 =   566          Keyboard.asm:61
 AC2HEX3        = $0242 =   578          Keyboard.asm:67
-ACCSUM         = $6894 = 26772          basicV2.asm:1315 (unused)
-ACPASS         = $702A = 28714          basicV2.asm:2412
-ADD30          = $7B89 = 31625          basicV2.asm:4184
-ADD301         = $7B99 = 31641          basicV2.asm:4195
-ADDEXP         = $7610 = 30224          basicV2.asm:3371
-ADDIG          = $77B6 = 30646          basicV2.asm:3659
+ACCSUM         = $6870 = 26736          basicV2.asm:1316 (unused)
+ACPASS         = $7006 = 28678          basicV2.asm:2413
+ADD30          = $7B65 = 31589          basicV2.asm:4185
+ADD301         = $7B75 = 31605          basicV2.asm:4196
+ADDEXP         = $75EC = 30188          basicV2.asm:3372
+ADDIG          = $7792 = 30610          basicV2.asm:3660
 ADDOFFSET      = $0292 =   658          Keyboard.asm:128
-ADDPHL         = $73FD = 29693          basicV2.asm:3018
-ADDR           = $F425 = 62501          bootV2.asm:133
-ADDR_FROM      = $F427 = 62503          bootV2.asm:134
-ADDR_SIZE      = $F42B = 62507          bootV2.asm:136
-ADDR_TO        = $F429 = 62505          bootV2.asm:135
-ALLFOL         = $72F9 = 29433          basicV2.asm:2860
-ANTVLU         = $6B94 = 27540          basicV2.asm:1722
-API            = $00C8 =   200          bootV2.asm:208 (unused)
+ADDPHL         = $73D9 = 29657          basicV2.asm:3019
+ADDR           = $F425 = 62501          bootV2.asm:135
+ADDR_FROM      = $F427 = 62503          bootV2.asm:136
+ADDR_SIZE      = $F42B = 62507          bootV2.asm:138
+ADDR_TO        = $F429 = 62505          bootV2.asm:137
+ALLFOL         = $72D5 = 29397          basicV2.asm:2861
+ANTVLU         = $6B70 = 27504          basicV2.asm:1723
+API            = $00C8 =   200          bootV2.asm:210 (unused)
 APIHandler     = $0142 =   322          API.asm:40
 APITable       = $0154 =   340          API.asm:60
-ARET           = $7B07 = 31495          basicV2.asm:4099 (unused)
-ARETN          = $7C52 = 31826          basicV2.asm:4327 (unused)
-ARLDSV         = $6F4B = 28491          basicV2.asm:2268
+ARET           = $7AE3 = 31459          basicV2.asm:4100 (unused)
+ARETN          = $7C2E = 31790          basicV2.asm:4328 (unused)
+ARLDSV         = $6F27 = 28455          basicV2.asm:2269
 ARREND         = $80DA = 32986          basicV2.asm:88
-ARRLP          = $71C4 = 29124          basicV2.asm:2651
-ASC            = $72CA = 29386          basicV2.asm:2830
+ARRLP          = $71A0 = 29088          basicV2.asm:2652
+ASC            = $72A6 = 29350          basicV2.asm:2831
 ASC2HEX        = $022A =   554          Keyboard.asm:53
-ASCTFP         = $7759 = 30553          basicV2.asm:3605
-ASPCS          = $6AF6 = 27382          basicV2.asm:1645
-ATN            = $7ABB = 31419          basicV2.asm:4070
-ATN1           = $7AD8 = 31448          basicV2.asm:4082
-ATNTAB         = $7AE2 = 31458          basicV2.asm:4087
-ATOH           = $68CF = 26831          basicV2.asm:1348
-B1200          = $0080 =   128          bootV2.asm:91 (unused)
-B2400          = $003F =    63          bootV2.asm:92 (unused)
-B300           = $0220 =   544          bootV2.asm:90 (unused)
-B4800          = $001B =    27          bootV2.asm:93
-B9600          = $000B =    11          bootV2.asm:94 (unused)
-BADINP         = $6B1B = 27419          basicV2.asm:1657
-BAKSTK         = $6354 = 25428          basicV2.asm:521
-BAKTMP         = $72AA = 29354          basicV2.asm:2808
-BASIC          = $6000 = 24576          bootV2.asm:81
-BASIC_W        = $6002 = 24578          bootV2.asm:82
+ASCTFP         = $7735 = 30517          basicV2.asm:3606
+ASPCS          = $6AD2 = 27346          basicV2.asm:1646
+ATN            = $7A97 = 31383          basicV2.asm:4071
+ATN1           = $7AB4 = 31412          basicV2.asm:4083
+ATNTAB         = $7ABE = 31422          basicV2.asm:4088
+ATOH           = $68AB = 26795          basicV2.asm:1349
+B1200          = $0080 =   128          bootV2.asm:93 (unused)
+B2400          = $003F =    63          bootV2.asm:94 (unused)
+B300           = $0220 =   544          bootV2.asm:92 (unused)
+B4800          = $001B =    27          bootV2.asm:95
+B9600          = $000B =    11          bootV2.asm:96 (unused)
+BADINP         = $6AF7 = 27383          basicV2.asm:1658
+BAKSTK         = $6330 = 25392          basicV2.asm:522
+BAKTMP         = $7286 = 29318          basicV2.asm:2809
+BASIC          = $6000 = 24576          bootV2.asm:83
+BASIC_W        = $6002 = 24578          bootV2.asm:84
 BASTXT         = $805E = 32862          basicV2.asm:64
-BAUD           = $F430 = 62512          bootV2.asm:140
-BCDEFP         = $769E = 30366          basicV2.asm:3463
+BAUD           = $F430 = 62512          bootV2.asm:142
+BCDEFP         = $767A = 30330          basicV2.asm:3464
 BCRLF          = $0FBF =  4031          Monitor.asm:431
 BFREE          = $60AD = 24749          basicV2.asm:217
-BIN            = $7BDB = 31707          basicV2.asm:4244
-BIN2           = $7BE1 = 31713          basicV2.asm:4246 (unused)
-BINERR         = $7C38 = 31800          basicV2.asm:4307
-BINIT          = $7C17 = 31767          basicV2.asm:4282
-BINTFP         = $7C0D = 31757          basicV2.asm:4278
+BIN            = $7BB7 = 31671          basicV2.asm:4245
+BIN2           = $7BBD = 31677          basicV2.asm:4247 (unused)
+BINERR         = $7C14 = 31764          basicV2.asm:4308
+BINIT          = $7BF3 = 31731          basicV2.asm:4283
+BINTFP         = $7BE9 = 31721          basicV2.asm:4279
 BITIM1         = $0D7E =  3454          SoftSerial.asm:172
 BITIME         = $0D79 =  3449          SoftSerial.asm:169
-BITOUT         = $7BF5 = 31733          basicV2.asm:4258
-BITOUT2        = $7BF9 = 31737          basicV2.asm:4261
-BKSP           = $0008 =     8          bootV2.asm:39
+BITOUT         = $7BD1 = 31697          basicV2.asm:4259
+BITOUT2        = $7BD5 = 31701          basicV2.asm:4262
+BKSP           = $0008 =     8          bootV2.asm:41
 BN             = $0028 =    40          basicV2.asm:122
-BNORM          = $745D = 29789          basicV2.asm:3077
-BNRMLP         = $7460 = 29792          basicV2.asm:3080
+BNORM          = $7439 = 29753          basicV2.asm:3078
+BNRMLP         = $743C = 29756          basicV2.asm:3081
 BREAK_CONTINUE = $1191 =  4497          Monitor.asm:815
 BREAK_CONTINUE_LOOP = $1197 =  4503          Monitor.asm:818
-BRK            = $6846 = 26694          basicV2.asm:1270
+BRK            = $6822 = 26658          basicV2.asm:1271
 BRKFLG         = $804D = 32845          basicV2.asm:57
 BRKLIN         = $80CE = 32974          basicV2.asm:82
-BRKMSG         = $634E = 25422          basicV2.asm:519
+BRKMSG         = $632A = 25386          basicV2.asm:520
 BRKRET         = $60A7 = 24743          basicV2.asm:214
 BS             = $0010 =    16          basicV2.asm:110
-BSERR          = $6F7E = 28542          basicV2.asm:2299
+BSERR          = $6F5A = 28506          basicV2.asm:2300
 BUFFER         = $8061 = 32865          basicV2.asm:65
-BYT2ASC        = $7B80 = 31616          basicV2.asm:4179
+BYT2ASC        = $7B5C = 31580          basicV2.asm:4180
 BYTASC         = $1227 =  4647          Monitor.asm:925
 BYTOUT         = $1219 =  4633          Monitor.asm:899
-BYTSFT         = $7595 = 30101          basicV2.asm:3288
+BYTSFT         = $7571 = 30065          basicV2.asm:3289
 Boucle16X      = $05D1 =  1489          LCDGraphic.asm:643
 Boucle32X      = $05C3 =  1475          LCDGraphic.asm:632
 BufferImage128x64 = $01B6 =   438          API.asm:134
-CFEVAL         = $6EE1 = 28385          basicV2.asm:2199
-CHARTY         = $6E8F = 28303          basicV2.asm:2155
-CHEKFN         = $70C2 = 28866          basicV2.asm:2504
-CHKBIN         = $7C2A = 31786          basicV2.asm:4297
+CFEVAL         = $6EBD = 28349          basicV2.asm:2200
+CHARTY         = $6E6B = 28267          basicV2.asm:2156
+CHEKFN         = $709E = 28830          basicV2.asm:2505
+CHKBIN         = $7C06 = 31750          basicV2.asm:4298
 CHKKEY         = $0245 =   581          Keyboard.asm:74
-CHKLTR         = $68A1 = 26785          basicV2.asm:1324
-CHKSTK         = $6388 = 25480          basicV2.asm:558
+CHKLTR         = $687D = 26749          basicV2.asm:1325
+CHKSTK         = $6364 = 25444          basicV2.asm:559
 CHKSUM         = $804A = 32842          basicV2.asm:55
-CHKSYN         = $6679 = 26233          basicV2.asm:994
-CHKTYP         = $6C75 = 27765          basicV2.asm:1837
-CHR            = $72DB = 29403          basicV2.asm:2842
-CLEAR          = $68F4 = 26868          basicV2.asm:1372
-CLOTST         = $66AE = 26286          basicV2.asm:1026
-CLREG          = $64DD = 25821          basicV2.asm:766
-CLRPTR         = $64B8 = 25784          basicV2.asm:746
-CLS            = $7B0A = 31498          basicV2.asm:4104
-CMPFP          = $76E7 = 30439          basicV2.asm:3521
-CMPLG1         = $6DF5 = 28149          basicV2.asm:2061
-CMPLOG         = $6DF3 = 28147          basicV2.asm:2060
-CMPNUM         = $76CD = 30413          basicV2.asm:3504
-CMPRES         = $6E37 = 28215          basicV2.asm:2109
-CMPSTR         = $6E1F = 28191          basicV2.asm:2089
+CHKSYN         = $6655 = 26197          basicV2.asm:995
+CHKTYP         = $6C51 = 27729          basicV2.asm:1838
+CHR            = $72B7 = 29367          basicV2.asm:2843
+CLEAR          = $68D0 = 26832          basicV2.asm:1373
+CLOTST         = $668A = 26250          basicV2.asm:1027
+CLREG          = $64B9 = 25785          basicV2.asm:767
+CLRPTR         = $6494 = 25748          basicV2.asm:747
+CLS            = $7AE6 = 31462          basicV2.asm:4105
+CMPFP          = $76C3 = 30403          basicV2.asm:3522
+CMPLG1         = $6DD1 = 28113          basicV2.asm:2062
+CMPLOG         = $6DCF = 28111          basicV2.asm:2061
+CMPNUM         = $76A9 = 30377          basicV2.asm:3505
+CMPRES         = $6E13 = 28179          basicV2.asm:2110
+CMPSTR         = $6DFB = 28155          basicV2.asm:2090
 CN             = $0020 =    32          basicV2.asm:118
-CNVNUM         = $7765 = 30565          basicV2.asm:3611
+CNVNUM         = $7741 = 30529          basicV2.asm:3612
 COLD           = $6000 = 24576          basicV2.asm:126 (unused)
 COMMAN         = $8043 = 32835          basicV2.asm:50
-COMPL          = $74BD = 29885          basicV2.asm:3151
-CONCAT         = $723F = 29247          basicV2.asm:2741
-CONEXP         = $7795 = 30613          basicV2.asm:3635
-CONPOS         = $745A = 29786          basicV2.asm:3075
-CONT           = $6879 = 26745          basicV2.asm:1298
+COMPL          = $7499 = 29849          basicV2.asm:3152
+CONCAT         = $721B = 29211          basicV2.asm:2742
+CONEXP         = $7771 = 30577          basicV2.asm:3636
+CONPOS         = $7436 = 29750          basicV2.asm:3076
+CONT           = $6855 = 26709          basicV2.asm:1299
 CONTAD         = $80D4 = 32980          basicV2.asm:85
-CONVAR         = $6D60 = 28000          basicV2.asm:1961
+CONVAR         = $6D3C = 27964          basicV2.asm:1962
 CONV_A_HEX     = $12C5 =  4805          Utils.asm:7
 CONV_A_HEX_NYBASC = $12CE =  4814          Utils.asm:17
 COPY           = $6020 = 24608          basicV2.asm:143
-COS            = $7A3F = 31295          basicV2.asm:4018
-COUNT          = $671E = 26398          basicV2.asm:1092
-CPDEHL         = $6673 = 26227          basicV2.asm:987
-CPYLIT         = $65AF = 26031          basicV2.asm:884
-CR             = $000D =    13          bootV2.asm:43
-CRARLP         = $6F9E = 28574          basicV2.asm:2319
-CREARY         = $6F83 = 28547          basicV2.asm:2302
-CRESTR         = $69F3 = 27123          basicV2.asm:1511
-CRNCLP         = $6510 = 25872          basicV2.asm:792
-CRTMST         = $70FB = 28923          basicV2.asm:2537
-CRTST          = $7107 = 28935          basicV2.asm:2548
-CRTSTE         = $711D = 28957          basicV2.asm:2562
-CRUNCH         = $6507 = 25863          basicV2.asm:788
-CS             = $000C =    12          bootV2.asm:42
+COS            = $7A1B = 31259          basicV2.asm:4019
+COUNT          = $66FA = 26362          basicV2.asm:1093
+CPDEHL         = $664F = 26191          basicV2.asm:988
+CPYLIT         = $658B = 25995          basicV2.asm:885
+CR             = $000D =    13          bootV2.asm:45
+CRARLP         = $6F7A = 28538          basicV2.asm:2320
+CREARY         = $6F5F = 28511          basicV2.asm:2303
+CRESTR         = $69CF = 27087          basicV2.asm:1512
+CRNCLP         = $64EC = 25836          basicV2.asm:793
+CRTMST         = $70D7 = 28887          basicV2.asm:2538
+CRTST          = $70E3 = 28899          basicV2.asm:2549
+CRTSTE         = $70F9 = 28921          basicV2.asm:2563
+CRUNCH         = $64E3 = 25827          basicV2.asm:789
+CS             = $000C =    12          bootV2.asm:44
 CSTART         = $6011 = 24593          basicV2.asm:136
 CSUMERR        = $1594 =  5524          Strings.asm:51
 CTLOFG         = $8045 = 32837          basicV2.asm:52
-CTRLC          = $0003 =     3          bootV2.asm:37
-CTRLG          = $0007 =     7          bootV2.asm:38
-CTRLO          = $000F =    15          bootV2.asm:44
-CTRLQ          = $0011 =    17          bootV2.asm:45
-CTRLR          = $0012 =    18          bootV2.asm:46
-CTRLS          = $0013 =    19          bootV2.asm:47
-CTRLU          = $0015 =    21          bootV2.asm:48
+CTRLC          = $0003 =     3          bootV2.asm:39
+CTRLG          = $0007 =     7          bootV2.asm:40
+CTRLO          = $000F =    15          bootV2.asm:46
+CTRLQ          = $0011 =    17          bootV2.asm:47
+CTRLR          = $0012 =    18          bootV2.asm:48
+CTRLS          = $0013 =    19          bootV2.asm:49
+CTRLU          = $0015 =    21          bootV2.asm:50
 CUROPR         = $80C5 = 32965          basicV2.asm:76
 CURPOS         = $80AB = 32939          basicV2.asm:67
 Clear8x8       = $065C =  1628          LCDGraphic.asm:836
 ClearDisplayBuffer = $01C1 =   449          API.asm:143
 ClearDisplayBufferEnd = $01D2 =   466          API.asm:152
-DATA           = $699A = 27034          basicV2.asm:1463
-DATABYTE       = $F420 = 62496          bootV2.asm:128
+DATA           = $6976 = 26998          basicV2.asm:1464
+DATABYTE       = $F420 = 62496          bootV2.asm:130
 DATFLG         = $80AE = 32942          basicV2.asm:70
 DATLIN         = $80C9 = 32969          basicV2.asm:78
-DATSNR         = $63A5 = 25509          basicV2.asm:578
-DCBCDE         = $771E = 30494          basicV2.asm:3564
+DATSNR         = $6381 = 25473          basicV2.asm:579
+DCBCDE         = $76FA = 30458          basicV2.asm:3565
 DD             = $0012 =    18          basicV2.asm:111
-DDERR          = $63B4 = 25524          basicV2.asm:586
-DEEK           = $7B26 = 31526          basicV2.asm:4119
-DEF            = $703F = 28735          basicV2.asm:2425
-DEFSIZ         = $6FA6 = 28582          basicV2.asm:2323
-DEINT          = $68B5 = 26805          basicV2.asm:1335
-DEL            = $007F =   127          bootV2.asm:50
+DDERR          = $6390 = 25488          basicV2.asm:587
+DEEK           = $7B02 = 31490          basicV2.asm:4120
+DEF            = $701B = 28699          basicV2.asm:2426
+DEFSIZ         = $6F82 = 28546          basicV2.asm:2324
+DEINT          = $6891 = 26769          basicV2.asm:1336
+DEL            = $007F =   127          bootV2.asm:52
 DELAY_MS       = $05AC =  1452          LCDGraphic.asm:600
 DELAY_US       = $05A9 =  1449          LCDGraphic.asm:598
-DELCHR         = $65DF = 26079          basicV2.asm:914
+DELCHR         = $65BB = 26043          basicV2.asm:915
 DELETE_CHAR    = $034D =   845          LCDGraphic.asm:123
 DELON1         = $0CFA =  3322          SoftSerial.asm:33
 DELON2         = $0CFC =  3324          SoftSerial.asm:34
 DELONE         = $0CF1 =  3313          SoftSerial.asm:28 (unused)
-DEPINT         = $68AF = 26799          basicV2.asm:1333
-DETHL4         = $76AD = 30381          basicV2.asm:3475
-DETHLB         = $76AF = 30383          basicV2.asm:3476
-DIGTXT         = $785F = 30815          basicV2.asm:3757
-DIM            = $6E61 = 28257          basicV2.asm:2135
-DIMRET         = $6E58 = 28248          basicV2.asm:2130
-DINPOS         = $66A8 = 26280          basicV2.asm:1021
-DISPLAY        = $F000 = 61440          bootV2.asm:126
+DEPINT         = $688B = 26763          basicV2.asm:1334
+DETHL4         = $7689 = 30345          basicV2.asm:3476
+DETHLB         = $768B = 30347          basicV2.asm:3477
+DIGTXT         = $783B = 30779          basicV2.asm:3758
+DIM            = $6E3D = 28221          basicV2.asm:2136
+DIMRET         = $6E34 = 28212          basicV2.asm:2131
+DINPOS         = $6684 = 26244          basicV2.asm:1022
+DISPLAY        = $F000 = 61440          bootV2.asm:128
 DISPLAY_SCROLL_UP = $02E6 =   742          LCDGraphic.asm:49
-DIV            = $75A6 = 30118          basicV2.asm:3299
+DIV            = $7582 = 30082          basicV2.asm:3300
 DIV1           = $800A = 32778          basicV2.asm:40
-DIV10          = $759A = 30106          basicV2.asm:3294
+DIV10          = $7576 = 30070          basicV2.asm:3295
 DIV2           = $800E = 32782          basicV2.asm:41
 DIV3           = $8012 = 32786          basicV2.asm:42
 DIV4           = $8015 = 32789          basicV2.asm:43
-DIVLP          = $75CD = 30157          basicV2.asm:3323
+DIVLP          = $75A9 = 30121          basicV2.asm:3324
 DIVSUP         = $8009 = 32777          basicV2.asm:39
 DLINE1         = $0F89 =  3977          Monitor.asm:387
 DLINE2         = $0F99 =  3993          Monitor.asm:400
-DOAGN          = $64F6 = 25846          basicV2.asm:779
-DOCOM          = $6AC7 = 27335          basicV2.asm:1621
-DODEL          = $65BF = 26047          basicV2.asm:898
-DOEBIT         = $789F = 30879          basicV2.asm:3800
-DOFN           = $706C = 28780          basicV2.asm:2453
-DOKE           = $7B31 = 31537          basicV2.asm:4127
-DONULL         = $6AB5 = 27317          basicV2.asm:1610
-DOSPC          = $6AF1 = 27377          basicV2.asm:1642
+DOAGN          = $64D2 = 25810          basicV2.asm:780
+DOCOM          = $6AA3 = 27299          basicV2.asm:1622
+DODEL          = $659B = 26011          basicV2.asm:899
+DOEBIT         = $787B = 30843          basicV2.asm:3801
+DOFN           = $7048 = 28744          basicV2.asm:2454
+DOKE           = $7B0D = 31501          basicV2.asm:4128
+DONULL         = $6A91 = 27281          basicV2.asm:1611
+DOSPC          = $6ACD = 27341          basicV2.asm:1643
 DOT            = $0FA5 =  4005          Monitor.asm:406
-DOTAB          = $6ADE = 27358          basicV2.asm:1632
+DOTAB          = $6ABA = 27322          basicV2.asm:1633
 DPLAY1         = $0F58 =  3928          Monitor.asm:352
 DPLAY2         = $0F65 =  3941          Monitor.asm:361
 DPLAY3         = $0F6C =  3948          Monitor.asm:366
 DPLINE         = $0F7A =  3962          Monitor.asm:376
-DPOINT         = $7791 = 30609          basicV2.asm:3633
+DPOINT         = $776D = 30573          basicV2.asm:3634
 DSPLAY         = $0F42 =  3906          Monitor.asm:340
-DTSTR          = $710B = 28939          basicV2.asm:2551
-DVBCDE         = $75A8 = 30120          basicV2.asm:3301
+DTSTR          = $70E7 = 28903          basicV2.asm:2552
+DVBCDE         = $7584 = 30084          basicV2.asm:3302
 DZ             = $0014 =    20          basicV2.asm:112
-DZERR          = $63AE = 25518          basicV2.asm:582
+DZERR          = $638A = 25482          basicV2.asm:583
 DisplayImage128x64 = $01A9 =   425          API.asm:125
 Div_HL_D       = $1311 =  4881          Utils.asm:112
-ECHDEL         = $65D3 = 26067          basicV2.asm:907
-EDIGIT         = $77D8 = 30680          basicV2.asm:3682
-EELOAD         = $7C61 = 31841          basicV2.asm:4343
-EESAVE         = $7C7B = 31867          basicV2.asm:4364
-ENDBUF         = $65B6 = 26038          basicV2.asm:890
-ENDCON         = $77A4 = 30628          basicV2.asm:3645
-ENDDIM         = $7005 = 28677          basicV2.asm:2392
-ENDINP         = $6AA6 = 27302          basicV2.asm:1604
-ENDNAM         = $6E83 = 28291          basicV2.asm:2151
-ENDPRG         = $6855 = 26709          basicV2.asm:1281
-ENFMEM         = $6391 = 25489          basicV2.asm:564
-ERRIN          = $63DF = 25567          basicV2.asm:608
+ECHDEL         = $65AF = 26031          basicV2.asm:908
+EDIGIT         = $77B4 = 30644          basicV2.asm:3683
+EELOAD         = $7C3D = 31805          basicV2.asm:4341
+EESAVE         = $7C57 = 31831          basicV2.asm:4362
+ENDBUF         = $6592 = 26002          basicV2.asm:891
+ENDCON         = $7780 = 30592          basicV2.asm:3646
+ENDDIM         = $6FE1 = 28641          basicV2.asm:2393
+ENDINP         = $6A82 = 27266          basicV2.asm:1605
+ENDNAM         = $6E5F = 28255          basicV2.asm:2152
+ENDPRG         = $6831 = 26673          basicV2.asm:1282
+ENFMEM         = $636D = 25453          basicV2.asm:565
+ERRIN          = $63BB = 25531          basicV2.asm:609
 ERRLIN         = $80D2 = 32978          basicV2.asm:84
-ERRMSG         = $633C = 25404          basicV2.asm:515
-ERROR          = $63BF = 25535          basicV2.asm:594
-ERRORS         = $62B2 = 25266          basicV2.asm:444
+ERRMSG         = $6318 = 25368          basicV2.asm:516
+ERROR          = $639B = 25499          basicV2.asm:595
+ERRORS         = $628E = 25230          basicV2.asm:445
 ERR_JAM        = $0001 =     1          I2C.asm:98 (unused)
 ERR_NOACK      = $0002 =     2          I2C.asm:99
 ERR_NONE       = $0000 =     0          I2C.asm:97 (unused)
 ERR_TOUT       = $0003 =     3          I2C.asm:100
-ESC            = $001B =    27          bootV2.asm:49
-EVAL           = $6C82 = 27778          basicV2.asm:1845
-EVAL1          = $6C85 = 27781          basicV2.asm:1847
-EVAL2          = $6C8E = 27790          basicV2.asm:1851
-EVAL3          = $6C91 = 27793          basicV2.asm:1852
-EVLPAR         = $6D47 = 27975          basicV2.asm:1947
-EVNOT          = $6E41 = 28225          basicV2.asm:2117
-EXCUTE         = $67E3 = 26595          basicV2.asm:1203
-EXP            = $7939 = 31033          basicV2.asm:3887
-EXPLP          = $7783 = 30595          basicV2.asm:3625
-EXPTAB         = $7979 = 31097          basicV2.asm:3915
-EXPTEN         = $78B1 = 30897          basicV2.asm:3810
-EXTIG          = $6BF0 = 27632          basicV2.asm:1770
-FANDT          = $6C1A = 27674          basicV2.asm:1788
+ESC            = $001B =    27          bootV2.asm:51
+EVAL           = $6C5E = 27742          basicV2.asm:1846
+EVAL1          = $6C61 = 27745          basicV2.asm:1848
+EVAL2          = $6C6A = 27754          basicV2.asm:1852
+EVAL3          = $6C6D = 27757          basicV2.asm:1853
+EVLPAR         = $6D23 = 27939          basicV2.asm:1948
+EVNOT          = $6E1D = 28189          basicV2.asm:2118
+EXCUTE         = $67BF = 26559          basicV2.asm:1204
+EXP            = $7915 = 30997          basicV2.asm:3888
+EXPLP          = $775F = 30559          basicV2.asm:3626
+EXPTAB         = $7955 = 31061          basicV2.asm:3916
+EXPTEN         = $788D = 30861          basicV2.asm:3811
+EXTIG          = $6BCC = 27596          basicV2.asm:1771
+FANDT          = $6BF6 = 27638          basicV2.asm:1789
 FC             = $0008 =     8          basicV2.asm:106
-FCERR          = $68CA = 26826          basicV2.asm:1345
-FDTLP          = $6C01 = 27649          basicV2.asm:1772
+FCERR          = $68A6 = 26790          basicV2.asm:1346
+FDTLP          = $6BDD = 27613          basicV2.asm:1773
 FILEOK         = $1582 =  5506          Strings.asm:50
-FINDEL         = $6FE1 = 28641          basicV2.asm:2364
-FLGDIF         = $765D = 30301          basicV2.asm:3419
-FLGREL         = $7664 = 30308          basicV2.asm:3425
+FINDEL         = $6FBD = 28605          basicV2.asm:2365
+FLGDIF         = $7639 = 30265          basicV2.asm:3420
+FLGREL         = $7640 = 30272          basicV2.asm:3426
 FNARG          = $80E0 = 32992          basicV2.asm:91
-FNCTAB         = $60FE = 24830          basicV2.asm:227
-FNDARY         = $6F51 = 28497          basicV2.asm:2272
-FNDELP         = $6FE6 = 28646          basicV2.asm:2369
-FNDEND         = $648B = 25739          basicV2.asm:709
-FNDNUM         = $73CE = 29646          basicV2.asm:2992
-FNDTOK         = $66FD = 26365          basicV2.asm:1072
-FNDVAR         = $6EC8 = 28360          basicV2.asm:2183
-FNDWRD         = $653A = 25914          basicV2.asm:812
-FNOFST         = $6D71 = 28017          basicV2.asm:1971
+FNCTAB         = $60DA = 24794          basicV2.asm:228
+FNDARY         = $6F2D = 28461          basicV2.asm:2273
+FNDELP         = $6FC2 = 28610          basicV2.asm:2370
+FNDEND         = $6467 = 25703          basicV2.asm:710
+FNDNUM         = $73AA = 29610          basicV2.asm:2993
+FNDTOK         = $66D9 = 26329          basicV2.asm:1073
+FNDVAR         = $6EA4 = 28324          basicV2.asm:2184
+FNDWRD         = $6516 = 25878          basicV2.asm:813
+FNOFST         = $6D4D = 27981          basicV2.asm:1972
 FNRGNM         = $80DE = 32990          basicV2.asm:90
-FNTHR          = $6ED6 = 28374          basicV2.asm:2191
-FNVAL          = $6D98 = 28056          basicV2.asm:1993
-FOPRND         = $6CBA = 27834          basicV2.asm:1873
-FOR            = $674A = 26442          basicV2.asm:1114
+FNTHR          = $6EB2 = 28338          basicV2.asm:2192
+FNVAL          = $6D74 = 28020          basicV2.asm:1994
+FOPRND         = $6C96 = 27798          basicV2.asm:1874
+FOR            = $6726 = 26406          basicV2.asm:1115
 FORFLG         = $80CB = 32971          basicV2.asm:79
-FORFND         = $677A = 26490          basicV2.asm:1142
-FORSLP         = $675E = 26462          basicV2.asm:1123
-FPADD          = $740C = 29708          basicV2.asm:3026
-FPBCDE         = $7693 = 30355          basicV2.asm:3455
+FORFND         = $6756 = 26454          basicV2.asm:1143
+FORSLP         = $673A = 26426          basicV2.asm:1124
+FPADD          = $73E8 = 29672          basicV2.asm:3027
+FPBCDE         = $766F = 30319          basicV2.asm:3456
 FPEXP          = $80E7 = 32999          basicV2.asm:93
-FPINT          = $76FA = 30458          basicV2.asm:3541
-FPMULT         = $7547 = 30023          basicV2.asm:3237
+FPINT          = $76D6 = 30422          basicV2.asm:3542
+FPMULT         = $7523 = 29987          basicV2.asm:3238
 FPREG          = $80E4 = 32996          basicV2.asm:92
-FPROND         = $74A4 = 29860          basicV2.asm:3127
-FPSINT         = $68A9 = 26793          basicV2.asm:1331
-FPTHL          = $76AA = 30378          basicV2.asm:3474
-FRE            = $7009 = 28681          basicV2.asm:2395
-FRENUM         = $7025 = 28709          basicV2.asm:2407
-FRMEVL         = $6D63 = 28003          basicV2.asm:1962
-GARBGE         = $718C = 29068          basicV2.asm:2624
-GARBLP         = $718F = 29071          basicV2.asm:2625
+FPROND         = $7480 = 29824          basicV2.asm:3128
+FPSINT         = $6885 = 26757          basicV2.asm:1332
+FPTHL          = $7686 = 30342          basicV2.asm:3475
+FRE            = $6FE5 = 28645          basicV2.asm:2396
+FRENUM         = $7001 = 28673          basicV2.asm:2408
+FRMEVL         = $6D3F = 27967          basicV2.asm:1963
+GARBGE         = $7168 = 29032          basicV2.asm:2625
+GARBLP         = $716B = 29035          basicV2.asm:2626
 GETBT1         = $0B44 =  2884          LoaderIntel.asm:102
 GETBT2         = $0B58 =  2904          LoaderIntel.asm:115
 GETBYT         = $0B3A =  2874          LoaderIntel.asm:97
-GETCH          = $F434 = 62516          bootV2.asm:142
-GETCHR         = $6803 = 26627          basicV2.asm:1223
+GETCH          = $F434 = 62516          bootV2.asm:144
+GETCHR         = $67DF = 26591          basicV2.asm:1224
 GETCHR_KEYBOARD = $01F0 =   496          Keyboard.asm:7
-GETCMD         = $6403 = 25603          basicV2.asm:626
-GETHEX         = $7BB6 = 31670          basicV2.asm:4217
-GETINP         = $7B08 = 31496          basicV2.asm:4101
-GETINT         = $73D1 = 29649          basicV2.asm:2993
-GETLEN         = $72BF = 29375          basicV2.asm:2822
-GETLIN         = $65F0 = 26096          basicV2.asm:922
-GETLN          = $68D0 = 26832          basicV2.asm:1349
-GETNUM         = $6C70 = 27760          basicV2.asm:1834
-GETNXT         = $6555 = 25941          basicV2.asm:827
+GETCMD         = $63DF = 25567          basicV2.asm:627
+GETHEX         = $7B92 = 31634          basicV2.asm:4218
+GETINP         = $7AE4 = 31460          basicV2.asm:4102
+GETINT         = $73AD = 29613          basicV2.asm:2994
+GETLEN         = $729B = 29339          basicV2.asm:2823
+GETLIN         = $65CC = 26060          basicV2.asm:923
+GETLN          = $68AC = 26796          basicV2.asm:1350
+GETNUM         = $6C4C = 27724          basicV2.asm:1835
+GETNXT         = $6531 = 25905          basicV2.asm:828
 GETNYB         = $020A =   522          Keyboard.asm:20
 GETOUT         = $0228 =   552          Keyboard.asm:35
-GETSTR         = $7289 = 29321          basicV2.asm:2788
-GETVAR         = $6E66 = 28262          basicV2.asm:2138
+GETSTR         = $7265 = 29285          basicV2.asm:2789
+GETVAR         = $6E42 = 28226          basicV2.asm:2139
 GET_DEV_ADDR   = $10A8 =  4264          Monitor.asm:637
 GET_DEV_DD     = $10B6 =  4278          Monitor.asm:645
 GET_DEV_RR     = $10C4 =  4292          Monitor.asm:654
 GET_FROM_TO_SIZE = $1122 =  4386          Monitor.asm:742
 GET_FROM_TO_SIZE_SIZE = $1166 =  4454          Monitor.asm:785
 GET_FROM_TO_SIZE_TO = $1148 =  4424          Monitor.asm:765
-GNXARY         = $71C3 = 29123          basicV2.asm:2650
-GOFUNC         = $6DA0 = 28064          basicV2.asm:1997
+GNXARY         = $719F = 29087          basicV2.asm:2651
+GOFUNC         = $6D7C = 28028          basicV2.asm:1998
 GOJMP1         = $12B3 =  4787          Monitor.asm:1033 (unused)
 GOJUMP         = $129D =  4765          Monitor.asm:1021
 GOJUMP_new     = $1293 =  4755          Monitor.asm:1014
-GOSUB          = $6946 = 26950          basicV2.asm:1414
-GOTO           = $6957 = 26967          basicV2.asm:1426
-GRBARY         = $71E3 = 29155          basicV2.asm:2669
-GRBDON         = $7164 = 29028          basicV2.asm:2599
-GRBLP          = $719D = 29085          basicV2.asm:2631
+GOSUB          = $6922 = 26914          basicV2.asm:1415
+GOTO           = $6933 = 26931          basicV2.asm:1427
+GRBARY         = $71BF = 29119          basicV2.asm:2670
+GRBDON         = $7140 = 28992          basicV2.asm:2600
+GRBLP          = $7179 = 29049          basicV2.asm:2632
 GRET           = $0255 =   597          Keyboard.asm:82
-GSTRCU         = $728C = 29324          basicV2.asm:2789
-GSTRDE         = $7290 = 29328          basicV2.asm:2791
-GSTRHL         = $728F = 29327          basicV2.asm:2790
-GTFLNM         = $72CE = 29390          basicV2.asm:2832 (unused)
-GTFNAM         = $6E6B = 28267          basicV2.asm:2141
-GTLNLP         = $68D3 = 26835          basicV2.asm:1350
-GTSIXD         = $7829 = 30761          basicV2.asm:3726
-GTVLUS         = $6B6C = 27500          basicV2.asm:1700
-HALF           = $78D0 = 30928          basicV2.asm:3831
-HALFPI         = $7A89 = 31369          basicV2.asm:4049
-HEX            = $7B48 = 31560          basicV2.asm:4144
-HEX1           = $7B61 = 31585          basicV2.asm:4157
-HEX2           = $7B63 = 31587          basicV2.asm:4159
-HEX3           = $7B71 = 31601          basicV2.asm:4167
-HEX4           = $7B73 = 31603          basicV2.asm:4169
-HEXIT          = $7BCD = 31693          basicV2.asm:4232
-HEXLP          = $7BA9 = 31657          basicV2.asm:4207
-HEXLP1         = $7BAE = 31662          basicV2.asm:4209
-HEXTFP         = $7B9D = 31645          basicV2.asm:4202
+GSTRCU         = $7268 = 29288          basicV2.asm:2790
+GSTRDE         = $726C = 29292          basicV2.asm:2792
+GSTRHL         = $726B = 29291          basicV2.asm:2791
+GTFLNM         = $72AA = 29354          basicV2.asm:2833 (unused)
+GTFNAM         = $6E47 = 28231          basicV2.asm:2142
+GTLNLP         = $68AF = 26799          basicV2.asm:1351
+GTSIXD         = $7805 = 30725          basicV2.asm:3727
+GTVLUS         = $6B48 = 27464          basicV2.asm:1701
+HALF           = $78AC = 30892          basicV2.asm:3832
+HALFPI         = $7A65 = 31333          basicV2.asm:4050
+HEX            = $7B24 = 31524          basicV2.asm:4145
+HEX1           = $7B3D = 31549          basicV2.asm:4158
+HEX2           = $7B3F = 31551          basicV2.asm:4160
+HEX3           = $7B4D = 31565          basicV2.asm:4168
+HEX4           = $7B4F = 31567          basicV2.asm:4170
+HEXIT          = $7BA9 = 31657          basicV2.asm:4233
+HEXLP          = $7B85 = 31621          basicV2.asm:4208
+HEXLP1         = $7B8A = 31626          basicV2.asm:4210
+HEXTFP         = $7B79 = 31609          basicV2.asm:4203
 HX             = $0026 =    38          basicV2.asm:121
-HXERR          = $7BD6 = 31702          basicV2.asm:4240
+HXERR          = $7BB2 = 31666          basicV2.asm:4241
 H_Delay        = $12EF =  4847          Utils.asm:66
 HexOut         = $0CBB =  3259          I2C.asm:404
 HexOutHex      = $0CC8 =  3272          I2C.asm:414
 HexOutSkip     = $0CCE =  3278          I2C.asm:417
-I2CA_BLOCK     = $00AE =   174          bootV2.asm:107
+I2CA_BLOCK     = $00AE =   174          bootV2.asm:109
 I2CCPUTOMEM    = $10FA =  4346          Monitor.asm:701
 I2CCPUTOMEM_BASIC = $110E =  4366          Monitor.asm:725
 I2CCPUTOMEM_OK = $111B =  4379          Monitor.asm:732
@@ -8432,9 +8295,9 @@ I2CMEMTOCPU_OK = $10F3 =  4339          Monitor.asm:695
 I2COpen        = $01D9 =   473          API.asm:159
 I2CRead        = $01DF =   479          API.asm:165
 I2CWrite       = $01E2 =   482          API.asm:168
-I2C_ADDR       = $F422 = 62498          bootV2.asm:130
+I2C_ADDR       = $F422 = 62498          bootV2.asm:132
 I2C_Close      = $0B6D =  2925          I2C.asm:22
-I2C_DD         = $F424 = 62500          bootV2.asm:132
+I2C_DD         = $F424 = 62500          bootV2.asm:134
 I2C_INIT       = $0BF3 =  3059          I2C.asm:228
 I2C_MemRd      = $0C50 =  3152          I2C.asm:318
 I2C_MemRdRead  = $0C74 =  3188          I2C.asm:340
@@ -8449,12 +8312,12 @@ I2C_MemWrWrite = $0CA3 =  3235          I2C.asm:383
 I2C_Open       = $0B66 =  2918          I2C.asm:10
 I2C_PORT       = $0021 =    33          I2C.asm:88
 I2C_QUIES      = $0081 =   129          I2C.asm:93
-I2C_RAMCPY     = $F421 = 62497          bootV2.asm:129
+I2C_RAMCPY     = $F421 = 62497          bootV2.asm:131
 I2C_RD         = $1042 =  4162          Monitor.asm:558
 I2C_RD_LOOP    = $1053 =  4179          Monitor.asm:570
 I2C_RD_RR      = $1073 =  4211          Monitor.asm:597
 I2C_RD_RR_LOOP = $1081 =  4225          Monitor.asm:608
-I2C_RR         = $F423 = 62499          bootV2.asm:131
+I2C_RR         = $F423 = 62499          bootV2.asm:133
 I2C_RdPort     = $0C1D =  3101          I2C.asm:254
 I2C_Read       = $0BAD =  2989          I2C.asm:163
 I2C_ReadNoAck  = $0BCF =  3023          I2C.asm:183
@@ -8481,162 +8344,162 @@ I2C_WriteBit_Hi = $0B7E =  2942          I2C.asm:124
 I2C_WriteNoAck = $0B9E =  2974          I2C.asm:143
 I2C_WriteWr_Loop = $0B75 =  2933          I2C.asm:120
 ID             = $0016 =    22          basicV2.asm:113
-IDTEST         = $70B4 = 28852          basicV2.asm:2494
-IF             = $6A29 = 27177          basicV2.asm:1544
-IFGO           = $6A37 = 27191          basicV2.asm:1551
-IFJMP          = $67EA = 26602          basicV2.asm:1206
+IDTEST         = $7090 = 28816          basicV2.asm:2495
+IF             = $6A05 = 27141          basicV2.asm:1545
+IFGO           = $6A13 = 27155          basicV2.asm:1552
+IFJMP          = $67C6 = 26566          basicV2.asm:1207
 INBUF          = $0FBC =  4028          Monitor.asm:425
 INCH           = $0D1B =  3355          SoftSerial.asm:73 (unused)
-INCHL          = $76A8 = 30376          basicV2.asm:3471
-INCLEN         = $66A4 = 26276          basicV2.asm:1019
-INDFND         = $636E = 25454          basicV2.asm:540
-INEWLN         = $6453 = 25683          basicV2.asm:669
+INCHL          = $7684 = 30340          basicV2.asm:3472
+INCLEN         = $6680 = 26240          basicV2.asm:1020
+INDFND         = $634A = 25418          basicV2.asm:541
+INEWLN         = $642F = 25647          basicV2.asm:670
 INIT           = $6018 = 24600          basicV2.asm:140
-INITAB         = $62DC = 25308          basicV2.asm:468
-INITBE         = $633C = 25404          basicV2.asm:511
-INITST         = $7C4A = 31818          basicV2.asm:4323
+INITAB         = $62B8 = 25272          basicV2.asm:469
+INITBE         = $6318 = 25368          basicV2.asm:512
+INITST         = $7C26 = 31782          basicV2.asm:4324
 INIT_LCD       = $02AE =   686          LCDGraphic.asm:13
 INIT_SOFTSERIAL = $0CD4 =  3284          SoftSerial.asm:3
 INIT_TXT_LCD   = $02CD =   717          LCDGraphic.asm:36
-INMSG          = $6343 = 25411          basicV2.asm:516
-INP            = $738E = 29582          basicV2.asm:2961
-INPBIN         = $6BBE = 27582          basicV2.asm:1744
-INPBRK         = $6852 = 26706          basicV2.asm:1279
+INMSG          = $631F = 25375          basicV2.asm:517
+INP            = $736A = 29546          basicV2.asm:2962
+INPBIN         = $6B9A = 27546          basicV2.asm:1745
+INPBRK         = $682E = 26670          basicV2.asm:1280
 INPORT         = $803F = 32831          basicV2.asm:47
 INPORT_MON     = $0FD7 =  4055          Monitor.asm:462
 INPSUB         = $803E = 32830          basicV2.asm:46
-INPUT          = $6B2C = 27436          basicV2.asm:1665
-INRNG          = $7832 = 30770          basicV2.asm:3731
+INPUT          = $6B08 = 27400          basicV2.asm:1666
+INRNG          = $780E = 30734          basicV2.asm:3732
 INSBUF         = $1238 =  4664          Monitor.asm:943 (unused)
-INT            = $7725 = 30501          basicV2.asm:3572
+INT            = $7701 = 30465          basicV2.asm:3573
 INTEL1         = $0AE2 =  2786          LoaderIntel.asm:40
 INTEL2         = $0B0D =  2829          LoaderIntel.asm:69
 INTEL4         = $0B28 =  2856          LoaderIntel.asm:87
 INTELH         = $0ADE =  2782          LoaderIntel.asm:36
 INTEL_HEX      = $1185 =  4485          Monitor.asm:807
 INTHEX         = $0AB3 =  2739          LoaderIntel.asm:4
-INTVAR         = $64C7 = 25799          basicV2.asm:757
-INVSGN         = $767B = 30331          basicV2.asm:3438
+INTVAR         = $64A3 = 25763          basicV2.asm:758
+INVSGN         = $7657 = 30295          basicV2.asm:3439
 ITHEX1         = $0AD1 =  2769          LoaderIntel.asm:21
-ITMSEP         = $6BAF = 27567          basicV2.asm:1735
+ITMSEP         = $6B8B = 27531          basicV2.asm:1736
 InputCharKey   = $0183 =   387          API.asm:92
-JJUMP1         = $7C3D = 31805          basicV2.asm:4311 (unused)
-JSTZER         = $78BB = 30907          basicV2.asm:3816
-KDOWN          = $00B6 =   182          bootV2.asm:58
+JJUMP1         = $7C19 = 31769          basicV2.asm:4312 (unused)
+JSTZER         = $7897 = 30871          basicV2.asm:3817
+KDOWN          = $00B6 =   182          bootV2.asm:60
 KEY            = $0DBF =  3519          Monitor.asm:40
-KEYMAP         = $0068 =   104          bootV2.asm:194
+KEYMAP         = $0068 =   104          bootV2.asm:196
 KEYOUT         = $02A3 =   675          Keyboard.asm:140
 KEYREADINIT    = $025A =   602          Keyboard.asm:92
-KEY_IN         = $0040 =    64          bootV2.asm:31
-KEY_OUT        = $0040 =    64          bootV2.asm:32
-KF1            = $0080 =   128          bootV2.asm:59
-KF2            = $0081 =   129          bootV2.asm:60
-KF3            = $0082 =   130          bootV2.asm:61
-KF4            = $0083 =   131          bootV2.asm:62
-KF5            = $0084 =   132          bootV2.asm:63
-KF6            = $0085 =   133          bootV2.asm:64
-KF7            = $0086 =   134          bootV2.asm:65
-KF8            = $0087 =   135          bootV2.asm:66
-KILFOR         = $6C60 = 27744          basicV2.asm:1825
-KILIN          = $65EA = 26090          basicV2.asm:919
-KLEFT          = $00B4 =   180          bootV2.asm:55
-KRIGHT         = $00B7 =   183          bootV2.asm:56
-KUP            = $00B5 =   181          bootV2.asm:57
-LCDCTRL        = $0070 =   112          bootV2.asm:29
-LCDDATA        = $0071 =   113          bootV2.asm:30
-LCD_AUTO_X     = $F446 = 62534          bootV2.asm:155
-LCD_BIT_INDEX  = $F43C = 62524          bootV2.asm:148
-LCD_BYTE_INDEX = $F43A = 62522          bootV2.asm:147
-LCD_CHAR       = $F435 = 62517          bootV2.asm:143
-LCD_CHAR_H     = $F441 = 62529          bootV2.asm:151
-LCD_CHAR_POINT = $F436 = 62518          bootV2.asm:144
-LCD_CHAR_W     = $F442 = 62530          bootV2.asm:152
-LCD_COOX       = $F448 = 62536          bootV2.asm:157 (unused)
-LCD_COOY       = $F449 = 62537          bootV2.asm:158 (unused)
-LCD_DATA       = $F42F = 62511          bootV2.asm:139 (unused)
-LCD_DELETE_CHAR = $F445 = 62533          bootV2.asm:154
-LCD_LINE1      = $0080 =   128          bootV2.asm:114 (unused)
-LCD_LINE2      = $0090 =   144          bootV2.asm:115 (unused)
-LCD_LINE3      = $0088 =   136          bootV2.asm:116 (unused)
-LCD_LINE4      = $0098 =   152          bootV2.asm:117 (unused)
-LCD_PRINT_H    = $F44A = 62538          bootV2.asm:159 (unused)
-LCD_PRINT_IMAGE = $F44C = 62540          bootV2.asm:161 (unused)
-LCD_PRINT_W    = $F44B = 62539          bootV2.asm:160 (unused)
-LCD_TEMP       = $F447 = 62535          bootV2.asm:156
-LCD_TMP_POINT  = $F443 = 62531          bootV2.asm:153
-LCD_TXT_X      = $F438 = 62520          bootV2.asm:145
-LCD_TXT_X_TMP  = $F43D = 62525          bootV2.asm:149
-LCD_TXT_Y      = $F439 = 62521          bootV2.asm:146
-LCD_TXT_Y_TMP  = $F43F = 62527          bootV2.asm:150
+KEY_IN         = $0040 =    64          bootV2.asm:33
+KEY_OUT        = $0040 =    64          bootV2.asm:34
+KF1            = $0080 =   128          bootV2.asm:61
+KF2            = $0081 =   129          bootV2.asm:62
+KF3            = $0082 =   130          bootV2.asm:63
+KF4            = $0083 =   131          bootV2.asm:64
+KF5            = $0084 =   132          bootV2.asm:65
+KF6            = $0085 =   133          bootV2.asm:66
+KF7            = $0086 =   134          bootV2.asm:67
+KF8            = $0087 =   135          bootV2.asm:68
+KILFOR         = $6C3C = 27708          basicV2.asm:1826
+KILIN          = $65C6 = 26054          basicV2.asm:920
+KLEFT          = $00B4 =   180          bootV2.asm:57
+KRIGHT         = $00B7 =   183          bootV2.asm:58
+KUP            = $00B5 =   181          bootV2.asm:59
+LCDCTRL        = $0070 =   112          bootV2.asm:31
+LCDDATA        = $0071 =   113          bootV2.asm:32
+LCD_AUTO_X     = $F446 = 62534          bootV2.asm:157
+LCD_BIT_INDEX  = $F43C = 62524          bootV2.asm:150
+LCD_BYTE_INDEX = $F43A = 62522          bootV2.asm:149
+LCD_CHAR       = $F435 = 62517          bootV2.asm:145
+LCD_CHAR_H     = $F441 = 62529          bootV2.asm:153
+LCD_CHAR_POINT = $F436 = 62518          bootV2.asm:146
+LCD_CHAR_W     = $F442 = 62530          bootV2.asm:154
+LCD_COOX       = $F448 = 62536          bootV2.asm:159 (unused)
+LCD_COOY       = $F449 = 62537          bootV2.asm:160 (unused)
+LCD_DATA       = $F42F = 62511          bootV2.asm:141 (unused)
+LCD_DELETE_CHAR = $F445 = 62533          bootV2.asm:156
+LCD_LINE1      = $0080 =   128          bootV2.asm:116 (unused)
+LCD_LINE2      = $0090 =   144          bootV2.asm:117 (unused)
+LCD_LINE3      = $0088 =   136          bootV2.asm:118 (unused)
+LCD_LINE4      = $0098 =   152          bootV2.asm:119 (unused)
+LCD_PRINT_H    = $F44A = 62538          bootV2.asm:161 (unused)
+LCD_PRINT_IMAGE = $F44C = 62540          bootV2.asm:163 (unused)
+LCD_PRINT_W    = $F44B = 62539          bootV2.asm:162 (unused)
+LCD_TEMP       = $F447 = 62535          bootV2.asm:158
+LCD_TMP_POINT  = $F443 = 62531          bootV2.asm:155
+LCD_TXT_X      = $F438 = 62520          bootV2.asm:147
+LCD_TXT_X_TMP  = $F43D = 62525          bootV2.asm:151
+LCD_TXT_Y      = $F439 = 62521          bootV2.asm:148
+LCD_TXT_Y_TMP  = $F43F = 62527          bootV2.asm:152
 LCRFLG         = $80AC = 32940          basicV2.asm:68
-LEFT           = $72EB = 29419          basicV2.asm:2850
-LEN            = $72BB = 29371          basicV2.asm:2820
-LET            = $69B1 = 27057          basicV2.asm:1479
-LETNUM         = $6A04 = 27140          basicV2.asm:1521
-LETSTR         = $69CC = 27084          basicV2.asm:1492
-LF             = $000A =    10          bootV2.asm:40
-LFRGNM         = $7384 = 29572          basicV2.asm:2952
+LEFT           = $72C7 = 29383          basicV2.asm:2851
+LEN            = $7297 = 29335          basicV2.asm:2821
+LET            = $698D = 27021          basicV2.asm:1480
+LETNUM         = $69E0 = 27104          basicV2.asm:1522
+LETSTR         = $69A8 = 27048          basicV2.asm:1493
+LF             = $000A =    10          bootV2.asm:42
+LFRGNM         = $7360 = 29536          basicV2.asm:2953
 LINEAT         = $805C = 32860          basicV2.asm:63
-LINEIN         = $77E4 = 30692          basicV2.asm:3692
-LINES          = $7B17 = 31511          basicV2.asm:4113
+LINEIN         = $77C0 = 30656          basicV2.asm:3693
+LINES          = $7AF3 = 31475          basicV2.asm:4114
 LINESC         = $8046 = 32838          basicV2.asm:53
 LINESN         = $8048 = 32840          basicV2.asm:54
-LINFND         = $643C = 25660          basicV2.asm:655
-LIST           = $66BF = 26303          basicV2.asm:1036
+LINFND         = $6418 = 25624          basicV2.asm:656
+LIST           = $669B = 26267          basicV2.asm:1037
 LISTLOOP       = $0C2E =  3118          I2C.asm:281
-LISTLP         = $66CB = 26315          basicV2.asm:1042
+LISTLP         = $66A7 = 26279          basicV2.asm:1043
 LISTMsg        = $146C =  5228          Strings.asm:28
 LISTNEXT       = $0C3D =  3133          I2C.asm:289
 LISTTEST       = $0C47 =  3143          I2C.asm:301
-LOADFP         = $76A1 = 30369          basicV2.asm:3464
+LOADFP         = $767D = 30333          basicV2.asm:3465
 LOADSHIFT      = $028F =   655          Keyboard.asm:125
-LOG            = $7506 = 29958          basicV2.asm:3205
+LOG            = $74E2 = 29922          basicV2.asm:3206
 LOGARITHM      = $027B =   635          Keyboard.asm:114
-LOGTAB         = $74F9 = 29945          basicV2.asm:3200
-LOKFOR         = $6358 = 25432          basicV2.asm:523
+LOGTAB         = $74D5 = 29909          basicV2.asm:3201
+LOKFOR         = $6334 = 25396          basicV2.asm:524
 LOOPST         = $80C7 = 32967          basicV2.asm:77
 LS             = $001C =    28          basicV2.asm:116
 LSTBIN         = $80CC = 32972          basicV2.asm:80
-LSTLP2         = $66EB = 26347          basicV2.asm:1063
-LSTLP3         = $66EE = 26350          basicV2.asm:1064
+LSTLP2         = $66C7 = 26311          basicV2.asm:1064
+LSTLP3         = $66CA = 26314          basicV2.asm:1065
 LSTRAM         = $80AF = 32943          basicV2.asm:71
 LSTRND         = $803A = 32826          basicV2.asm:45
-LTSTND         = $6BC9 = 27593          basicV2.asm:1749
+LTSTND         = $6BA5 = 27557          basicV2.asm:1750
 LWIDTH         = $8042 = 32834          basicV2.asm:49
 LcdSetCXY      = $01E5 =   485          API.asm:171
 LineOut        = $12DE =  4830          Utils.asm:40
 LoopBC         = $12F5 =  4853          Utils.asm:72
 LoopDE         = $12F2 =  4850          Utils.asm:70
-MAKINT         = $73D4 = 29652          basicV2.asm:2994
-MAKNUM         = $784E = 30798          basicV2.asm:3746
-MANLP          = $776D = 30573          basicV2.asm:3617
-MATCH          = $6587 = 25991          basicV2.asm:859
+MAKINT         = $73B0 = 29616          basicV2.asm:2995
+MAKNUM         = $782A = 30762          basicV2.asm:3747
+MANLP          = $7749 = 30537          basicV2.asm:3618
+MATCH          = $6563 = 25955          basicV2.asm:860
 MDIFY1         = $1251 =  4689          Monitor.asm:968
 MDIFY2         = $128C =  4748          Monitor.asm:1004
-MEMMSG         = $60F3 = 24819          basicV2.asm:223
-MID            = $7325 = 29477          basicV2.asm:2890
-MID1           = $72F1 = 29425          basicV2.asm:2854
-MIDNUM         = $7389 = 29577          basicV2.asm:2955
-MINCDE         = $744C = 29772          basicV2.asm:3061
-MINUS          = $6D4F = 27983          basicV2.asm:1952
-MKTMST         = $70F8 = 28920          basicV2.asm:2536
-MLDBLP         = $7746 = 30534          basicV2.asm:3593
-MLDEBC         = $773E = 30526          basicV2.asm:3588
+MEMMSG         = $60CF = 24783          basicV2.asm:224
+MID            = $7301 = 29441          basicV2.asm:2891
+MID1           = $72CD = 29389          basicV2.asm:2855
+MIDNUM         = $7365 = 29541          basicV2.asm:2956
+MINCDE         = $7428 = 29736          basicV2.asm:3062
+MINUS          = $6D2B = 27947          basicV2.asm:1953
+MKTMST         = $70D4 = 28884          basicV2.asm:2537
+MLDBLP         = $7722 = 30498          basicV2.asm:3594
+MLDEBC         = $771A = 30490          basicV2.asm:3589
 MLOOP          = $6048 = 24648          basicV2.asm:161
-MLSP10         = $763B = 30267          basicV2.asm:3399
+MLSP10         = $7617 = 30231          basicV2.asm:3400
 MO             = $0024 =    36          basicV2.asm:120
 MODIFY         = $123B =  4667          Monitor.asm:953
-MONITR         = $7C47 = 31815          basicV2.asm:4319
-MONOUT         = $7C44 = 31812          basicV2.asm:4315
-MORDT          = $6BD5 = 27605          basicV2.asm:1754
-MORINP         = $65F9 = 26105          basicV2.asm:927
-MOVBUF         = $6472 = 25714          basicV2.asm:690
-MOVDIR         = $658F = 25999          basicV2.asm:867
-MOVLP          = $637D = 25469          basicV2.asm:550
-MOVSTR         = $637A = 25466          basicV2.asm:547
-MOVUP          = $6377 = 25463          basicV2.asm:546
-MRPRNT         = $6A49 = 27209          basicV2.asm:1558
-MSGBUF         = $F401 = 62465          bootV2.asm:127
+MONITR         = $7C23 = 31779          basicV2.asm:4320
+MONOUT         = $7C20 = 31776          basicV2.asm:4316
+MORDT          = $6BB1 = 27569          basicV2.asm:1755
+MORINP         = $65D5 = 26069          basicV2.asm:928
+MOVBUF         = $644E = 25678          basicV2.asm:691
+MOVDIR         = $656B = 25963          basicV2.asm:868
+MOVLP          = $6359 = 25433          basicV2.asm:551
+MOVSTR         = $6356 = 25430          basicV2.asm:548
+MOVUP          = $6353 = 25427          basicV2.asm:547
+MRPRNT         = $6A25 = 27173          basicV2.asm:1559
+MSGBUF         = $F401 = 62465          bootV2.asm:129
 MSG_BASIC      = $1558 =  5464          Strings.asm:47
 MSG_COPYFAIL   = $151E =  5406          Strings.asm:41
 MSG_COPYOK     = $1515 =  5397          Strings.asm:40
@@ -8675,148 +8538,148 @@ MSG_READFILE_TXT = $1467 =  5223          Strings.asm:26
 MSG_SIZE       = $1506 =  5382          Strings.asm:39
 MSG_TO         = $1500 =  5376          Strings.asm:38
 MSIZE          = $6035 = 24629          basicV2.asm:154
-MUL8LP         = $7572 = 30066          basicV2.asm:3260
-MULLN2         = $753E = 30014          basicV2.asm:3231
-MULT           = $7545 = 30021          basicV2.asm:3235
-MULT8          = $7569 = 30057          basicV2.asm:3254
-MULTEN         = $77AF = 30639          basicV2.asm:3653
+MUL8LP         = $754E = 30030          basicV2.asm:3261
+MULLN2         = $751A = 29978          basicV2.asm:3232
+MULT           = $7521 = 29985          basicV2.asm:3236
+MULT8          = $7545 = 30021          basicV2.asm:3255
+MULTEN         = $778B = 30603          basicV2.asm:3654
 MULVAL         = $80F6 = 33014          basicV2.asm:96
-MVSTPT         = $69FB = 27131          basicV2.asm:1515
+MVSTPT         = $69D7 = 27095          basicV2.asm:1516
 NDOT           = $0FA7 =  4007          Monitor.asm:407
-NEDMOR         = $6B68 = 27496          basicV2.asm:1698
-NEGAFT         = $78E6 = 30950          basicV2.asm:3840
-NEW            = $64B7 = 25783          basicV2.asm:745
-NEXITM         = $6B01 = 27393          basicV2.asm:1651
-NEXT           = $6C25 = 27685          basicV2.asm:1793
-NEXT1          = $6C28 = 27688          basicV2.asm:1794
+NEDMOR         = $6B44 = 27460          basicV2.asm:1699
+NEGAFT         = $78C2 = 30914          basicV2.asm:3841
+NEW            = $6493 = 25747          basicV2.asm:746
+NEXITM         = $6ADD = 27357          basicV2.asm:1652
+NEXT           = $6C01 = 27649          basicV2.asm:1794
+NEXT1          = $6C04 = 27652          basicV2.asm:1795
 NEXTKEY        = $0265 =   613          Keyboard.asm:102
 NF             = $0000 =     0          basicV2.asm:102
-NFERR          = $63B1 = 25521          basicV2.asm:584
+NFERR          = $638D = 25485          basicV2.asm:585
 NMIFLG         = $804C = 32844          basicV2.asm:56 (unused)
-NOCHNG         = $657F = 25983          basicV2.asm:854
-NOENED         = $78BE = 30910          basicV2.asm:3819
-NOLIN          = $6868 = 26728          basicV2.asm:1290
-NOMADD         = $7583 = 30083          basicV2.asm:3271
-NOMLAD         = $7754 = 30548          basicV2.asm:3601
-NOPMPT         = $6B46 = 27462          basicV2.asm:1677
-NORMAL         = $7477 = 29815          basicV2.asm:3096
-NOSPC          = $6576 = 25974          basicV2.asm:849
-NOSUB7         = $7BC9 = 31689          basicV2.asm:4228
-NOSWAP         = $7426 = 29734          basicV2.asm:3042
-NOTAMP         = $6D24 = 27940          basicV2.asm:1933
-NOTSTR         = $6E9E = 28318          basicV2.asm:2163
-NOXOR          = $73B4 = 29620          basicV2.asm:2978
-NSCFOR         = $6EAE = 28334          basicV2.asm:2171
+NOCHNG         = $655B = 25947          basicV2.asm:855
+NOENED         = $789A = 30874          basicV2.asm:3820
+NOLIN          = $6844 = 26692          basicV2.asm:1291
+NOMADD         = $755F = 30047          basicV2.asm:3272
+NOMLAD         = $7730 = 30512          basicV2.asm:3602
+NOPMPT         = $6B22 = 27426          basicV2.asm:1678
+NORMAL         = $7453 = 29779          basicV2.asm:3097
+NOSPC          = $6552 = 25938          basicV2.asm:850
+NOSUB7         = $7BA5 = 31653          basicV2.asm:4229
+NOSWAP         = $7402 = 29698          basicV2.asm:3043
+NOTAMP         = $6D00 = 27904          basicV2.asm:1934
+NOTSTR         = $6E7A = 28282          basicV2.asm:2164
+NOXOR          = $7390 = 29584          basicV2.asm:2979
+NSCFOR         = $6E8A = 28298          basicV2.asm:2172
 NULFLG         = $8044 = 32836          basicV2.asm:51
-NULL           = $688C = 26764          basicV2.asm:1309
-NULLP          = $6ABC = 27324          basicV2.asm:1613
+NULL           = $6868 = 26728          basicV2.asm:1310
+NULLP          = $6A98 = 27288          basicV2.asm:1614
 NULLS          = $8041 = 32833          basicV2.asm:48
-NUMASC         = $77F7 = 30711          basicV2.asm:3702
-NXTARY         = $6F65 = 28517          basicV2.asm:2284
+NUMASC         = $77D3 = 30675          basicV2.asm:3703
+NXTARY         = $6F41 = 28481          basicV2.asm:2285
 NXTBIT         = $0D32 =  3378          SoftSerial.asm:102
-NXTBYT         = $6565 = 25957          basicV2.asm:839
-NXTCHR         = $65A6 = 26022          basicV2.asm:879
+NXTBYT         = $6541 = 25921          basicV2.asm:840
+NXTCHR         = $6582 = 25986          basicV2.asm:880
 NXTDAT         = $80DC = 32988          basicV2.asm:89
-NXTDTA         = $6999 = 27033          basicV2.asm:1461
-NXTITM         = $6B60 = 27488          basicV2.asm:1693
+NXTDTA         = $6975 = 26997          basicV2.asm:1462
+NXTITM         = $6B3C = 27452          basicV2.asm:1694
 NXTOPR         = $80D0 = 32976          basicV2.asm:83
-NXTSTL         = $69A0 = 27040          basicV2.asm:1466
-NXTSTT         = $69A3 = 27043          basicV2.asm:1469
+NXTSTL         = $697C = 27004          basicV2.asm:1467
+NXTSTT         = $697F = 27007          basicV2.asm:1470
 NYBASC         = $1230 =  4656          Monitor.asm:935
 NYBOUT         = $121C =  4636          Monitor.asm:900
 OD             = $0006 =     6          basicV2.asm:105
-OKMSG          = $6348 = 25416          basicV2.asm:518
+OKMSG          = $6324 = 25380          basicV2.asm:519
 OM             = $000C =    12          basicV2.asm:108
-OMERR          = $63A0 = 25504          basicV2.asm:575
-ON             = $6A0B = 27147          basicV2.asm:1527
-ONGO           = $6A1A = 27162          basicV2.asm:1535
-ONGOLP         = $6A1B = 27163          basicV2.asm:1536
-ONJMP          = $67EB = 26603          basicV2.asm:1207
-OPNPAR         = $6C7E = 27774          basicV2.asm:1843
-OPRND          = $6CF9 = 27897          basicV2.asm:1916
+OMERR          = $637C = 25468          basicV2.asm:576
+ON             = $69E7 = 27111          basicV2.asm:1528
+ONGO           = $69F6 = 27126          basicV2.asm:1536
+ONGOLP         = $69F7 = 27127          basicV2.asm:1537
+ONJMP          = $67C7 = 26567          basicV2.asm:1208
+OPNPAR         = $6C5A = 27738          basicV2.asm:1844
+OPRND          = $6CD5 = 27861          basicV2.asm:1917
 OS             = $001A =    26          basicV2.asm:115
-OTKLN          = $65E7 = 26087          basicV2.asm:918
+OTKLN          = $65C3 = 26051          basicV2.asm:919
 OTPORT         = $8007 = 32775          basicV2.asm:38
-OUTC           = $6684 = 26244          basicV2.asm:1002
+OUTC           = $6660 = 26208          basicV2.asm:1003
 OUTCH          = $0D15 =  3349          SoftSerial.asm:68
-OUTEXP         = $78AF = 30895          basicV2.asm:3809
-OUTIT          = $6665 = 26213          basicV2.asm:980
-OUTNBS         = $666B = 26219          basicV2.asm:983
-OUTNCR         = $7C5B = 31835          basicV2.asm:4337
+OUTEXP         = $788B = 30859          basicV2.asm:3810
+OUTIT          = $6641 = 26177          basicV2.asm:981
+OUTNBS         = $6647 = 26183          basicV2.asm:984
+OUTNCR         = $7C37 = 31799          basicV2.asm:4338
 OUTPORT        = $0FC0 =  4032          Monitor.asm:441
 OUTSP          = $0341 =   833          LCDGraphic.asm:111
 OUTSUB         = $8006 = 32774          basicV2.asm:37
-OUTWRD         = $6707 = 26375          basicV2.asm:1078
+OUTWRD         = $66E3 = 26339          basicV2.asm:1079
 OV             = $000A =    10          basicV2.asm:107
-OVERR          = $63BA = 25530          basicV2.asm:590
-OVTST1         = $762E = 30254          basicV2.asm:3391
-OVTST2         = $7633 = 30259          basicV2.asm:3394
-OVTST3         = $7634 = 30260          basicV2.asm:3395
+OVERR          = $6396 = 25494          basicV2.asm:591
+OVTST1         = $760A = 30218          basicV2.asm:3392
+OVTST2         = $760F = 30223          basicV2.asm:3395
+OVTST3         = $7610 = 30224          basicV2.asm:3396
 OutLcdChar     = $0186 =   390          API.asm:95
 OutLcdNewLine  = $0189 =   393          API.asm:98
-PADD           = $77D3 = 30675          basicV2.asm:3678
-PAND           = $6DBA = 28090          basicV2.asm:2019
-PASSA          = $703A = 28730          basicV2.asm:2421
+PADD           = $77AF = 30639          basicV2.asm:3679
+PAND           = $6D96 = 28054          basicV2.asm:2020
+PASSA          = $7016 = 28694          basicV2.asm:2422
 PBUFF          = $80E9 = 33001          basicV2.asm:95
-PEEK           = $73E2 = 29666          basicV2.asm:3003
-PEND           = $684D = 26701          basicV2.asm:1276
-PHLTFP         = $7690 = 30352          basicV2.asm:3454
+PEEK           = $73BE = 29630          basicV2.asm:3004
+PEND           = $6829 = 26665          basicV2.asm:1277
+PHLTFP         = $766C = 30316          basicV2.asm:3455
 PLOT_COLUMN    = $0596 =  1430          LCDGraphic.asm:580
 PLOT_ROW       = $057F =  1407          LCDGraphic.asm:567
 PLOT_TO_LCD    = $057D =  1405          LCDGraphic.asm:564 (unused)
-PLUCDE         = $74B1 = 29873          basicV2.asm:3138
-PNORM          = $747F = 29823          basicV2.asm:3104
+PLUCDE         = $748D = 29837          basicV2.asm:3139
+PNORM          = $745B = 29787          basicV2.asm:3105
 POINT          = $8051 = 32849          basicV2.asm:59
-POKE           = $73E9 = 29673          basicV2.asm:3007
-POPAF          = $717E = 29054          basicV2.asm:2614
-POPHL          = $72A8 = 29352          basicV2.asm:2805
-POPHRT         = $7593 = 30099          basicV2.asm:3285
-POPNOK         = $63F5 = 25589          basicV2.asm:618
-POR            = $6DB9 = 28089          basicV2.asm:2018
-POR1           = $6DDC = 28124          basicV2.asm:2042
-PORT_OUT_VAL   = $F42E = 62510          bootV2.asm:138
-PORT_SET       = $F42D = 62509          bootV2.asm:137
-POS            = $7037 = 28727          basicV2.asm:2420
-POSINT         = $68AC = 26796          basicV2.asm:1332
-POUT           = $739A = 29594          basicV2.asm:2966
-POWER          = $78F4 = 30964          basicV2.asm:3848
-POWER1         = $7904 = 30980          basicV2.asm:3856
-POWER2         = $7921 = 31009          basicV2.asm:3874
-POWERS         = $78D4 = 30932          basicV2.asm:3833
-PRINT          = $6A4D = 27213          basicV2.asm:1560
+POKE           = $73C5 = 29637          basicV2.asm:3008
+POPAF          = $715A = 29018          basicV2.asm:2615
+POPHL          = $7284 = 29316          basicV2.asm:2806
+POPHRT         = $756F = 30063          basicV2.asm:3286
+POPNOK         = $63D1 = 25553          basicV2.asm:619
+POR            = $6D95 = 28053          basicV2.asm:2019
+POR1           = $6DB8 = 28088          basicV2.asm:2043
+PORT_OUT_VAL   = $F42E = 62510          bootV2.asm:140
+PORT_SET       = $F42D = 62509          bootV2.asm:139
+POS            = $7013 = 28691          basicV2.asm:2421
+POSINT         = $6888 = 26760          basicV2.asm:1333
+POUT           = $7376 = 29558          basicV2.asm:2967
+POWER          = $78D0 = 30928          basicV2.asm:3849
+POWER1         = $78E0 = 30944          basicV2.asm:3857
+POWER2         = $78FD = 30973          basicV2.asm:3875
+POWERS         = $78B0 = 30896          basicV2.asm:3834
+PRINT          = $6A29 = 27177          basicV2.asm:1561
 PRINTCHAR      = $0368 =   872          LCDGraphic.asm:144
-PRITAB         = $629D = 25245          basicV2.asm:421
-PRNTCRLF       = $6AAB = 27307          basicV2.asm:1606
-PRNTHL         = $77EC = 30700          basicV2.asm:3696
-PRNTLP         = $6A50 = 27216          basicV2.asm:1561
-PRNTNB         = $6A93 = 27283          basicV2.asm:1593
-PRNTOK         = $63F6 = 25590          basicV2.asm:620
-PRNTST         = $6A97 = 27287          basicV2.asm:1595
-PRNUMS         = $7148 = 29000          basicV2.asm:2583
-PROCES         = $6612 = 26130          basicV2.asm:938
+PRITAB         = $6279 = 25209          basicV2.asm:422
+PRNTCRLF       = $6A87 = 27271          basicV2.asm:1607
+PRNTHL         = $77C8 = 30664          basicV2.asm:3697
+PRNTLP         = $6A2C = 27180          basicV2.asm:1562
+PRNTNB         = $6A6F = 27247          basicV2.asm:1594
+PRNTOK         = $63D2 = 25554          basicV2.asm:621
+PRNTST         = $6A73 = 27251          basicV2.asm:1596
+PRNUMS         = $7124 = 28964          basicV2.asm:2584
+PROCES         = $65EE = 26094          basicV2.asm:939
 PROGND         = $80D6 = 32982          basicV2.asm:86
 PROGST         = $80F9 = 33017          basicV2.asm:97
-PROMPT         = $64FA = 25850          basicV2.asm:782
-PRS            = $7149 = 29001          basicV2.asm:2584
-PRS1           = $714C = 29004          basicV2.asm:2585
-PRSLP          = $7153 = 29011          basicV2.asm:2588
+PROMPT         = $64D6 = 25814          basicV2.asm:783
+PRS            = $7125 = 28965          basicV2.asm:2585
+PRS1           = $7128 = 28968          basicV2.asm:2586
+PRSLP          = $712F = 28975          basicV2.asm:2589
 PSET           = $8054 = 32852          basicV2.asm:60
-PSUB           = $7407 = 29703          basicV2.asm:3023
-PTRLP          = $647F = 25727          basicV2.asm:699
-PUTBUF         = $6651 = 26193          basicV2.asm:969
-PUTCH          = $F432 = 62514          bootV2.asm:141
-PUTCTL         = $6656 = 26198          basicV2.asm:971
-PUTFID         = $67BF = 26559          basicV2.asm:1180
+PSUB           = $73E3 = 29667          basicV2.asm:3024
+PTRLP          = $645B = 25691          basicV2.asm:700
+PUTBUF         = $662D = 26157          basicV2.asm:970
+PUTCH          = $F432 = 62514          bootV2.asm:143
+PUTCTL         = $6632 = 26162          basicV2.asm:972
+PUTFID         = $679B = 26523          basicV2.asm:1181
 Print8x8       = $0686 =  1670          LCDGraphic.asm:875
 PrintBufferChar = $037A =   890          LCDGraphic.asm:161
 PrtIRd         = $01A2 =   418          API.asm:119
 PrtORd         = $019E =   414          API.asm:115
 PrtOWr         = $0192 =   402          API.asm:106
 PrtSet         = $018E =   398          API.asm:102
-QTSTLP         = $710E = 28942          basicV2.asm:2553
-QTSTR          = $7108 = 28936          basicV2.asm:2549
-QUARTR         = $7A8D = 31373          basicV2.asm:4051
-READ           = $6B5B = 27483          basicV2.asm:1690
+QTSTLP         = $70EA = 28906          basicV2.asm:2554
+QTSTR          = $70E4 = 28900          basicV2.asm:2550
+QUARTR         = $7A69 = 31337          basicV2.asm:4052
+READ           = $6B37 = 27447          basicV2.asm:1691
 READFG         = $80CD = 32973          basicV2.asm:81
 READKEY        = $025F =   607          Keyboard.asm:97
 READ_FILE      = $0E4C =  3660          Monitor.asm:141
@@ -8832,232 +8695,231 @@ READ_MEM_NEXT  = $0E42 =  3650          Monitor.asm:133
 READ_MEM_STEP  = $0E9E =  3742          Monitor.asm:190
 READ_MEM_STEP_L = $0EA9 =  3753          Monitor.asm:201
 READ_NAME      = $0E58 =  3672          Monitor.asm:147
-REDO           = $6B08 = 27400          basicV2.asm:1655
-REM            = $699C = 27036          basicV2.asm:1464
-RESDIV         = $75E0 = 30176          basicV2.asm:3336
-RESEED         = $7A2B = 31275          basicV2.asm:4007
+REDO           = $6AE4 = 27364          basicV2.asm:1656
+REM            = $6978 = 27000          basicV2.asm:1465
+RESDIV         = $75BC = 30140          basicV2.asm:3337
+RESEED         = $7A07 = 31239          basicV2.asm:4008
 RESET          = $8057 = 32855          basicV2.asm:61
 RESET_WARM     = $0DAE =  3502          Monitor.asm:28
-RESTNL         = $6828 = 26664          basicV2.asm:1246
-RESTOR         = $6813 = 26643          basicV2.asm:1235
-RESZER         = $7472 = 29810          basicV2.asm:3092
-RETADR         = $6F15 = 28437          basicV2.asm:2231
-RETINT         = $7669 = 30313          basicV2.asm:3427
-RETLIN         = $6994 = 27028          basicV2.asm:1458
-RETNAD         = $658B = 25995          basicV2.asm:863
-RETNUL         = $6F18 = 28440          basicV2.asm:2235
-RETNUM         = $6D5B = 27995          basicV2.asm:1957
-RETREL         = $765B = 30299          basicV2.asm:3417
-RETURN         = $6975 = 26997          basicV2.asm:1442
+RESTNL         = $6804 = 26628          basicV2.asm:1247
+RESTOR         = $67EF = 26607          basicV2.asm:1236
+RESZER         = $744E = 29774          basicV2.asm:3093
+RETADR         = $6EF1 = 28401          basicV2.asm:2232
+RETINT         = $7645 = 30277          basicV2.asm:3428
+RETLIN         = $6970 = 26992          basicV2.asm:1459
+RETNAD         = $6567 = 25959          basicV2.asm:864
+RETNUL         = $6EF4 = 28404          basicV2.asm:2236
+RETNUM         = $6D37 = 27959          basicV2.asm:1958
+RETREL         = $7637 = 30263          basicV2.asm:3418
+RETURN         = $6951 = 26961          basicV2.asm:1443
 RG             = $0004 =     4          basicV2.asm:104
-RIGHT          = $731B = 29467          basicV2.asm:2883
-RIGHT1         = $72EF = 29423          basicV2.asm:2852
+RIGHT          = $72F7 = 29431          basicV2.asm:2884
+RIGHT1         = $72CB = 29387          basicV2.asm:2853
 RINPUT         = $804E = 32846          basicV2.asm:58
-RLTLP          = $6C9E = 27806          basicV2.asm:1859
-RND            = $79CA = 31178          basicV2.asm:3954
-RND1           = $7A06 = 31238          basicV2.asm:3985
-RND2           = $7A22 = 31266          basicV2.asm:4003
-RNDTAB         = $7A33 = 31283          basicV2.asm:4014
-RNGTST         = $78C1 = 30913          basicV2.asm:3823
-RONDB          = $7493 = 29843          basicV2.asm:3116
-RONDUP         = $7492 = 29842          basicV2.asm:3115
-ROUND          = $73FA = 29690          basicV2.asm:3017
-RSCALE         = $77CD = 30669          basicV2.asm:3676
-RSLNBK         = $6741 = 26433          basicV2.asm:1110
-RST00          = $0000 =     0          bootV2.asm:165 (unused)
-RST08          = $0008 =     8          bootV2.asm:169 (unused)
-RST10          = $0010 =    16          bootV2.asm:172 (unused)
-RST18          = $0018 =    24          bootV2.asm:175 (unused)
-RST20          = $001B =    27          bootV2.asm:177 (unused)
-RST28          = $0021 =    33          bootV2.asm:180 (unused)
-RST30          = $0030 =    48          bootV2.asm:184 (unused)
-RST38          = $0033 =    51          bootV2.asm:186 (unused)
-RST66          = $003A =    58          bootV2.asm:189 (unused)
-RSTSTR         = $733E = 29502          basicV2.asm:2903
-RUN            = $693A = 26938          basicV2.asm:1409
-RUNCNT         = $67C3 = 26563          basicV2.asm:1184
-RUNFST         = $64C3 = 25795          basicV2.asm:754
-RUNLIN         = $6956 = 26966          basicV2.asm:1425
+RLTLP          = $6C7A = 27770          basicV2.asm:1860
+RND            = $79A6 = 31142          basicV2.asm:3955
+RND1           = $79E2 = 31202          basicV2.asm:3986
+RND2           = $79FE = 31230          basicV2.asm:4004
+RNDTAB         = $7A0F = 31247          basicV2.asm:4015
+RNGTST         = $789D = 30877          basicV2.asm:3824
+RONDB          = $746F = 29807          basicV2.asm:3117
+RONDUP         = $746E = 29806          basicV2.asm:3116
+ROUND          = $73D6 = 29654          basicV2.asm:3018
+RSCALE         = $77A9 = 30633          basicV2.asm:3677
+RSLNBK         = $671D = 26397          basicV2.asm:1111
+RST00          = $0000 =     0          bootV2.asm:167 (unused)
+RST08          = $0008 =     8          bootV2.asm:171 (unused)
+RST10          = $0010 =    16          bootV2.asm:174 (unused)
+RST18          = $0018 =    24          bootV2.asm:177 (unused)
+RST20          = $001B =    27          bootV2.asm:179 (unused)
+RST28          = $0021 =    33          bootV2.asm:182 (unused)
+RST30          = $0030 =    48          bootV2.asm:186 (unused)
+RST38          = $0033 =    51          bootV2.asm:188 (unused)
+RST66          = $003A =    58          bootV2.asm:191 (unused)
+RSTSTR         = $731A = 29466          basicV2.asm:2904
+RUN            = $6916 = 26902          basicV2.asm:1410
+RUNCNT         = $679F = 26527          basicV2.asm:1185
+RUNFST         = $649F = 25759          basicV2.asm:755
+RUNLIN         = $6932 = 26930          basicV2.asm:1426
 RXDAT1         = $0D4E =  3406          SoftSerial.asm:134
 RXDAT2         = $0D66 =  3430          SoftSerial.asm:151
 RXDATA         = $0D4C =  3404          SoftSerial.asm:129
-SAVEXP         = $7473 = 29811          basicV2.asm:3093
-SAVSTP         = $67B6 = 26550          basicV2.asm:1173
-SAVSTR         = $70E3 = 28899          basicV2.asm:2520
-SBSCPT         = $6F23 = 28451          basicV2.asm:2241
-SCALE          = $74D1 = 29905          basicV2.asm:3170
-SCALLP         = $74D3 = 29907          basicV2.asm:3171
-SCALMI         = $7798 = 30616          basicV2.asm:3638
-SCALPL         = $77AE = 30638          basicV2.asm:3652
-SCNEND         = $721A = 29210          basicV2.asm:2710
-SCPTLP         = $6F29 = 28457          basicV2.asm:2245
+SAVEXP         = $744F = 29775          basicV2.asm:3094
+SAVSTP         = $6792 = 26514          basicV2.asm:1174
+SAVSTR         = $70BF = 28863          basicV2.asm:2521
+SBSCPT         = $6EFF = 28415          basicV2.asm:2242
+SCALE          = $74AD = 29869          basicV2.asm:3171
+SCALLP         = $74AF = 29871          basicV2.asm:3172
+SCALMI         = $7774 = 30580          basicV2.asm:3639
+SCALPL         = $778A = 30602          basicV2.asm:3653
+SCNEND         = $71F6 = 29174          basicV2.asm:2711
+SCPTLP         = $6F05 = 28421          basicV2.asm:2246
 SDBUFFERMSG1   = $0650 =  1616          LCDGraphic.asm:823
 SDBUFFERMSG2   = $065B =  1627          LCDGraphic.asm:829
 SDLCDMSG1      = $063C =  1596          LCDGraphic.asm:797
 SDLCDMSG2      = $0647 =  1607          LCDGraphic.asm:803
 SDMSG1         = $0D09 =  3337          SoftSerial.asm:55
 SDMSG2         = $0D14 =  3348          SoftSerial.asm:61
-SEARCH         = $6553 = 25939          basicV2.asm:825
+SEARCH         = $652F = 25903          basicV2.asm:826
 SEED           = $8017 = 32791          basicV2.asm:44
-SERIAL_RX_PORT = $00C0 =   192          bootV2.asm:96
-SERIAL_TX_PORT = $00C0 =   192          bootV2.asm:97
-SETIO          = $73BE = 29630          basicV2.asm:2985
-SETLIN         = $6715 = 26389          basicV2.asm:1086
-SETLIT         = $659D = 26013          basicV2.asm:875
-SETPTR         = $647A = 25722          basicV2.asm:696
+SERIAL_RX_PORT = $00C0 =   192          bootV2.asm:98
+SERIAL_TX_PORT = $00C0 =   192          bootV2.asm:99
+SETIO          = $739A = 29594          basicV2.asm:2986
+SETLIN         = $66F1 = 26353          basicV2.asm:1087
+SETLIT         = $6579 = 25977          basicV2.asm:876
+SETPTR         = $6456 = 25686          basicV2.asm:697
 SETTOP         = $606C = 24684          basicV2.asm:186
-SFTPRG         = $6444 = 25668          basicV2.asm:659
-SGN            = $7661 = 30305          basicV2.asm:3424
-SGNEXP         = $6DA9 = 28073          basicV2.asm:2005
+SFTPRG         = $6420 = 25632          basicV2.asm:660
+SGN            = $763D = 30269          basicV2.asm:3425
+SGNEXP         = $6D85 = 28037          basicV2.asm:2006
 SGNRES         = $80E8 = 33000          basicV2.asm:94
-SHIFTKEYMAP    = $0098 =   152          bootV2.asm:200
+SHIFTKEYMAP    = $0098 =   152          bootV2.asm:202
 SHOWHELP       = $11A0 =  4512          Monitor.asm:825
 SHOW_MSG_EXE   = $0F0C =  3852          Monitor.asm:291
 SHOW_MSG_IMG   = $0F13 =  3859          Monitor.asm:296
 SHOW_MSG_TXT   = $0F1A =  3866          Monitor.asm:301
-SHRITE         = $74E0 = 29920          basicV2.asm:3179
-SHRLP          = $74E3 = 29923          basicV2.asm:3181
-SHRT1          = $74E7 = 29927          basicV2.asm:3185
+SHRITE         = $74BC = 29884          basicV2.asm:3180
+SHRLP          = $74BF = 29887          basicV2.asm:3182
+SHRT1          = $74C3 = 29891          basicV2.asm:3186
 SIGNON         = $60BC = 24764          basicV2.asm:219
-SIGNS          = $76B8 = 30392          basicV2.asm:3484
-SIN            = $7A45 = 31301          basicV2.asm:4020
-SIN1           = $7A75 = 31349          basicV2.asm:4040
-SINTAB         = $7A91 = 31377          basicV2.asm:4053
-SIXDIG         = $7814 = 30740          basicV2.asm:3716
-SMPVAR         = $71AE = 29102          basicV2.asm:2638
-SMSER1         = $79A9 = 31145          basicV2.asm:3932
+SIGNS          = $7694 = 30356          basicV2.asm:3485
+SIN            = $7A21 = 31265          basicV2.asm:4021
+SIN1           = $7A51 = 31313          basicV2.asm:4041
+SINTAB         = $7A6D = 31341          basicV2.asm:4054
+SIXDIG         = $77F0 = 30704          basicV2.asm:3717
+SMPVAR         = $718A = 29066          basicV2.asm:2639
+SMSER1         = $7985 = 31109          basicV2.asm:3933
 SN             = $0002 =     2          basicV2.asm:103
 SNDBUFFERMSG   = $064E =  1614          LCDGraphic.asm:821 (unused)
 SNDLCDMSG      = $063A =  1594          LCDGraphic.asm:795
 SNDMSG         = $0D07 =  3335          SoftSerial.asm:54
-SNERR          = $63AB = 25515          basicV2.asm:580
+SNERR          = $6387 = 25479          basicV2.asm:581
 SPCBUF         = $0FBA =  4026          Monitor.asm:424
-SPCFST         = $7805 = 30725          basicV2.asm:3708
-SPCLP          = $6AFA = 27386          basicV2.asm:1648
-SQR            = $78EB = 30955          basicV2.asm:3844
-SRCHLN         = $6497 = 25751          basicV2.asm:718
-SRCHLP         = $649A = 25754          basicV2.asm:719
-SSTSA          = $7276 = 29302          basicV2.asm:2770
+SPCFST         = $77E1 = 30689          basicV2.asm:3709
+SPCLP          = $6AD6 = 27350          basicV2.asm:1649
+SQR            = $78C7 = 30919          basicV2.asm:3845
+SRCHLN         = $6473 = 25715          basicV2.asm:719
+SRCHLP         = $6476 = 25718          basicV2.asm:720
+SSTSA          = $7252 = 29266          basicV2.asm:2771
 ST             = $001E =    30          basicV2.asm:117
 STACK          = $8066 = 32870          basicV2.asm:66
-STAKFP         = $7683 = 30339          basicV2.asm:3444
-STALL          = $683C = 26684          basicV2.asm:1263
+STAKFP         = $765F = 30303          basicV2.asm:3445
+STALL          = $6818 = 26648          basicV2.asm:1264
 STARTB         = $6006 = 24582          basicV2.asm:128
 START_BASIC    = $0E24 =  3620          Monitor.asm:112
 START_BASIC_KEY = $0E2F =  3631          Monitor.asm:118
 START_MONITOR  = $0D86 =  3462          Monitor.asm:4
-STKTHS         = $6CE2 = 27874          basicV2.asm:1900
+STKTHS         = $6CBE = 27838          basicV2.asm:1901
 STLOOK         = $815D = 33117          basicV2.asm:98
-STOP           = $684B = 26699          basicV2.asm:1274
-STORED         = $6917 = 26903          basicV2.asm:1389
-STPOOL         = $71F1 = 29169          basicV2.asm:2675
-STR            = $70D3 = 28883          basicV2.asm:2513
-STR1           = $70D9 = 28889          basicV2.asm:2515
-STRADD         = $71F4 = 29172          basicV2.asm:2677
+STOP           = $6827 = 26663          basicV2.asm:1275
+STORED         = $68F3 = 26867          basicV2.asm:1390
+STPOOL         = $71CD = 29133          basicV2.asm:2676
+STR            = $70AF = 28847          basicV2.asm:2514
+STR1           = $70B5 = 28853          basicV2.asm:2516
+STRADD         = $71D0 = 29136          basicV2.asm:2678
 STRBOT         = $80C3 = 32963          basicV2.asm:75
-STRENT         = $6BB2 = 27570          basicV2.asm:1737
+STRENT         = $6B8E = 27534          basicV2.asm:1738
 STRSPC         = $805A = 32858          basicV2.asm:62
-STTLIN         = $6A9E = 27294          basicV2.asm:1599
-SUBCDE         = $7409 = 29705          basicV2.asm:3025
-SUBPHL         = $7403 = 29699          basicV2.asm:3021
-SUMLP          = $79B2 = 31154          basicV2.asm:3937
-SUMSER         = $799A = 31130          basicV2.asm:3925
-SUPTLZ         = $7893 = 30867          basicV2.asm:3793
-SVNAM2         = $6E82 = 28290          basicV2.asm:2150
-SVSTAD         = $7101 = 28929          basicV2.asm:2541
-SYSTEM         = $FFF0 = 65520          bootV2.asm:102
+STTLIN         = $6A7A = 27258          basicV2.asm:1600
+SUBCDE         = $73E5 = 29669          basicV2.asm:3026
+SUBPHL         = $73DF = 29663          basicV2.asm:3022
+SUMLP          = $798E = 31118          basicV2.asm:3938
+SUMSER         = $7976 = 31094          basicV2.asm:3926
+SUPTLZ         = $786F = 30831          basicV2.asm:3794
+SVNAM2         = $6E5E = 28254          basicV2.asm:2151
+SVSTAD         = $70DD = 28893          basicV2.asm:2542
+SYSTEM         = $FFF0 = 65520          bootV2.asm:104
 ShowBufferDisplay = $01D3 =   467          API.asm:155
 SpaceOut       = $12DA =  4826          Utils.asm:32
 StrOut         = $12E3 =  4835          Utils.asm:49
 SysReset       = $0180 =   384          API.asm:89
 TABLE          = $06B3 =  1715          LCDGraphic.asm:922
-TAN            = $7AA6 = 31398          basicV2.asm:4060
-TESTOS         = $7180 = 29056          basicV2.asm:2617
-TESTR          = $7162 = 29026          basicV2.asm:2597
-TIME           = $7C95 = 31893          basicV2.asm:4384
-TIMEOUT        = $2710 = 10000          bootV2.asm:108
+TAN            = $7A82 = 31362          basicV2.asm:4061
+TESTOS         = $715C = 29020          basicV2.asm:2618
+TESTR          = $713E = 28990          basicV2.asm:2598
+TIMEOUT        = $2710 = 10000          bootV2.asm:110
 TM             = $0018 =    24          basicV2.asm:114
-TMERR          = $63BD = 25533          basicV2.asm:592
+TMERR          = $6399 = 25497          basicV2.asm:593
 TMPSTR         = $80BF = 32959          basicV2.asm:74
 TMSTPL         = $80B3 = 32947          basicV2.asm:73
 TMSTPT         = $80B1 = 32945          basicV2.asm:72
-TOPOOL         = $72E7 = 29415          basicV2.asm:2847
-TOSTRA         = $727F = 29311          basicV2.asm:2779
+TOPOOL         = $72C3 = 29379          basicV2.asm:2848
+TOSTRA         = $725B = 29275          basicV2.asm:2780
 TRANSKEY       = $0298 =   664          Keyboard.asm:132 (unused)
-TRYAGN         = $786E = 30830          basicV2.asm:3766
-TSALP          = $7280 = 29312          basicV2.asm:2780
-TSTBIT         = $7C54 = 31828          basicV2.asm:4330 (unused)
-TSTBRK         = $682E = 26670          basicV2.asm:1252
+TRYAGN         = $784A = 30794          basicV2.asm:3767
+TSALP          = $725C = 29276          basicV2.asm:2781
+TSTBIT         = $7C30 = 31792          basicV2.asm:4331 (unused)
+TSTBRK         = $680A = 26634          basicV2.asm:1253
 TSTMEM         = $605A = 24666          basicV2.asm:174
-TSTNUM         = $6C73 = 27763          basicV2.asm:1835
-TSTOPL         = $7129 = 28969          basicV2.asm:2569
-TSTRED         = $6DE1 = 28129          basicV2.asm:2048
-TSTREM         = $65A0 = 26016          basicV2.asm:876
-TSTSGN         = $7652 = 30290          basicV2.asm:3412
-TSTSTR         = $6C74 = 27764          basicV2.asm:1836
-TTYLIN         = $65F0 = 26096          basicV2.asm:923
+TSTNUM         = $6C4F = 27727          basicV2.asm:1836
+TSTOPL         = $7105 = 28933          basicV2.asm:2570
+TSTRED         = $6DBD = 28093          basicV2.asm:2049
+TSTREM         = $657C = 25980          basicV2.asm:877
+TSTSGN         = $762E = 30254          basicV2.asm:3413
+TSTSTR         = $6C50 = 27728          basicV2.asm:1837
+TTYLIN         = $65CC = 26060          basicV2.asm:924
 TXCRLF         = $0347 =   839          LCDGraphic.asm:118
 TXDATA         = $0D21 =  3361          SoftSerial.asm:86
 TYPE           = $80AD = 32941          basicV2.asm:69
 UF             = $0022 =    34          basicV2.asm:119
-UFERR          = $63B7 = 25527          basicV2.asm:588
+UFERR          = $6393 = 25491          basicV2.asm:589
 UL             = $000E =    14          basicV2.asm:109
-ULERR          = $6970 = 26992          basicV2.asm:1439
-UNITY          = $74F5 = 29941          basicV2.asm:3198
-UPDATA         = $6829 = 26665          basicV2.asm:1247
+ULERR          = $694C = 26956          basicV2.asm:1440
+UNITY          = $74D1 = 29905          basicV2.asm:3199
+UPDATA         = $6805 = 26629          basicV2.asm:1248
 USR            = $8003 = 32771          basicV2.asm:36
-VAL            = $7355 = 29525          basicV2.asm:2922
-VAL1           = $7373 = 29555          basicV2.asm:2942
-VAL2           = $737D = 29565          basicV2.asm:2946
-VAL3           = $7380 = 29568          basicV2.asm:2947
+VAL            = $7331 = 29489          basicV2.asm:2923
+VAL1           = $734F = 29519          basicV2.asm:2943
+VAL2           = $7359 = 29529          basicV2.asm:2947
+VAL3           = $735C = 29532          basicV2.asm:2948
 VAREND         = $80D8 = 32984          basicV2.asm:87
-VT             = $000B =    11          bootV2.asm:41 (unused)
-WAIT           = $73A0 = 29600          basicV2.asm:2969
-WAITLP         = $73B5 = 29621          basicV2.asm:2979
+VT             = $000B =    11          bootV2.asm:43 (unused)
+WAIT           = $737C = 29564          basicV2.asm:2970
+WAITLP         = $7391 = 29585          basicV2.asm:2980
 WARM           = $6003 = 24579          basicV2.asm:127 (unused)
 WARMST         = $60A4 = 24740          basicV2.asm:213
 WELLCOME       = $1320 =  4896          Strings.asm:1
-WIDTH          = $7B0F = 31503          basicV2.asm:4108
-WORDS          = $6136 = 24886          basicV2.asm:259
-WORDTB         = $6253 = 25171          basicV2.asm:349
+WIDTH          = $7AEB = 31467          basicV2.asm:4109
+WORDS          = $6112 = 24850          basicV2.asm:260
+WORDTB         = $622F = 25135          basicV2.asm:350
 WRDASC         = $1222 =  4642          Monitor.asm:919
 WRDOUT         = $1216 =  4630          Monitor.asm:898
 WRKSPC         = $8000 = 32768          basicV2.asm:35
-ZDATA          = $0083 =   131          basicV2.asm:392
-ZDIV           = $00AF =   175          basicV2.asm:410 (unused)
-ZEND           = $0080 =   128          basicV2.asm:390
-ZEQUAL         = $00B4 =   180          basicV2.asm:413
-ZERARY         = $6FC4 = 28612          basicV2.asm:2344
-ZERBYT         = $6347 = 25415          basicV2.asm:517
-ZEROLP         = $6F07 = 28423          basicV2.asm:2222
-ZEROSUP        = $7BE7 = 31719          basicV2.asm:4249
-ZFN            = $00A7 =   167          basicV2.asm:401
-ZFOR           = $0081 =   129          basicV2.asm:391
-ZGOSUB         = $008C =   140          basicV2.asm:394
-ZGOTO          = $0088 =   136          basicV2.asm:393
-ZGTR           = $00B3 =   179          basicV2.asm:412
-ZLEFT          = $00CF =   207          basicV2.asm:417
-ZLTH           = $00B5 =   181          basicV2.asm:414
-ZMINUS         = $00AD =   173          basicV2.asm:408
-ZNEW           = $00A4 =   164          basicV2.asm:397
-ZNOT           = $00AA =   170          basicV2.asm:404
-ZONELP         = $6AD5 = 27349          basicV2.asm:1627
-ZOR            = $00B2 =   178          basicV2.asm:411
-ZPLUS          = $00AC =   172          basicV2.asm:407
-ZPOINT         = $00C7 =   199          basicV2.asm:416 (unused)
-ZPRINT         = $009E =   158          basicV2.asm:396
-ZREM           = $008E =   142          basicV2.asm:395
-ZSGN           = $00B6 =   182          basicV2.asm:415
-ZSPC           = $00A8 =   168          basicV2.asm:402
-ZSTEP          = $00AB =   171          basicV2.asm:405
-ZTAB           = $00A5 =   165          basicV2.asm:399
-ZTHEN          = $00A9 =   169          basicV2.asm:403
-ZTIMES         = $00AE =   174          basicV2.asm:409 (unused)
-ZTO            = $00A6 =   166          basicV2.asm:400
-_end           = $7D2B = 32043          bootV2.asm:164 (unused)
+ZDATA          = $0083 =   131          basicV2.asm:393
+ZDIV           = $00AF =   175          basicV2.asm:411 (unused)
+ZEND           = $0080 =   128          basicV2.asm:391
+ZEQUAL         = $00B4 =   180          basicV2.asm:414
+ZERARY         = $6FA0 = 28576          basicV2.asm:2345
+ZERBYT         = $6323 = 25379          basicV2.asm:518
+ZEROLP         = $6EE3 = 28387          basicV2.asm:2223
+ZEROSUP        = $7BC3 = 31683          basicV2.asm:4250
+ZFN            = $00A7 =   167          basicV2.asm:402
+ZFOR           = $0081 =   129          basicV2.asm:392
+ZGOSUB         = $008C =   140          basicV2.asm:395
+ZGOTO          = $0088 =   136          basicV2.asm:394
+ZGTR           = $00B3 =   179          basicV2.asm:413
+ZLEFT          = $00CF =   207          basicV2.asm:418
+ZLTH           = $00B5 =   181          basicV2.asm:415
+ZMINUS         = $00AD =   173          basicV2.asm:409
+ZNEW           = $00A4 =   164          basicV2.asm:398
+ZNOT           = $00AA =   170          basicV2.asm:405
+ZONELP         = $6AB1 = 27313          basicV2.asm:1628
+ZOR            = $00B2 =   178          basicV2.asm:412
+ZPLUS          = $00AC =   172          basicV2.asm:408
+ZPOINT         = $00C7 =   199          basicV2.asm:417 (unused)
+ZPRINT         = $009E =   158          basicV2.asm:397
+ZREM           = $008E =   142          basicV2.asm:396
+ZSGN           = $00B6 =   182          basicV2.asm:416
+ZSPC           = $00A8 =   168          basicV2.asm:403
+ZSTEP          = $00AB =   171          basicV2.asm:406
+ZTAB           = $00A5 =   165          basicV2.asm:400
+ZTHEN          = $00A9 =   169          basicV2.asm:404
+ZTIMES         = $00AE =   174          basicV2.asm:410 (unused)
+ZTO            = $00A6 =   166          basicV2.asm:401
+_end           = $7C71 = 31857          bootV2.asm:166 (unused)
 _loop          = $1314 =  4884          Utils.asm:115
 _overflow      = $131B =  4891          Utils.asm:121
-_size          = $7D2B = 32043          bootV2.asm:164 (unused)
+_size          = $7C71 = 31857          bootV2.asm:166 (unused)
 _skip          = $131D =  4893          Utils.asm:124
 _z80_          = $0001 =     1          bootV2.asm:1 (unused)
 ajustX         = $03F6 =  1014          LCDGraphic.asm:263
@@ -9072,17 +8934,16 @@ delayLCD       = $0616 =  1558          LCDGraphic.asm:743
 delayLCDclear  = $0624 =  1572          LCDGraphic.asm:759
 delay_loop     = $04CF =  1231          LCDGraphic.asm:418
 delay_loop_b   = $04CD =  1229          LCDGraphic.asm:416
-display        = $7D23 = 32035          basicV2.asm:4511
 enable_grafic  = $0560 =  1376          LCDGraphic.asm:543
 incXOK         = $04C2 =  1218          LCDGraphic.asm:394
 incYOK         = $04BC =  1212          LCDGraphic.asm:390
 kAPILast       = $0015 =    21          API.asm:82
-kCPUClock      = $0900 =4000000          bootV2.asm:71
-kDelayCnt      = $0098 =   152          bootV2.asm:76
-kDelayLP       = $001A =    26          bootV2.asm:73
-kDelayOH       = $0024 =    36          bootV2.asm:72
-kDelayTA       = $0FA0 =  4000          bootV2.asm:74
-kDelayTB       = $0F7C =  3964          bootV2.asm:75
+kCPUClock      = $0900 =4000000          bootV2.asm:73
+kDelayCnt      = $0098 =   152          bootV2.asm:78
+kDelayLP       = $001A =    26          bootV2.asm:75
+kDelayOH       = $0024 =    36          bootV2.asm:74
+kDelayTA       = $0FA0 =  4000          bootV2.asm:76
+kDelayTB       = $0F7C =  3964          bootV2.asm:77
 lcd_asciiz_char_loop = $0603 =  1539          LCDGraphic.asm:720
 lcd_asciiz_done = $0613 =  1555          LCDGraphic.asm:735
 lcd_asciiz_wait_loop = $0605 =  1541          LCDGraphic.asm:723 (unused)
@@ -9090,7 +8951,6 @@ lcd_clear      = $054E =  1358          LCDGraphic.asm:513
 lcd_clearPixel = $0512 =  1298          LCDGraphic.asm:470
 lcd_clearPixel_bit = $053A =  1338          LCDGraphic.asm:490
 lcd_clearPixel_fim = $0543 =  1347          LCDGraphic.asm:496
-lcd_print_data = $7CFE = 31998          basicV2.asm:4484
 lcd_send_asciiz = $0601 =  1537          LCDGraphic.asm:717 (unused)
 lcd_send_command = $05E3 =  1507          LCDGraphic.asm:667
 lcd_send_command_clear = $05ED =  1517          LCDGraphic.asm:683
@@ -9106,8 +8966,6 @@ multiplicationLOOP = $130D =  4877          Utils.asm:99
 print8x8_Y     = $069F =  1695          LCDGraphic.asm:894
 print8x8_Y_OK  = $06A2 =  1698          LCDGraphic.asm:898
 print8x8_loop  = $06A7 =  1703          LCDGraphic.asm:903
-print_12       = $7D0F = 32015          basicV2.asm:4497
-print_22       = $7D1D = 32029          basicV2.asm:4505
 print_char_fim = $04C5 =  1221          LCDGraphic.asm:397
 print_image    = $0579 =  1401          LCDGraphic.asm:559
 print_lcd      = $03D7 =   983          LCDGraphic.asm:239
@@ -9122,5 +8980,5 @@ ver_limpa      = $03BE =   958          LCDGraphic.asm:215
 ver_line       = $03D0 =   976          LCDGraphic.asm:230
 
 
-total time: 0.0575 sec.
+total time: 0.0597 sec.
 no errors
