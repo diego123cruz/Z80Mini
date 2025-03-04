@@ -2,22 +2,30 @@
 
 
 # Z80Mini
-Z80Mini foi pensado para ser um computador portátil e modular, temos uma placa base com o processador Z80 rodando em 4Mhz, 32Kb de memória RAM, um soquete para a memória ROM, (que pode ser instalada na placa "Face"), duas portas de entradas e duas de saídas (a porta de saída 40h está ligada no barramento através de resistores de 1k).
+Z80Mini foi pensado para ser um computador portátil e modular, temos uma placa base com o processador Z80 rodando em 7.372800Mhz, 32Kb de memória RAM, um soquete para a memória ROM, (que pode ser instalada na placa "Face"), duas portas de entradas e duas de saídas (a porta de saída 40h está ligada no barramento através de resistores de 200R).
 
 ## Spec
-Z80 @4Mhz
+Z80 @7.372800Mhz
 
 RAM 32kb @62256
 
-ROM 32Kb @28C256 / 8Kb @28C64
+ROM 32Kb @28C256
 
+## Serial - SIO/2
+SIOA_D $00 - MainBoard USB-Serial 115200 (FTDI)
+
+SIOA_C $02 - MainBoard USB-Serial 115200 (FTDI)
+
+SIOB_D $01 - Não usado
+
+SIOB_C $03 - Não usado
 
 ## IN / OUT
-OUT_40h with resistor 1k
-
-OUT_C0h
+OUT_40h with resistor 200R
 
 IN_40h
+
+OUT_C0h
 
 IN_C0h
 
@@ -57,7 +65,7 @@ O circuito ou código-fonte podem conter partes dos projetos originais mencionad
 
 
 
-### Basic LCD V1 - Face
+### Basic LCD V1 - Face [DESCONTINUADO]
 ![Z80Mini](https://github.com/diego123cruz/Z80Mini/blob/main/Basic%20LCD%20-%20Face/BasicLCD%20V1-Face.jpeg)
 
 [Vídeo demo](https://www.youtube.com/watch?v=0nLOt6mwVDU)
@@ -65,7 +73,11 @@ O circuito ou código-fonte podem conter partes dos projetos originais mencionad
 [Vídeo detalhes](https://www.youtube.com/watch?v=qB5lAR5NyGU)
 
 
-### Basic LCD Graphic 128x64 V2 - Face
+### Basic LCD Graphic 128x64 V2 - Face [DESCONTINUADO]
+![Z80Mini](https://github.com/diego123cruz/Z80Mini/blob/main/Basic%20LCD%20-%20Face/Basic%20LCD%20V2%20(Graphic%20128x64)%20-%20Face.jpg)
+
+
+### Basic LCD Graphic 128x64 V3 - Face [NEW]
 ![Z80Mini](https://github.com/diego123cruz/Z80Mini/blob/main/Basic%20LCD%20-%20Face/Basic%20LCD%20V2%20(Graphic%20128x64)%20-%20Face.jpg)
 
 [Vídeo demo](https://www.youtube.com/shorts/OemEQMpTLIQ)
