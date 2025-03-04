@@ -1,4 +1,4 @@
-<img src="[https://github.com/diego123cruz/Z80Mini/blob/main/Basic%20LCD%20-%20Face/BasicLCD V1-Face.jpeg](https://github.com/diego123cruz/Z80Mini/blob/main/Z80MiniV3.jpeg)" title="Z80Mini BaseBoard" alt="Z80Mini Graphics LCD v3">
+<img src="https://github.com/diego123cruz/Z80Mini/blob/main/Z80MiniV3.jpeg" title="Z80Mini BaseBoard" alt="Z80Mini Graphics LCD v3">
 
 ### Graphics Display (128x64) + Keyboard TEC 65 - Face
 
