@@ -66,7 +66,7 @@ O circuito ou código-fonte podem conter partes dos projetos originais mencionad
 
 
 ### Basic LCD V1 - Face [DESCONTINUADO]
-![Z80Mini](https://github.com/diego123cruz/Z80Mini/blob/main/Basic%20LCD%20-%20Face/BasicLCD%20V1-Face.jpeg)
+![Z80Mini](https://github.com/diego123cruz/Z80Mini/blob/main/Basic%20LCD%20-%20Face%20%5BDescontinuado%5D/BasicLCD%20V1-Face.jpeg)
 
 [Vídeo demo](https://www.youtube.com/watch?v=0nLOt6mwVDU)
 
@@ -74,11 +74,11 @@ O circuito ou código-fonte podem conter partes dos projetos originais mencionad
 
 
 ### Basic LCD Graphic 128x64 V2 - Face [DESCONTINUADO]
-![Z80Mini](https://github.com/diego123cruz/Z80Mini/blob/main/Basic%20LCD%20-%20Face/Basic%20LCD%20V2%20(Graphic%20128x64)%20-%20Face.jpg)
+![Z80Mini](https://github.com/diego123cruz/Z80Mini/blob/main/Basic%20LCD%20-%20Face%20%5BDescontinuado%5D/Basic%20LCD%20V2%20(Graphic%20128x64)%20-%20Face.jpg)
 
 
 ### Basic LCD Graphic 128x64 V3 - Face [NEW]
-![Z80Mini](https://github.com/diego123cruz/Z80Mini/blob/main/Basic%20LCD%20-%20Face/Basic%20LCD%20V2%20(Graphic%20128x64)%20-%20Face.jpg)
+![Z80MiniV3](https://github.com/diego123cruz/Z80Mini/blob/main/Z80MiniV3.jpeg)
 
 [Vídeo demo](https://www.youtube.com/shorts/OemEQMpTLIQ)
 
