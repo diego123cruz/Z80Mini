@@ -26,8 +26,8 @@ SET_BUF_CLEAR			    .EQU	$0133			;Clear the Graphics buffer on after Plotting to
 SET_BUF_NO_CLEAR     		.EQU	$0136			;Retain the Graphics buffer on after Plotting to the screen
 CLEAR_PIXEL          		.EQU	$0139			;Remove a Pixel at X,Y
 FLIP_PIXEL			        .EQU	$013C			;Flip a Pixel On/Off at X,Y
-LCD_INST             		.EQU	$013F			;Send a parallel or serial instruction to LCD
-LCD_DATA             		.EQU	$0142			;Send a parallel or serial datum to LCD
+LCD_INST             		.EQU	$013F			;Send a parallel instruction to LCD
+LCD_DATA             		.EQU	$0142			;Send a parallel datum to LCD
 SER_SYNC             		.EQU	$0145			;Send serial synchronise byte to LCD
 DRAW_GRAPHIC         		.EQU	$0148			;Draw an ASCII charcter or Sprite to the LCD
 INV_GRAPHIC          		.EQU	$014B			;Inverse graphics printing
