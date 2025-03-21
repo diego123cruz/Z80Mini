@@ -54,6 +54,37 @@ GRET:
 	CP 0
 	RET
 
+CHANGE_CAPS:
+    LD A, (KEY_CAPS)
+    XOR 1
+    LD (KEY_CAPS), A
+    OUT ($10), A
+CHANGE_CAPS_L:
+    CALL NOP_TIME
+    in a, (KEY_IN)
+    bit 2, A
+    JP Z, CHANGE_CAPS_L
+    RET
+
+CHECK_CAPS:
+    PUSH AF
+    ; check caps
+    ld a, (KEY_CAPS)
+    or a
+    JP Z, CHECK_CAPS_F ; se não CAPS, ret
+    ; a = 61h, z = 7A
+    POP AF
+	cp 61h
+	RET C
+	cp 7Bh
+	RET NC 
+    AND     01011111B       ; Force upper case
+    OR A
+    RET
+CHECK_CAPS_F:
+    POP AF
+    RET
+
 ; -----------------------------------------------------------------------------
 ;   KEYREAD - KEY In A, or 0 if not press key
 ;   aguarda até presionar uma tecla
@@ -70,6 +101,8 @@ i_read_key:
     out (KEY_OUT), a
     CALL NOP_TIME
     in a, (KEY_IN)
+    bit 2, A
+    CALL Z, CHANGE_CAPS
     bit 3, a
     jp NZ, r_key
     ld (KEY_SHIFT), a ; se shitft a > 0
@@ -93,6 +126,7 @@ k_read_fim:
     djnz k_read_loop
     LD A, (KEY_READ)
     OR A
+    CALL CHECK_CAPS
     POP     HL
     POP     DE
     POP     BC
@@ -117,6 +151,8 @@ init_read_key:
     out (KEY_OUT), a
     CALL NOP_TIME
     in a, (KEY_IN)
+    bit 2, A
+    CALL Z, CHANGE_CAPS
     bit 3, a
     jp NZ, read_key
     ld (KEY_SHIFT), a ; se shitft a > 0
@@ -141,6 +177,7 @@ key_read_fim:
     LD A, (KEY_READ)
     OR A
     JP Z, init_read_key
+    CALL CHECK_CAPS
     POP     HL
     POP     DE
     POP     BC

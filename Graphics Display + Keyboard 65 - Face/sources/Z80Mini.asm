@@ -138,15 +138,14 @@ RST66   .ORG 0066H ; NMI - Non­maskable Interrupt
 
 line1 db ESC,"1234567890=",DEL
 line2 db 09H,"qwertyuiop[]"
-line3 db "-asdfghjkl'",CR,CR
+line3 db 0,"asdfghjkl'",CR,CR
 line4 db 0,"-zxcvbnm,.",KUP,";"
 line5 db KF1,KF2,KF3,KF4,KF5,"  ",$5c,"-/",KLEFT,KDOWN,KRIGHT
 line1_shift db ESC,"!@#$%^&*()+",DEL
 line2_shift db 09H,"QWERTYUIOP{}"
-line3_shift db "-ASDFGHJKL",$22,CR, CR
+line3_shift db 0,"ASDFGHJKL",$22,CR, CR
 line4_shift db 0,"-ZXCVBNM<>",KUP,":"
 line5_shift db KF1,KF2,KF3,KF4,KF5,"  |_?", KLEFT, KDOWN, KRIGHT
-
 
 API     .ORG 0100H ; API POINTER
 ; **********************************************************************
@@ -210,6 +209,7 @@ API     .ORG 0100H ; API POINTER
 START_SYSTEM:
     ; init RAM
     XOR A
+    LD (KEY_CAPS), A
     LD (LED_ONBOARD), A
     LD (BDEL), A
 RESET_WARM:
@@ -424,6 +424,7 @@ DATABYTE:    DB  00H
 ADDR:        DW  0000H
 
 KEY_SHIFT:   DB  00H
+KEY_CAPS:    DB  00H
 KEY_READ:    DB  00H
 
 .end
