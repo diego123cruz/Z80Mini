@@ -32,12 +32,34 @@ AC2HEX3: AND   0FFH        ;RESET THE CARRY - NOT HEX
        RET
 
 
+
+key_out:
+    PUSH AF
+    LD A, (KEY_CAPS)
+    OR A
+    JP Z, key_out_caps_off
+    JP key_out_caps_on
+
+key_out_caps_on:
+    POP AF
+    AND $0F ;5 4 3210 
+    OUT (KEY_OUT), A
+    RET
+
+key_out_caps_off:
+    POP AF
+    OR $10 ;5 4 3210 
+    OUT (KEY_OUT), A
+    RET
+
+
+
 ; -----------------------------------------------------------------------------
 ;   Check break key (Basic)
 ; -----------------------------------------------------------------------------
 CHKKEY:
     XOR A
-	OUT (KEY_OUT), A
+	CALL key_out
     NOP
     NOP
     NOP
@@ -58,7 +80,6 @@ CHANGE_CAPS:
     LD A, (KEY_CAPS)
     XOR 1
     LD (KEY_CAPS), A
-    OUT ($10), A
 CHANGE_CAPS_L:
     CALL NOP_TIME
     in a, (KEY_IN)
@@ -98,7 +119,7 @@ i_read_key:
     xor a
     LD (KEY_READ), A
     ld (KEY_SHIFT), a ; Reset shift
-    out (KEY_OUT), a
+    CALL key_out
     CALL NOP_TIME
     in a, (KEY_IN)
     bit 2, A
@@ -111,7 +132,7 @@ r_key:
     ld c, 0
 k_read_loop:
     ld a, c
-    out (KEY_OUT), a
+    CALL key_out
     CALL NOP_TIME
     in a, (KEY_IN)
     and $1f
@@ -148,7 +169,7 @@ init_read_key:
     xor a
     LD (KEY_READ), A
     ld (KEY_SHIFT), a ; Reset shift
-    out (KEY_OUT), a
+    CALL key_out
     CALL NOP_TIME
     in a, (KEY_IN)
     bit 2, A
@@ -161,7 +182,7 @@ read_key:
     ld c, 0
 key_read_loop:
     ld a, c
-    out (KEY_OUT), a
+    CALL key_out
     CALL NOP_TIME
     in a, (KEY_IN)
     and $1f

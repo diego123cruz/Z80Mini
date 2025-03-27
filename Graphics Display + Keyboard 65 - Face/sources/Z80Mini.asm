@@ -208,8 +208,10 @@ API     .ORG 0100H ; API POINTER
 
 START_SYSTEM:
     ; init RAM
-    XOR A
+    LD A, 1 ; capslock = on
     LD (KEY_CAPS), A
+    
+    XOR A
     LD (LED_ONBOARD), A
     LD (BDEL), A
 RESET_WARM:
