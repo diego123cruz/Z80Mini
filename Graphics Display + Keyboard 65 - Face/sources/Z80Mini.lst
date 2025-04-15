@@ -1,6 +1,6 @@
               	; --------------------------------------
               	; zasm: assemble "Z80Mini.asm"
-              	; date: 2025-03-26 20:18:06
+              	; date: 2025-04-15 20:55:48
               	; --------------------------------------
 
 
@@ -122,7 +122,7 @@ FFF0:         	SYSTEM_SP:	.EQU 	$FFF0	;INITIAL STACK POINTER
               	
 000B: FFFFFFFF	        .ORG 0010H
 000F: FF      	
-0010: C30611  	RST10   JP KEYREADINIT
+0010: C30711  	RST10   JP KEYREADINIT
               	
 0013: FFFFFFFF	        .ORG 0018H ; check break
 0017: FF      	
@@ -241,13 +241,13 @@ FFF0:         	SYSTEM_SP:	.EQU 	$FFF0	;INITIAL STACK POINTER
 0178: C3620F  	    JP SNDSTR               ; SEND AN ASCII STRING OUT THE SERIAL PORT (Max 128 chars), HL = POINTER TO 00H TERMINATED STRING
 017B: C38F0F  	    JP INTELLOADER          ; Start load intel hex
               	; KEYBOARD
-017E: C30611  	    JP KEYREADINIT          ;Input character KeyboardOnboard (Char in A), loop until release key
+017E: C30711  	    JP KEYREADINIT          ;Input character KeyboardOnboard (Char in A), loop until release key
 0181: C3BC10  	    JP KEYREAD              ;Input character KeyboardOnboard (Char in A), WITHOUT loop until release key
 0184: C37A10  	    JP CHKKEY               ;Check BK press
               	; UTIL
-0187: C30712  	    JP H_Delay              ;Delay in milliseconds (DE in millis)
-018A: C33112  	    JP LED_RED              ;Half byte in A (4 bits)
-018D: C34012  	    JP LED_GREEN            ;Half byte in A (4 bits)
+0187: C30912  	    JP H_Delay              ;Delay in milliseconds (DE in millis)
+018A: C33312  	    JP LED_RED              ;Half byte in A (4 bits)
+018D: C34212  	    JP LED_GREEN            ;Half byte in A (4 bits)
               	
               	
 0190:         	START_SYSTEM:
@@ -263,7 +263,7 @@ FFF0:         	SYSTEM_SP:	.EQU 	$FFF0	;INITIAL STACK POINTER
 019C: 31F0FF  	    LD SP, SYSTEM_SP
               	
 019F: 116400  	    LD DE, $0064 ; 100ms
-01A2: CD0712  	    CALL H_Delay
+01A2: CD0912  	    CALL H_Delay
               	
               	    ; Init serial
 01A5: CD2B0F  	    CALL INIT_SERIAL
@@ -276,7 +276,7 @@ FFF0:         	SYSTEM_SP:	.EQU 	$FFF0	;INITIAL STACK POINTER
               	    ; Show init string
 01B1: 010000  	    LD BC, $0000
 01B4: CD6006  	    CALL SET_CURSOR
-01B7: 114117  	    LD DE, WELLCOME_LCD
+01B7: 114317  	    LD DE, WELLCOME_LCD
               	    ; set cursor ON
 01BA: 3E00    	    LD A, 0
 01BC: 3294FB  	    LD (CURSOR_ON), A
@@ -286,10 +286,10 @@ FFF0:         	SYSTEM_SP:	.EQU 	$FFF0	;INITIAL STACK POINTER
               	
               	
 01C4:         	LOOP_MONITOR:
-01C4: CD0611  	    CALL KEYREADINIT
+01C4: CD0711  	    CALL KEYREADINIT
               	
 01C7: FE48    	    CP 'H'
-01C9: CC7A12  	    CALL Z, SHOW_MENU
+01C9: CC7C12  	    CALL Z, SHOW_MENU
               	
 01CC: FE80    	    CP KF1
 01CE: CA0080  	    JP Z, $8000
@@ -298,46 +298,46 @@ FFF0:         	SYSTEM_SP:	.EQU 	$FFF0	;INITIAL STACK POINTER
 01D3: CA8F0F  	    JP Z, INTELLOADER
               	
 01D6: FE42    	    CP 'B'
-01D8: CA1813  	    JP Z, START_BASIC
+01D8: CA1A13  	    JP Z, START_BASIC
               	
 01DB: FE47    	    CP 'G'
-01DD: CC3813  	    CALL Z, GOJUMP
+01DD: CC3A13  	    CALL Z, GOJUMP
               	
 01E0: FE4D    	    CP 'M'
-01E2: CC6013  	    CALL Z, MODIFY
+01E2: CC6213  	    CALL Z, MODIFY
               	
 01E5: FE44    	    CP 'D'
-01E7: CCB813  	    CALL Z, DSPLAY
+01E7: CCBA13  	    CALL Z, DSPLAY
               	
 01EA: FE4F    	    CP 'O'
-01EC: CC3614  	    CALL Z, OUTPORT
+01EC: CC3814  	    CALL Z, OUTPORT
               	
 01EF: FE49    	    CP 'I'
-01F1: CC4F14  	    CALL Z, INPORT_MON
+01F1: CC5114  	    CALL Z, INPORT_MON
               	
 01F4: FE31    	    CP '1'
 01F6: CC780E  	    CALL Z, I2CLIST
               	
 01F9: FE32    	    CP '2'
-01FB: CC7315  	    CALL Z, I2CCPUTOMEM
+01FB: CC7515  	    CALL Z, I2CCPUTOMEM
               	
 01FE: FE33    	    CP '3'
-0200: CC1416  	    CALL Z, I2CMEMTOCPU
+0200: CC1616  	    CALL Z, I2CMEMTOCPU
               	
 0203: FE34    	    CP '4'
-0205: CC4916  	    CALL Z, I2C_WR_DD
+0205: CC4B16  	    CALL Z, I2C_WR_DD
               	
 0208: FE35    	    CP '5'
-020A: CC6A16  	    CALL Z, I2C_WR_RR_DD
+020A: CC6C16  	    CALL Z, I2C_WR_RR_DD
               	
 020D: FE36    	    CP '6'
-020F: CC9416  	    CALL Z, I2C_RD
+020F: CC9616  	    CALL Z, I2C_RD
               	
 0212: FE37    	    CP '7'
-0214: CCC316  	    CALL Z, I2C_RD_RR
+0214: CCC516  	    CALL Z, I2C_RD_RR
               	
 0217: FE38    	    CP '8'
-0219: CC6914  	    CALL Z, READ_MEM_FILES
+0219: CC6B14  	    CALL Z, READ_MEM_FILES
               	
 021C: CDAF05  	    CALL SEND_CHAR_TO_GLCD
               	
@@ -3827,7 +3827,7 @@ FFF0:         	SYSTEM_SP:	.EQU 	$FFF0	;INITIAL STACK POINTER
               	;
               	; Test each I2C device address and reports any that acknowledge
               	
-0E78: 217718  	I2CLIST:    LD   HL, I2C_LIST_MSG        ;Address of message string
+0E78: 217918  	I2CLIST:    LD   HL, I2C_LIST_MSG        ;Address of message string
 0E7B: AF      	            XOR A ; A = character to stop printing.
 0E7C: CD6902  	            CALL LCD_PRINT_STRING         ;Output string
 0E7F: 1600    	            LD   D,0            ;First I2C device address to test
@@ -3999,7 +3999,7 @@ FFF0:         	SYSTEM_SP:	.EQU 	$FFF0	;INITIAL STACK POINTER
 0F4D: D302    		OUT	(SIOA_C),A
               	
               	    ; Print wellcome serial
-0F4F: 212917  	    LD HL, WELLCOME
+0F4F: 212B17  	    LD HL, WELLCOME
 0F52: CD620F  	    CALL SNDSTR
               	
 0F55: C9      		RET
@@ -4100,30 +4100,30 @@ FFF0:         	SYSTEM_SP:	.EQU 	$FFF0	;INITIAL STACK POINTER
 0F8F:         	INTELLOADER: 
 0F8F: CD2802  			CALL LCD_CR
               	
-0F92: 118D18  	       	LD DE, MSG_ILOAD
+0F92: 118F18  	       	LD DE, MSG_ILOAD
 0F95: AF      	    	XOR A
 0F96: CD1E06  	    	CALL SEND_STRING_TO_GLCD
               	
-0F99: 218D18  	       	LD HL, MSG_ILOAD
+0F99: 218F18  	       	LD HL, MSG_ILOAD
 0F9C: CD620F  	       	CALL  SNDSTR
               	       
               	
 0F9F: CDC00F  	       	CALL  INTELH
 0FA2: 200E    	       	JR    NZ,ITHEX1
               	
-0FA4: 11A218  	       	LD    DE,FILEOK
+0FA4: 11A418  	       	LD    DE,FILEOK
 0FA7: AF      	       	XOR A
 0FA8: CD1E06  	    	CALL SEND_STRING_TO_GLCD   ;GOT FILE OK LCD
               	
-0FAB: 21A218  	       	LD    HL,FILEOK
+0FAB: 21A418  	       	LD    HL,FILEOK
 0FAE: CD620F  	       	CALL  SNDSTR      ;GOT FILE OK Serial
               	       
 0FB1: C9      	       	RET
-0FB2: 11B418  	ITHEX1: LD    DE,CSUMERR
+0FB2: 11B618  	ITHEX1: LD    DE,CSUMERR
 0FB5: AF      	       	XOR A
 0FB6: CD1E06  	    	CALL SEND_STRING_TO_GLCD
               	
-0FB9: 21B418  	       	LD    HL,CSUMERR
+0FB9: 21B618  	       	LD    HL,CSUMERR
 0FBC: CD620F  	       	CALL  SNDSTR      ;CHECKSUM ERROR 
 0FBF: C9      	       	RET  
               	
@@ -4306,7 +4306,7 @@ FFF0:         	SYSTEM_SP:	.EQU 	$FFF0	;INITIAL STACK POINTER
 1097: EE01    	    XOR 1
 1099: 32CDFB  	    LD (KEY_CAPS), A
 109C:         	CHANGE_CAPS_L:
-109C: CDC111  	    CALL NOP_TIME
+109C: CDC311  	    CALL NOP_TIME
 109F: DB40    	    in a, (KEY_IN)
 10A1: CB57    	    bit 2, A
 10A3: CA9C10  	    JP Z, CHANGE_CAPS_L
@@ -4340,12 +4340,12 @@ FFF0:         	SYSTEM_SP:	.EQU 	$FFF0	;INITIAL STACK POINTER
 10BD: D5      		PUSH	DE
 10BE: E5      		PUSH    HL
 10BF:         	i_read_key:
-10BF: CDC111  	    CALL NOP_TIME
+10BF: CDC311  	    CALL NOP_TIME
 10C2: AF      	    xor a
 10C3: 32CEFB  	    LD (KEY_READ), A
 10C6: 32CCFB  	    ld (KEY_SHIFT), a ; Reset shift
 10C9: CD6310  	    CALL key_out
-10CC: CDC111  	    CALL NOP_TIME
+10CC: CDC311  	    CALL NOP_TIME
 10CF: DB40    	    in a, (KEY_IN)
 10D1: CB57    	    bit 2, A
 10D3: CC9410  	    CALL Z, CHANGE_CAPS
@@ -4358,14 +4358,14 @@ FFF0:         	SYSTEM_SP:	.EQU 	$FFF0	;INITIAL STACK POINTER
 10E2:         	k_read_loop:
 10E2: 79      	    ld a, c
 10E3: CD6310  	    CALL key_out
-10E6: CDC111  	    CALL NOP_TIME
+10E6: CDC311  	    CALL NOP_TIME
 10E9: DB40    	    in a, (KEY_IN)
 10EB: E61F    	    and $1f
 10ED: EE1F    	    xor $1f
 10EF: CAF810  	    jp z, k_read_fim
 10F2: C5      	    push bc
 10F3: 47      	    ld b, a
-10F4: CD5311  	    call trata_key
+10F4: CD5511  	    call trata_key
 10F7: C1      	    pop bc
 10F8:         	k_read_fim:
 10F8: 0C      	    inc c
@@ -4373,10 +4373,11 @@ FFF0:         	SYSTEM_SP:	.EQU 	$FFF0	;INITIAL STACK POINTER
 10FB: 3ACEFB  	    LD A, (KEY_READ)
 10FE: B7      	    OR A
 10FF: CDA710  	    CALL CHECK_CAPS
-1102: E1      	    POP     HL
-1103: D1      	    POP     DE
-1104: C1      	    POP     BC
-1105: C9      	    RET ; Return KEYREAD
+1102: B7      	    OR A
+1103: E1      	    POP     HL
+1104: D1      	    POP     DE
+1105: C1      	    POP     BC
+1106: C9      	    RET ; Return KEYREAD
               	
               	
               	
@@ -4384,199 +4385,200 @@ FFF0:         	SYSTEM_SP:	.EQU 	$FFF0	;INITIAL STACK POINTER
               	;   KEYREADINIT - KEY In A 
               	;   aguarda até presionar uma tecla
               	; -----------------------------------------------------------------------------
-1106:         	KEYREADINIT:
+1107:         	KEYREADINIT:
               	    ; save registers (MSBASIC)
-1106: C5      	    PUSH    BC
-1107: D5      		PUSH	DE
-1108: E5      		PUSH    HL
-1109:         	init_read_key:
-1109: CDC111  	    CALL NOP_TIME
-110C: AF      	    xor a
-110D: 32CEFB  	    LD (KEY_READ), A
-1110: 32CCFB  	    ld (KEY_SHIFT), a ; Reset shift
-1113: CD6310  	    CALL key_out
-1116: CDC111  	    CALL NOP_TIME
-1119: DB40    	    in a, (KEY_IN)
-111B: CB57    	    bit 2, A
-111D: CC9410  	    CALL Z, CHANGE_CAPS
-1120: CB5F    	    bit 3, a
-1122: C22811  	    jp NZ, read_key
-1125: 32CCFB  	    ld (KEY_SHIFT), a ; se shitft a > 0
-1128:         	read_key:
-1128: 060D    	    ld b, 13
-112A: 0E00    	    ld c, 0
-112C:         	key_read_loop:
-112C: 79      	    ld a, c
-112D: CD6310  	    CALL key_out
-1130: CDC111  	    CALL NOP_TIME
-1133: DB40    	    in a, (KEY_IN)
-1135: E61F    	    and $1f
-1137: EE1F    	    xor $1f
-1139: CA4211  	    jp z, key_read_fim
-113C: C5      	    push bc
-113D: 47      	    ld b, a
-113E: CD5311  	    call trata_key
-1141: C1      	    pop bc
-1142:         	key_read_fim:
-1142: 0C      	    inc c
-1143: 10E7    	    djnz key_read_loop
-1145: 3ACEFB  	    LD A, (KEY_READ)
-1148: B7      	    OR A
-1149: CA0911  	    JP Z, init_read_key
-114C: CDA710  	    CALL CHECK_CAPS
-114F: E1      	    POP     HL
-1150: D1      	    POP     DE
-1151: C1      	    POP     BC
-1152: C9      	    RET ; Return KEYREADINIT
+1107: C5      	    PUSH    BC
+1108: D5      		PUSH	DE
+1109: E5      		PUSH    HL
+110A:         	init_read_key:
+110A: CDC311  	    CALL NOP_TIME
+110D: AF      	    xor a
+110E: 32CEFB  	    LD (KEY_READ), A
+1111: 32CCFB  	    ld (KEY_SHIFT), a ; Reset shift
+1114: CD6310  	    CALL key_out
+1117: CDC311  	    CALL NOP_TIME
+111A: DB40    	    in a, (KEY_IN)
+111C: CB57    	    bit 2, A
+111E: CC9410  	    CALL Z, CHANGE_CAPS
+1121: CB5F    	    bit 3, a
+1123: C22911  	    jp NZ, read_key
+1126: 32CCFB  	    ld (KEY_SHIFT), a ; se shitft a > 0
+1129:         	read_key:
+1129: 060D    	    ld b, 13
+112B: 0E00    	    ld c, 0
+112D:         	key_read_loop:
+112D: 79      	    ld a, c
+112E: CD6310  	    CALL key_out
+1131: CDC311  	    CALL NOP_TIME
+1134: DB40    	    in a, (KEY_IN)
+1136: E61F    	    and $1f
+1138: EE1F    	    xor $1f
+113A: CA4311  	    jp z, key_read_fim
+113D: C5      	    push bc
+113E: 47      	    ld b, a
+113F: CD5511  	    call trata_key
+1142: C1      	    pop bc
+1143:         	key_read_fim:
+1143: 0C      	    inc c
+1144: 10E7    	    djnz key_read_loop
+1146: 3ACEFB  	    LD A, (KEY_READ)
+1149: B7      	    OR A
+114A: CA0A11  	    JP Z, init_read_key
+114D: CDA710  	    CALL CHECK_CAPS
+1150: B7      	    OR A
+1151: E1      	    POP     HL
+1152: D1      	    POP     DE
+1153: C1      	    POP     BC
+1154: C9      	    RET ; Return KEYREADINIT
               	    
               	; C - coluna
               	; B - linha
-1153:         	trata_key:
-1153: 78      	    ld a, b
+1155:         	trata_key:
+1155: 78      	    ld a, b
               	    
-1154: CB47    	    bit 0, a
-1156: C2A311  	    jp nz, trata_line1
+1156: CB47    	    bit 0, a
+1158: C2A511  	    jp nz, trata_line1
               	    
-1159: CB4F    	    bit 1, a
-115B: C2A911  	    jp nz, trata_line2
+115B: CB4F    	    bit 1, a
+115D: C2AB11  	    jp nz, trata_line2
               	    
-115E: CB57    	    bit 2, a
-1160: C2AF11  	    jp nz, trata_line3
+1160: CB57    	    bit 2, a
+1162: C2B111  	    jp nz, trata_line3
               	    
-1163: CB5F    	    bit 3, a
-1165: C2B511  	    jp nz, trata_line4
+1165: CB5F    	    bit 3, a
+1167: C2B711  	    jp nz, trata_line4
               	    
-1168: CB67    	    bit 4, a
-116A: C2BB11  	    jp nz, trata_line5
+116A: CB67    	    bit 4, a
+116C: C2BD11  	    jp nz, trata_line5
               	    
-116D:         	L_fim:
+116F:         	L_fim:
               	    ; letra final
-116D: 1600    	    ld d, 0
-116F: 59      	    ld e, c
-1170: 19      	    add hl, de
+116F: 1600    	    ld d, 0
+1171: 59      	    ld e, c
+1172: 19      	    add hl, de
               	    
-1171: 7E      	    ld a, (hl)
-1172: B7      	    or a
-1173: C8      	    ret z
+1173: 7E      	    ld a, (hl)
+1174: B7      	    or a
+1175: C8      	    ret z
               	    
               	    ; check shift
-1174: 3ACCFB  	    ld a, (KEY_SHIFT)
-1177: B7      	    or a
-1178: CA8211  	    jp Z, load_a
-117B: 1E41    	    ld e, $41 ; 65
-117D: 19      	    add hl, de
+1176: 3ACCFB  	    ld a, (KEY_SHIFT)
+1179: B7      	    or a
+117A: CA8411  	    jp Z, load_a
+117D: 1E41    	    ld e, $41 ; 65
+117F: 19      	    add hl, de
               	    ; shift reset
-117E: AF      	    xor a
-117F: 32CCFB  	    ld (KEY_SHIFT), a
+1180: AF      	    xor a
+1181: 32CCFB  	    ld (KEY_SHIFT), a
               	    
-1182:         	load_a:
-1182: 7E      	    ld a, (hl)
-1183: B7      	    or a
-1184: FE00    	    cp 0
-1186: C8      	    ret Z
-1187: 32CEFB  	    LD (KEY_READ), A
-118A: 0664    	    LD B, $64
-118C:         	debaunce_key:
-118C: 110100  	    LD DE, $0001
-118F: C5      	    PUSH BC
-1190: CD0712  	    CALL H_Delay
-1193: C1      	    POP BC
-1194: DB40    	    in a, (KEY_IN)
-1196: E61F    	    and $1f
-1198: EE1F    	    xor $1f
-119A: 10F0    	    DJNZ debaunce_key
-119C: 113200  	    ld de, $0032 ; debounce 50 ms
-119F: CD0712  	    call H_Delay
-11A2: C9      	    RET ; return tratar_key
+1184:         	load_a:
+1184: 7E      	    ld a, (hl)
+1185: B7      	    or a
+1186: FE00    	    cp 0
+1188: C8      	    ret Z
+1189: 32CEFB  	    LD (KEY_READ), A
+118C: 0664    	    LD B, $64
+118E:         	debaunce_key:
+118E: 110100  	    LD DE, $0001
+1191: C5      	    PUSH BC
+1192: CD0912  	    CALL H_Delay
+1195: C1      	    POP BC
+1196: DB40    	    in a, (KEY_IN)
+1198: E61F    	    and $1f
+119A: EE1F    	    xor $1f
+119C: 10F0    	    DJNZ debaunce_key
+119E: 113200  	    ld de, $0032 ; debounce 50 ms
+11A1: CD0912  	    call H_Delay
+11A4: C9      	    RET ; return tratar_key
               	    
               	    
-11A3:         	trata_line1:
-11A3: 216800  	    ld hl, line1
-11A6: C36D11  	    jp L_fim
-11A9:         	trata_line2:
-11A9: 217500  	    ld hl, line2
-11AC: C36D11  	    jp L_fim
-11AF:         	trata_line3:
-11AF: 218200  	    ld hl, line3
-11B2: C36D11  	    jp L_fim
-11B5:         	trata_line4:
-11B5: 218F00  	    ld hl, line4
-11B8: C36D11  	    jp L_fim
-11BB:         	trata_line5:
-11BB: 219C00  	    ld hl, line5
-11BE: C36D11  	    jp L_fim
+11A5:         	trata_line1:
+11A5: 216800  	    ld hl, line1
+11A8: C36F11  	    jp L_fim
+11AB:         	trata_line2:
+11AB: 217500  	    ld hl, line2
+11AE: C36F11  	    jp L_fim
+11B1:         	trata_line3:
+11B1: 218200  	    ld hl, line3
+11B4: C36F11  	    jp L_fim
+11B7:         	trata_line4:
+11B7: 218F00  	    ld hl, line4
+11BA: C36F11  	    jp L_fim
+11BD:         	trata_line5:
+11BD: 219C00  	    ld hl, line5
+11C0: C36F11  	    jp L_fim
               	
-11C1:         	NOP_TIME:
-11C1: 00      	    NOP
-11C2: 00      	    NOP
+11C3:         	NOP_TIME:
 11C3: 00      	    NOP
 11C4: 00      	    NOP
 11C5: 00      	    NOP
 11C6: 00      	    NOP
 11C7: 00      	    NOP
-11C8: C9      	    RET
+11C8: 00      	    NOP
+11C9: 00      	    NOP
+11CA: C9      	    RET
               	
               	;-----------------------------
               	; GET A BYTE FROM KEYBOARD
               	;-----------------------------
-11C9: CD0611  	GETCHR_KEYBOARD: CALL KEYREADINIT ; read key
-11CC: FE1B    	       CP    ESC
-11CE: 2833    	       JR    Z,GET_ESP
-11D0: FE03    	       CP    CTRLC  ; key BK (reset)
-11D2: CA9C01  	       JP    Z, RESET_WARM
-11D5: 47      	       LD    B,A                ;SAVE TO ECHO      
-11D6: CD4810  	       CALL  ASC2HEX
-11D9: 30EE    	       JR    NC,GETCHR_KEYBOARD          ;REJECT NON HEX CHARS    
-11DB: 21C9FB  	       LD    HL, DATABYTE
-11DE: 77      	       LD    (HL), A 
-11DF: 78      	       LD    A,B         
-11E0: CD3A02  	       CALL  LCD_PRINT_A             ;ECHO VALID HEX
+11CB: CD0711  	GETCHR_KEYBOARD: CALL KEYREADINIT ; read key
+11CE: FE1B    	       CP    ESC
+11D0: 2833    	       JR    Z,GET_ESP
+11D2: FE03    	       CP    CTRLC  ; key BK (reset)
+11D4: CA9C01  	       JP    Z, RESET_WARM
+11D7: 47      	       LD    B,A                ;SAVE TO ECHO      
+11D8: CD4810  	       CALL  ASC2HEX
+11DB: 30EE    	       JR    NC,GETCHR_KEYBOARD          ;REJECT NON HEX CHARS    
+11DD: 21C9FB  	       LD    HL, DATABYTE
+11E0: 77      	       LD    (HL), A 
+11E1: 78      	       LD    A,B         
+11E2: CD3A02  	       CALL  LCD_PRINT_A             ;ECHO VALID HEX
               	       
-11E3: CD0611  	GETNYB: CALL  KEYREADINIT
-11E6: FE1B    	       CP    ESC
-11E8: 2819    	       JR    Z,GET_ESP
-11EA: FE03    	       CP    CTRLC  ; key BK (reset)
-11EC: CA9C01  	       JP    Z, RESET_WARM
-11EF: 47      	       LD    B,A               ;SAVE TO ECHO
-11F0: CD4810  	       CALL  ASC2HEX
-11F3: 30EE    	       JR    NC,GETNYB         ;REJECT NON HEX CHARS
-11F5: ED6F    	       RLD
-11F7: 78      	       LD    A,B
-11F8: CD3A02  	       CALL  LCD_PRINT_A             ;ECHO VALID HEX
-11FB: 7E      	       LD    A,(HL)
-11FC: CD0112  	       CALL  GETOUT            ;MAKE SURE WE CLEAR THE CARRY BY SETTING IT,
-11FF: 3F      	       CCF                    ;AND THEN COMPLEMENTING IT
-1200: C9      	       RET   
-1201: 37      	GETOUT: SCF                    ;SET THE CARRY FLAG TO EXIT BACK TO MENU
-1202: C9      	       RET
-1203:         	GET_ESP:
-1203: 37      	    SCF
-1204: 3E0D    	    LD A, CR ; ENTER on exit
-1206: C9      	    RET
+11E5: CD0711  	GETNYB: CALL  KEYREADINIT
+11E8: FE1B    	       CP    ESC
+11EA: 2819    	       JR    Z,GET_ESP
+11EC: FE03    	       CP    CTRLC  ; key BK (reset)
+11EE: CA9C01  	       JP    Z, RESET_WARM
+11F1: 47      	       LD    B,A               ;SAVE TO ECHO
+11F2: CD4810  	       CALL  ASC2HEX
+11F5: 30EE    	       JR    NC,GETNYB         ;REJECT NON HEX CHARS
+11F7: ED6F    	       RLD
+11F9: 78      	       LD    A,B
+11FA: CD3A02  	       CALL  LCD_PRINT_A             ;ECHO VALID HEX
+11FD: 7E      	       LD    A,(HL)
+11FE: CD0312  	       CALL  GETOUT            ;MAKE SURE WE CLEAR THE CARRY BY SETTING IT,
+1201: 3F      	       CCF                    ;AND THEN COMPLEMENTING IT
+1202: C9      	       RET   
+1203: 37      	GETOUT: SCF                    ;SET THE CARRY FLAG TO EXIT BACK TO MENU
+1204: C9      	       RET
+1205:         	GET_ESP:
+1205: 37      	    SCF
+1206: 3E0D    	    LD A, CR ; ENTER on exit
+1208: C9      	    RET
               	#include "Utils.asm"
               	; **********************************************************************
               	; Delay by DE milliseconds
               	;   On entry: DE = Delay time in milliseconds
               	;   On exit:  AF BC DE HL IX IY I AF' BC' DE' HL' preserved
-1207: F5      	H_Delay:    PUSH AF
-1208: C5      	            PUSH BC
-1209: D5      	            PUSH DE
+1209: F5      	H_Delay:    PUSH AF
+120A: C5      	            PUSH BC
+120B: D5      	            PUSH DE
               	; 1 ms loop, DE times...        ;[=36]   [=29]    Overhead for each 1ms
-120A: 011A01  	LoopDE:    LD   BC, kDelayCnt   ;[10]    [9]
+120C: 011A01  	LoopDE:    LD   BC, kDelayCnt   ;[10]    [9]
               	; Inner loop, BC times...       ;[=26]   [=20]    Loop time in Tcycles
-120D: 0B      	LoopBC:    DEC  BC             ;[6]     [4]
-120E: 79      	            LD   A,C            ;[4]     [4]
-120F: B0      	            OR   B              ;[4]     [4]
-1210: C20D12  	            JP   NZ,LoopBC     ;[12/7]  [8/6] 
+120F: 0B      	LoopBC:    DEC  BC             ;[6]     [4]
+1210: 79      	            LD   A,C            ;[4]     [4]
+1211: B0      	            OR   B              ;[4]     [4]
+1212: C20F12  	            JP   NZ,LoopBC     ;[12/7]  [8/6] 
               	; Have we looped once for each millisecond requested?
-1213: 1B      	            DEC  DE             ;[6]     [4]
-1214: 7B      	            LD   A,E            ;[4]     [4]
-1215: B2      	            OR   D              ;[4]     [4]
-1216: 20F2    	            JR   NZ, LoopDE     ;[12/7]  [8/6]
-1218: D1      	            POP  DE
-1219: C1      	            POP  BC
-121A: F1      	            POP  AF
-121B: C9      	            RET
+1215: 1B      	            DEC  DE             ;[6]     [4]
+1216: 7B      	            LD   A,E            ;[4]     [4]
+1217: B2      	            OR   D              ;[4]     [4]
+1218: 20F2    	            JR   NZ, LoopDE     ;[12/7]  [8/6]
+121A: D1      	            POP  DE
+121B: C1      	            POP  BC
+121C: F1      	            POP  AF
+121D: C9      	            RET
               	
               	
               	
@@ -4587,57 +4589,57 @@ FFF0:         	SYSTEM_SP:	.EQU 	$FFF0	;INITIAL STACK POINTER
               	;
               	;CONVERT REG A BYTE TO ASCII 
               	;
-121C: F5      	CONV_A_HEX: PUSH  AF          ;SAVE A FOR SECOND NYBBLE 
-121D: 0F      	       RRCA              ;SHIFT HIGH NYBBLE ACROSS
-121E: 0F      	       RRCA
-121F: 0F      	       RRCA
+121E: F5      	CONV_A_HEX: PUSH  AF          ;SAVE A FOR SECOND NYBBLE 
+121F: 0F      	       RRCA              ;SHIFT HIGH NYBBLE ACROSS
 1220: 0F      	       RRCA
-1221: CD2512  	       CALL CONV_A_HEX_NYBASC       ;CALL NYBBLE CONVERTER 
-1224: F1      	       POP AF            ;RESTORE LOW NYBBLE
+1221: 0F      	       RRCA
+1222: 0F      	       RRCA
+1223: CD2712  	       CALL CONV_A_HEX_NYBASC       ;CALL NYBBLE CONVERTER 
+1226: F1      	       POP AF            ;RESTORE LOW NYBBLE
               	;           
               	; CONVERT A NYBBLE TO ASCII
               	;
-1225: E60F    	CONV_A_HEX_NYBASC: AND   0FH         ;MASK OFF HIGH NYBBLE 
-1227: C690    	       ADD   A,90H       ;CONVERT TO
-1229: 27      	       DAA               ;ASCII
-122A: CE40    	       ADC   A,40H
-122C: 27      	       DAA
+1227: E60F    	CONV_A_HEX_NYBASC: AND   0FH         ;MASK OFF HIGH NYBBLE 
+1229: C690    	       ADD   A,90H       ;CONVERT TO
+122B: 27      	       DAA               ;ASCII
+122C: CE40    	       ADC   A,40H
+122E: 27      	       DAA
               	;            
               	; Print inlcd
               	;
-122D: CD3A02  	    CALL LCD_PRINT_A
-1230: C9      	    RET 
+122F: CD3A02  	    CALL LCD_PRINT_A
+1232: C9      	    RET 
               	
               	
               	;-----------------------
               	; Change led red, half byte in A
               	;-----------------------
-1231:         	LED_RED:
-1231: E60F    	    AND $0F
-1233: 47      	    LD B, A
-1234: 3A9DFB  	    LD A, (LED_ONBOARD)
-1237: E6F0    	    AND $F0
-1239: B0      	    OR B
-123A: D310    	    OUT(LEDS_ONBOARD), A
-123C: 329DFB  	    LD (LED_ONBOARD), A
-123F: C9      	    RET
+1233:         	LED_RED:
+1233: E60F    	    AND $0F
+1235: 47      	    LD B, A
+1236: 3A9DFB  	    LD A, (LED_ONBOARD)
+1239: E6F0    	    AND $F0
+123B: B0      	    OR B
+123C: D310    	    OUT(LEDS_ONBOARD), A
+123E: 329DFB  	    LD (LED_ONBOARD), A
+1241: C9      	    RET
               	
               	
               	;-----------------------
               	; Change led green, half byte in A
               	;-----------------------
-1240:         	LED_GREEN:
-1240: CB27    	    SLA A
+1242:         	LED_GREEN:
 1242: CB27    	    SLA A
 1244: CB27    	    SLA A
 1246: CB27    	    SLA A
-1248: 47      	    LD B, A
-1249: 3A9DFB  	    LD A, (LED_ONBOARD)
-124C: E60F    	    AND $0F
-124E: B0      	    OR B
-124F: D310    	    OUT(LEDS_ONBOARD), A
-1251: 329DFB  	    LD (LED_ONBOARD), A
-1254: C9      	    RET
+1248: CB27    	    SLA A
+124A: 47      	    LD B, A
+124B: 3A9DFB  	    LD A, (LED_ONBOARD)
+124E: E60F    	    AND $0F
+1250: B0      	    OR B
+1251: D310    	    OUT(LEDS_ONBOARD), A
+1253: 329DFB  	    LD (LED_ONBOARD), A
+1256: C9      	    RET
               	
               	;----------------
               	;CONVERT TO ASCII 
@@ -4651,33 +4653,33 @@ FFF0:         	SYSTEM_SP:	.EQU 	$FFF0	;INITIAL STACK POINTER
               	;   
               	;        MODIFIES : DE
               	
-1255: 7A      	WRDASC: LD    A,D         ;CONVERT AND
-1256: CD5A12  	       CALL  BYTASC      ;OUTPUT D
-1259: 7B      	       LD    A,E         ;THEN E
+1257: 7A      	WRDASC: LD    A,D         ;CONVERT AND
+1258: CD5C12  	       CALL  BYTASC      ;OUTPUT D
+125B: 7B      	       LD    A,E         ;THEN E
               	;
               	;CONVERT A BYTE TO ASCII 
               	;
-125A: F5      	BYTASC: PUSH  AF          ;SAVE A FOR SECOND NYBBLE 
-125B: 0F      	       RRCA              ;SHIFT HIGH NYBBLE ACROSS
-125C: 0F      	       RRCA
-125D: 0F      	       RRCA
+125C: F5      	BYTASC: PUSH  AF          ;SAVE A FOR SECOND NYBBLE 
+125D: 0F      	       RRCA              ;SHIFT HIGH NYBBLE ACROSS
 125E: 0F      	       RRCA
-125F: CD6312  	       CALL NYBASC       ;CALL NYBBLE CONVERTER 
-1262: F1      	       POP AF            ;RESTORE LOW NYBBLE
+125F: 0F      	       RRCA
+1260: 0F      	       RRCA
+1261: CD6512  	       CALL NYBASC       ;CALL NYBBLE CONVERTER 
+1264: F1      	       POP AF            ;RESTORE LOW NYBBLE
               	;           
               	; CONVERT A NYBBLE TO ASCII
               	;
-1263: E60F    	NYBASC: AND   0FH         ;MASK OFF HIGH NYBBLE 
-1265: C690    	       ADD   A,90H       ;CONVERT TO
-1267: 27      	       DAA               ;ASCII
-1268: CE40    	       ADC   A,40H
-126A: 27      	       DAA
+1265: E60F    	NYBASC: AND   0FH         ;MASK OFF HIGH NYBBLE 
+1267: C690    	       ADD   A,90H       ;CONVERT TO
+1269: 27      	       DAA               ;ASCII
+126A: CE40    	       ADC   A,40H
+126C: 27      	       DAA
               	;            
               	; SAVE IN STRING
               	;
-126B: 77      	INSBUF: LD    (HL),A
-126C: 23      	       INC   HL 
-126D: C9      	       RET 
+126D: 77      	INSBUF: LD    (HL),A
+126E: 23      	       INC   HL 
+126F: C9      	       RET 
               	
               	
               	;----------------------     
@@ -4689,147 +4691,147 @@ FFF0:         	SYSTEM_SP:	.EQU 	$FFF0	;INITIAL STACK POINTER
               	; OR THE SINGLE BYTE, NYBOUT
               	; ASCII STRING AT HL TO THE SERIAL PORT
               	;
-126E: CD7112  	WRDOUT: CALL  BYTOUT
-1271: CD7412  	BYTOUT: CALL  NYBOUT
-1274: 7E      	NYBOUT: LD    A,(HL)
-1275: CD3A02  	       CALL  LCD_PRINT_A
-1278: 23      	       INC   HL
-1279: C9      	       RET   
+1270: CD7312  	WRDOUT: CALL  BYTOUT
+1273: CD7612  	BYTOUT: CALL  NYBOUT
+1276: 7E      	NYBOUT: LD    A,(HL)
+1277: CD3A02  	       CALL  LCD_PRINT_A
+127A: 23      	       INC   HL
+127B: C9      	       RET   
               	#include "Menu.asm"
-127A:         	SHOW_MENU:
-127A: 3E0D    	    LD A, CR
-127C: CDAF05  	    CALL SEND_CHAR_TO_GLCD
+127C:         	SHOW_MENU:
+127C: 3E0D    	    LD A, CR
+127E: CDAF05  	    CALL SEND_CHAR_TO_GLCD
               	
-127F: 115417  	    LD DE, MSG_MENU0
-1282: 3E00    	    LD A, 0
-1284: CD1E06  	    CALL SEND_STRING_TO_GLCD
+1281: 115617  	    LD DE, MSG_MENU0
+1284: 3E00    	    LD A, 0
+1286: CD1E06  	    CALL SEND_STRING_TO_GLCD
               	
-1287: 116717  	    LD DE, MSG_MENU1
-128A: 3E00    	    LD A, 0
-128C: CD1E06  	    CALL SEND_STRING_TO_GLCD
+1289: 116917  	    LD DE, MSG_MENU1
+128C: 3E00    	    LD A, 0
+128E: CD1E06  	    CALL SEND_STRING_TO_GLCD
               	
-128F: 117C17  	    LD DE, MSG_MENU2
-1292: 3E00    	    LD A, 0
-1294: CD1E06  	    CALL SEND_STRING_TO_GLCD
+1291: 117E17  	    LD DE, MSG_MENU2
+1294: 3E00    	    LD A, 0
+1296: CD1E06  	    CALL SEND_STRING_TO_GLCD
               	
-1297: 118617  	    LD DE, MSG_MENU3
-129A: 3E00    	    LD A, 0
-129C: CD1E06  	    CALL SEND_STRING_TO_GLCD
+1299: 118817  	    LD DE, MSG_MENU3
+129C: 3E00    	    LD A, 0
+129E: CD1E06  	    CALL SEND_STRING_TO_GLCD
               	
-129F: 119017  	    LD DE, MSG_MENU4
-12A2: 3E00    	    LD A, 0
-12A4: CD1E06  	    CALL SEND_STRING_TO_GLCD
-              	
-              	
-12A7: 119A17  	    LD DE, MSG_MENU8
-12AA: 3E00    	    LD A, 0
-12AC: CD1E06  	    CALL SEND_STRING_TO_GLCD
-              	
-12AF: 11A517  	    LD DE, MSG_MENU9
-12B2: 3E00    	    LD A, 0
-12B4: CD1E06  	    CALL SEND_STRING_TO_GLCD
-              	
-12B7: 11B717  	    LD DE, MSG_MENU10
-12BA: 3E00    	    LD A, 0
-12BC: CD1E06  	    CALL SEND_STRING_TO_GLCD
-              	
-12BF: 11C817  	    LD DE, MSG_MENU11
-12C2: 3E00    	    LD A, 0
-12C4: CD1E06  	    CALL SEND_STRING_TO_GLCD
-              	
-12C7: 11D817  	    LD DE, MSG_MENU12
-12CA: 3E00    	    LD A, 0
-12CC: CD1E06  	    CALL SEND_STRING_TO_GLCD
-              	
-12CF: 11E517  	    LD DE, MSG_MENU13
-12D2: 3E00    	    LD A, 0
-12D4: CD1E06  	    CALL SEND_STRING_TO_GLCD
-              	
-12D7: 11EE17  	    LD DE, MSG_MENU14
-12DA: 3E00    	    LD A, 0
-12DC: CD1E06  	    CALL SEND_STRING_TO_GLCD
-              	
-12DF: 11FA17  	    LD DE, MSG_MENU15
-12E2: 3E00    	    LD A, 0
-12E4: CD1E06  	    CALL SEND_STRING_TO_GLCD
-              	
-12E7: 110B18  	    LD DE, MSG_MENU16
-12EA: 3E00    	    LD A, 0
-12EC: CD1E06  	    CALL SEND_STRING_TO_GLCD
-              	
-12EF: 111C18  	    LD DE, MSG_MENU17
-12F2: 3E00    	    LD A, 0
-12F4: CD1E06  	    CALL SEND_STRING_TO_GLCD
-              	
-12F7: 112C18  	    LD DE, MSG_MENU18
-12FA: 3E00    	    LD A, 0
-12FC: CD1E06  	    CALL SEND_STRING_TO_GLCD
-              	
-12FF: 113F18  	    LD DE, MSG_MENU19
-1302: 3E00    	    LD A, 0
-1304: CD1E06  	    CALL SEND_STRING_TO_GLCD
-              	
-1307: 115418  	    LD DE, MSG_MENU20
-130A: 3E00    	    LD A, 0
-130C: CD1E06  	    CALL SEND_STRING_TO_GLCD
-              	
-130F: 116818  	    LD DE, MSG_MENU21
-1312: 3E00    	    LD A, 0
-1314: CD1E06  	    CALL SEND_STRING_TO_GLCD
+12A1: 119217  	    LD DE, MSG_MENU4
+12A4: 3E00    	    LD A, 0
+12A6: CD1E06  	    CALL SEND_STRING_TO_GLCD
               	
               	
+12A9: 119C17  	    LD DE, MSG_MENU8
+12AC: 3E00    	    LD A, 0
+12AE: CD1E06  	    CALL SEND_STRING_TO_GLCD
               	
-1317: C9      	    RET
+12B1: 11A717  	    LD DE, MSG_MENU9
+12B4: 3E00    	    LD A, 0
+12B6: CD1E06  	    CALL SEND_STRING_TO_GLCD
+              	
+12B9: 11B917  	    LD DE, MSG_MENU10
+12BC: 3E00    	    LD A, 0
+12BE: CD1E06  	    CALL SEND_STRING_TO_GLCD
+              	
+12C1: 11CA17  	    LD DE, MSG_MENU11
+12C4: 3E00    	    LD A, 0
+12C6: CD1E06  	    CALL SEND_STRING_TO_GLCD
+              	
+12C9: 11DA17  	    LD DE, MSG_MENU12
+12CC: 3E00    	    LD A, 0
+12CE: CD1E06  	    CALL SEND_STRING_TO_GLCD
+              	
+12D1: 11E717  	    LD DE, MSG_MENU13
+12D4: 3E00    	    LD A, 0
+12D6: CD1E06  	    CALL SEND_STRING_TO_GLCD
+              	
+12D9: 11F017  	    LD DE, MSG_MENU14
+12DC: 3E00    	    LD A, 0
+12DE: CD1E06  	    CALL SEND_STRING_TO_GLCD
+              	
+12E1: 11FC17  	    LD DE, MSG_MENU15
+12E4: 3E00    	    LD A, 0
+12E6: CD1E06  	    CALL SEND_STRING_TO_GLCD
+              	
+12E9: 110D18  	    LD DE, MSG_MENU16
+12EC: 3E00    	    LD A, 0
+12EE: CD1E06  	    CALL SEND_STRING_TO_GLCD
+              	
+12F1: 111E18  	    LD DE, MSG_MENU17
+12F4: 3E00    	    LD A, 0
+12F6: CD1E06  	    CALL SEND_STRING_TO_GLCD
+              	
+12F9: 112E18  	    LD DE, MSG_MENU18
+12FC: 3E00    	    LD A, 0
+12FE: CD1E06  	    CALL SEND_STRING_TO_GLCD
+              	
+1301: 114118  	    LD DE, MSG_MENU19
+1304: 3E00    	    LD A, 0
+1306: CD1E06  	    CALL SEND_STRING_TO_GLCD
+              	
+1309: 115618  	    LD DE, MSG_MENU20
+130C: 3E00    	    LD A, 0
+130E: CD1E06  	    CALL SEND_STRING_TO_GLCD
+              	
+1311: 116A18  	    LD DE, MSG_MENU21
+1314: 3E00    	    LD A, 0
+1316: CD1E06  	    CALL SEND_STRING_TO_GLCD
+              	
+              	
+              	
+1319: C9      	    RET
               	#include "Monitor.asm"
               	;--------------------------
               	; Start basic
               	;--------------------------
-1318:         	START_BASIC:
-1318: 3E0C    	    LD A, CS
-131A: CDAF05  	    CALL SEND_CHAR_TO_GLCD
+131A:         	START_BASIC:
+131A: 3E0C    	    LD A, CS
+131C: CDAF05  	    CALL SEND_CHAR_TO_GLCD
               	
-131D: 11C418  	    LD DE, MSG_BASIC
-1320: 3E00    	    LD A, 0
-1322: CD1E06  	    CALL SEND_STRING_TO_GLCD
-1325:         	START_BASIC_KEY:
-1325: CD0611  	    CALL KEYREADINIT ; read key
-1328: FE43    	    CP    'C' ; Cold
-132A: CA2202  	    JP    Z, BASIC
-132D: FE57    	    CP    'W'  ; Warm
-132F: CA2502  	    JP    Z, BASIC_W
-1332: C32513  	    JP START_BASIC_KEY
+131F: 11C618  	    LD DE, MSG_BASIC
+1322: 3E00    	    LD A, 0
+1324: CD1E06  	    CALL SEND_STRING_TO_GLCD
+1327:         	START_BASIC_KEY:
+1327: CD0711  	    CALL KEYREADINIT ; read key
+132A: FE43    	    CP    'C' ; Cold
+132C: CA2202  	    JP    Z, BASIC
+132F: FE57    	    CP    'W'  ; Warm
+1331: CA2502  	    JP    Z, BASIC_W
+1334: C32713  	    JP START_BASIC_KEY
               	
               	
               	;------------------------------
               	; GO <ADDR>
               	; TRANSFERS EXECUTION TO <ADDR>
               	;------------------------------
-1335:         	GOJUMP_new:
-1335: CD2802  	    CALL LCD_CR
+1337:         	GOJUMP_new:
+1337: CD2802  	    CALL LCD_CR
               	
-1338:         	GOJUMP: 
-1338: 3E47    	       LD A, 'G'
-133A: CDAF05  	       CALL SEND_CHAR_TO_GLCD 
-133D: CD2E02  	       CALL LCD_SPACE    
-1340: CDC911  	       CALL  GETCHR_KEYBOARD      ;GET ADDRESS HIGH BYTE
-1343: D8      	       RET   C
-1344: 32CBFB  	       LD    (ADDR+1),A  ;SAVE ADDRESS HIGH
-1347: CDC911  	       CALL  GETCHR_KEYBOARD      ;GET ADDRESS LOW BYTE
-134A: D8      	       RET   C
-134B: 32CAFB  	       LD    (ADDR),A    ;SAVE ADDRESS LOW 
+133A:         	GOJUMP: 
+133A: 3E47    	       LD A, 'G'
+133C: CDAF05  	       CALL SEND_CHAR_TO_GLCD 
+133F: CD2E02  	       CALL LCD_SPACE    
+1342: CDCB11  	       CALL  GETCHR_KEYBOARD      ;GET ADDRESS HIGH BYTE
+1345: D8      	       RET   C
+1346: 32CBFB  	       LD    (ADDR+1),A  ;SAVE ADDRESS HIGH
+1349: CDCB11  	       CALL  GETCHR_KEYBOARD      ;GET ADDRESS LOW BYTE
+134C: D8      	       RET   C
+134D: 32CAFB  	       LD    (ADDR),A    ;SAVE ADDRESS LOW 
               	;
               	; WAIT FOR A CR OR ESC
               	;       
-134E: CD0611  	GOJMP1: CALL  KEYREADINIT
-1351: FE1B    	       CP    ESC         ;ESC KEY?
-1353: C8      	       RET   Z
-1354: FE0D    	       CP    CR
+1350: CD0711  	GOJMP1: CALL  KEYREADINIT
+1353: FE1B    	       CP    ESC         ;ESC KEY?
+1355: C8      	       RET   Z
+1356: FE0D    	       CP    CR
               	       ;JR    NZ,GOJMP1
-1356: 20DD    	       JR NZ, GOJUMP_new
-1358: CD2802  	       CALL  LCD_CR ; Enter
-135B: E1      	       POP   HL          ;POP THE UNUSED MENU RETURN ADDRESS FROM THE STACK
-135C: 2ACAFB  	       LD    HL,(ADDR)
-135F: E9      	       JP    (HL)        ;GOOD LUCK WITH THAT!
+1358: 20DD    	       JR NZ, GOJUMP_new
+135A: CD2802  	       CALL  LCD_CR ; Enter
+135D: E1      	       POP   HL          ;POP THE UNUSED MENU RETURN ADDRESS FROM THE STACK
+135E: 2ACAFB  	       LD    HL,(ADDR)
+1361: E9      	       JP    (HL)        ;GOOD LUCK WITH THAT!
               	
               	
               	
@@ -4837,60 +4839,60 @@ FFF0:         	SYSTEM_SP:	.EQU 	$FFF0	;INITIAL STACK POINTER
               	;----------------------------
               	; M DISPLAY AND MODIFY MEMORY
               	;----------------------------
-1360: 3E4D    	MODIFY: LD A, 'M'
-1362: CDAF05  	        CALL SEND_CHAR_TO_GLCD
-1365: CD2E02  	     CALL  LCD_SPACE
+1362: 3E4D    	MODIFY: LD A, 'M'
+1364: CDAF05  	        CALL SEND_CHAR_TO_GLCD
+1367: CD2E02  	     CALL  LCD_SPACE
               	;
               	;GET THE ADDRESS        
               	;
-1368: CDC911  	       CALL  GETCHR_KEYBOARD 
-136B: D8      	       RET   C        
-136C: 32CBFB  	       LD    (ADDR+1),A  ;SAVE ADDRESS HIGH
-136F: CDC911  	       CALL  GETCHR_KEYBOARD
-1372: D8      	       RET   C
-1373: 32CAFB  	       LD    (ADDR),A    ;SAVE ADDRESS LOW 
+136A: CDCB11  	       CALL  GETCHR_KEYBOARD 
+136D: D8      	       RET   C        
+136E: 32CBFB  	       LD    (ADDR+1),A  ;SAVE ADDRESS HIGH
+1371: CDCB11  	       CALL  GETCHR_KEYBOARD
+1374: D8      	       RET   C
+1375: 32CAFB  	       LD    (ADDR),A    ;SAVE ADDRESS LOW 
               	;
               	; DISPLAY ON A NEW LINE
               	;       
-1376: CD2802  	MDIFY1: CALL  LCD_CR       
-1379: ED5BCAFB	       LD    DE,(ADDR)    
-137D: 21A9FB  	       LD    HL,MSGBUF   
-1380: CD5512  	       CALL  WRDASC      ;CONVERT ADDRESS IN DE TO ASCII
-1383: 21A9FB  	       LD    HL,MSGBUF
-1386: CD6E12  	       CALL  WRDOUT      ;OUTPUT THE ADDRESS
-1389: CD2E02  	       CALL  LCD_SPACE    
+1378: CD2802  	MDIFY1: CALL  LCD_CR       
+137B: ED5BCAFB	       LD    DE,(ADDR)    
+137F: 21A9FB  	       LD    HL,MSGBUF   
+1382: CD5712  	       CALL  WRDASC      ;CONVERT ADDRESS IN DE TO ASCII
+1385: 21A9FB  	       LD    HL,MSGBUF
+1388: CD7012  	       CALL  WRDOUT      ;OUTPUT THE ADDRESS
+138B: CD2E02  	       CALL  LCD_SPACE    
               	;      
               	;GET THE DATA AT THE ADDRESS        
               	;
-138C: 2ACAFB  	        LD   HL,(ADDR)       
-138F: 7E      	        LD   A,(HL)
+138E: 2ACAFB  	        LD   HL,(ADDR)       
+1391: 7E      	        LD   A,(HL)
               	;
               	; DISPLAY THE DATA
               	;        
-1390: 21A9FB  	       LD    HL,MSGBUF
-1393: CD5A12  	       CALL  BYTASC     ;CONVERT THE DATA BYTE IN A TO ASCII
-1396: 21A9FB  	       LD    HL,MSGBUF
-1399: CD7112  	       CALL  BYTOUT      ;OUTPUT THE BYTE
-139C: CD2E02  	       CALL  LCD_SPACE
+1392: 21A9FB  	       LD    HL,MSGBUF
+1395: CD5C12  	       CALL  BYTASC     ;CONVERT THE DATA BYTE IN A TO ASCII
+1398: 21A9FB  	       LD    HL,MSGBUF
+139B: CD7312  	       CALL  BYTOUT      ;OUTPUT THE BYTE
+139E: CD2E02  	       CALL  LCD_SPACE
               	;
               	; GET NEW DATA,EXIT OR CONTINUE
               	;
-139F: CDC911  	       CALL  GETCHR_KEYBOARD
-13A2: D8      	       RET   C
-13A3: 47      	       LD    B,A         ;SAVE IT FOR LATER
-13A4: 2ACAFB  	       LD    HL,(ADDR)
-13A7: 77      	       LD    (HL),A      ;PUT THE BYTE AT THE CURRENT ADDRESS
-13A8: 78      	       LD    A,B
-13A9: BE      	       CP    (HL)
-13AA: 2805    	       JR    Z,MDIFY2
-13AC: 3E3F    	       LD    A,'?'
-13AE: CD3A02  	       CALL  LCD_PRINT_A       ;NOT THE SAME DATA, PROBABLY NO RAM THERE      
+13A1: CDCB11  	       CALL  GETCHR_KEYBOARD
+13A4: D8      	       RET   C
+13A5: 47      	       LD    B,A         ;SAVE IT FOR LATER
+13A6: 2ACAFB  	       LD    HL,(ADDR)
+13A9: 77      	       LD    (HL),A      ;PUT THE BYTE AT THE CURRENT ADDRESS
+13AA: 78      	       LD    A,B
+13AB: BE      	       CP    (HL)
+13AC: 2805    	       JR    Z,MDIFY2
+13AE: 3E3F    	       LD    A,'?'
+13B0: CD3A02  	       CALL  LCD_PRINT_A       ;NOT THE SAME DATA, PROBABLY NO RAM THERE      
               	;
               	; INCREMENT THE ADDRESS
               	;
-13B1: 23      	MDIFY2: INC   HL
-13B2: 22CAFB  	       LD    (ADDR),HL
-13B5: C37613  	       JP    MDIFY1
+13B3: 23      	MDIFY2: INC   HL
+13B4: 22CAFB  	       LD    (ADDR),HL
+13B7: C37813  	       JP    MDIFY1
               	
               	
               	
@@ -4898,100 +4900,100 @@ FFF0:         	SYSTEM_SP:	.EQU 	$FFF0	;INITIAL STACK POINTER
               	;--------------------------
               	; D DISPLAY MEMORY LOCATION
               	;--------------------------
-13B8: 3E44    	DSPLAY: LD A, 'D'
-13BA: CDAF05  	        CALL SEND_CHAR_TO_GLCD
-13BD: CD2E02  	        CALL  LCD_SPACE       ;A SPACE
-13C0: CDC911  	       CALL  GETCHR_KEYBOARD
-13C3: D8      	       RET   C         
-13C4: 32CBFB  	       LD    (ADDR+1),A  ;SAVE ADDRESS HIGH
-13C7: CDC911  	       CALL  GETCHR_KEYBOARD
-13CA: D8      	       RET   C
-13CB: 32CAFB  	       LD    (ADDR),A    ;SAVE ADDRESS LOW 
+13BA: 3E44    	DSPLAY: LD A, 'D'
+13BC: CDAF05  	        CALL SEND_CHAR_TO_GLCD
+13BF: CD2E02  	        CALL  LCD_SPACE       ;A SPACE
+13C2: CDCB11  	       CALL  GETCHR_KEYBOARD
+13C5: D8      	       RET   C         
+13C6: 32CBFB  	       LD    (ADDR+1),A  ;SAVE ADDRESS HIGH
+13C9: CDCB11  	       CALL  GETCHR_KEYBOARD
+13CC: D8      	       RET   C
+13CD: 32CAFB  	       LD    (ADDR),A    ;SAVE ADDRESS LOW 
               	;
               	; WAIT FOR CR OR ESC
               	;
-13CE: CD0611  	DPLAY1: CALL  KEYREADINIT
-13D1: FE1B    	       CP    ESC
-13D3: C8      	       RET   Z
-13D4: FE0D    	       CP    CR
-13D6: 20F6    	       JR    NZ,DPLAY1          
-13D8: CD2802  	       CALL  LCD_CR      ;NEWLINE
+13D0: CD0711  	DPLAY1: CALL  KEYREADINIT
+13D3: FE1B    	       CP    ESC
+13D5: C8      	       RET   Z
+13D6: FE0D    	       CP    CR
+13D8: 20F6    	       JR    NZ,DPLAY1          
+13DA: CD2802  	       CALL  LCD_CR      ;NEWLINE
               	;
               	; DISPLAY THE LINE
               	;
-13DB: CDF013  	DPLAY2: CALL  DPLINE
-13DE: ED53CAFB	       LD    (ADDR),DE   ;SAVE THE NEW ADDRESS
+13DD: CDF213  	DPLAY2: CALL  DPLINE
+13E0: ED53CAFB	       LD    (ADDR),DE   ;SAVE THE NEW ADDRESS
               	;
               	; DISPLAY MORE LINES OR EXIT
               	;       
-13E2: CD0611  	DPLAY3: CALL  KEYREADINIT
-13E5: 38FB    	       JR    C,DPLAY3   
-13E7: FE0D    	       CP    CR        ;ENTER DISPLAYS THE NEXT LINE
-13E9: 28F0    	       JR    Z,DPLAY2
-13EB: FE1B    	       CP    ESC         ;ESC EXITS (SHIFT + C)
-13ED: 20F3    	       JR    NZ,DPLAY3     
-13EF: C9      	       RET   
+13E4: CD0711  	DPLAY3: CALL  KEYREADINIT
+13E7: 38FB    	       JR    C,DPLAY3   
+13E9: FE0D    	       CP    CR        ;ENTER DISPLAYS THE NEXT LINE
+13EB: 28F0    	       JR    Z,DPLAY2
+13ED: FE1B    	       CP    ESC         ;ESC EXITS (SHIFT + C)
+13EF: 20F3    	       JR    NZ,DPLAY3     
+13F1: C9      	       RET   
               	;-------------------------
               	; DISPLAY A LINE OF MEMORY
               	;-------------------------      
-13F0: ED5BCAFB	DPLINE: LD    DE,(ADDR)   ;ADDRESS TO BE DISPLAYED
-13F4: 21A9FB  	       LD    HL,MSGBUF   ;HL POINTS TO WHERE THE OUTPUT STRING GOES
+13F2: ED5BCAFB	DPLINE: LD    DE,(ADDR)   ;ADDRESS TO BE DISPLAYED
+13F6: 21A9FB  	       LD    HL,MSGBUF   ;HL POINTS TO WHERE THE OUTPUT STRING GOES
               	;
               	; DISPLAY THE ADDRESS
               	;         
-13F7: CD5512  	       CALL  WRDASC     ;CONVERT ADDRESS IN DE TO ASCII
-13FA: CD3014  	       CALL  SPCBUF        
+13F9: CD5712  	       CALL  WRDASC     ;CONVERT ADDRESS IN DE TO ASCII
+13FC: CD3214  	       CALL  SPCBUF        
               	;
               	; DISPLAY 4 BYTES
               	;
-13FD: 0604    	       LD    B,4 ;16
-13FF: 1A      	DLINE1: LD    A,(DE)
-1400: CD5A12  	       CALL  BYTASC
-1403: CD3014  	       CALL  SPCBUF
-1406: 13      	       INC   DE        
-1407: 10F6    	       DJNZ  DLINE1
+13FF: 0604    	       LD    B,4 ;16
+1401: 1A      	DLINE1: LD    A,(DE)
+1402: CD5C12  	       CALL  BYTASC
+1405: CD3214  	       CALL  SPCBUF
+1408: 13      	       INC   DE        
+1409: 10F6    	       DJNZ  DLINE1
               	       ;CALL  SPCBUF
               	;
               	; NOW DISPLAY THE ASCII CHARACTER
               	; IF YOU ARE DISPLAYING NON-MEMORY AREAS THE BYTES READ AND THE ASCII COULD
               	; BE DIFFERENT BETWEEN THE TWO PASSES!
               	;
-1409: ED5BCAFB	       LD    DE,(ADDR)    
-140D: 0604    	       LD    B,4 ; 4 bytes
-140F: 1A      	DLINE2: LD    A,(DE)   
-1410: FE20    	       CP    20H
-1412: 3807    	       JR    C,DOT
-1414: FE7F    	       CP    7FH
-1416: 3003    	       JR    NC,DOT
-1418: C31D14  	       JP    NDOT
-141B: 3E2E    	DOT:    LD    A,'.'
-141D: CD3214  	NDOT:   CALL  INBUF
-1420: 13      	       INC   DE       
-1421: 10EC    	       DJNZ  DLINE2
+140B: ED5BCAFB	       LD    DE,(ADDR)    
+140F: 0604    	       LD    B,4 ; 4 bytes
+1411: 1A      	DLINE2: LD    A,(DE)   
+1412: FE20    	       CP    20H
+1414: 3807    	       JR    C,DOT
+1416: FE7F    	       CP    7FH
+1418: 3003    	       JR    NC,DOT
+141A: C31F14  	       JP    NDOT
+141D: 3E2E    	DOT:    LD    A,'.'
+141F: CD3414  	NDOT:   CALL  INBUF
+1422: 13      	       INC   DE       
+1423: 10EC    	       DJNZ  DLINE2
               	;         
               	;TERMINATE AND DISPLAY STRING
               	;       
-1423: CD3514  	       CALL  BCRLF
-1426: 3E00    	       LD    A,00H
-1428: 77      	       LD    (HL),A
-1429: 21A9FB  	       LD    HL, MSGBUF
-142C: CD6902  	       CALL  LCD_PRINT_STRING
-142F: C9      	       RET
+1425: CD3714  	       CALL  BCRLF
+1428: 3E00    	       LD    A,00H
+142A: 77      	       LD    (HL),A
+142B: 21A9FB  	       LD    HL, MSGBUF
+142E: CD6902  	       CALL  LCD_PRINT_STRING
+1431: C9      	       RET
               	
               	
               	;
               	; PUT A SPACE IN THE BUFFER
               	;
-1430: 3E20    	SPCBUF: LD    A, 20H
-1432: 77      	INBUF:  LD    (HL),A
-1433: 23      	       INC   HL
-1434: C9      	       RET
+1432: 3E20    	SPCBUF: LD    A, 20H
+1434: 77      	INBUF:  LD    (HL),A
+1435: 23      	       INC   HL
+1436: C9      	       RET
               	;
               	; PUT A CR LF IN THE BUFFER
               	;        
-1435:         	BCRLF:  ;LD    A,CR  
+1437:         	BCRLF:  ;LD    A,CR  
               	       ;CALL  INBUF  ;Display add CR automaticamente quando chegar na coluna 21
-1435: C9      	       RET
+1437: C9      	       RET
               	
               	
               	
@@ -4999,241 +5001,241 @@ FFF0:         	SYSTEM_SP:	.EQU 	$FFF0	;INITIAL STACK POINTER
               	; Output value to port
               	; O AA DD - Port address in AA, Data to out in DD
               	;----------------------------------------------
-1436:         	OUTPORT:
-1436: 3E4F    	    LD A, 'O'
-1438: CDAF05  	    CALL SEND_CHAR_TO_GLCD
-143B: CD2E02  	    CALL LCD_SPACE ; space and show lcd
+1438:         	OUTPORT:
+1438: 3E4F    	    LD A, 'O'
+143A: CDAF05  	    CALL SEND_CHAR_TO_GLCD
+143D: CD2E02  	    CALL LCD_SPACE ; space and show lcd
               	
-143E: CDC911  	    CALL  GETCHR_KEYBOARD 
-1441: D8      	    RET   C
-1442: 4F      	    LD C, A
+1440: CDCB11  	    CALL  GETCHR_KEYBOARD 
+1443: D8      	    RET   C
+1444: 4F      	    LD C, A
               	
-1443: CD2E02  	    CALL LCD_SPACE
+1445: CD2E02  	    CALL LCD_SPACE
               	
-1446: CDC911  	    CALL  GETCHR_KEYBOARD 
-1449: D8      	    RET   C
-144A: ED79    	    OUT (C), A
-144C: 3E0D    	    LD A, CR ; retorna Enter 
-144E: C9      	    RET
+1448: CDCB11  	    CALL  GETCHR_KEYBOARD 
+144B: D8      	    RET   C
+144C: ED79    	    OUT (C), A
+144E: 3E0D    	    LD A, CR ; retorna Enter 
+1450: C9      	    RET
               	
               	
               	;----------------------------------------------
               	; Read input port and show value to LCD
               	; I AA - Port address in AA
               	;----------------------------------------------
-144F:         	INPORT_MON:
-144F: 3E49    	    LD A, 'I'
-1451: CDAF05  	    CALL SEND_CHAR_TO_GLCD
-1454: CD2E02  	    CALL LCD_SPACE ; space and show lcd
+1451:         	INPORT_MON:
+1451: 3E49    	    LD A, 'I'
+1453: CDAF05  	    CALL SEND_CHAR_TO_GLCD
+1456: CD2E02  	    CALL LCD_SPACE ; space and show lcd
               	
-1457: CDC911  	    CALL  GETCHR_KEYBOARD 
-145A: D8      	    RET   C
-145B: 4F      	    LD C, A
+1459: CDCB11  	    CALL  GETCHR_KEYBOARD 
+145C: D8      	    RET   C
+145D: 4F      	    LD C, A
               	
-145C: ED78    	    IN A, (C)
+145E: ED78    	    IN A, (C)
               	
-145E: 47      	    LD B, A
-145F: CD2802  	    CALL LCD_CR
-1462: 78      	    LD A, B
+1460: 47      	    LD B, A
+1461: CD2802  	    CALL LCD_CR
+1464: 78      	    LD A, B
               	
-1463: CD1C12  	    CALL CONV_A_HEX
-1466: 3E0D    	    LD A, CR
-1468: C9      	    RET
+1465: CD1E12  	    CALL CONV_A_HEX
+1468: 3E0D    	    LD A, CR
+146A: C9      	    RET
               	
               	
               	
               	;--------------------------
               	; 8 - Read memory
               	;--------------------------
-1469:         	READ_MEM_FILES:
-1469: 110000  	    LD DE, $0000 ; start "D"? File
-146C:         	READ_MEM_NEXT:
-146C: CD5215  	    CALL READ_IIC_DE
-146F: B7      	    OR A
-1470: FE44    	    CP 'D'
-1472: CA8114  	    JP Z, READ_FILE
-1475: 211319  	    LD HL, MSG_EOF
-1478: CD2802  	    CALL LCD_CR
-147B: CD6902  	    CALL LCD_PRINT_STRING
-147E: 3E0D    	    LD A, CR
-1480: C9      	    RET
+146B:         	READ_MEM_FILES:
+146B: 110000  	    LD DE, $0000 ; start "D"? File
+146E:         	READ_MEM_NEXT:
+146E: CD5415  	    CALL READ_IIC_DE
+1471: B7      	    OR A
+1472: FE44    	    CP 'D'
+1474: CA8314  	    JP Z, READ_FILE
+1477: 211519  	    LD HL, MSG_EOF
+147A: CD2802  	    CALL LCD_CR
+147D: CD6902  	    CALL LCD_PRINT_STRING
+1480: 3E0D    	    LD A, CR
+1482: C9      	    RET
               	
-1481:         	READ_FILE:
-1481: CD2802  	    CALL LCD_CR ; new line
-1484: CD2802  	    CALL LCD_CR ; new line
-1487: 0610    	    LD B, 16
-1489:         	READ_NAME:
-1489: 13      	    INC DE
-148A: CD5215  	    CALL READ_IIC_DE
-148D: B7      	    OR A
-148E: FE00    	    CP 0
-1490: C43A02  	    CALL NZ, LCD_PRINT_A
-1493: 05      	    DEC B
-1494: C28914  	    JP NZ, READ_NAME
+1483:         	READ_FILE:
+1483: CD2802  	    CALL LCD_CR ; new line
+1486: CD2802  	    CALL LCD_CR ; new line
+1489: 0610    	    LD B, 16
+148B:         	READ_NAME:
+148B: 13      	    INC DE
+148C: CD5415  	    CALL READ_IIC_DE
+148F: B7      	    OR A
+1490: FE00    	    CP 0
+1492: C43A02  	    CALL NZ, LCD_PRINT_A
+1495: 05      	    DEC B
+1496: C28B14  	    JP NZ, READ_NAME
               	
-1497:         	READ_MEM_KEY:
+1499:         	READ_MEM_KEY:
               	    ; Show commands
-1497: D5      	    PUSH DE
-1498: 13      	    INC DE
-1499: CD5215  	    CALL READ_IIC_DE
-149C: B7      	    OR A
-149D: FE00    	    CP 0
-149F: CC3D15  	    CALL Z, SHOW_MSG_EXE
-14A2: FE01    	    CP 1
-14A4: CC4415  	    CALL Z, SHOW_MSG_IMG
-14A7: FE02    	    CP 2
-14A9: CC4B15  	    CALL Z, SHOW_MSG_TXT
-14AC: D1      	    POP DE
+1499: D5      	    PUSH DE
+149A: 13      	    INC DE
+149B: CD5415  	    CALL READ_IIC_DE
+149E: B7      	    OR A
+149F: FE00    	    CP 0
+14A1: CC3F15  	    CALL Z, SHOW_MSG_EXE
+14A4: FE01    	    CP 1
+14A6: CC4615  	    CALL Z, SHOW_MSG_IMG
+14A9: FE02    	    CP 2
+14AB: CC4D15  	    CALL Z, SHOW_MSG_TXT
+14AE: D1      	    POP DE
               	    ; wait command
-14AD: CD0611  	    CALL KEYREADINIT ; read key
-14B0: FE03    	    CP    CTRLC ; key BK, read next
-14B2: CACF14  	    JP    Z, READ_MEM_STEP
-14B5: FE0D    	    CP    CR  ; key Enter, execute
-14B7: C29714  	    JP    NZ, READ_MEM_KEY
+14AF: CD0711  	    CALL KEYREADINIT ; read key
+14B2: FE03    	    CP    CTRLC ; key BK, read next
+14B4: CAD114  	    JP    Z, READ_MEM_STEP
+14B7: FE0D    	    CP    CR  ; key Enter, execute
+14B9: C29914  	    JP    NZ, READ_MEM_KEY
               	    ;read type
-14BA: 13      	    INC DE
-14BB: CD5215  	    CALL READ_IIC_DE
-14BE: B7      	    OR A
-14BF: FE00    	    CP 0
-14C1: CAE614  	    JP Z, READ_FILE_EXE
-14C4: FE01    	    CP 1
-14C6: CAFC14  	    JP Z, READ_FILE_IMG
-14C9: FE02    	    CP 2
-14CB: CA1F15  	    JP Z, READ_FILE_TXT
-14CE: C9      	    RET
+14BC: 13      	    INC DE
+14BD: CD5415  	    CALL READ_IIC_DE
+14C0: B7      	    OR A
+14C1: FE00    	    CP 0
+14C3: CAE814  	    JP Z, READ_FILE_EXE
+14C6: FE01    	    CP 1
+14C8: CAFE14  	    JP Z, READ_FILE_IMG
+14CB: FE02    	    CP 2
+14CD: CA2115  	    JP Z, READ_FILE_TXT
+14D0: C9      	    RET
               	
-14CF:         	READ_MEM_STEP:
-14CF: 13      	    INC DE ; type
-14D0: 13      	    INC DE ; size H
-14D1: CD5215  	    CALL READ_IIC_DE
-14D4: 67      	    LD H, A
-14D5: 13      	    INC DE ; size L
-14D6: CD5215  	    CALL READ_IIC_DE
-14D9: 6F      	    LD L, A
-14DA:         	READ_MEM_STEP_L:
-14DA: 13      	    INC DE ; step file
-14DB: 2B      	    DEC HL
-14DC: 7C      	    LD A, H
-14DD: B5      	    OR L
-14DE: C2DA14  	    JP NZ, READ_MEM_STEP_L
-14E1: 13      	    INC DE ; end
-14E2: 13      	    INC DE ; nex start
-14E3: C36C14  	    JP READ_MEM_NEXT
+14D1:         	READ_MEM_STEP:
+14D1: 13      	    INC DE ; type
+14D2: 13      	    INC DE ; size H
+14D3: CD5415  	    CALL READ_IIC_DE
+14D6: 67      	    LD H, A
+14D7: 13      	    INC DE ; size L
+14D8: CD5415  	    CALL READ_IIC_DE
+14DB: 6F      	    LD L, A
+14DC:         	READ_MEM_STEP_L:
+14DC: 13      	    INC DE ; step file
+14DD: 2B      	    DEC HL
+14DE: 7C      	    LD A, H
+14DF: B5      	    OR L
+14E0: C2DC14  	    JP NZ, READ_MEM_STEP_L
+14E3: 13      	    INC DE ; end
+14E4: 13      	    INC DE ; nex start
+14E5: C36E14  	    JP READ_MEM_NEXT
               	
               	
-14E6:         	READ_FILE_EXE:
+14E8:         	READ_FILE_EXE:
               	    ; read size H
-14E6: 13      	    INC DE
-14E7: CD5215  	    CALL READ_IIC_DE
-14EA: 47      	    LD B, A
+14E8: 13      	    INC DE
+14E9: CD5415  	    CALL READ_IIC_DE
+14EC: 47      	    LD B, A
               	
               	    ; read size L
-14EB: 13      	    INC DE
-14EC: CD5215  	    CALL READ_IIC_DE
-14EF: 4F      	    LD C, A
+14ED: 13      	    INC DE
+14EE: CD5415  	    CALL READ_IIC_DE
+14F1: 4F      	    LD C, A
               	
-14F0: 13      	    INC DE ; first byte file
-14F1: 210080  	    LD HL, $8000 ; memory user
+14F2: 13      	    INC DE ; first byte file
+14F3: 210080  	    LD HL, $8000 ; memory user
               	
-14F4: CDA70E  	    CALL I2C_MemRd
-14F7: E1      	    POP HL ; return
-14F8: C30080  	    JP $8000
-14FB: C9      	    RET
+14F6: CDA70E  	    CALL I2C_MemRd
+14F9: E1      	    POP HL ; return
+14FA: C30080  	    JP $8000
+14FD: C9      	    RET
               	
-14FC:         	READ_FILE_IMG:
+14FE:         	READ_FILE_IMG:
               	    ; read size H
-14FC: 13      	    INC DE
-14FD: CD5215  	    CALL READ_IIC_DE
-1500: 47      	    LD B, A
+14FE: 13      	    INC DE
+14FF: CD5415  	    CALL READ_IIC_DE
+1502: 47      	    LD B, A
               	
               	    ; read size L
-1501: 13      	    INC DE
-1502: CD5215  	    CALL READ_IIC_DE
-1505: 4F      	    LD C, A
+1503: 13      	    INC DE
+1504: CD5415  	    CALL READ_IIC_DE
+1507: 4F      	    LD C, A
               	
-1506: 13      	    INC DE ; first byte file
-1507: 210080  	    LD HL, $8000 ; memory user
+1508: 13      	    INC DE ; first byte file
+1509: 210080  	    LD HL, $8000 ; memory user
               	
-150A: CDA70E  	    CALL I2C_MemRd
+150C: CDA70E  	    CALL I2C_MemRd
               	
-150D: 2680    	    LD H, $80
-150F: 2E00    	    LD L, $00
-1511: CD7902  	    CALL LCD_IMAGE_128x64
+150F: 2680    	    LD H, $80
+1511: 2E00    	    LD L, $00
+1513: CD7902  	    CALL LCD_IMAGE_128x64
               	
-1514:         	READ_FILE_IMG_K:
-1514: CD0611  	    CALL KEYREADINIT ; read key
-1517: FE03    	    CP    CTRLC ; key BK, read next
-1519: C21415  	    JP    NZ, READ_FILE_IMG_K
-151C: 3E0C    	    LD A, CS
-151E: C9      	    RET
+1516:         	READ_FILE_IMG_K:
+1516: CD0711  	    CALL KEYREADINIT ; read key
+1519: FE03    	    CP    CTRLC ; key BK, read next
+151B: C21615  	    JP    NZ, READ_FILE_IMG_K
+151E: 3E0C    	    LD A, CS
+1520: C9      	    RET
               	
-151F:         	READ_FILE_TXT:
-151F: CD3402  	    CALL LCD_CLEAR
+1521:         	READ_FILE_TXT:
+1521: CD3402  	    CALL LCD_CLEAR
               	
               	    ; read size H
-1522: 13      	    INC DE
-1523: CD5215  	    CALL READ_IIC_DE
-1526: 47      	    LD B, A
+1524: 13      	    INC DE
+1525: CD5415  	    CALL READ_IIC_DE
+1528: 47      	    LD B, A
               	
               	    ; read size L
-1527: 13      	    INC DE
-1528: CD5215  	    CALL READ_IIC_DE
-152B: 4F      	    LD C, A
+1529: 13      	    INC DE
+152A: CD5415  	    CALL READ_IIC_DE
+152D: 4F      	    LD C, A
               	
-152C: 13      	    INC DE ; first byte file
-152D:         	READ_FILE_TXT_L:
-152D: CD5215  	    CALL READ_IIC_DE
-1530: CD3A02  	    CALL LCD_PRINT_A
-1533: 13      	    INC DE ; step file
-1534: 0B      	    DEC BC
-1535: 78      	    LD A, B
-1536: B1      	    OR C
-1537: C22D15  	    JP NZ, READ_FILE_TXT_L
-153A: 13      	    INC DE ; end
-153B: 13      	    INC DE ; next start    
-153C: C9      	    RET
+152E: 13      	    INC DE ; first byte file
+152F:         	READ_FILE_TXT_L:
+152F: CD5415  	    CALL READ_IIC_DE
+1532: CD3A02  	    CALL LCD_PRINT_A
+1535: 13      	    INC DE ; step file
+1536: 0B      	    DEC BC
+1537: 78      	    LD A, B
+1538: B1      	    OR C
+1539: C22F15  	    JP NZ, READ_FILE_TXT_L
+153C: 13      	    INC DE ; end
+153D: 13      	    INC DE ; next start    
+153E: C9      	    RET
               	
               	
-153D:         	SHOW_MSG_EXE:
-153D: 21D818  	    LD HL, MSG_READFILE_EXE
-1540: CD6902  	    CALL LCD_PRINT_STRING
-1543: C9      	    RET
+153F:         	SHOW_MSG_EXE:
+153F: 21DA18  	    LD HL, MSG_READFILE_EXE
+1542: CD6902  	    CALL LCD_PRINT_STRING
+1545: C9      	    RET
               	
-1544:         	SHOW_MSG_IMG:
-1544: 21DD18  	    LD HL, MSG_READFILE_IMG
-1547: CD6902  	    CALL LCD_PRINT_STRING
-154A: C9      	    RET
+1546:         	SHOW_MSG_IMG:
+1546: 21DF18  	    LD HL, MSG_READFILE_IMG
+1549: CD6902  	    CALL LCD_PRINT_STRING
+154C: C9      	    RET
               	
-154B:         	SHOW_MSG_TXT:
-154B: 21E218  	    LD HL, MSG_READFILE_TXT
-154E: CD6902  	    CALL LCD_PRINT_STRING
-1551: C9      	    RET
+154D:         	SHOW_MSG_TXT:
+154D: 21E418  	    LD HL, MSG_READFILE_TXT
+1550: CD6902  	    CALL LCD_PRINT_STRING
+1553: C9      	    RET
               	
               	; Read byte in i2c, address in DE, return byte in A
-1552:         	READ_IIC_DE:
-1552: C5      	    PUSH BC
-1553: D5      	    PUSH DE
-1554: E5      	    PUSH HL
-1555: 3EAE    	    LD   A, I2CA_BLOCK   ;I2C address to write to
-1557: CDB80D  	    CALL I2C_Open
-155A: 7A      	    LD   A, D           ;Address (hi) in I2C memory
-155B: CDC20D  	    CALL I2C_Write      ;Write address
-155E: 7B      	    LD   A,E            ;Address (lo) in I2C memory
-155F: CDC20D  	    CALL I2C_Write      ;Write address
-1562: 3EAF    	    LD   A,I2CA_BLOCK+1 ;I2C device to be read from
-1564: CDB80D  	    CALL I2C_Open       ;Open for read
-1567: CDFF0D  	    CALL I2C_Read
-156A: F5      	    PUSH AF
-156B: CD370E  	    CALL I2C_Stop       ;Generate I2C stop
-156E: F1      	    POP AF
-156F: E1      	    POP HL
-1570: D1      	    POP DE
-1571: C1      	    POP BC
-1572: C9      	    RET
+1554:         	READ_IIC_DE:
+1554: C5      	    PUSH BC
+1555: D5      	    PUSH DE
+1556: E5      	    PUSH HL
+1557: 3EAE    	    LD   A, I2CA_BLOCK   ;I2C address to write to
+1559: CDB80D  	    CALL I2C_Open
+155C: 7A      	    LD   A, D           ;Address (hi) in I2C memory
+155D: CDC20D  	    CALL I2C_Write      ;Write address
+1560: 7B      	    LD   A,E            ;Address (lo) in I2C memory
+1561: CDC20D  	    CALL I2C_Write      ;Write address
+1564: 3EAF    	    LD   A,I2CA_BLOCK+1 ;I2C device to be read from
+1566: CDB80D  	    CALL I2C_Open       ;Open for read
+1569: CDFF0D  	    CALL I2C_Read
+156C: F5      	    PUSH AF
+156D: CD370E  	    CALL I2C_Stop       ;Generate I2C stop
+1570: F1      	    POP AF
+1571: E1      	    POP HL
+1572: D1      	    POP DE
+1573: C1      	    POP BC
+1574: C9      	    RET
               	
               	
               	
-1573:         	I2CCPUTOMEM:
+1575:         	I2CCPUTOMEM:
               	; Get parameters to copy a block from CPU memory to I2C memory
               	;   On entry: DE = First address in I2C memory
               	;             HL = First address in CPU memory
@@ -5244,102 +5246,102 @@ FFF0:         	SYSTEM_SP:	.EQU 	$FFF0	;INITIAL STACK POINTER
               	;             IX IY preserved
               	; The 24LC64 requires blocks of data to be written in 64 byte (or less)
               	; pages.
-1573: CD3402  	    CALL LCD_CLEAR
-1576: 215119  	    LD HL, MSG_CPU2MEM
-1579: CD6902  	    CALL LCD_PRINT_STRING
+1575: CD3402  	    CALL LCD_CLEAR
+1578: 215319  	    LD HL, MSG_CPU2MEM
+157B: CD6902  	    CALL LCD_PRINT_STRING
               	
-157C: CDA815  	    CALL GET_FROM_TO_SIZE
+157E: CDAA15  	    CALL GET_FROM_TO_SIZE
               	
-157F: 2AA3FB  	    LD HL, (ADDR_FROM)
-1582: ED5BA5FB	    LD DE, (ADDR_TO)
-1586: ED4BA7FB	    LD BC, (ADDR_SIZE)
-158A:         	I2CCPUTOMEM_BASIC:
-158A: CDDC0E  	    CALL I2C_MemWr
+1581: 2AA3FB  	    LD HL, (ADDR_FROM)
+1584: ED5BA5FB	    LD DE, (ADDR_TO)
+1588: ED4BA7FB	    LD BC, (ADDR_SIZE)
+158C:         	I2CCPUTOMEM_BASIC:
+158C: CDDC0E  	    CALL I2C_MemWr
               	    
-158D: CA9C15  	    JP Z, I2CCPUTOMEM_OK
-1590: CD2802  	    CALL LCD_CR
-1593: 210919  	    LD HL, MSG_COPYFAIL
-1596: CD6902  	    CALL LCD_PRINT_STRING
-1599: 3E0D    	    LD A, CR
-159B: C9      	    RET
-159C:         	I2CCPUTOMEM_OK:
-159C: CD2802  	    CALL LCD_CR
-159F: 210119  	    LD HL, MSG_COPYOK
-15A2: CD6902  	    CALL LCD_PRINT_STRING
-15A5: 3E0D    	    LD A, CR
-15A7: C9      	    RET
+158F: CA9E15  	    JP Z, I2CCPUTOMEM_OK
+1592: CD2802  	    CALL LCD_CR
+1595: 210B19  	    LD HL, MSG_COPYFAIL
+1598: CD6902  	    CALL LCD_PRINT_STRING
+159B: 3E0D    	    LD A, CR
+159D: C9      	    RET
+159E:         	I2CCPUTOMEM_OK:
+159E: CD2802  	    CALL LCD_CR
+15A1: 210319  	    LD HL, MSG_COPYOK
+15A4: CD6902  	    CALL LCD_PRINT_STRING
+15A7: 3E0D    	    LD A, CR
+15A9: C9      	    RET
               	
               	
-15A8:         	GET_FROM_TO_SIZE:
+15AA:         	GET_FROM_TO_SIZE:
               	    ; FROM
-15A8: CD2802  	    CALL LCD_CR
-15AB: 21E718  	    LD HL, MSG_FROM
-15AE: CD6902  	    CALL LCD_PRINT_STRING
+15AA: CD2802  	    CALL LCD_CR
+15AD: 21E918  	    LD HL, MSG_FROM
+15B0: CD6902  	    CALL LCD_PRINT_STRING
               	    ;
               	    ;GET THE ADDRESS  FROM
               	    ;
-15B1: CDC911  	    CALL  GETCHR_KEYBOARD 
-15B4: D8      	    RET   C        
-15B5: 32A4FB  	    LD    (ADDR_FROM+1),A  ;SAVE ADDRESS HIGH
-15B8: CDC911  	    CALL  GETCHR_KEYBOARD
-15BB: D8      	    RET   C
-15BC: 32A3FB  	    LD    (ADDR_FROM),A    ;SAVE ADDRESS LOW
+15B3: CDCB11  	    CALL  GETCHR_KEYBOARD 
+15B6: D8      	    RET   C        
+15B7: 32A4FB  	    LD    (ADDR_FROM+1),A  ;SAVE ADDRESS HIGH
+15BA: CDCB11  	    CALL  GETCHR_KEYBOARD
+15BD: D8      	    RET   C
+15BE: 32A3FB  	    LD    (ADDR_FROM),A    ;SAVE ADDRESS LOW
               	
-15BF: CD0611  	    CALL  KEYREADINIT
-15C2: FE1B    	    CP    ESC         ;ESC KEY?
-15C4: C8      	    RET   Z
-15C5: FE0D    	    CP    CR
-15C7: 2808    	    JR Z, GET_FROM_TO_SIZE_TO
-15C9: 3E0D    	    LD A, CR
-15CB: CD3A02  	    CALL LCD_PRINT_A
-15CE: C3A815  	    JP GET_FROM_TO_SIZE
+15C1: CD0711  	    CALL  KEYREADINIT
+15C4: FE1B    	    CP    ESC         ;ESC KEY?
+15C6: C8      	    RET   Z
+15C7: FE0D    	    CP    CR
+15C9: 2808    	    JR Z, GET_FROM_TO_SIZE_TO
+15CB: 3E0D    	    LD A, CR
+15CD: CD3A02  	    CALL LCD_PRINT_A
+15D0: C3AA15  	    JP GET_FROM_TO_SIZE
               	
-15D1:         	GET_FROM_TO_SIZE_TO:
+15D3:         	GET_FROM_TO_SIZE_TO:
               	    ; TO
-15D1: CD2802  	    CALL LCD_CR
-15D4: 21EE18  	    LD HL, MSG_TO
-15D7: CD6902  	    CALL LCD_PRINT_STRING
+15D3: CD2802  	    CALL LCD_CR
+15D6: 21F018  	    LD HL, MSG_TO
+15D9: CD6902  	    CALL LCD_PRINT_STRING
               	    ;
               	    ;GET THE ADDRESS  TO
               	    ;
-15DA: CDC911  	    CALL  GETCHR_KEYBOARD 
-15DD: D8      	    RET   C        
-15DE: 32A6FB  	    LD    (ADDR_TO+1),A  ;SAVE ADDRESS HIGH
-15E1: CDC911  	    CALL  GETCHR_KEYBOARD
-15E4: D8      	    RET   C
-15E5: 32A5FB  	    LD    (ADDR_TO),A    ;SAVE ADDRESS LOW
+15DC: CDCB11  	    CALL  GETCHR_KEYBOARD 
+15DF: D8      	    RET   C        
+15E0: 32A6FB  	    LD    (ADDR_TO+1),A  ;SAVE ADDRESS HIGH
+15E3: CDCB11  	    CALL  GETCHR_KEYBOARD
+15E6: D8      	    RET   C
+15E7: 32A5FB  	    LD    (ADDR_TO),A    ;SAVE ADDRESS LOW
               	
-15E8: CD0611  	    CALL  KEYREADINIT
-15EB: FE1B    	    CP    ESC         ;ESC KEY?
-15ED: C8      	    RET   Z
-15EE: FE0D    	    CP    CR
-15F0: 20DF    	    JR NZ, GET_FROM_TO_SIZE_TO
+15EA: CD0711  	    CALL  KEYREADINIT
+15ED: FE1B    	    CP    ESC         ;ESC KEY?
+15EF: C8      	    RET   Z
+15F0: FE0D    	    CP    CR
+15F2: 20DF    	    JR NZ, GET_FROM_TO_SIZE_TO
               	
-15F2:         	GET_FROM_TO_SIZE_SIZE:
+15F4:         	GET_FROM_TO_SIZE_SIZE:
               	    ; SIZE
-15F2: CD2802  	    CALL LCD_CR
-15F5: 21F318  	    LD HL, MSG_SIZE
-15F8: CD6902  	    CALL LCD_PRINT_STRING
+15F4: CD2802  	    CALL LCD_CR
+15F7: 21F518  	    LD HL, MSG_SIZE
+15FA: CD6902  	    CALL LCD_PRINT_STRING
               	    ;
               	    ;GET THE SIZE
               	    ;
-15FB: CDC911  	    CALL  GETCHR_KEYBOARD 
-15FE: D8      	    RET   C        
-15FF: 32A8FB  	    LD    (ADDR_SIZE+1),A  ;SAVE ADDRESS HIGH
-1602: CDC911  	    CALL  GETCHR_KEYBOARD
-1605: D8      	    RET   C
-1606: 32A7FB  	    LD    (ADDR_SIZE),A    ;SAVE ADDRESS LOW
+15FD: CDCB11  	    CALL  GETCHR_KEYBOARD 
+1600: D8      	    RET   C        
+1601: 32A8FB  	    LD    (ADDR_SIZE+1),A  ;SAVE ADDRESS HIGH
+1604: CDCB11  	    CALL  GETCHR_KEYBOARD
+1607: D8      	    RET   C
+1608: 32A7FB  	    LD    (ADDR_SIZE),A    ;SAVE ADDRESS LOW
               	
-1609: CD0611  	    CALL  KEYREADINIT
-160C: FE1B    	    CP    ESC         ;ESC KEY?
-160E: C8      	    RET   Z
-160F: FE0D    	    CP    CR
-1611: 20DF    	    JR NZ, GET_FROM_TO_SIZE_SIZE
-1613: C9      	    RET
+160B: CD0711  	    CALL  KEYREADINIT
+160E: FE1B    	    CP    ESC         ;ESC KEY?
+1610: C8      	    RET   Z
+1611: FE0D    	    CP    CR
+1613: 20DF    	    JR NZ, GET_FROM_TO_SIZE_SIZE
+1615: C9      	    RET
               	
               	
               	
-1614:         	I2CMEMTOCPU:
+1616:         	I2CMEMTOCPU:
               	    ; Get parameters to copy a block from I2C memory to CPU memory
               	;   On entry: DE = First address in I2C memory
               	;             HL = First address in CPU memory
@@ -5348,29 +5350,29 @@ FFF0:         	SYSTEM_SP:	.EQU 	$FFF0	;INITIAL STACK POINTER
               	;   On exit:  If successfully A = 0 and Z flagged
               	;             If unsuccessfully A = Error and NZ flagged
               	;             IX IY preserved
-1614: CD3402  	    CALL LCD_CLEAR
-1617: 216619  	    LD HL, MSG_MEM2CPU
-161A: CD6902  	    CALL LCD_PRINT_STRING
+1616: CD3402  	    CALL LCD_CLEAR
+1619: 216819  	    LD HL, MSG_MEM2CPU
+161C: CD6902  	    CALL LCD_PRINT_STRING
               	
-161D: CDA815  	    CALL GET_FROM_TO_SIZE
-1620: ED5BA3FB	    LD DE, (ADDR_FROM)
-1624: 2AA5FB  	    LD HL, (ADDR_TO)
-1627: ED4BA7FB	    LD BC, (ADDR_SIZE)
-162B:         	I2CMEMTOCPU_BASIC:
-162B: CDA70E  	    CALL I2C_MemRd  
+161F: CDAA15  	    CALL GET_FROM_TO_SIZE
+1622: ED5BA3FB	    LD DE, (ADDR_FROM)
+1626: 2AA5FB  	    LD HL, (ADDR_TO)
+1629: ED4BA7FB	    LD BC, (ADDR_SIZE)
+162D:         	I2CMEMTOCPU_BASIC:
+162D: CDA70E  	    CALL I2C_MemRd  
               	
-162E: CA3D16  	    JP Z, I2CMEMTOCPU_OK
-1631: CD2802  	    CALL LCD_CR
-1634: 210919  	    LD HL, MSG_COPYFAIL
-1637: CD6902  	    CALL LCD_PRINT_STRING
-163A: 3E0D    	    LD A, CR
-163C: C9      	    RET
-163D:         	I2CMEMTOCPU_OK:
-163D: CD2802  	    CALL LCD_CR
-1640: 210119  	    LD HL, MSG_COPYOK
-1643: CD6902  	    CALL LCD_PRINT_STRING
-1646: 3E0D    	    LD A, CR
-1648: C9      	    RET
+1630: CA3F16  	    JP Z, I2CMEMTOCPU_OK
+1633: CD2802  	    CALL LCD_CR
+1636: 210B19  	    LD HL, MSG_COPYFAIL
+1639: CD6902  	    CALL LCD_PRINT_STRING
+163C: 3E0D    	    LD A, CR
+163E: C9      	    RET
+163F:         	I2CMEMTOCPU_OK:
+163F: CD2802  	    CALL LCD_CR
+1642: 210319  	    LD HL, MSG_COPYOK
+1645: CD6902  	    CALL LCD_PRINT_STRING
+1648: 3E0D    	    LD A, CR
+164A: C9      	    RET
               	
               	
               	
@@ -5378,70 +5380,70 @@ FFF0:         	SYSTEM_SP:	.EQU 	$FFF0	;INITIAL STACK POINTER
               	; --------------------------------------
               	; I2C - Write one byte
               	; --------------------------------------
-1649:         	I2C_WR_DD:
-1649: CD3402  	    CALL LCD_CLEAR
+164B:         	I2C_WR_DD:
+164B: CD3402  	    CALL LCD_CLEAR
               	
               	    ; Show msg func
-164C: 217B19  	    LD HL, MSG_I2C_WR_DD
-164F: CD6902  	    CALL LCD_PRINT_STRING
+164E: 217D19  	    LD HL, MSG_I2C_WR_DD
+1651: CD6902  	    CALL LCD_PRINT_STRING
               	
               	    ; Device Address
-1652: CDF616  	    CALL GET_DEV_ADDR ; get address
+1654: CDF816  	    CALL GET_DEV_ADDR ; get address
               	
-1655:         	I2C_WR_DD_LOOP:
+1657:         	I2C_WR_DD_LOOP:
               	    ; Get Data
-1655: CD0717  	    CALL GET_DEV_DD   ; get data
+1657: CD0917  	    CALL GET_DEV_DD   ; get data
               	
               	    ; Send
-1658: 3AA0FB  	    LD A, (I2C_ADDR) ; Open
-165B: CDB80D  	    CALL I2C_Open
+165A: 3AA0FB  	    LD A, (I2C_ADDR) ; Open
+165D: CDB80D  	    CALL I2C_Open
               	
-165E: 3AA2FB  	    LD A, (I2C_DD)  ; Data
-1661: CDC20D  	    CALL I2C_Write
+1660: 3AA2FB  	    LD A, (I2C_DD)  ; Data
+1663: CDC20D  	    CALL I2C_Write
               	 
-1664: CDBF0D  	    CALL I2C_Close  ; Close
+1666: CDBF0D  	    CALL I2C_Close  ; Close
               	
-1667: 18EC    	    JR I2C_WR_DD_LOOP
+1669: 18EC    	    JR I2C_WR_DD_LOOP
               	
-1669: C9      	    RET
+166B: C9      	    RET
               	
               	
               	
               	; --------------------------------------
               	; I2C - Write register one byte
               	; --------------------------------------
-166A:         	I2C_WR_RR_DD:
-166A: CD3402  	    CALL LCD_CLEAR
+166C:         	I2C_WR_RR_DD:
+166C: CD3402  	    CALL LCD_CLEAR
               	
               	    ; Show msg func
-166D: 218B19  	    LD HL, MSG_I2C_WR_RR_DD
-1670: CD6902  	    CALL LCD_PRINT_STRING
+166F: 218D19  	    LD HL, MSG_I2C_WR_RR_DD
+1672: CD6902  	    CALL LCD_PRINT_STRING
               	
               	    ; Device Address
-1673: CDF616  	    CALL GET_DEV_ADDR ; get address
+1675: CDF816  	    CALL GET_DEV_ADDR ; get address
               	
-1676:         	I2C_WR_RR_DD_LOOP:
+1678:         	I2C_WR_RR_DD_LOOP:
               	    ; Get register
-1676: CD1817  	    CALL GET_DEV_RR ; get address
+1678: CD1A17  	    CALL GET_DEV_RR ; get address
               	
               	    ; Get Data
-1679: CD0717  	    CALL GET_DEV_DD   ; get data
+167B: CD0917  	    CALL GET_DEV_DD   ; get data
               	
               	    ; Send
-167C: 3AA0FB  	    LD A, (I2C_ADDR) ; Open
-167F: CDB80D  	    CALL I2C_Open
+167E: 3AA0FB  	    LD A, (I2C_ADDR) ; Open
+1681: CDB80D  	    CALL I2C_Open
               	
-1682: 3AA1FB  	    LD A, (I2C_RR)  ; register
-1685: CDC20D  	    CALL I2C_Write
+1684: 3AA1FB  	    LD A, (I2C_RR)  ; register
+1687: CDC20D  	    CALL I2C_Write
               	
-1688: 3AA2FB  	    LD A, (I2C_DD)  ; Data
-168B: CDC20D  	    CALL I2C_Write
+168A: 3AA2FB  	    LD A, (I2C_DD)  ; Data
+168D: CDC20D  	    CALL I2C_Write
               	
-168E: CDBF0D  	    CALL I2C_Close  ; Close
+1690: CDBF0D  	    CALL I2C_Close  ; Close
               	
-1691: 18E3    	    JR I2C_WR_RR_DD_LOOP
+1693: 18E3    	    JR I2C_WR_RR_DD_LOOP
               	
-1693: C9      	    RET
+1695: C9      	    RET
               	
               	
               	
@@ -5449,315 +5451,315 @@ FFF0:         	SYSTEM_SP:	.EQU 	$FFF0	;INITIAL STACK POINTER
               	; --------------------------------------
               	; I2C - Read one byte
               	; --------------------------------------
-1694:         	I2C_RD:
-1694: CD3402  	    CALL LCD_CLEAR
+1696:         	I2C_RD:
+1696: CD3402  	    CALL LCD_CLEAR
               	
               	    ; Show msg func
-1697: 219F19  	    LD HL, MSG_I2C_RD
-169A: CD6902  	    CALL LCD_PRINT_STRING
+1699: 21A119  	    LD HL, MSG_I2C_RD
+169C: CD6902  	    CALL LCD_PRINT_STRING
               	
               	    ; Device Address
-169D: CDF616  	    CALL GET_DEV_ADDR ; get address
-16A0: CD2802  	    CALL LCD_CR ; new line
+169F: CDF816  	    CALL GET_DEV_ADDR ; get address
+16A2: CD2802  	    CALL LCD_CR ; new line
               	
-16A3:         	I2C_RD_LOOP:
+16A5:         	I2C_RD_LOOP:
               	    ; Send
-16A3: 3AA0FB  	    LD A, (I2C_ADDR) ; Open
-16A6: 3C      	    INC A ; To read address + 1 (flag)
-16A7: CDB80D  	    CALL I2C_Open
+16A5: 3AA0FB  	    LD A, (I2C_ADDR) ; Open
+16A8: 3C      	    INC A ; To read address + 1 (flag)
+16A9: CDB80D  	    CALL I2C_Open
               	
-16AA: CDFF0D  	    CALL I2C_Read      ; Read
-16AD: F5      	    PUSH AF
+16AC: CDFF0D  	    CALL I2C_Read      ; Read
+16AF: F5      	    PUSH AF
               	
-16AE: CDBF0D  	    CALL I2C_Close     ; Close
+16B0: CDBF0D  	    CALL I2C_Close     ; Close
               	
               	    ; Show
-16B1: F1      	    POP AF
-16B2: CD1C12  	    CALL CONV_A_HEX ; Show A to (HEX) LCD
-16B5: CD2802  	    CALL LCD_CR ; new line
+16B3: F1      	    POP AF
+16B4: CD1E12  	    CALL CONV_A_HEX ; Show A to (HEX) LCD
+16B7: CD2802  	    CALL LCD_CR ; new line
               	
-16B8: CD0611  	    CALL KEYREADINIT
-16BB: FE03    	    CP CTRLC
-16BD: CA9C01  	    JP Z, RESET_WARM
+16BA: CD0711  	    CALL KEYREADINIT
+16BD: FE03    	    CP CTRLC
+16BF: CA9C01  	    JP Z, RESET_WARM
               	
-16C0: 18E1    	    JR I2C_RD_LOOP
-16C2: C9      	    RET
+16C2: 18E1    	    JR I2C_RD_LOOP
+16C4: C9      	    RET
               	
               	
               	; --------------------------------------
               	; I2C - Read register one byte
               	; --------------------------------------
-16C3:         	I2C_RD_RR:
-16C3: CD3402  	    CALL LCD_CLEAR
+16C5:         	I2C_RD_RR:
+16C5: CD3402  	    CALL LCD_CLEAR
               	
               	    ; Show msg func
-16C6: 21AE19  	    LD HL, MSG_I2C_RD_RR
-16C9: CD6902  	    CALL LCD_PRINT_STRING
+16C8: 21B019  	    LD HL, MSG_I2C_RD_RR
+16CB: CD6902  	    CALL LCD_PRINT_STRING
               	
               	    ; Device Address
-16CC: CDF616  	    CALL GET_DEV_ADDR ; get address
+16CE: CDF816  	    CALL GET_DEV_ADDR ; get address
               	
-16CF:         	I2C_RD_RR_LOOP:
+16D1:         	I2C_RD_RR_LOOP:
               	    ; Get register
-16CF: CD1817  	    CALL GET_DEV_RR ; get address
-16D2: CD2802  	    CALL LCD_CR ; new line
+16D1: CD1A17  	    CALL GET_DEV_RR ; get address
+16D4: CD2802  	    CALL LCD_CR ; new line
               	
               	    ; Send
-16D5: 3AA0FB  	    LD A, (I2C_ADDR) ; Open
-16D8: CDB80D  	    CALL I2C_Open
+16D7: 3AA0FB  	    LD A, (I2C_ADDR) ; Open
+16DA: CDB80D  	    CALL I2C_Open
               	
-16DB: 3AA1FB  	    LD A, (I2C_RR)
-16DE: CDC20D  	    CALL I2C_Write ; Register to read
+16DD: 3AA1FB  	    LD A, (I2C_RR)
+16E0: CDC20D  	    CALL I2C_Write ; Register to read
               	
-16E1: 3AA0FB  	    LD A, (I2C_ADDR) ; Open
-16E4: 3C      	    INC A ; To read address + 1 (flag)
-16E5: CDB80D  	    CALL I2C_Open
+16E3: 3AA0FB  	    LD A, (I2C_ADDR) ; Open
+16E6: 3C      	    INC A ; To read address + 1 (flag)
+16E7: CDB80D  	    CALL I2C_Open
               	
-16E8: CDFF0D  	    CALL I2C_Read ; Read register
-16EB: F5      	    PUSH AF
+16EA: CDFF0D  	    CALL I2C_Read ; Read register
+16ED: F5      	    PUSH AF
               	
-16EC: CDBF0D  	    CALL I2C_Close ; Close
+16EE: CDBF0D  	    CALL I2C_Close ; Close
               	
               	    ; Show
-16EF: F1      	    POP AF
-16F0: CD1C12  	    CALL CONV_A_HEX ; Show A to (HEX) LCD
+16F1: F1      	    POP AF
+16F2: CD1E12  	    CALL CONV_A_HEX ; Show A to (HEX) LCD
               	
-16F3: 18DA    	    JR I2C_RD_RR_LOOP
-16F5: C9      	    RET
-              	
-              	
+16F5: 18DA    	    JR I2C_RD_RR_LOOP
+16F7: C9      	    RET
               	
               	
               	
-16F6:         	GET_DEV_ADDR:
-16F6: CD2802  	    CALL LCD_CR
-16F9: 212519  	    LD HL, MSG_DEV_ADDR
-16FC: CD6902  	    CALL LCD_PRINT_STRING
-16FF: CDC911  	    CALL  GETCHR_KEYBOARD 
-1702: D8      	    RET   C
-1703: 32A0FB  	    LD (I2C_ADDR), A
-1706: C9      	    RET
-              	
-1707:         	GET_DEV_DD:
-1707: CD2802  	    CALL LCD_CR
-170A: 214619  	    LD HL, MSG_DEV_DATA
-170D: CD6902  	    CALL LCD_PRINT_STRING
-              	
-1710: CDC911  	    CALL  GETCHR_KEYBOARD 
-1713: D8      	    RET   C
-1714: 32A2FB  	    LD (I2C_DD), A
-1717: C9      	    RET
-              	
-1718:         	GET_DEV_RR:
-1718: CD2802  	    CALL LCD_CR
-171B: 213719  	    LD HL, MSG_DEV_REG
-171E: CD6902  	    CALL LCD_PRINT_STRING
-              	
-1721: CDC911  	    CALL  GETCHR_KEYBOARD 
-1724: D8      	    RET   C
-1725: 32A1FB  	    LD (I2C_RR), A
-1728: C9      	    RET
               	
               	
+16F8:         	GET_DEV_ADDR:
+16F8: CD2802  	    CALL LCD_CR
+16FB: 212719  	    LD HL, MSG_DEV_ADDR
+16FE: CD6902  	    CALL LCD_PRINT_STRING
+1701: CDCB11  	    CALL  GETCHR_KEYBOARD 
+1704: D8      	    RET   C
+1705: 32A0FB  	    LD (I2C_ADDR), A
+1708: C9      	    RET
+              	
+1709:         	GET_DEV_DD:
+1709: CD2802  	    CALL LCD_CR
+170C: 214819  	    LD HL, MSG_DEV_DATA
+170F: CD6902  	    CALL LCD_PRINT_STRING
+              	
+1712: CDCB11  	    CALL  GETCHR_KEYBOARD 
+1715: D8      	    RET   C
+1716: 32A2FB  	    LD (I2C_DD), A
+1719: C9      	    RET
+              	
+171A:         	GET_DEV_RR:
+171A: CD2802  	    CALL LCD_CR
+171D: 213919  	    LD HL, MSG_DEV_REG
+1720: CD6902  	    CALL LCD_PRINT_STRING
+              	
+1723: CDCB11  	    CALL  GETCHR_KEYBOARD 
+1726: D8      	    RET   C
+1727: 32A1FB  	    LD (I2C_RR), A
+172A: C9      	    RET
               	
               	
               	
               	
               	
               	
-1729: 0C0D0D0A	WELLCOME: .db CS, CR, CR, LF,"Z80 Mini Iniciado", CR, LF, 00H
-172D: 5A383020	
-1731: 4D696E69	
-1735: 20496E69	
-1739: 63696164	
-173D: 6F0D0A00	
-1741: 5A383020	WELLCOME_LCD: .db "Z80 Mini Iniciado", CR, 00H
-1745: 4D696E69	
-1749: 20496E69	
-174D: 63696164	
-1751: 6F0D00  	
               	
-1754: 46312052	MSG_MENU0  .db "F1 RUN (JP $8000)",CR, 00H
-1758: 554E2028	
-175C: 4A502024	
-1760: 38303030	
-1764: 290D00  	
-1767: 46322049	MSG_MENU1  .db "F2 Intel hex loader",CR, 00H
-176B: 6E74656C	
-176F: 20686578	
-1773: 206C6F61	
-1777: 6465720D	
-177B: 00      	
-177C: 4633204C	MSG_MENU2  .db "F3 LIVRE",CR, 00H
-1780: 49565245	
-1784: 0D00    	
-1786: 4634204C	MSG_MENU3  .db "F4 LIVRE",CR, 00H
-178A: 49565245	
-178E: 0D00    	
-1790: 4635204C	MSG_MENU4  .db "F5 LIVRE",CR, 00H
-1794: 49565245	
-1798: 0D00    	
               	
-179A: 42202D20	MSG_MENU8  .db "B - Basic",CR, 00H
-179E: 42617369	
-17A2: 630D00  	
-17A5: 44204141	MSG_MENU9  .db "D AAAA - DISPLAY",CR,00H
-17A9: 4141202D	
-17AD: 20444953	
-17B1: 504C4159	
-17B5: 0D00    	
-17B7: 4D204141	MSG_MENU10 .db "M AAAA - MODIFY",CR,00H
-17BB: 4141202D	
-17BF: 204D4F44	
-17C3: 4946590D	
-17C7: 00      	
-17C8: 47204141	MSG_MENU11 .db "G AAAA - GO TO",CR, 00H
-17CC: 4141202D	
-17D0: 20474F20	
-17D4: 544F0D00	
-17D8: 4F204F75	MSG_MENU12 .db "O Out AA DD",CR, 00H
-17DC: 74204141	
-17E0: 2044440D	
-17E4: 00      	
-17E5: 4920496E	MSG_MENU13 .db "I In AA",CR, 00H
-17E9: 2041410D	
-17ED: 00      	
-17EE: 31204932	MSG_MENU14 .db "1 I2C Scan",CR, 00H
-17F2: 43205363	
-17F6: 616E0D00	
-17FA: 32204932	MSG_MENU15 .db "2 I2C PC -> MEM",CR, 00H
-17FE: 43205043	
-1802: 202D3E20	
-1806: 4D454D0D	
-180A: 00      	
-180B: 33204932	MSG_MENU16 .db "3 I2C MEM -> PC",CR, 00H
-180F: 43204D45	
-1813: 4D202D3E	
-1817: 2050430D	
-181B: 00      	
-181C: 34204932	MSG_MENU17 .db "4 I2C WRITE DD",CR, 00H
-1820: 43205752	
-1824: 49544520	
-1828: 44440D00	
-182C: 35204932	MSG_MENU18 .db "5 I2C WRITE RR DD",CR, 00H
-1830: 43205752	
-1834: 49544520	
-1838: 52522044	
-183C: 440D00  	
-183F: 36204932	MSG_MENU19 .db "6 I2C READ ONE BYTE",CR, 00H
-1843: 43205245	
-1847: 4144204F	
-184B: 4E452042	
-184F: 5954450D	
-1853: 00      	
-1854: 37204932	MSG_MENU20 .db "7 I2C READ RR BYTE", CR, 00H 
-1858: 43205245	
-185C: 41442052	
-1860: 52204259	
-1864: 54450D00	
-1868: 38205265	MSG_MENU21 .db "8 Read Memory", CR, 00H 
-186C: 6164204D	
-1870: 656D6F72	
-1874: 790D00  	
+172B: 0C0D0D0A	WELLCOME: .db CS, CR, CR, LF,"Z80 Mini Iniciado", CR, LF, 00H
+172F: 5A383020	
+1733: 4D696E69	
+1737: 20496E69	
+173B: 63696164	
+173F: 6F0D0A00	
+1743: 5A383020	WELLCOME_LCD: .db "Z80 Mini Iniciado", CR, 00H
+1747: 4D696E69	
+174B: 20496E69	
+174F: 63696164	
+1753: 6F0D00  	
               	
-1877: 49324320	I2C_LIST_MSG:    .DB "I2C device found at:",CR,0
-187B: 64657669	
-187F: 63652066	
-1883: 6F756E64	
-1887: 2061743A	
-188B: 0D00    	
+1756: 46312052	MSG_MENU0  .db "F1 RUN (JP $8000)",CR, 00H
+175A: 554E2028	
+175E: 4A502024	
+1762: 38303030	
+1766: 290D00  	
+1769: 46322049	MSG_MENU1  .db "F2 Intel hex loader",CR, 00H
+176D: 6E74656C	
+1771: 20686578	
+1775: 206C6F61	
+1779: 6465720D	
+177D: 00      	
+177E: 4633204C	MSG_MENU2  .db "F3 LIVRE",CR, 00H
+1782: 49565245	
+1786: 0D00    	
+1788: 4634204C	MSG_MENU3  .db "F4 LIVRE",CR, 00H
+178C: 49565245	
+1790: 0D00    	
+1792: 4635204C	MSG_MENU4  .db "F5 LIVRE",CR, 00H
+1796: 49565245	
+179A: 0D00    	
               	
-188D: 496E7465	MSG_ILOAD   .db  "Intel HEX loader...",CR, 00H
-1891: 6C204845	
-1895: 58206C6F	
-1899: 61646572	
-189D: 2E2E2E0D	
-18A1: 00      	
-18A2: 46494C45	FILEOK      .DB  "FILE RECEIVED OK",CR, 00H
-18A6: 20524543	
-18AA: 45495645	
-18AE: 44204F4B	
-18B2: 0D00    	
-18B4: 43484543	CSUMERR     .DB  "CHECKSUM ERROR",CR, 00H
-18B8: 4B53554D	
-18BC: 20455252	
-18C0: 4F520D00	
+179C: 42202D20	MSG_MENU8  .db "B - Basic",CR, 00H
+17A0: 42617369	
+17A4: 630D00  	
+17A7: 44204141	MSG_MENU9  .db "D AAAA - DISPLAY",CR,00H
+17AB: 4141202D	
+17AF: 20444953	
+17B3: 504C4159	
+17B7: 0D00    	
+17B9: 4D204141	MSG_MENU10 .db "M AAAA - MODIFY",CR,00H
+17BD: 4141202D	
+17C1: 204D4F44	
+17C5: 4946590D	
+17C9: 00      	
+17CA: 47204141	MSG_MENU11 .db "G AAAA - GO TO",CR, 00H
+17CE: 4141202D	
+17D2: 20474F20	
+17D6: 544F0D00	
+17DA: 4F204F75	MSG_MENU12 .db "O Out AA DD",CR, 00H
+17DE: 74204141	
+17E2: 2044440D	
+17E6: 00      	
+17E7: 4920496E	MSG_MENU13 .db "I In AA",CR, 00H
+17EB: 2041410D	
+17EF: 00      	
+17F0: 31204932	MSG_MENU14 .db "1 I2C Scan",CR, 00H
+17F4: 43205363	
+17F8: 616E0D00	
+17FC: 32204932	MSG_MENU15 .db "2 I2C PC -> MEM",CR, 00H
+1800: 43205043	
+1804: 202D3E20	
+1808: 4D454D0D	
+180C: 00      	
+180D: 33204932	MSG_MENU16 .db "3 I2C MEM -> PC",CR, 00H
+1811: 43204D45	
+1815: 4D202D3E	
+1819: 2050430D	
+181D: 00      	
+181E: 34204932	MSG_MENU17 .db "4 I2C WRITE DD",CR, 00H
+1822: 43205752	
+1826: 49544520	
+182A: 44440D00	
+182E: 35204932	MSG_MENU18 .db "5 I2C WRITE RR DD",CR, 00H
+1832: 43205752	
+1836: 49544520	
+183A: 52522044	
+183E: 440D00  	
+1841: 36204932	MSG_MENU19 .db "6 I2C READ ONE BYTE",CR, 00H
+1845: 43205245	
+1849: 4144204F	
+184D: 4E452042	
+1851: 5954450D	
+1855: 00      	
+1856: 37204932	MSG_MENU20 .db "7 I2C READ RR BYTE", CR, 00H 
+185A: 43205245	
+185E: 41442052	
+1862: 52204259	
+1866: 54450D00	
+186A: 38205265	MSG_MENU21 .db "8 Read Memory", CR, 00H 
+186E: 6164204D	
+1872: 656D6F72	
+1876: 790D00  	
               	
-18C4: 2843296F	MSG_BASIC .db "(C)old or (w)arm ?",CR, 00H
-18C8: 6C64206F	
-18CC: 72202877	
-18D0: 2961726D	
-18D4: 203F0D00	
+1879: 49324320	I2C_LIST_MSG:    .DB "I2C device found at:",CR,0
+187D: 64657669	
+1881: 63652066	
+1885: 6F756E64	
+1889: 2061743A	
+188D: 0D00    	
               	
-18D8: 5F455845	MSG_READFILE_EXE .db "_EXE", 00H
-18DC: 00      	
-18DD: 5F494D47	MSG_READFILE_IMG .db "_IMG", 00H
-18E1: 00      	
-18E2: 5F545854	MSG_READFILE_TXT .db "_TXT", 00H
-18E6: 00      	
+188F: 496E7465	MSG_ILOAD   .db  "Intel HEX loader...",CR, 00H
+1893: 6C204845	
+1897: 58206C6F	
+189B: 61646572	
+189F: 2E2E2E0D	
+18A3: 00      	
+18A4: 46494C45	FILEOK      .DB  "FILE RECEIVED OK",CR, 00H
+18A8: 20524543	
+18AC: 45495645	
+18B0: 44204F4B	
+18B4: 0D00    	
+18B6: 43484543	CSUMERR     .DB  "CHECKSUM ERROR",CR, 00H
+18BA: 4B53554D	
+18BE: 20455252	
+18C2: 4F520D00	
               	
-18E7: 46524F4D	MSG_FROM    .db "FROM: ", 00H
-18EB: 3A2000  	
-18EE: 544F3A20	MSG_TO      .db "TO: ", 00H
-18F2: 00      	
-18F3: 53495A45	MSG_SIZE    .db "SIZE(BYTES): ", 00H
-18F7: 28425954	
-18FB: 4553293A	
-18FF: 2000    	
-1901: 434F5059	MSG_COPYOK  .db "COPY OK", 00H
-1905: 204F4B00	
-1909: 434F5059	MSG_COPYFAIL  .db "COPY FAIL", 00H
-190D: 20464149	
-1911: 4C00    	
-1913: 202D202D	MSG_EOF  .db " - - - FIM - - - ", 00H
-1917: 202D2046	
-191B: 494D202D	
-191F: 202D202D	
-1923: 2000    	
+18C6: 2843296F	MSG_BASIC .db "(C)old or (w)arm ?",CR, 00H
+18CA: 6C64206F	
+18CE: 72202877	
+18D2: 2961726D	
+18D6: 203F0D00	
               	
-1925: 44455649	MSG_DEV_ADDR  .db "DEVICE ADDR(AA): ", 00H
-1929: 43452041	
-192D: 44445228	
-1931: 4141293A	
-1935: 2000    	
-1937: 52454749	MSG_DEV_REG   .db "REGISTER(RR): ", 00H
-193B: 53544552	
-193F: 28525229	
-1943: 3A2000  	
-1946: 44415441	MSG_DEV_DATA  .db "DATA(DD): ", 00H
-194A: 28444429	
-194E: 3A2000  	
+18DA: 5F455845	MSG_READFILE_EXE .db "_EXE", 00H
+18DE: 00      	
+18DF: 5F494D47	MSG_READFILE_IMG .db "_IMG", 00H
+18E3: 00      	
+18E4: 5F545854	MSG_READFILE_TXT .db "_TXT", 00H
+18E8: 00      	
               	
-1951: 434F5059	MSG_CPU2MEM .db "COPY CPU TO I2C MEM",CR, 00H
-1955: 20435055	
-1959: 20544F20	
-195D: 49324320	
-1961: 4D454D0D	
-1965: 00      	
-1966: 434F5059	MSG_MEM2CPU .db "COPY I2C MEM TO CPU",CR, 00H
-196A: 20493243	
-196E: 204D454D	
-1972: 20544F20	
-1976: 4350550D	
-197A: 00      	
-197B: 57524954	MSG_I2C_WR_DD    .db "WRITE ONE BYTE",CR, 00H
-197F: 45204F4E	
-1983: 45204259	
-1987: 54450D00	
-198B: 57524954	MSG_I2C_WR_RR_DD .db "WRITE REG ONE BYTE",CR, 00H
-198F: 45205245	
-1993: 47204F4E	
-1997: 45204259	
-199B: 54450D00	
-199F: 52454144	MSG_I2C_RD       .db "READ ONE BYTE",CR, 00H
-19A3: 204F4E45	
-19A7: 20425954	
-19AB: 450D00  	
-19AE: 52454144	MSG_I2C_RD_RR    .db "READ REG ONE BYTE",CR, 00H
-19B2: 20524547	
-19B6: 204F4E45	
-19BA: 20425954	
-19BE: 450D00  	
+18E9: 46524F4D	MSG_FROM    .db "FROM: ", 00H
+18ED: 3A2000  	
+18F0: 544F3A20	MSG_TO      .db "TO: ", 00H
+18F4: 00      	
+18F5: 53495A45	MSG_SIZE    .db "SIZE(BYTES): ", 00H
+18F9: 28425954	
+18FD: 4553293A	
+1901: 2000    	
+1903: 434F5059	MSG_COPYOK  .db "COPY OK", 00H
+1907: 204F4B00	
+190B: 434F5059	MSG_COPYFAIL  .db "COPY FAIL", 00H
+190F: 20464149	
+1913: 4C00    	
+1915: 202D202D	MSG_EOF  .db " - - - FIM - - - ", 00H
+1919: 202D2046	
+191D: 494D202D	
+1921: 202D202D	
+1925: 2000    	
+              	
+1927: 44455649	MSG_DEV_ADDR  .db "DEVICE ADDR(AA): ", 00H
+192B: 43452041	
+192F: 44445228	
+1933: 4141293A	
+1937: 2000    	
+1939: 52454749	MSG_DEV_REG   .db "REGISTER(RR): ", 00H
+193D: 53544552	
+1941: 28525229	
+1945: 3A2000  	
+1948: 44415441	MSG_DEV_DATA  .db "DATA(DD): ", 00H
+194C: 28444429	
+1950: 3A2000  	
+              	
+1953: 434F5059	MSG_CPU2MEM .db "COPY CPU TO I2C MEM",CR, 00H
+1957: 20435055	
+195B: 20544F20	
+195F: 49324320	
+1963: 4D454D0D	
+1967: 00      	
+1968: 434F5059	MSG_MEM2CPU .db "COPY I2C MEM TO CPU",CR, 00H
+196C: 20493243	
+1970: 204D454D	
+1974: 20544F20	
+1978: 4350550D	
+197C: 00      	
+197D: 57524954	MSG_I2C_WR_DD    .db "WRITE ONE BYTE",CR, 00H
+1981: 45204F4E	
+1985: 45204259	
+1989: 54450D00	
+198D: 57524954	MSG_I2C_WR_RR_DD .db "WRITE REG ONE BYTE",CR, 00H
+1991: 45205245	
+1995: 47204F4E	
+1999: 45204259	
+199D: 54450D00	
+19A1: 52454144	MSG_I2C_RD       .db "READ ONE BYTE",CR, 00H
+19A5: 204F4E45	
+19A9: 20425954	
+19AD: 450D00  	
+19B0: 52454144	MSG_I2C_RD_RR    .db "READ REG ONE BYTE",CR, 00H
+19B4: 20524547	
+19B8: 204F4E45	
+19BC: 20425954	
+19C0: 450D00  	
               	
               	
               	#include "MSBasic.asm"
@@ -5884,8 +5886,8 @@ FFF0:         	SYSTEM_SP:	.EQU 	$FFF0	;INITIAL STACK POINTER
 0026:         	HX      .EQU    26H             ; HEX error
 0028:         	BN      .EQU    28H             ; BIN error
               	
-19C1: FFFFFFFF	        .ORG    $6000
-19C5: FF...   	
+19C3: FFFFFFFF	        .ORG    $6000
+19C7: FF...   	
               	
 6000: C30660  	COLD:   JP      STARTB          ; Jump for cold start
 6003: C3A460  	WARM:   JP      WARMST          ; Jump for warm start
@@ -10339,7 +10341,7 @@ BASIC_W       = $0225 =   549          Z80Mini.asm:304
 BASTXT        = $805E = 32862          MSBasic.asm:64
 BAUD          = $FB97 = 64407          Z80Mini.asm:407 (unused)
 BCDEFP        = $7697 = 30359          MSBasic.asm:3501
-BCRLF         = $1435 =  5173          Monitor.asm:209
+BCRLF         = $1437 =  5175          Monitor.asm:209
 BDEL          = $FB9E = 64414          Z80Mini.asm:413
 BFREE         = $60AD = 24749          MSBasic.asm:217
 BIN           = $7BD4 = 31700          MSBasic.asm:4282
@@ -10362,8 +10364,8 @@ BS            = $0010 =    16          MSBasic.asm:110
 BSERR         = $6F77 = 28535          MSBasic.asm:2337
 BUFFER        = $8061 = 32865          MSBasic.asm:65
 BYT2ASC       = $7B79 = 31609          MSBasic.asm:4217
-BYTASC        = $125A =  4698          Utils.asm:104
-BYTOUT        = $1271 =  4721          Utils.asm:137
+BYTASC        = $125C =  4700          Utils.asm:104
+BYTOUT        = $1273 =  4723          Utils.asm:137
 BYTSFT        = $758E = 30094          MSBasic.asm:3326
 CFEVAL        = $6EDA = 28378          MSBasic.asm:2237
 CHANGE_CAPS   = $1094 =  4244          Keyboard.asm:79
@@ -10413,8 +10415,8 @@ CONPOS        = $7453 = 29779          MSBasic.asm:3113
 CONT          = $6872 = 26738          MSBasic.asm:1336
 CONTAD        = $80D4 = 32980          MSBasic.asm:85
 CONVAR        = $6D59 = 27993          MSBasic.asm:1999
-CONV_A_HEX    = $121C =  4636          Utils.asm:34
-CONV_A_HEX_NYBASC = $1225 =  4645          Utils.asm:44
+CONV_A_HEX    = $121E =  4638          Utils.asm:34
+CONV_A_HEX_NYBASC = $1227 =  4647          Utils.asm:44
 COPY          = $6020 = 24608          MSBasic.asm:143
 COS           = $7A38 = 31288          MSBasic.asm:4056
 COUNT         = $6707 = 26375          MSBasic.asm:1105
@@ -10431,7 +10433,7 @@ CRTSTE        = $7116 = 28950          MSBasic.asm:2600
 CRUNCH        = $64F0 = 25840          MSBasic.asm:801
 CS            = $000C =    12          Z80Mini.asm:70
 CSTART        = $6011 = 24593          MSBasic.asm:136
-CSUMERR       = $18B4 =  6324          Z80Mini.asm:351
+CSUMERR       = $18B6 =  6326          Z80Mini.asm:351
 CTLOFG        = $8045 = 32837          MSBasic.asm:52
 CTRLC         = $0003 =     3          Z80Mini.asm:65
 CTRLG         = $0007 =     7          Z80Mini.asm:66
@@ -10482,8 +10484,8 @@ DIV3          = $8012 = 32786          MSBasic.asm:42
 DIV4          = $8015 = 32789          MSBasic.asm:43
 DIVLP         = $75C6 = 30150          MSBasic.asm:3361
 DIVSUP        = $8009 = 32777          MSBasic.asm:39
-DLINE1        = $13FF =  5119          Monitor.asm:165
-DLINE2        = $140F =  5135          Monitor.asm:178
+DLINE1        = $1401 =  5121          Monitor.asm:165
+DLINE2        = $1411 =  5137          Monitor.asm:178
 DN            = $00B6 =   182          LCD.asm:63
 DOAGN         = $64DF = 25823          MSBasic.asm:792
 DOCOM         = $6AC0 = 27328          MSBasic.asm:1659
@@ -10493,7 +10495,7 @@ DOFN          = $7065 = 28773          MSBasic.asm:2491
 DOKE          = $7B2A = 31530          MSBasic.asm:4165
 DONULL        = $6AAE = 27310          MSBasic.asm:1648
 DOSPC         = $6AEA = 27370          MSBasic.asm:1680
-DOT           = $141B =  5147          Monitor.asm:184
+DOT           = $141D =  5149          Monitor.asm:184
 DOTAB         = $6AD7 = 27351          MSBasic.asm:1670
 DO_BS         = $05E3 =  1507          LCD.asm:892 (unused)
 DO_CHAR       = $0608 =  1544          LCD.asm:909
@@ -10502,10 +10504,10 @@ DO_FF         = $05DF =  1503          LCD.asm:889
 DO_SCRL_DN    = $05BD =  1469          LCD.asm:871
 DO_SCRL_UP    = $05B2 =  1458          LCD.asm:865 (unused)
 DO_TAB        = $05F1 =  1521          LCD.asm:899
-DPLAY1        = $13CE =  5070          Monitor.asm:130
-DPLAY2        = $13DB =  5083          Monitor.asm:139
-DPLAY3        = $13E2 =  5090          Monitor.asm:144
-DPLINE        = $13F0 =  5104          Monitor.asm:154
+DPLAY1        = $13D0 =  5072          Monitor.asm:130
+DPLAY2        = $13DD =  5085          Monitor.asm:139
+DPLAY3        = $13E4 =  5092          Monitor.asm:144
+DPLINE        = $13F2 =  5106          Monitor.asm:154
 DPOINT        = $778A = 30602          MSBasic.asm:3671
 DRAW_A        = $063C =  1596          LCD.asm:952
 DRAW_BOX      = $0304 =   772          LCD.asm:261
@@ -10517,7 +10519,7 @@ DRAW_PIXEL    = $04BF =  1215          LCD.asm:632
 DS1           = $0472 =  1138          LCD.asm:575
 DS2           = $0496 =  1174          LCD.asm:594
 DS3           = $04A9 =  1193          LCD.asm:606
-DSPLAY        = $13B8 =  5048          Monitor.asm:118
+DSPLAY        = $13BA =  5050          Monitor.asm:118
 DS_EXIT       = $0565 =  1381          LCD.asm:782
 DS_LOOP       = $055B =  1371          LCD.asm:775
 DTSTR         = $7104 = 28932          MSBasic.asm:2589
@@ -10565,7 +10567,7 @@ FANDT         = $6C13 = 27667          MSBasic.asm:1826
 FC            = $0008 =     8          MSBasic.asm:106
 FCERR         = $68C3 = 26819          MSBasic.asm:1383
 FDTLP         = $6BFA = 27642          MSBasic.asm:1810
-FILEOK        = $18A2 =  6306          Z80Mini.asm:350
+FILEOK        = $18A4 =  6308          Z80Mini.asm:350
 FILL_BOX      = $032F =   815          LCD.asm:306
 FILL_CIRCLE   = $04B1 =  1201          LCD.asm:616
 FINDEL        = $6FDA = 28634          MSBasic.asm:2402
@@ -10612,7 +10614,7 @@ GETBT2        = $103A =  4154          Serial.asm:240
 GETBYT        = $101C =  4124          Serial.asm:222
 GETCH         = $FB9B = 64411          Z80Mini.asm:409
 GETCHR        = $67FC = 26620          MSBasic.asm:1261
-GETCHR_KEYBOARD = $11C9 =  4553          Keyboard.asm:297
+GETCHR_KEYBOARD = $11CB =  4555          Keyboard.asm:299
 GETCMD        = $63EC = 25580          MSBasic.asm:639
 GETHEX        = $7BAF = 31663          MSBasic.asm:4255
 GETINP        = $7B01 = 31489          MSBasic.asm:4139
@@ -10622,24 +10624,24 @@ GETLIN        = $65D9 = 26073          MSBasic.asm:935
 GETLN         = $68C9 = 26825          MSBasic.asm:1387
 GETNUM        = $6C69 = 27753          MSBasic.asm:1872
 GETNXT        = $653E = 25918          MSBasic.asm:840
-GETNYB        = $11E3 =  4579          Keyboard.asm:310
-GETOUT        = $1201 =  4609          Keyboard.asm:325
+GETNYB        = $11E5 =  4581          Keyboard.asm:312
+GETOUT        = $1203 =  4611          Keyboard.asm:327
 GETSTR        = $7282 = 29314          MSBasic.asm:2826
 GETVAR        = $6E5F = 28255          MSBasic.asm:2176
 GET_CURSOR    = $0711 =  1809          LCD.asm:1111
-GET_DEV_ADDR  = $16F6 =  5878          Monitor.asm:749
-GET_DEV_DD    = $1707 =  5895          Monitor.asm:758
-GET_DEV_RR    = $1718 =  5912          Monitor.asm:768
-GET_ESP       = $1203 =  4611          Keyboard.asm:327
-GET_FROM_TO_SIZE = $15A8 =  5544          Monitor.asm:490
-GET_FROM_TO_SIZE_SIZE = $15F2 =  5618          Monitor.asm:535
-GET_FROM_TO_SIZE_TO = $15D1 =  5585          Monitor.asm:514
+GET_DEV_ADDR  = $16F8 =  5880          Monitor.asm:749
+GET_DEV_DD    = $1709 =  5897          Monitor.asm:758
+GET_DEV_RR    = $171A =  5914          Monitor.asm:768
+GET_ESP       = $1205 =  4613          Keyboard.asm:329
+GET_FROM_TO_SIZE = $15AA =  5546          Monitor.asm:490
+GET_FROM_TO_SIZE_SIZE = $15F4 =  5620          Monitor.asm:535
+GET_FROM_TO_SIZE_TO = $15D3 =  5587          Monitor.asm:514
 GLEFT         = $031A =   794          LCD.asm:282
 GNXARY        = $71BC = 29116          MSBasic.asm:2688
 GOFUNC        = $6D99 = 28057          MSBasic.asm:2035
-GOJMP1        = $134E =  4942          Monitor.asm:40 (unused)
-GOJUMP        = $1338 =  4920          Monitor.asm:27
-GOJUMP_new    = $1335 =  4917          Monitor.asm:24
+GOJMP1        = $1350 =  4944          Monitor.asm:40 (unused)
+GOJUMP        = $133A =  4922          Monitor.asm:27
+GOJUMP_new    = $1337 =  4919          Monitor.asm:24
 GOSUB         = $693F = 26943          MSBasic.asm:1452
 GOTO          = $6950 = 26960          MSBasic.asm:1464
 GRBARY        = $71DC = 29148          MSBasic.asm:2707
@@ -10669,23 +10671,23 @@ HEXLP1        = $7BA7 = 31655          MSBasic.asm:4247
 HEXTFP        = $7B96 = 31638          MSBasic.asm:4240
 HX            = $0026 =    38          MSBasic.asm:121
 HXERR         = $7BCF = 31695          MSBasic.asm:4278
-H_Delay       = $1207 =  4615          Utils.asm:5
+H_Delay       = $1209 =  4617          Utils.asm:5
 HexOut        = $0F12 =  3858          I2C.asm:454
 HexOutHex     = $0F1F =  3871          I2C.asm:464
 HexOutSkip    = $0F25 =  3877          I2C.asm:467
 I2CA_BLOCK    = $00AE =   174          Z80Mini.asm:106
-I2CCPUTOMEM   = $1573 =  5491          Monitor.asm:453
-I2CCPUTOMEM_BASIC = $158A =  5514          Monitor.asm:473 (unused)
-I2CCPUTOMEM_OK = $159C =  5532          Monitor.asm:482
+I2CCPUTOMEM   = $1575 =  5493          Monitor.asm:453
+I2CCPUTOMEM_BASIC = $158C =  5516          Monitor.asm:473 (unused)
+I2CCPUTOMEM_OK = $159E =  5534          Monitor.asm:482
 I2CLIST       = $0E78 =  3704          I2C.asm:325
-I2CMEMTOCPU   = $1614 =  5652          Monitor.asm:559
-I2CMEMTOCPU_BASIC = $162B =  5675          Monitor.asm:576 (unused)
-I2CMEMTOCPU_OK = $163D =  5693          Monitor.asm:585
+I2CMEMTOCPU   = $1616 =  5654          Monitor.asm:559
+I2CMEMTOCPU_BASIC = $162D =  5677          Monitor.asm:576 (unused)
+I2CMEMTOCPU_OK = $163F =  5695          Monitor.asm:585
 I2C_ADDR      = $FBA0 = 64416          Z80Mini.asm:416
 I2C_Close     = $0DBF =  3519          I2C.asm:22
 I2C_DD        = $FBA2 = 64418          Z80Mini.asm:418
 I2C_INIT      = $0E45 =  3653          I2C.asm:228
-I2C_LIST_MSG  = $1877 =  6263          Z80Mini.asm:347
+I2C_LIST_MSG  = $1879 =  6265          Z80Mini.asm:347
 I2C_MemRd     = $0EA7 =  3751          I2C.asm:368
 I2C_MemRdRead = $0ECB =  3787          I2C.asm:390
 I2C_MemRdReady = $0EBC =  3772          I2C.asm:382
@@ -10700,10 +10702,10 @@ I2C_Open      = $0DB8 =  3512          I2C.asm:10
 I2C_PORT      = $0021 =    33          I2C.asm:88
 I2C_QUIES     = $0081 =   129          I2C.asm:93
 I2C_RAMCPY    = $FB9F = 64415          Z80Mini.asm:415
-I2C_RD        = $1694 =  5780          Monitor.asm:669
-I2C_RD_LOOP   = $16A3 =  5795          Monitor.asm:680
-I2C_RD_RR     = $16C3 =  5827          Monitor.asm:707
-I2C_RD_RR_LOOP = $16CF =  5839          Monitor.asm:717
+I2C_RD        = $1696 =  5782          Monitor.asm:669
+I2C_RD_LOOP   = $16A5 =  5797          Monitor.asm:680
+I2C_RD_RR     = $16C5 =  5829          Monitor.asm:707
+I2C_RD_RR_LOOP = $16D1 =  5841          Monitor.asm:717
 I2C_RR        = $FBA1 = 64417          Z80Mini.asm:417
 I2C_RdPort    = $0E6F =  3695          I2C.asm:254
 I2C_Read      = $0DFF =  3583          I2C.asm:163
@@ -10720,10 +10722,10 @@ I2C_SDA_RD    = $0007 =     7          I2C.asm:90
 I2C_SDA_WR    = $0007 =     7          I2C.asm:89
 I2C_Start     = $0E2C =  3628          I2C.asm:198
 I2C_Stop      = $0E37 =  3639          I2C.asm:214
-I2C_WR_DD     = $1649 =  5705          Monitor.asm:598
-I2C_WR_DD_LOOP = $1655 =  5717          Monitor.asm:608
-I2C_WR_RR_DD  = $166A =  5738          Monitor.asm:630
-I2C_WR_RR_DD_LOOP = $1676 =  5750          Monitor.asm:640
+I2C_WR_DD     = $164B =  5707          Monitor.asm:598
+I2C_WR_DD_LOOP = $1657 =  5719          Monitor.asm:608
+I2C_WR_RR_DD  = $166C =  5740          Monitor.asm:630
+I2C_WR_RR_DD_LOOP = $1678 =  5752          Monitor.asm:640
 I2C_WrPort    = $0E63 =  3683          I2C.asm:246
 I2C_Write     = $0DC2 =  3522          I2C.asm:116
 I2C_WriteBit_Clk = $0DD3 =  3539          I2C.asm:125
@@ -10735,7 +10737,7 @@ IDTEST        = $70AD = 28845          MSBasic.asm:2532
 IF            = $6A22 = 27170          MSBasic.asm:1582
 IFGO          = $6A30 = 27184          MSBasic.asm:1589
 IFJMP         = $67D3 = 26579          MSBasic.asm:1219
-INBUF         = $1432 =  5170          Monitor.asm:203
+INBUF         = $1434 =  5172          Monitor.asm:203
 INCH          = $0F5C =  3932          Serial.asm:39 (unused)
 INCHL         = $76A1 = 30369          MSBasic.asm:3509
 INCLEN        = $668D = 26253          MSBasic.asm:1032
@@ -10756,11 +10758,11 @@ INP           = $7387 = 29575          MSBasic.asm:2999
 INPBIN        = $6BB7 = 27575          MSBasic.asm:1782
 INPBRK        = $684B = 26699          MSBasic.asm:1317
 INPORT        = $803F = 32831          MSBasic.asm:47
-INPORT_MON    = $144F =  5199          Monitor.asm:241
+INPORT_MON    = $1451 =  5201          Monitor.asm:241
 INPSUB        = $803E = 32830          MSBasic.asm:46
 INPUT         = $6B25 = 27429          MSBasic.asm:1703
 INRNG         = $782B = 30763          MSBasic.asm:3769
-INSBUF        = $126B =  4715          Utils.asm:122 (unused)
+INSBUF        = $126D =  4717          Utils.asm:122 (unused)
 INT           = $771E = 30494          MSBasic.asm:3610
 INTEL1        = $0FC4 =  4036          Serial.asm:165
 INTEL2        = $0FEF =  4079          Serial.asm:194
@@ -10778,7 +10780,7 @@ JJUMP1        = $7C36 = 31798          MSBasic.asm:4349 (unused)
 JSTZER        = $78B4 = 30900          MSBasic.asm:3854
 KDOWN         = $00B6 =   182          Z80Mini.asm:55
 KEYREAD       = $10BC =  4284          Keyboard.asm:113
-KEYREADINIT   = $1106 =  4358          Keyboard.asm:162
+KEYREADINIT   = $1107 =  4359          Keyboard.asm:163
 KEY_CAPS      = $FBCD = 64461          Z80Mini.asm:429
 KEY_IN        = $0040 =    64          Z80Mini.asm:45
 KEY_OUT       = $0040 =    64          Z80Mini.asm:46
@@ -10811,9 +10813,9 @@ LCD_SER       = $0000 =     0          LCD.asm:52
 LCD_SPACE     = $022E =   558          LCD.asm:84
 LCRFLG        = $80AC = 32940          MSBasic.asm:68
 LEDS_ONBOARD  = $0010 =    16          Z80Mini.asm:47
-LED_GREEN     = $1240 =  4672          Utils.asm:73
+LED_GREEN     = $1242 =  4674          Utils.asm:73
 LED_ONBOARD   = $FB9D = 64413          Z80Mini.asm:411
-LED_RED       = $1231 =  4657          Utils.asm:59
+LED_RED       = $1233 =  4659          Utils.asm:59
 LEFT          = $72E4 = 29412          MSBasic.asm:2888
 LEN           = $72B4 = 29364          MSBasic.asm:2858
 LET           = $69AA = 27050          MSBasic.asm:1517
@@ -10849,15 +10851,15 @@ LSTRAM        = $80AF = 32943          MSBasic.asm:71
 LSTRND        = $803A = 32826          MSBasic.asm:45
 LTSTND        = $6BC2 = 27586          MSBasic.asm:1787
 LWIDTH        = $8042 = 32834          MSBasic.asm:49
-L_fim         = $116D =  4461          Keyboard.asm:227
-LoopBC        = $120D =  4621          Utils.asm:11
-LoopDE        = $120A =  4618          Utils.asm:9
+L_fim         = $116F =  4463          Keyboard.asm:229
+LoopBC        = $120F =  4623          Utils.asm:11
+LoopDE        = $120C =  4620          Utils.asm:9
 MAKINT        = $73CD = 29645          MSBasic.asm:3032
 MAKNUM        = $7847 = 30791          MSBasic.asm:3784
 MANLP         = $7766 = 30566          MSBasic.asm:3655
 MATCH         = $6570 = 25968          MSBasic.asm:872
-MDIFY1        = $1376 =  4982          Monitor.asm:72
-MDIFY2        = $13B1 =  5041          Monitor.asm:108
+MDIFY1        = $1378 =  4984          Monitor.asm:72
+MDIFY2        = $13B3 =  5043          Monitor.asm:108
 MEMMSG        = $60CF = 24783          MSBasic.asm:224
 MID           = $731E = 29470          MSBasic.asm:2928
 MID1          = $72EA = 29418          MSBasic.asm:2892
@@ -10870,7 +10872,7 @@ MLDEBC        = $7737 = 30519          MSBasic.asm:3626
 MLOOP         = $6048 = 24648          MSBasic.asm:161
 MLSP10        = $7634 = 30260          MSBasic.asm:3437
 MO            = $0024 =    36          MSBasic.asm:120
-MODIFY        = $1360 =  4960          Monitor.asm:57
+MODIFY        = $1362 =  4962          Monitor.asm:57
 MONITR        = $7C40 = 31808          MSBasic.asm:4357
 MONOUT        = $7C3D = 31805          MSBasic.asm:4353
 MORDT         = $6BCE = 27598          MSBasic.asm:1792
@@ -10885,45 +10887,45 @@ MOVSTR        = $6363 = 25443          MSBasic.asm:560
 MOVUP         = $6360 = 25440          MSBasic.asm:559
 MRPRNT        = $6A42 = 27202          MSBasic.asm:1596
 MSGBUF        = $FBA9 = 64425          Z80Mini.asm:424
-MSG_BASIC     = $18C4 =  6340          Z80Mini.asm:353
-MSG_COPYFAIL  = $1909 =  6409          Z80Mini.asm:363
-MSG_COPYOK    = $1901 =  6401          Z80Mini.asm:362
-MSG_CPU2MEM   = $1951 =  6481          Z80Mini.asm:370
-MSG_DEV_ADDR  = $1925 =  6437          Z80Mini.asm:366
-MSG_DEV_DATA  = $1946 =  6470          Z80Mini.asm:368
-MSG_DEV_REG   = $1937 =  6455          Z80Mini.asm:367
-MSG_EOF       = $1913 =  6419          Z80Mini.asm:364
-MSG_FROM      = $18E7 =  6375          Z80Mini.asm:359
-MSG_I2C_RD    = $199F =  6559          Z80Mini.asm:374
-MSG_I2C_RD_RR = $19AE =  6574          Z80Mini.asm:375
-MSG_I2C_WR_DD = $197B =  6523          Z80Mini.asm:372
-MSG_I2C_WR_RR_DD = $198B =  6539          Z80Mini.asm:373
-MSG_ILOAD     = $188D =  6285          Z80Mini.asm:349
-MSG_MEM2CPU   = $1966 =  6502          Z80Mini.asm:371
-MSG_MENU0     = $1754 =  5972          Z80Mini.asm:326
-MSG_MENU1     = $1767 =  5991          Z80Mini.asm:327
-MSG_MENU10    = $17B7 =  6071          Z80Mini.asm:334
-MSG_MENU11    = $17C8 =  6088          Z80Mini.asm:335
-MSG_MENU12    = $17D8 =  6104          Z80Mini.asm:336
-MSG_MENU13    = $17E5 =  6117          Z80Mini.asm:337
-MSG_MENU14    = $17EE =  6126          Z80Mini.asm:338
-MSG_MENU15    = $17FA =  6138          Z80Mini.asm:339
-MSG_MENU16    = $180B =  6155          Z80Mini.asm:340
-MSG_MENU17    = $181C =  6172          Z80Mini.asm:341
-MSG_MENU18    = $182C =  6188          Z80Mini.asm:342
-MSG_MENU19    = $183F =  6207          Z80Mini.asm:343
-MSG_MENU2     = $177C =  6012          Z80Mini.asm:328
-MSG_MENU20    = $1854 =  6228          Z80Mini.asm:344
-MSG_MENU21    = $1868 =  6248          Z80Mini.asm:345
-MSG_MENU3     = $1786 =  6022          Z80Mini.asm:329
-MSG_MENU4     = $1790 =  6032          Z80Mini.asm:330
-MSG_MENU8     = $179A =  6042          Z80Mini.asm:332
-MSG_MENU9     = $17A5 =  6053          Z80Mini.asm:333
-MSG_READFILE_EXE = $18D8 =  6360          Z80Mini.asm:355
-MSG_READFILE_IMG = $18DD =  6365          Z80Mini.asm:356
-MSG_READFILE_TXT = $18E2 =  6370          Z80Mini.asm:357
-MSG_SIZE      = $18F3 =  6387          Z80Mini.asm:361
-MSG_TO        = $18EE =  6382          Z80Mini.asm:360
+MSG_BASIC     = $18C6 =  6342          Z80Mini.asm:353
+MSG_COPYFAIL  = $190B =  6411          Z80Mini.asm:363
+MSG_COPYOK    = $1903 =  6403          Z80Mini.asm:362
+MSG_CPU2MEM   = $1953 =  6483          Z80Mini.asm:370
+MSG_DEV_ADDR  = $1927 =  6439          Z80Mini.asm:366
+MSG_DEV_DATA  = $1948 =  6472          Z80Mini.asm:368
+MSG_DEV_REG   = $1939 =  6457          Z80Mini.asm:367
+MSG_EOF       = $1915 =  6421          Z80Mini.asm:364
+MSG_FROM      = $18E9 =  6377          Z80Mini.asm:359
+MSG_I2C_RD    = $19A1 =  6561          Z80Mini.asm:374
+MSG_I2C_RD_RR = $19B0 =  6576          Z80Mini.asm:375
+MSG_I2C_WR_DD = $197D =  6525          Z80Mini.asm:372
+MSG_I2C_WR_RR_DD = $198D =  6541          Z80Mini.asm:373
+MSG_ILOAD     = $188F =  6287          Z80Mini.asm:349
+MSG_MEM2CPU   = $1968 =  6504          Z80Mini.asm:371
+MSG_MENU0     = $1756 =  5974          Z80Mini.asm:326
+MSG_MENU1     = $1769 =  5993          Z80Mini.asm:327
+MSG_MENU10    = $17B9 =  6073          Z80Mini.asm:334
+MSG_MENU11    = $17CA =  6090          Z80Mini.asm:335
+MSG_MENU12    = $17DA =  6106          Z80Mini.asm:336
+MSG_MENU13    = $17E7 =  6119          Z80Mini.asm:337
+MSG_MENU14    = $17F0 =  6128          Z80Mini.asm:338
+MSG_MENU15    = $17FC =  6140          Z80Mini.asm:339
+MSG_MENU16    = $180D =  6157          Z80Mini.asm:340
+MSG_MENU17    = $181E =  6174          Z80Mini.asm:341
+MSG_MENU18    = $182E =  6190          Z80Mini.asm:342
+MSG_MENU19    = $1841 =  6209          Z80Mini.asm:343
+MSG_MENU2     = $177E =  6014          Z80Mini.asm:328
+MSG_MENU20    = $1856 =  6230          Z80Mini.asm:344
+MSG_MENU21    = $186A =  6250          Z80Mini.asm:345
+MSG_MENU3     = $1788 =  6024          Z80Mini.asm:329
+MSG_MENU4     = $1792 =  6034          Z80Mini.asm:330
+MSG_MENU8     = $179C =  6044          Z80Mini.asm:332
+MSG_MENU9     = $17A7 =  6055          Z80Mini.asm:333
+MSG_READFILE_EXE = $18DA =  6362          Z80Mini.asm:355
+MSG_READFILE_IMG = $18DF =  6367          Z80Mini.asm:356
+MSG_READFILE_TXT = $18E4 =  6372          Z80Mini.asm:357
+MSG_SIZE      = $18F5 =  6389          Z80Mini.asm:361
+MSG_TO        = $18F0 =  6384          Z80Mini.asm:360
 MSIZE         = $6035 = 24629          MSBasic.asm:154
 MUL8LP        = $756B = 30059          MSBasic.asm:3298
 MULLN2        = $7537 = 30007          MSBasic.asm:3269
@@ -10932,7 +10934,7 @@ MULT8         = $7562 = 30050          MSBasic.asm:3292
 MULTEN        = $77A8 = 30632          MSBasic.asm:3691
 MULVAL        = $80F6 = 33014          MSBasic.asm:96
 MVSTPT        = $69F4 = 27124          MSBasic.asm:1553
-NDOT          = $141D =  5149          Monitor.asm:185
+NDOT          = $141F =  5151          Monitor.asm:185
 NEDMOR        = $6B61 = 27489          MSBasic.asm:1736
 NEGAFT        = $78DF = 30943          MSBasic.asm:3878
 NEW           = $64A0 = 25760          MSBasic.asm:758
@@ -10952,7 +10954,7 @@ NOLIN         = $6861 = 26721          MSBasic.asm:1328
 NOMADD        = $757C = 30076          MSBasic.asm:3309
 NOMLAD        = $774D = 30541          MSBasic.asm:3639
 NOPMPT        = $6B3F = 27455          MSBasic.asm:1715
-NOP_TIME      = $11C1 =  4545          Keyboard.asm:284
+NOP_TIME      = $11C3 =  4547          Keyboard.asm:286
 NORMAL        = $7470 = 29808          MSBasic.asm:3134
 NOSPC         = $655F = 25951          MSBasic.asm:862
 NOSUB7        = $7BC2 = 31682          MSBasic.asm:4266
@@ -10975,8 +10977,8 @@ NXTITM        = $6B59 = 27481          MSBasic.asm:1731
 NXTOPR        = $80D0 = 32976          MSBasic.asm:83
 NXTSTL        = $6999 = 27033          MSBasic.asm:1504
 NXTSTT        = $699C = 27036          MSBasic.asm:1507
-NYBASC        = $1263 =  4707          Utils.asm:114
-NYBOUT        = $1274 =  4724          Utils.asm:138
+NYBASC        = $1265 =  4709          Utils.asm:114
+NYBOUT        = $1276 =  4726          Utils.asm:138
 OD            = $0006 =     6          MSBasic.asm:105
 OKMSG         = $6331 = 25393          MSBasic.asm:531
 OM            = $000C =    12          MSBasic.asm:108
@@ -10996,7 +10998,7 @@ OUTEXP        = $78A8 = 30888          MSBasic.asm:3847
 OUTIT         = $664E = 26190          MSBasic.asm:993
 OUTNBS        = $6654 = 26196          MSBasic.asm:996
 OUTNCR        = $7C54 = 31828          MSBasic.asm:4375
-OUTPORT       = $1436 =  5174          Monitor.asm:219
+OUTPORT       = $1438 =  5176          Monitor.asm:219
 OUTSUB        = $8006 = 32774          MSBasic.asm:37
 OUTWRD        = $66F0 = 26352          MSBasic.asm:1091
 OV            = $000A =    10          MSBasic.asm:107
@@ -11068,19 +11070,19 @@ QUARTR        = $7A86 = 31366          MSBasic.asm:4089
 RAD           = $FB8E = 64398          Z80Mini.asm:397
 READ          = $6B54 = 27476          MSBasic.asm:1728
 READFG        = $80CD = 32973          MSBasic.asm:81
-READ_FILE     = $1481 =  5249          Monitor.asm:278
-READ_FILE_EXE = $14E6 =  5350          Monitor.asm:341
-READ_FILE_IMG = $14FC =  5372          Monitor.asm:360
-READ_FILE_IMG_K = $1514 =  5396          Monitor.asm:380
-READ_FILE_TXT = $151F =  5407          Monitor.asm:387
-READ_FILE_TXT_L = $152D =  5421          Monitor.asm:401
-READ_IIC_DE   = $1552 =  5458          Monitor.asm:430
-READ_MEM_FILES = $1469 =  5225          Monitor.asm:265
-READ_MEM_KEY  = $1497 =  5271          Monitor.asm:291
-READ_MEM_NEXT = $146C =  5228          Monitor.asm:267
-READ_MEM_STEP = $14CF =  5327          Monitor.asm:322
-READ_MEM_STEP_L = $14DA =  5338          Monitor.asm:330
-READ_NAME     = $1489 =  5257          Monitor.asm:282
+READ_FILE     = $1483 =  5251          Monitor.asm:278
+READ_FILE_EXE = $14E8 =  5352          Monitor.asm:341
+READ_FILE_IMG = $14FE =  5374          Monitor.asm:360
+READ_FILE_IMG_K = $1516 =  5398          Monitor.asm:380
+READ_FILE_TXT = $1521 =  5409          Monitor.asm:387
+READ_FILE_TXT_L = $152F =  5423          Monitor.asm:401
+READ_IIC_DE   = $1554 =  5460          Monitor.asm:430
+READ_MEM_FILES = $146B =  5227          Monitor.asm:265
+READ_MEM_KEY  = $1499 =  5273          Monitor.asm:291
+READ_MEM_NEXT = $146E =  5230          Monitor.asm:267
+READ_MEM_STEP = $14D1 =  5329          Monitor.asm:322
+READ_MEM_STEP_L = $14DC =  5340          Monitor.asm:330
+READ_NAME     = $148B =  5259          Monitor.asm:282
 REDO          = $6B01 = 27393          MSBasic.asm:1693
 REM           = $6995 = 27029          MSBasic.asm:1502
 REMOVE_PIXEL  = $0760 =  1888          LCD.asm:1186
@@ -11173,10 +11175,10 @@ SGNEXP        = $6DA2 = 28066          MSBasic.asm:2043
 SGNRES        = $80E8 = 33000          MSBasic.asm:94
 SHIFT_BIT     = $050C =  1292          LCD.asm:716
 SHIFT_BUFFER  = $0696 =  1686          LCD.asm:1031
-SHOW_MENU     = $127A =  4730          Menu.asm:1
-SHOW_MSG_EXE  = $153D =  5437          Monitor.asm:414
-SHOW_MSG_IMG  = $1544 =  5444          Monitor.asm:419
-SHOW_MSG_TXT  = $154B =  5451          Monitor.asm:424
+SHOW_MENU     = $127C =  4732          Menu.asm:1
+SHOW_MSG_EXE  = $153F =  5439          Monitor.asm:414
+SHOW_MSG_IMG  = $1546 =  5446          Monitor.asm:419
+SHOW_MSG_TXT  = $154D =  5453          Monitor.asm:424
 SHRITE        = $74D9 = 29913          MSBasic.asm:3217
 SHRLP         = $74DC = 29916          MSBasic.asm:3219
 SHRT1         = $74E0 = 29920          MSBasic.asm:3223
@@ -11197,7 +11199,7 @@ SN            = $0002 =     2          MSBasic.asm:103
 SNDSTR        = $0F62 =  3938          Serial.asm:57
 SNERR         = $6394 = 25492          MSBasic.asm:593
 SPACE         = $0020 =    32          LCD.asm:69
-SPCBUF        = $1430 =  5168          Monitor.asm:202
+SPCBUF        = $1432 =  5170          Monitor.asm:202
 SPCFST        = $77FE = 30718          MSBasic.asm:3746
 SPCLP         = $6AF3 = 27379          MSBasic.asm:1686
 SPI_WR        = $0797 =  1943          LCD.asm:1285
@@ -11210,8 +11212,8 @@ STACK         = $8066 = 32870          MSBasic.asm:66
 STAKFP        = $767C = 30332          MSBasic.asm:3482
 STALL         = $6835 = 26677          MSBasic.asm:1301
 STARTB        = $6006 = 24582          MSBasic.asm:128
-START_BASIC   = $1318 =  4888          Monitor.asm:4
-START_BASIC_KEY = $1325 =  4901          Monitor.asm:11
+START_BASIC   = $131A =  4890          Monitor.asm:4
+START_BASIC_KEY = $1327 =  4903          Monitor.asm:11
 START_SYSTEM  = $0190 =   400          Z80Mini.asm:209
 STKTHS        = $6CDB = 27867          MSBasic.asm:1938
 STLOOK        = $815D = 33117          MSBasic.asm:98
@@ -11283,13 +11285,13 @@ WAIT          = $7399 = 29593          MSBasic.asm:3007
 WAITLP        = $73AE = 29614          MSBasic.asm:3017
 WARM          = $6003 = 24579          MSBasic.asm:127 (unused)
 WARMST        = $60A4 = 24740          MSBasic.asm:213
-WELLCOME      = $1729 =  5929          Z80Mini.asm:323
-WELLCOME_LCD  = $1741 =  5953          Z80Mini.asm:324
+WELLCOME      = $172B =  5931          Z80Mini.asm:323
+WELLCOME_LCD  = $1743 =  5955          Z80Mini.asm:324
 WIDTH         = $7B08 = 31496          MSBasic.asm:4146
 WORDS         = $6112 = 24850          MSBasic.asm:260
 WORDTB        = $6238 = 25144          MSBasic.asm:356
-WRDASC        = $1255 =  4693          Utils.asm:98
-WRDOUT        = $126E =  4718          Utils.asm:136
+WRDASC        = $1257 =  4695          Utils.asm:98
+WRDOUT        = $1270 =  4720          Utils.asm:136
 WRKSPC        = $8000 = 32768          MSBasic.asm:35
 ZBYE          = $00D2 =   210          MSBasic.asm:410
 ZDATA         = $0083 =   131          MSBasic.asm:404
@@ -11330,10 +11332,10 @@ conoutA1      = $0F71 =  3953          Serial.asm:77
 cruz          = $7C8F = 31887          MSBasic.asm:4425
 custadd       = $67F6 = 26614          MSBasic.asm:1246
 custtab       = $6282 = 25218          MSBasic.asm:396
-debaunce_key  = $118C =  4492          Keyboard.asm:254
+debaunce_key  = $118E =  4494          Keyboard.asm:256
 diego         = $7C88 = 31880          MSBasic.asm:4420
 i_read_key    = $10BF =  4287          Keyboard.asm:117 (unused)
-init_read_key = $1109 =  4361          Keyboard.asm:167
+init_read_key = $110A =  4362          Keyboard.asm:168
 kCPUClock     = $8000 =7372800          Z80Mini.asm:83
 kDelayCnt     = $011A =   282          Z80Mini.asm:88
 kDelayLP      = $001A =    26          Z80Mini.asm:85
@@ -11345,8 +11347,8 @@ k_read_loop   = $10E2 =  4322          Keyboard.asm:133
 key_out       = $1063 =  4195          Keyboard.asm:36
 key_out_caps_off = $1074 =  4212          Keyboard.asm:49
 key_out_caps_on = $106E =  4206          Keyboard.asm:43
-key_read_fim  = $1142 =  4418          Keyboard.asm:195
-key_read_loop = $112C =  4396          Keyboard.asm:183
+key_read_fim  = $1143 =  4419          Keyboard.asm:196
+key_read_loop = $112D =  4397          Keyboard.asm:184
 line1         = $0068 =   104          Z80Mini.asm:139
 line1_shift   = $00A9 =   169          Z80Mini.asm:144 (unused)
 line2         = $0075 =   117          Z80Mini.asm:140
@@ -11357,18 +11359,18 @@ line4         = $008F =   143          Z80Mini.asm:142
 line4_shift   = $00D0 =   208          Z80Mini.asm:147 (unused)
 line5         = $009C =   156          Z80Mini.asm:143
 line5_shift   = $00DD =   221          Z80Mini.asm:148 (unused)
-load_a        = $1182 =  4482          Keyboard.asm:247
+load_a        = $1184 =  4484          Keyboard.asm:249
 notcust       = $67E4 = 26596          MSBasic.asm:1235
 r_key         = $10DE =  4318          Keyboard.asm:130
-read_key      = $1128 =  4392          Keyboard.asm:180
-trata_key     = $1153 =  4435          Keyboard.asm:209
-trata_line1   = $11A3 =  4515          Keyboard.asm:268
-trata_line2   = $11A9 =  4521          Keyboard.asm:271
-trata_line3   = $11AF =  4527          Keyboard.asm:274
-trata_line4   = $11B5 =  4533          Keyboard.asm:277
-trata_line5   = $11BB =  4539          Keyboard.asm:280
+read_key      = $1129 =  4393          Keyboard.asm:181
+trata_key     = $1155 =  4437          Keyboard.asm:211
+trata_line1   = $11A5 =  4517          Keyboard.asm:270
+trata_line2   = $11AB =  4523          Keyboard.asm:273
+trata_line3   = $11B1 =  4529          Keyboard.asm:276
+trata_line4   = $11B7 =  4535          Keyboard.asm:279
+trata_line5   = $11BD =  4541          Keyboard.asm:282
 waitForChar   = $0F83 =  3971          Serial.asm:108
 
 
-total time: 0.5530 sec.
+total time: 0.3200 sec.
 no errors

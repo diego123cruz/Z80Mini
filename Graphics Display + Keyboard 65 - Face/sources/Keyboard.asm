@@ -148,6 +148,7 @@ k_read_fim:
     LD A, (KEY_READ)
     OR A
     CALL CHECK_CAPS
+    OR A
     POP     HL
     POP     DE
     POP     BC
@@ -199,6 +200,7 @@ key_read_fim:
     OR A
     JP Z, init_read_key
     CALL CHECK_CAPS
+    OR A
     POP     HL
     POP     DE
     POP     BC
