@@ -252,7 +252,7 @@ load_a:
     cp 0
     ret Z
     LD (KEY_READ), A
-    LD B, $64
+    LD B, $32
 debaunce_key:
     LD DE, $0001
     PUSH BC
@@ -261,9 +261,8 @@ debaunce_key:
     in a, (KEY_IN)
     and $1f
     xor $1f
+    RET Z
     DJNZ debaunce_key
-    ld de, $0032 ; debounce 50 ms
-    call H_Delay
     RET ; return tratar_key
     
     
