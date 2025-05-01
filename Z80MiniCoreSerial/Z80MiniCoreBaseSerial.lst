@@ -1,0 +1,520 @@
+              	; --------------------------------------
+              	; zasm: assemble "Z80MiniCoreBaseSerial.asm"
+              	; date: 2025-04-23 23:19:43
+              	; --------------------------------------
+
+
+              	; Z80 Mini - CoreBase
+              	; 04/2025
+              	; Requerimento: Placa base.
+              	;
+              	;
+              	;
+              	;   ============== COMPILADOR ===================
+              	;
+              	;   Compilador (https://k1.spdns.de/Develop/Projects/zasm/Distributions/):
+              	;
+              	;       Win(CMD):           zasm.exe --z80 -w -u --bin  Z80MiniCoreBaseSerial.asm
+              	;       Win(Powershell):    ./zasm.exe --z80 -w -u --bin  Z80MiniCoreBaseSerial.asm
+              	;       Macos:              ./zasm --z80 -w -u --bin  Z80MiniCoreBaseSerial.asm
+              	;
+              	;
+              	;   =============== GRAVAÇÃO ====================
+              	;
+              	;     GRAVAÇÃO (32kb) (TL866 2 Plus - MacOS):
+              	;	    minipro -p AT28C256 -w Z80MiniCoreBaseSerial.rom -s	
+              	;
+              	;
+              	;   =============== HARDWARE ====================
+              	;         - CPU Z80@7.37280Mhz
+              	;         - Rom 32k 0000h - 7FFFh
+              	;         - Ram 32k 8000h - FFFFh
+              	;         
+              	;         - Ports:
+              	;               - Onboard IN/OUT: 40H
+              	;               - User IN/OUT: C0H
+              	;
+              	; -----------------------------------------------------------------------------
+              	; H_Delay CONFIG
+              	; -----------------------------------------------------------------------------
+708000:         	kCPUClock:  .EQU 7372800       ;CPU clock speed in Hz
+0024:         	kDelayOH:   .EQU 36             ;Overhead for each 1ms in Tcycles
+001A:         	kDelayLP:   .EQU 26             ;Inner loop time in Tcycles
+1CCC:         	kDelayTA:   .EQU kCPUClock / 1000 ;CPU clock cycles per millisecond
+1CA8:         	kDelayTB:   .EQU kDelayTA - kDelayOH  ;Cycles required for inner loop
+011A:         	kDelayCnt:  .EQU kDelayTB / kDelayLP  ;Loop counter for inner loop
+              	
+              	
+000D:         	CR		.EQU	0DH
+000A:         	LF		.EQU	0AH
+001B:         	ESC		.EQU	1BH
+0003:         	CTRLC	.EQU	03H
+000C:         	CLS		.EQU	0CH
+              	
+              	; PORTS
+              	    ; SIO/2 - 115200
+0000:         	SIOA_D		.EQU	$00
+0002:         	SIOA_C		.EQU	$02
+0001:         	SIOB_D		.EQU	$01 ; Não usado
+0003:         	SIOB_C		.EQU	$03 ; Não usado
+              	
+              	
+              	
+              	; MEM MAP
+FF00:         	stack_point .EQU    $FF00
+              	
+              	
+              	
+0000:         	    .ORG $0000
+0000: F3      	RST00:	DI			    ;Disable INTerrupts
+0001: C30601  			JP	INIT		;Initialize Hardware and go
+              	
+              	;------------------------------------------------------------------------------
+              	; TX a character over RS232 wait for TXDONE first.
+              	;------------------------------------------------------------------------------
+0004: FFFFFFFF	    .ORG $0008
+0008: C38001  	RST08:	JP	conout
+              	
+              	;------------------------------------------------------------------------------
+              	; RX a character from buffer wait until char ready.
+              	;------------------------------------------------------------------------------
+000B: FFFFFFFF	    .ORG $0010
+000F: FF      	
+0010: C38A01  	RST10:		JP	conin
+              	
+0013: FFFFFFFF		.ORG $0100
+0017: FF...   	
+0100: C35701  		JP DELAY_250ms
+0103: C35E01  		JP DELAY_500ms
+              	
+              	
+0106:         	INIT:
+0106: 3100FF  	    LD SP, stack_point
+0109: CD3E01  	    CALL setup_serial
+              	
+010C: 215902  	    LD HL, msg_bemvindo
+010F: CD7201  	    CALL PRINT
+              	
+0112:         	monitor:
+0112: 211201  		LD HL, monitor ; point to return to monitor
+0115: E5      		PUSH HL
+0116:         	monitor0:
+0116: CD7901  		CALL TXCRLF	; Entry point for Monitor, Normal	
+0119: 3E3E    		LD   A,'>'	; Get a ">"	
+011B: CF      		RST 08H		; print it
+              	
+011C:         	monitor1:
+011C: D7      		RST 10H	; Get a character from serial
+011D: FE20    		CP   ' '	; <spc> or less? 	
+011F: 38FB    		JR   C, monitor1	; Go back
+              	
+0121: FE3A    		CP   ':'	; ":"?
+0123: CA1802  		JP   Z,LOAD	; First character of a HEX load
+              	
+0126: CF      		RST 08H	; Print char on console
+              	
+0127: FE3F    		CP   '?'
+0129: CA6B01  		JP   Z,HELP
+              	
+012C: E65F    		AND  $5F	; Make character uppercase
+              	
+012E: FE52    		CP   'R' 	; reset
+0130: CA0000  		JP   Z, RST00
+              	
+0133: FE47    		CP   'G'
+0135: CA6501  		JP   Z,GOTO
+              	
+0138: 3E3F    		LD   A,'?'	; Get a "?"	
+013A: CF      		RST 08H		; Print it
+              	
+013B: C31601  	    jp monitor0
+              	
+              	
+013E:         	setup_serial:
+              	    ;	Initialise SIO/2 A
+013E: 3E04    		LD	A,$04
+0140: D302    		OUT	(SIOA_C),A
+0142: 3EC4    		LD	A,$C4
+0144: D302    		OUT	(SIOA_C),A
+              	
+0146: 3E03    		LD	A,$03
+0148: D302    		OUT	(SIOA_C),A
+014A: 3EE1    		LD	A,$E1
+014C: D302    		OUT	(SIOA_C),A
+              	
+014E: 3E05    		LD	A,$05
+0150: D302    		OUT	(SIOA_C),A
+0152: 3E68    		LD	A, $68
+0154: D302    		OUT	(SIOA_C),A
+0156: C9      	    RET
+              	
+              	; APIs
+0157:         	DELAY_250ms:
+0157: 11FA00  		LD DE, $00FA
+015A: CD0302  		CALL DELAY_DE
+015D: C9      		RET
+              	
+015E:         	DELAY_500ms:
+015E: 11F401  		LD DE, $01f4
+0161: CD0302  		CALL DELAY_DE
+0164: C9      		RET
+              	
+              	
+              	; GOTO command
+0165:         	GOTO:
+0165: CDB901  		CALL GETHL		; ENTRY POINT FOR <G>oto addr. Get XXXX from user.
+0168: D8      		RET  C			; Return if invalid       	
+0169: E5      		PUSH HL
+016A: C9      		RET			; Jump to HL address value
+              	
+              	
+              	; HELP
+016B:         	HELP:
+016B: 217802  		LD HL, msg_help
+016E: CD7201  		CALL PRINT
+0171: C9      		RET
+              	
+              	
+              	;------------------------------------------------------------------------------
+              	; Print string of characters to Serial A until byte=$00, WITH CR, LF
+              	;------------------------------------------------------------------------------
+0172: 7E      	PRINT:  LD   A,(HL)	; Get character
+0173: B7      			OR   A		; Is it $00 ?
+0174: C8      			RET  Z		; Then RETurn on terminator
+0175: CF      			RST  08H	; Print it
+0176: 23      			INC  HL		; Next Character
+0177: 18F9    			JR   PRINT	; Continue until $00
+              	
+0179: 3E0D    	TXCRLF:	LD   A,$0D	; 
+017B: CF      			RST  08H	; Print character 
+017C: 3E0A    			LD   A,$0A	; 
+017E: CF      			RST  08H	; Print character
+017F: C9      			RET
+              	
+              	;------------------------------------------------------------------------------
+              	; Console output routine - Serial
+              	; Output port to send a character.
+              	;------------------------------------------------------------------------------
+0180: F5      	conout:		PUSH	AF		; Store character
+0181: CD9601  	conoutA1:	CALL	CKSIOA		; See if SIO channel A is finished transmitting
+0184: 28FB    			JR	Z, conoutA1	; Loop until SIO flag signals ready
+0186: F1      			POP	AF		; RETrieve character
+0187: D300    			OUT	(SIOA_D),A	; OUTput the character
+0189: C9      			RET
+              	
+018A:         	conin:
+018A:         	waitForChar:
+              		; Check if there is a char in channel A
+018A: 97      		SUB	A
+018B: D302    		OUT 	(SIOA_C),A
+018D: DB02    		IN   	A,(SIOA_C)	; Status byte D2=TX Buff Empty, D0=RX char ready	
+018F: 0F      		RRCA			; Rotates RX status into Carry Flag,	
+0190: 30F8    		JR	NC, waitForChar
+0192: DB00    		IN	A,(SIOA_D)
+0194: B7      		OR A ; clear carry
+0195: C9      		RET
+              		
+              	
+0196:         	CKSIOA:
+0196: 97      			SUB	A
+0197: D302    			OUT 	(SIOA_C),A
+0199: DB02    			IN   	A,(SIOA_C)	; Status byte D2=TX Buff Empty, D0=RX char ready	
+019B: 0F      			RRCA			; Rotates RX status into Carry Flag,	
+019C: CB4F    			BIT  	1,A		; Set Zero flag if still transmitting character	
+019E: C9      	        RET
+              	
+              	
+              	;------------------------------------------------------------------------------
+              	; Get a character from the console, must be $20-$7F to be valid (no control characters)
+              	; <Ctrl-c> and <SPACE> breaks with the Zero Flag set
+              	;------------------------------------------------------------------------------	
+019F: D7      	GETCHR	RST 10H	; RX a Character
+01A0: FE03    			CP   $03	; <ctrl-c> User break?
+01A2: C8      			RET  Z			
+01A3: FE20    			CP   $20	; <space> or better?
+01A5: 38F8    			JR   C,GETCHR	; Do it again until we get something usable
+01A7: C9      			RET
+              	
+              	;------------------------------------------------------------------------------
+              	; Gets two ASCII characters from the console (assuming them to be HEX 0-9 A-F)
+              	; Moves them into B and C, converts them into a byte value in A and updates a
+              	; Checksum value in E
+              	;------------------------------------------------------------------------------
+01A8: CD9F01  	GET2	CALL GETCHR	; Get us a valid character to work with
+01AB: 47      			LD   B,A	; Load it in B
+01AC: CD9F01  			CALL GETCHR	; Get us another character
+01AF: 4F      			LD   C,A	; load it in C
+01B0: CDE701  			CALL BCTOA	; Convert ASCII to byte
+01B3: 4F      			LD   C,A	; Build the checksum
+01B4: 7B      			LD   A,E
+01B5: 91      			SUB  C		; The checksum should always equal zero when checked
+01B6: 5F      			LD   E,A	; Save the checksum back where it came from
+01B7: 79      			LD   A,C	; Retrieve the byte and go back
+01B8: C9      			RET
+              	
+              	;------------------------------------------------------------------------------
+              	; Gets four Hex characters from the console, converts them to values in HL
+              	;------------------------------------------------------------------------------
+01B9: 210000  	GETHL		LD   HL,$0000	; Gets xxxx but sets Carry Flag on any Terminator
+01BC: CD0002  			CALL ECHO	; RX a Character
+01BF: FE0D    			CP   $0D	; <CR>?
+01C1: 200E    			JR   NZ,GETX2	; other key		
+01C3: 37      	SETCY		SCF		; Set Carry Flag
+01C4: C9      			RET             ; and Return to main program		
+              	;------------------------------------------------------------------------------
+              	; This routine converts last four hex characters (0-9 A-F) user types into a value in HL
+              	; Rotates the old out and replaces with the new until the user hits a terminating character
+              	;------------------------------------------------------------------------------
+01C5: 210000  	GETX		LD   HL,$0000	; CLEAR HL
+01C8: CD0002  	GETX1		CALL ECHO	; RX a character from the console
+01CB: FE0D    			CP   $0D	; <CR>
+01CD: C8      			RET  Z		; quit
+01CE: FE2C    			CP   $2C	; <,> can be used to safely quit for multiple entries
+01D0: C8      			RET  Z		; (Like filling both DE and HL from the user)
+01D1: FE03    	GETX2		CP   $03	; Likewise, a <ctrl-C> will terminate clean, too, but
+01D3: 28EE    			JR   Z,SETCY	; It also sets the Carry Flag for testing later.
+01D5: 29      			ADD  HL,HL	; Otherwise, rotate the previous low nibble to high
+01D6: 29      			ADD  HL,HL	; rather slowly
+01D7: 29      			ADD  HL,HL	; until we get to the top
+01D8: 29      			ADD  HL,HL	; and then we can continue on.
+01D9: D630    			SUB  $30	; Convert ASCII to byte	value
+01DB: FE0A    			CP   $0A	; Are we in the 0-9 range?
+01DD: 3802    			JR   C,GETX3	; Then we just need to sub $30, but if it is A-F
+01DF: D607    			SUB  $07	; We need to take off 7 more to get the value down to
+01E1: E60F    	GETX3		AND  $0F	; to the right hex value
+01E3: 85      			ADD  A,L	; Add the high nibble to the low
+01E4: 6F      			LD   L,A	; Move the byte back to A
+01E5: 18E1    			JR   GETX1	; and go back for next character until he terminates
+              	;------------------------------------------------------------------------------
+              	; Convert ASCII characters in B C registers to a byte value in A
+              	;------------------------------------------------------------------------------
+01E7: 78      	BCTOA		LD   A,B	; Move the hi order byte to A
+01E8: D630    			SUB  $30	; Take it down from Ascii
+01EA: FE0A    			CP   $0A	; Are we in the 0-9 range here?
+01EC: 3802    			JR   C,BCTOA1	; If so, get the next nybble
+01EE: D607    			SUB  $07	; But if A-F, take it down some more
+01F0: 07      	BCTOA1		RLCA		; Rotate the nybble from low to high
+01F1: 07      			RLCA		; One bit at a time
+01F2: 07      			RLCA		; Until we
+01F3: 07      			RLCA		; Get there with it
+01F4: 47      			LD   B,A	; Save the converted high nybble
+01F5: 79      			LD   A,C	; Now get the low order byte
+01F6: D630    			SUB  $30	; Convert it down from Ascii
+01F8: FE0A    			CP   $0A	; 0-9 at this point?
+01FA: 3802    			JR   C,BCTOA2	; Good enough then, but
+01FC: D607    			SUB  $07	; Take off 7 more if it's A-F
+01FE: 80      	BCTOA2		ADD  A,B	; Add in the high order nybble
+01FF: C9      			RET
+              	
+              	;------------------------------------------------------------------------------
+              	; Get a character and echo it back to the user
+              	;------------------------------------------------------------------------------
+0200: D7      	ECHO	RST 10H ; rx
+0201: CF      			RST 08H ; tx
+0202: C9      			RET
+              	
+              	
+              	
+              	; **********************************************************************
+              	; Delay by DE milliseconds
+              	;   On entry: DE = Delay time in milliseconds
+              	;   On exit:  AF BC DE HL IX IY I AF' BC' DE' HL' preserved
+0203: F5      	DELAY_DE:    	PUSH AF
+0204: C5      	            PUSH BC
+0205: D5      	            PUSH DE
+              	; 1 ms loop, DE times...        ;[=36]   [=29]    Overhead for each 1ms
+0206: 011A01  	LoopDE:    LD   BC, kDelayCnt   ;[10]    [9]
+              	; Inner loop, BC times...       ;[=26]   [=20]    Loop time in Tcycles
+0209: 0B      	LoopBC:    DEC  BC             ;[6]     [4]
+020A: 79      	            LD   A,C            ;[4]     [4]
+020B: B0      	            OR   B              ;[4]     [4]
+020C: C20902  	            JP   NZ,LoopBC     ;[12/7]  [8/6] 
+              	; Have we looped once for each millisecond requested?
+020F: 1B      	            DEC  DE             ;[6]     [4]
+0210: 7B      	            LD   A,E            ;[4]     [4]
+0211: B2      	            OR   D              ;[4]     [4]
+0212: 20F2    	            JR   NZ, LoopDE     ;[12/7]  [8/6]
+0214: D1      	            POP  DE
+0215: C1      	            POP  BC
+0216: F1      	            POP  AF
+0217: C9      	            RET
+              	
+              	
+              	
+              	;------------------------------------------------------------------------------
+              	; LOAD Intel Hex format file from the console.
+              	; [Intel Hex Format is:
+              	; 1) Colon (Frame 0)
+              	; 2) Record Length Field (Frames 1 and 2)
+              	; 3) Load Address Field (Frames 3,4,5,6)
+              	; 4) Record Type Field (Frames 7 and 8)
+              	; 5) Data Field (Frames 9 to 9+2*(Record Length)-1
+              	; 6) Checksum Field - Sum of all byte values from Record Length to and 
+              	;   including Checksum Field = 0 ]
+              	;------------------------------------------------------------------------------	
+0218: 1E00    	LOAD:	LD   E,0	; First two Characters is the Record Length Field
+021A: CDA801  			CALL GET2	; Get us two characters into BC, convert it to a byte <A>
+021D: 57      			LD   D,A	; Load Record Length count into D
+021E: CDA801  			CALL GET2	; Get next two characters, Memory Load Address <H>
+0221: 67      			LD   H,A	; put value in H register.
+0222: CDA801  			CALL GET2	; Get next two characters, Memory Load Address <L>
+0225: 6F      			LD   L,A	; put value in L register.
+0226: CDA801  			CALL GET2	; Get next two characters, Record Field Type
+0229: FE01    			CP   $01	; Record Field Type 00 is Data, 01 is End of File
+022B: 2009    			JR   NZ,LOAD2	; Must be the end of that file
+022D: CDA801  			CALL GET2	; Get next two characters, assemble into byte
+0230: 7B      			LD   A,E	; Recall the Checksum byte
+0231: A7      			AND  A		; Is it Zero?
+0232: 281E    			JR   Z,LOAD00	; Print footer reached message
+0234: 1815    			JR   LOADERR	; Checksums don't add up, Error out
+              			
+0236: 7A      	LOAD2		LD   A,D	; Retrieve line character counter	
+0237: A7      			AND  A		; Are we done with this line?
+0238: 280B    			JR   Z,LOAD3	; Get two more ascii characters, build a byte and checksum
+023A: CDA801  			CALL GET2	; Get next two chars, convert to byte in A, checksum it
+023D: 77      			LD   (HL),A	; Move converted byte in A to memory location
+023E: 23      			INC  HL		; Increment pointer to next memory location	
+023F: 3E2E    			LD   A,'.'	; Print out a "." for every byte loaded
+0241: CF      			RST  08H	;
+0242: 15      			DEC  D		; Decrement line character counter
+0243: 18F1    			JR   LOAD2	; and keep loading into memory until line is complete
+              			
+0245: CDA801  	LOAD3		CALL GET2	; Get two chars, build byte and checksum
+0248: 7B      			LD   A,E	; Check the checksum value
+0249: A7      			AND  A		; Is it zero?
+024A: C8      			RET  Z
+              	
+024B: 21D302  	LOADERR		LD   HL,CKSUMERR  ; Get "Checksum Error" message
+024E: CD7201  			CALL PRINT	; Print Message from (HL) and terminate the load
+0251: C9      			RET
+              	
+0252: 21E402  	LOAD00  	LD   HL,LDETXT	; Print load complete message
+0255: CD7201  			CALL PRINT
+0258: C9      			RET
+              	
+              	
+0259: 0D0A5A38	msg_bemvindo:   .db CR, LF, "Z80 Mini - CoreBase Serial", CR, LF, 0
+025D: 30204D69	
+0261: 6E69202D	
+0265: 20436F72	
+0269: 65426173	
+026D: 65205365	
+0271: 7269616C	
+0275: 0D0A00  	
+0278:         	msg_help:
+0278: 0D0A    			.BYTE	CR, LF
+027A: 52202020			.TEXT	"R           - Reset"
+027E: 20202020	
+0282: 20202020	
+0286: 2D205265	
+028A: 736574  	
+028D: 0D0A    			.BYTE	CR, LF
+028F: 47202020			.TEXT	"G           - Goto nnnn"
+0293: 20202020	
+0297: 20202020	
+029B: 2D20476F	
+029F: 746F206E	
+02A3: 6E6E6E  	
+02A6: 0D0A    			.BYTE	CR, LF
+02A8: 3A6E6E6E			.TEXT	":nnnnnn...  - Load Intel-Hex file record"
+02AC: 6E6E6E2E	
+02B0: 2E2E2020	
+02B4: 2D204C6F	
+02B8: 61642049	
+02BC: 6E74656C	
+02C0: 2D486578	
+02C4: 2066696C	
+02C8: 65207265	
+02CC: 636F7264	
+02D0: 0D0A    			.BYTE	CR, LF
+02D2: 00      	        .BYTE   $00
+              	
+02D3:         	CKSUMERR:
+02D3: 43686563			.BYTE	"Checksum error"
+02D7: 6B73756D	
+02DB: 20657272	
+02DF: 6F72    	
+02E1: 0D0A00  			.BYTE	CR, LF,$00
+              	
+02E4:         	LDETXT:
+02E4: 4C6F6164			.TEXT	"Load complete."
+02E8: 20636F6D	
+02EC: 706C6574	
+02F0: 652E    	
+02F2: 0D0A00  			.BYTE	CR, LF, $00
+              	
+              	.end
+
+
+; +++ segments +++
+
+#CODE          = $0000 =     0,  size = $02F5 =   757
+
+; +++ global symbols +++
+
+BCTOA        = $01E7 =   487          Z80MiniCoreBaseSerial.asm:283
+BCTOA1       = $01F0 =   496          Z80MiniCoreBaseSerial.asm:288
+BCTOA2       = $01FE =   510          Z80MiniCoreBaseSerial.asm:298
+CKSIOA       = $0196 =   406          Z80MiniCoreBaseSerial.asm:210
+CKSUMERR     = $02D3 =   723          Z80MiniCoreBaseSerial.asm:399
+CLS          = $000C =    12          Z80MiniCoreBaseSerial.asm:46 (unused)
+CR           = $000D =    13          Z80MiniCoreBaseSerial.asm:42
+CTRLC        = $0003 =     3          Z80MiniCoreBaseSerial.asm:45 (unused)
+DELAY_250ms  = $0157 =   343          Z80MiniCoreBaseSerial.asm:144
+DELAY_500ms  = $015E =   350          Z80MiniCoreBaseSerial.asm:149
+DELAY_DE     = $0203 =   515          Z80MiniCoreBaseSerial.asm:314
+ECHO         = $0200 =   512          Z80MiniCoreBaseSerial.asm:304
+ESC          = $001B =    27          Z80MiniCoreBaseSerial.asm:44 (unused)
+GET2         = $01A8 =   424          Z80MiniCoreBaseSerial.asm:235
+GETCHR       = $019F =   415          Z80MiniCoreBaseSerial.asm:223
+GETHL        = $01B9 =   441          Z80MiniCoreBaseSerial.asm:250
+GETX         = $01C5 =   453          Z80MiniCoreBaseSerial.asm:260 (unused)
+GETX1        = $01C8 =   456          Z80MiniCoreBaseSerial.asm:261
+GETX2        = $01D1 =   465          Z80MiniCoreBaseSerial.asm:266
+GETX3        = $01E1 =   481          Z80MiniCoreBaseSerial.asm:276
+GOTO         = $0165 =   357          Z80MiniCoreBaseSerial.asm:156
+HELP         = $016B =   363          Z80MiniCoreBaseSerial.asm:164
+INIT         = $0106 =   262          Z80MiniCoreBaseSerial.asm:83
+LDETXT       = $02E4 =   740          Z80MiniCoreBaseSerial.asm:403
+LF           = $000A =    10          Z80MiniCoreBaseSerial.asm:43
+LOAD         = $0218 =   536          Z80MiniCoreBaseSerial.asm:347
+LOAD00       = $0252 =   594          Z80MiniCoreBaseSerial.asm:383
+LOAD2        = $0236 =   566          Z80MiniCoreBaseSerial.asm:363
+LOAD3        = $0245 =   581          Z80MiniCoreBaseSerial.asm:374
+LOADERR      = $024B =   587          Z80MiniCoreBaseSerial.asm:379
+LoopBC       = $0209 =   521          Z80MiniCoreBaseSerial.asm:320
+LoopDE       = $0206 =   518          Z80MiniCoreBaseSerial.asm:318
+PRINT        = $0172 =   370          Z80MiniCoreBaseSerial.asm:173
+RST00        = $0000 =     0          Z80MiniCoreBaseSerial.asm:63
+RST08        = $0008 =     8          Z80MiniCoreBaseSerial.asm:70 (unused)
+RST10        = $0010 =    16          Z80MiniCoreBaseSerial.asm:76 (unused)
+SETCY        = $01C3 =   451          Z80MiniCoreBaseSerial.asm:254
+SIOA_C       = $0002 =     2          Z80MiniCoreBaseSerial.asm:51
+SIOA_D       = $0000 =     0          Z80MiniCoreBaseSerial.asm:50
+SIOB_C       = $0003 =     3          Z80MiniCoreBaseSerial.asm:53 (unused)
+SIOB_D       = $0001 =     1          Z80MiniCoreBaseSerial.asm:52 (unused)
+TXCRLF       = $0179 =   377          Z80MiniCoreBaseSerial.asm:180
+_end         = $02F5 =   757          Z80MiniCoreBaseSerial.asm:62 (unused)
+_size        = $02F5 =   757          Z80MiniCoreBaseSerial.asm:62 (unused)
+_z80_        = $0001 =     1          Z80MiniCoreBaseSerial.asm:1 (unused)
+conin        = $018A =   394          Z80MiniCoreBaseSerial.asm:197
+conout       = $0180 =   384          Z80MiniCoreBaseSerial.asm:190
+conoutA1     = $0181 =   385          Z80MiniCoreBaseSerial.asm:191
+kCPUClock    = $8000 =7372800          Z80MiniCoreBaseSerial.asm:34
+kDelayCnt    = $011A =   282          Z80MiniCoreBaseSerial.asm:39
+kDelayLP     = $001A =    26          Z80MiniCoreBaseSerial.asm:36
+kDelayOH     = $0024 =    36          Z80MiniCoreBaseSerial.asm:35
+kDelayTA     = $1CCC =  7372          Z80MiniCoreBaseSerial.asm:37
+kDelayTB     = $1CA8 =  7336          Z80MiniCoreBaseSerial.asm:38
+monitor      = $0112 =   274          Z80MiniCoreBaseSerial.asm:90
+monitor0     = $0116 =   278          Z80MiniCoreBaseSerial.asm:93
+monitor1     = $011C =   284          Z80MiniCoreBaseSerial.asm:98
+msg_bemvindo = $0259 =   601          Z80MiniCoreBaseSerial.asm:388
+msg_help     = $0278 =   632          Z80MiniCoreBaseSerial.asm:389
+setup_serial = $013E =   318          Z80MiniCoreBaseSerial.asm:125
+stack_point  = $FF00 = 65280          Z80MiniCoreBaseSerial.asm:58
+waitForChar  = $018A =   394          Z80MiniCoreBaseSerial.asm:198
+
+
+total time: 0.0688 sec.
+no errors
