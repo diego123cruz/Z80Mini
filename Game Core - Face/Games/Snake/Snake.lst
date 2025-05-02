@@ -1,6 +1,6 @@
               	; --------------------------------------
               	; zasm: assemble "Snake.asm"
-              	; date: 2025-05-01 23:55:41
+              	; date: 2025-05-02 00:59:59
               	; --------------------------------------
 
 
@@ -73,395 +73,397 @@ FB99:         	KEY_GAMEPAD .EQU    $FB99
 8000:         	.org $8000
               	    ; Setup ram
 8000: 3E01    	    LD A, 1
-8002: 323C82  	    LD (gameover), A ; Gameover
+8002: 324182  	    LD (gameover), A ; Gameover
               	
 8005:         	start_game:
               	    ; Direção inicial
 8005: 3E04    	    LD A, 4
-8007: 324182  	    LD (direction), A
+8007: 324682  	    LD (direction), A
               	
 800A: 3E0F    	    LD A, 15
-800C: 324482  	    LD (food_x), A
-800F: 324382  	    LD (food_y), A
+800C: 324982  	    LD (food_x), A
+800F: 324882  	    LD (food_y), A
               	
               	    ; seed to random
 8012: 3E82    	    LD A, $82
-8014: 213D82  	    LD HL, seed1
+8014: 214282  	    LD HL, seed1
 8017: 77      	    LD (HL), A
 8018: 23      	    INC HL
 8019: 77      	    LD (HL), A
 801A: 3E76    	    LD A, $76
-801C: 213F82  	    LD HL, seed2
+801C: 214482  	    LD HL, seed2
 801F: 77      	    LD (HL), A
 8020: 23      	    INC HL
 8021: 77      	    LD (HL), A
               	
               	    ; Tamanho inicial
 8022: 3E04    	    LD A, 4
-8024: 324282  	    LD (size), A
+8024: 324782  	    LD (size), A
               	
               	    ; Posição inicial
 8027: 3E0A    	    LD A, 10
               	    
-8029: 324882  	    LD (head_y+3), A    ;X
-802C: 324682  	    LD (head_y+1), A    ;X
-802F: 324A82  	    LD (head_y+5), A    ;X
-8032: 324C82  	    LD (head_y+7), A    ;X
+8029: 324D82  	    LD (head_y+3), A    ;X
+802C: 324B82  	    LD (head_y+1), A    ;X
+802F: 324F82  	    LD (head_y+5), A    ;X
+8032: 325182  	    LD (head_y+7), A    ;X
 8035: 3C      	    INC A
-8036: 324582  	    LD (head_y), A      ;Y
+8036: 324A82  	    LD (head_y), A      ;Y
 8039: 3C      	    INC A
-803A: 324782  	    LD (head_y+2), A    ;Y
+803A: 324C82  	    LD (head_y+2), A    ;Y
 803D: 3C      	    INC A
-803E: 324982  	    LD (head_y+4), A    ;Y
+803E: 324E82  	    LD (head_y+4), A    ;Y
 8041: 3C      	    INC A
-8042: 324B82  	    LD (head_y+6), A    ;Y
+8042: 325082  	    LD (head_y+6), A    ;Y
               	    
               	
 8045:         	loop:
-8045: CD8480  	    CALL atualiza_jogo
-8048: CDDE81  	    CALL atualiza_display
+8045: CD8980  	    CALL atualiza_jogo
+8048: CDE381  	    CALL atualiza_display
               	
 804B: 0662    	    LD B, $62
 804D:         	delay_loop:
 804D: DB40    	    in A, (GAMEPAD)
-804F: 323B82  	    LD (read_keys), A
-              	
-8052: 110100  	    LD DE, $0001
-8055: CD6601  	    CALL H_Delay
-8058: 10F3    	    DJNZ delay_loop
+804F: FE00    	    CP 0
+8051: CA5780  	    JP Z, delay_loop_skip
+8054: 324082  	    LD (read_keys), A
+8057:         	delay_loop_skip:
+8057: 110100  	    LD DE, $0001
+805A: CD6601  	    CALL H_Delay
+805D: 10EE    	    DJNZ delay_loop
               	    
               	    ; Check GameOver
-805A: 3A3C82  	    LD A, (gameover)
-805D: FE00    	    CP 0
-805F: CA4580  	    JP Z, loop
+805F: 3A4182  	    LD A, (gameover)
+8062: FE00    	    CP 0
+8064: CA4580  	    JP Z, loop
               	
               	    ; Cursor OFF
-8062: 3E01    	    LD A, 1
-8064: CD6301  	    CALL DISPLAY_CURSOR
+8067: 3E01    	    LD A, 1
+8069: CD6301  	    CALL DISPLAY_CURSOR
               	
               	    ; Set cursor XY
               	    ;Inputs: BC = X,Y where X = 0..127, Y = 0..63
-8067: 012B1E  	    LD BC, $1E2B
-806A: CD5D01  	    CALL SET_CURSOR
+806C: 012B1E  	    LD BC, $1E2B
+806F: CD5D01  	    CALL SET_CURSOR
               	
-806D: 3E00    	    LD A, 0
-806F: 112582  	    LD DE, msg_start
-8072: CD5401  	    CALL SEND_STRING_TO_GLCD
-8075:         	loop_enter:
-8075: DB40    	    in A, (GAMEPAD)
-8077: CB57    	    bit 2, A
-8079: CA7580  	    JP Z, loop_enter
-807C: 3E00    	    LD A, 0
-807E: 323C82  	    LD (gameover), A
-8081: C34580  	    jp loop
-              	
-              	
-8084:         	atualiza_jogo:
-8084: CD4D81  	    CALL ler_teclado
-8087: CDF480  	    CALL atualiza_corpo
-808A: CD1581  	    CALL atualiza_head
-808D: CDDA80  	    CALL check_colisao
-8090: CD9480  	    CALL check_food
-8093: C9      	    RET
+8072: 3E00    	    LD A, 0
+8074: 112A82  	    LD DE, msg_start
+8077: CD5401  	    CALL SEND_STRING_TO_GLCD
+807A:         	loop_enter:
+807A: DB40    	    in A, (GAMEPAD)
+807C: CB57    	    bit 2, A
+807E: CA7A80  	    JP Z, loop_enter
+8081: 3E00    	    LD A, 0
+8083: 324182  	    LD (gameover), A
+8086: C34580  	    jp loop
               	
               	
-8094:         	check_food:
+8089:         	atualiza_jogo:
+8089: CD5281  	    CALL ler_teclado
+808C: CDF980  	    CALL atualiza_corpo
+808F: CD1A81  	    CALL atualiza_head
+8092: CDDF80  	    CALL check_colisao
+8095: CD9980  	    CALL check_food
+8098: C9      	    RET
+              	
+              	
+8099:         	check_food:
               	    ; if head_x == food_x E head_y == food_y = comer
-8094: 2A4582  	    LD HL, (head_y)
-8097: 3A4482  	    LD A, (food_x)
-809A: BC      	    CP H
-809B: C0      	    RET NZ
-809C: 3A4382  	    LD A, (food_y)
-809F: BD      	    CP L 
+8099: 2A4A82  	    LD HL, (head_y)
+809C: 3A4982  	    LD A, (food_x)
+809F: BC      	    CP H
 80A0: C0      	    RET NZ
-80A1: CDA580  	    CALL comer
-80A4: C9      	    RET
+80A1: 3A4882  	    LD A, (food_y)
+80A4: BD      	    CP L 
+80A5: C0      	    RET NZ
+80A6: CDAA80  	    CALL comer
+80A9: C9      	    RET
               	
-80A5:         	comer:
-80A5: 3A4282  	    LD A, (size)
-80A8: 3C      	    INC A
-80A9: 324282  	    LD (size), A
-80AC: CDB080  	    CALL new_food
-80AF: C9      	    RET
+80AA:         	comer:
+80AA: 3A4782  	    LD A, (size)
+80AD: 3C      	    INC A
+80AE: 324782  	    LD (size), A
+80B1: CDB580  	    CALL new_food
+80B4: C9      	    RET
               	
-80B0:         	new_food:
-80B0: CDF581  	    CALL randomHL
-80B3: 7C      	    LD A, H
-80B4: 324482  	    LD (food_x), A
-80B7: 7D      	    LD A, L
-80B8: 324382  	    LD (food_y), A
-80BB: C9      	    RET
+80B5:         	new_food:
+80B5: CDFA81  	    CALL randomHL
+80B8: 7C      	    LD A, H
+80B9: 324982  	    LD (food_x), A
+80BC: 7D      	    LD A, L
+80BD: 324882  	    LD (food_y), A
+80C0: C9      	    RET
               	
-80BC:         	fim_de_jogo:
-80BC: 012B1E  	    LD BC, $1E2B
-80BF: CD5D01  	    CALL SET_CURSOR
+80C1:         	fim_de_jogo:
+80C1: 012B1E  	    LD BC, $1E2B
+80C4: CD5D01  	    CALL SET_CURSOR
               	
-80C2: 3E00    	    LD A, 0
-80C4: 113182  	    LD DE, msg_gameover
-80C7: CD5401  	    CALL SEND_STRING_TO_GLCD
-80CA: 3A4282  	    LD A, (size)
-80CD: CD5701  	    CALL SEND_A_TO_GLCD
-80D0:         	fim_de_jogo_loop:
-80D0: DB40    	    in A, (GAMEPAD)
-80D2: CB57    	    bit 2, A
-80D4: CAD080  	    JP Z, fim_de_jogo_loop
-80D7: C30580  	    JP start_game
+80C7: 3E00    	    LD A, 0
+80C9: 113682  	    LD DE, msg_gameover
+80CC: CD5401  	    CALL SEND_STRING_TO_GLCD
+80CF: 3A4782  	    LD A, (size)
+80D2: CD5701  	    CALL SEND_A_TO_GLCD
+80D5:         	fim_de_jogo_loop:
+80D5: DB40    	    in A, (GAMEPAD)
+80D7: CB57    	    bit 2, A
+80D9: CAD580  	    JP Z, fim_de_jogo_loop
+80DC: C30580  	    JP start_game
               	    
               	
-80DA:         	check_colisao:
+80DF:         	check_colisao:
               	    ; colisão com Paredes
               	    ; if head_x < 1 ou head_x > 63 = fim de jogo
               	    ; if head_y < 1 ou head_y > 31 = fim de jogo
-80DA: 2A4582  	    LD HL, (head_y) ; H=X, L=Y
-80DD: 7C      	    LD A, H
-80DE: FE01    	    CP 1
-80E0: DABC80  	    JP C, fim_de_jogo ; if x < 1
-80E3: FE3F    	    CP VTELA_X
-80E5: D2BC80  	    JP NC, fim_de_jogo ; fi x >= 63
+80DF: 2A4A82  	    LD HL, (head_y) ; H=X, L=Y
+80E2: 7C      	    LD A, H
+80E3: FE01    	    CP 1
+80E5: DAC180  	    JP C, fim_de_jogo ; if x < 1
+80E8: FE3F    	    CP VTELA_X
+80EA: D2C180  	    JP NC, fim_de_jogo ; fi x >= 63
               	
-80E8: 7D      	    LD A, L
-80E9: FE01    	    CP 1
-80EB: DABC80  	    JP C, fim_de_jogo ; if y < 1
-80EE: FE1F    	    CP VTELA_Y
-80F0: D2BC80  	    JP NC, fim_de_jogo ; if y >= 31
-80F3: C9      	    RET
-              	
-              	
-              	
-80F4:         	atualiza_corpo:
-80F4: 3A4282  	    LD A, (size)
-              	
-80F7: 4F      	    LD      C, A 
-80F8: 0600    	    LD      B, 0 
-80FA: CB21    	    SLA     C ; Multiplicar por 2
-              	
-80FC: 79      	    LD A, C
-80FD: F5      	    PUSH AF
-              	
-80FE: 214582  	    LD HL, head_y
-8101: 09      	    ADD HL, BC ; HL ultimo segmento HL
-8102: E5      	    PUSH HL
-              	
-8103: 214782  	    LD HL, head_y+2 ; depois do ultimo DE
-8106: 09      	    ADD HL, BC
-8107: 54      	    LD D, H
-8108: 5D      	    LD E, L
-              	
-8109: E1      	    POP HL
-              	
-810A: F1      	    POP AF
-810B: 47      	    LD B, A
-810C:         	atualiza_corpo_loop:
-810C: 7E      	    LD A, (HL)
-810D: 12      	    LD (DE), A
-810E: 2B      	    DEC HL
-810F: 1B      	    DEC DE
-8110: 10FA    	    DJNZ atualiza_corpo_loop
-8112: 7E      	    LD A, (HL)
-8113: 12      	    LD (DE), A
-8114: C9      	    RET
-              	
-              	
-8115:         	atualiza_head:
-8115: 3A4182  	    LD A, (direction)
-8118: FE01    	    CP DIR_UP
-811A: CA2D81  	    JP Z, HEAD_UP
-811D: FE02    	    CP DIR_DOWN
-811F: CA3581  	    JP Z, HEAD_DOWN
-8122: FE03    	    CP DIR_LEFT
-8124: CA3D81  	    JP Z, HEAD_LEFT
-8127: FE04    	    CP DIR_RIGHT
-8129: CA4581  	    JP Z, HEAD_RIGHT
-812C: C9      	    RET
-              	
-              	
-812D:         	HEAD_UP:
-812D: 3A4582  	    LD A, (head_y)
-8130: 3D      	    DEC A
-8131: 324582  	    LD (head_y), A
-8134: C9      	    RET
-              	
-8135:         	HEAD_DOWN:
-8135: 3A4582  	    LD A, (head_y)
-8138: 3C      	    INC A
-8139: 324582  	    LD (head_y), A
-813C: C9      	    RET
-              	
-813D:         	HEAD_LEFT:
-813D: 3A4682  	    LD A, (head_x)
-8140: 3D      	    DEC A
-8141: 324682  	    LD (head_x), A
-8144: C9      	    RET
-              	
-8145:         	HEAD_RIGHT:
-8145: 3A4682  	    LD A, (head_x)
-8148: 3C      	    INC A
-8149: 324682  	    LD (head_x), A
-814C: C9      	    RET
+80ED: 7D      	    LD A, L
+80EE: FE01    	    CP 1
+80F0: DAC180  	    JP C, fim_de_jogo ; if y < 1
+80F3: FE1F    	    CP VTELA_Y
+80F5: D2C180  	    JP NC, fim_de_jogo ; if y >= 31
+80F8: C9      	    RET
               	
               	
               	
+80F9:         	atualiza_corpo:
+80F9: 3A4782  	    LD A, (size)
+              	
+80FC: 4F      	    LD      C, A 
+80FD: 0600    	    LD      B, 0 
+80FF: CB21    	    SLA     C ; Multiplicar por 2
+              	
+8101: 79      	    LD A, C
+8102: F5      	    PUSH AF
+              	
+8103: 214A82  	    LD HL, head_y
+8106: 09      	    ADD HL, BC ; HL ultimo segmento HL
+8107: E5      	    PUSH HL
+              	
+8108: 214C82  	    LD HL, head_y+2 ; depois do ultimo DE
+810B: 09      	    ADD HL, BC
+810C: 54      	    LD D, H
+810D: 5D      	    LD E, L
+              	
+810E: E1      	    POP HL
+              	
+810F: F1      	    POP AF
+8110: 47      	    LD B, A
+8111:         	atualiza_corpo_loop:
+8111: 7E      	    LD A, (HL)
+8112: 12      	    LD (DE), A
+8113: 2B      	    DEC HL
+8114: 1B      	    DEC DE
+8115: 10FA    	    DJNZ atualiza_corpo_loop
+8117: 7E      	    LD A, (HL)
+8118: 12      	    LD (DE), A
+8119: C9      	    RET
               	
               	
-814D:         	ler_teclado:
-814D: 3A3B82  	    LD A, (read_keys)
-8150: 47      	    LD B, A
-              	
-8151: 3E00    	    LD A, 0
-8153: 323B82  	    LD (read_keys), A
-              	
-8156: 78      	    LD A, B
-              	
-8157: CB7F    	    bit 7, A
-8159: C27181  	    JP NZ, TRY_UP
-              	
-815C: CB6F    	    bit 5, A
-815E: C27D81  	    JP NZ, TRY_DOWN
-              	
-8161: CB77    	    bit 6, A
-8163: C28981  	    JP NZ, TRY_LEFT
-              	
-8166: CB67    	    bit 4, A
-8168: C29581  	    JP NZ, TRY_RIGHT
-              	
-816B: CB5F    	    bit 3, A
-816D: C20000  	    JP NZ, 0 ; Back to Monitor
-8170: C9      	    RET
-              	
-8171:         	TRY_UP:
-8171: 3A4182  	    LD A, (direction)
-8174: FE02    	    CP DIR_DOWN
-8176: C8      	    RET Z
-8177: 3E01    	    LD A, DIR_UP
-8179: 324182  	    LD (direction), A
-817C: C9      	    RET
-              	
-817D:         	TRY_DOWN:
-817D: 3A4182  	    LD A, (direction)
-8180: FE01    	    CP DIR_UP
-8182: C8      	    RET Z
-8183: 3E02    	    LD A, DIR_DOWN
-8185: 324182  	    LD (direction), A
-8188: C9      	    RET
-              	
-8189:         	TRY_LEFT:
-8189: 3A4182  	    LD A, (direction)
-818C: FE04    	    CP DIR_RIGHT
-818E: C8      	    RET Z
-818F: 3E03    	    LD A, DIR_LEFT
-8191: 324182  	    LD (direction), A
-8194: C9      	    RET
-              	
-8195:         	TRY_RIGHT:
-8195: 3A4182  	    LD A, (direction)
-8198: FE03    	    CP DIR_LEFT
-819A: C8      	    RET Z
-819B: 3E04    	    LD A, DIR_RIGHT
-819D: 324182  	    LD (direction), A
-81A0: C9      	    RET
+811A:         	atualiza_head:
+811A: 3A4682  	    LD A, (direction)
+811D: FE01    	    CP DIR_UP
+811F: CA3281  	    JP Z, HEAD_UP
+8122: FE02    	    CP DIR_DOWN
+8124: CA3A81  	    JP Z, HEAD_DOWN
+8127: FE03    	    CP DIR_LEFT
+8129: CA4281  	    JP Z, HEAD_LEFT
+812C: FE04    	    CP DIR_RIGHT
+812E: CA4A81  	    JP Z, HEAD_RIGHT
+8131: C9      	    RET
               	
               	
-81A1:         	desenha_food;
-81A1: 3A4482  	    LD A, (food_x)
-81A4: 47      	    LD B, A
-81A5: 3A4382  	    LD A, (food_y)
-81A8: 4F      	    LD C, A
-81A9: CDC281  	    CALL set_pixel_bc
-81AC: C9      	    RET
+8132:         	HEAD_UP:
+8132: 3A4A82  	    LD A, (head_y)
+8135: 3D      	    DEC A
+8136: 324A82  	    LD (head_y), A
+8139: C9      	    RET
+              	
+813A:         	HEAD_DOWN:
+813A: 3A4A82  	    LD A, (head_y)
+813D: 3C      	    INC A
+813E: 324A82  	    LD (head_y), A
+8141: C9      	    RET
+              	
+8142:         	HEAD_LEFT:
+8142: 3A4B82  	    LD A, (head_x)
+8145: 3D      	    DEC A
+8146: 324B82  	    LD (head_x), A
+8149: C9      	    RET
+              	
+814A:         	HEAD_RIGHT:
+814A: 3A4B82  	    LD A, (head_x)
+814D: 3C      	    INC A
+814E: 324B82  	    LD (head_x), A
+8151: C9      	    RET
               	
               	
-81AD:         	desenha_snake:
-81AD: 3A4282  	    LD A, (size)
-81B0: 47      	    LD B, A
-81B1: 214582  	    LD HL, head_y
-81B4:         	desenha_snake_loop:
-81B4: C5      	    PUSH BC
               	
-81B5: 4E      	    LD C, (HL)
-81B6: 23      	    INC HL
-81B7: 46      	    LD B, (HL)
+              	
+              	
+8152:         	ler_teclado:
+8152: 3A4082  	    LD A, (read_keys)
+8155: 47      	    LD B, A
+              	
+8156: 3E00    	    LD A, 0
+8158: 324082  	    LD (read_keys), A
+              	
+815B: 78      	    LD A, B
+              	
+815C: CB7F    	    bit 7, A
+815E: C27681  	    JP NZ, TRY_UP
+              	
+8161: CB6F    	    bit 5, A
+8163: C28281  	    JP NZ, TRY_DOWN
+              	
+8166: CB77    	    bit 6, A
+8168: C28E81  	    JP NZ, TRY_LEFT
+              	
+816B: CB67    	    bit 4, A
+816D: C29A81  	    JP NZ, TRY_RIGHT
+              	
+8170: CB5F    	    bit 3, A
+8172: C20000  	    JP NZ, 0 ; Back to Monitor
+8175: C9      	    RET
+              	
+8176:         	TRY_UP:
+8176: 3A4682  	    LD A, (direction)
+8179: FE02    	    CP DIR_DOWN
+817B: C8      	    RET Z
+817C: 3E01    	    LD A, DIR_UP
+817E: 324682  	    LD (direction), A
+8181: C9      	    RET
+              	
+8182:         	TRY_DOWN:
+8182: 3A4682  	    LD A, (direction)
+8185: FE01    	    CP DIR_UP
+8187: C8      	    RET Z
+8188: 3E02    	    LD A, DIR_DOWN
+818A: 324682  	    LD (direction), A
+818D: C9      	    RET
+              	
+818E:         	TRY_LEFT:
+818E: 3A4682  	    LD A, (direction)
+8191: FE04    	    CP DIR_RIGHT
+8193: C8      	    RET Z
+8194: 3E03    	    LD A, DIR_LEFT
+8196: 324682  	    LD (direction), A
+8199: C9      	    RET
+              	
+819A:         	TRY_RIGHT:
+819A: 3A4682  	    LD A, (direction)
+819D: FE03    	    CP DIR_LEFT
+819F: C8      	    RET Z
+81A0: 3E04    	    LD A, DIR_RIGHT
+81A2: 324682  	    LD (direction), A
+81A5: C9      	    RET
+              	
+              	
+81A6:         	desenha_food;
+81A6: 3A4982  	    LD A, (food_x)
+81A9: 47      	    LD B, A
+81AA: 3A4882  	    LD A, (food_y)
+81AD: 4F      	    LD C, A
+81AE: CDC781  	    CALL set_pixel_bc
+81B1: C9      	    RET
+              	
+              	
+81B2:         	desenha_snake:
+81B2: 3A4782  	    LD A, (size)
+81B5: 47      	    LD B, A
+81B6: 214A82  	    LD HL, head_y
+81B9:         	desenha_snake_loop:
+81B9: C5      	    PUSH BC
+              	
+81BA: 4E      	    LD C, (HL)
+81BB: 23      	    INC HL
+81BC: 46      	    LD B, (HL)
               	    
-81B8: E5      	    PUSH HL
-81B9: CDC281  	    CALL set_pixel_bc
-81BC: E1      	    POP HL
-81BD: C1      	    POP BC
+81BD: E5      	    PUSH HL
+81BE: CDC781  	    CALL set_pixel_bc
+81C1: E1      	    POP HL
+81C2: C1      	    POP BC
               	
-81BE: 23      	    INC HL
+81C3: 23      	    INC HL
               	
-81BF: 10F3    	    DJNZ desenha_snake_loop
-81C1: C9      	    RET
+81C4: 10F3    	    DJNZ desenha_snake_loop
+81C6: C9      	    RET
               	
-81C2:         	set_pixel_bc:
+81C7:         	set_pixel_bc:
               	    ; Desenha pixel
               	    ; Input B = column/X (0-127), C = row/Y (0-63)
               	
-81C2: CB20    	    SLA B
-81C4: CB21    	    SLA C
-81C6: C5      	    PUSH BC 
+81C7: CB20    	    SLA B
+81C9: CB21    	    SLA C
+81CB: C5      	    PUSH BC 
               	    ; *-
               	    ; --
-81C7: CDD881  	    CALL PIXEL_BC_DRAW ; Main pixel
+81CC: CDDD81  	    CALL PIXEL_BC_DRAW ; Main pixel
               	
               	    ; **
               	    ; --
-81CA: 04      	    INC B
-81CB: CDD881  	    CALL PIXEL_BC_DRAW
+81CF: 04      	    INC B
+81D0: CDDD81  	    CALL PIXEL_BC_DRAW
               	
               	    ; **
               	    ; *-
-81CE: C1      	    POP BC
-81CF: 0C      	    INC C
-81D0: CDD881  	    CALL PIXEL_BC_DRAW
+81D3: C1      	    POP BC
+81D4: 0C      	    INC C
+81D5: CDDD81  	    CALL PIXEL_BC_DRAW
               	
               	    ; **
               	    ; **
-81D3: 04      	    INC B
-81D4: CDD881  	    CALL PIXEL_BC_DRAW
-81D7: C9      	    RET
+81D8: 04      	    INC B
+81D9: CDDD81  	    CALL PIXEL_BC_DRAW
+81DC: C9      	    RET
               	
-81D8:         	PIXEL_BC_DRAW:
-81D8: C5      	    PUSH BC
-81D9: CD1B01  	    CALL DRAW_PIXEL
-81DC: C1      	    POP BC
-81DD: C9      	    RET
+81DD:         	PIXEL_BC_DRAW:
+81DD: C5      	    PUSH BC
+81DE: CD1B01  	    CALL DRAW_PIXEL
+81E1: C1      	    POP BC
+81E2: C9      	    RET
               	
-81DE:         	atualiza_display:
+81E3:         	atualiza_display:
               	    ; Limpa buffer display
-81DE: CD0301  	    CALL CLEAR_GBUF
+81E3: CD0301  	    CALL CLEAR_GBUF
               	
-81E1: CDA181  	    CALL desenha_food
+81E6: CDA681  	    CALL desenha_food
               	
-81E4: CDAD81  	    CALL desenha_snake
+81E9: CDB281  	    CALL desenha_snake
               	
               	    ; Desenha limites
-81E7: 010000  	    LD BC, $0000
-81EA: 167F    	    LD D, TELA_X
-81EC: 1E3F    	    LD E, TELA_Y
-81EE: CD1201  	    CALL DRAW_BOX
+81EC: 010000  	    LD BC, $0000
+81EF: 167F    	    LD D, TELA_X
+81F1: 1E3F    	    LD E, TELA_Y
+81F3: CD1201  	    CALL DRAW_BOX
               	
               	    ; Atualiza display
-81F1: CD2401  	    CALL PLOT_TO_LCD
-81F4: C9      	    RET
+81F6: CD2401  	    CALL PLOT_TO_LCD
+81F9: C9      	    RET
               	
-81F5:         	randomHL:
+81FA:         	randomHL:
               	    ; 3F = 126/2
               	    ; 1F = 62/2
-81F5: CD0B82  	    CALL prng16
-81F8: 7C      	    LD A, H
-81F9: E63E    	    AND VTELA_X-1
-81FB: FE00    	    CP 0
-81FD: CAF581  	    JP Z, randomHL
-8200: 67      	    LD H, A
+81FA: CD1082  	    CALL prng16
+81FD: 7C      	    LD A, H
+81FE: E63E    	    AND VTELA_X-1
+8200: FE00    	    CP 0
+8202: CAFA81  	    JP Z, randomHL
+8205: 67      	    LD H, A
               	
-8201: 7D      	    LD A, L
-8202: E61E    	    AND VTELA_Y-1
-8204: FE00    	    CP 0
-8206: CAF581  	    JP Z, randomHL
-8209: 6F      	    LD L, A
-820A: C9      	    RET
+8206: 7D      	    LD A, L
+8207: E61E    	    AND VTELA_Y-1
+8209: FE00    	    CP 0
+820B: CAFA81  	    JP Z, randomHL
+820E: 6F      	    LD L, A
+820F: C9      	    RET
               	
               	
-820B:         	prng16:
+8210:         	prng16:
               	; Site: https://wikiti.brandonw.net/index.php?title=Z80_Routines:Math:Random
               	;Inputs:
               	;   (seed1) contains a 16-bit seed value
@@ -475,45 +477,45 @@ FB99:         	KEY_GAMEPAD .EQU    $FB99
               	;cycle: 4,294,901,760 (almost 4.3 billion)
               	;160cc
               	;26 bytes
-820B: 2A3D82  	    ld hl,(seed1)
-820E: 44      	    ld b,h
-820F: 4D      	    ld c,l
-8210: 29      	    add hl,hl
-8211: 29      	    add hl,hl
-8212: 2C      	    inc l
-8213: 09      	    add hl,bc
-8214: 223D82  	    ld (seed1),hl
-8217: 2A3F82  	    ld hl,(seed2)
-821A: 29      	    add hl,hl
-821B: 9F      	    sbc a,a
-821C: E62D    	    and %00101101
-821E: AD      	    xor l
-821F: 6F      	    ld l,a
-8220: 223F82  	    ld (seed2),hl
-8223: 09      	    add hl,bc
-8224: C9      	    ret
+8210: 2A4282  	    ld hl,(seed1)
+8213: 44      	    ld b,h
+8214: 4D      	    ld c,l
+8215: 29      	    add hl,hl
+8216: 29      	    add hl,hl
+8217: 2C      	    inc l
+8218: 09      	    add hl,bc
+8219: 224282  	    ld (seed1),hl
+821C: 2A4482  	    ld hl,(seed2)
+821F: 29      	    add hl,hl
+8220: 9F      	    sbc a,a
+8221: E62D    	    and %00101101
+8223: AD      	    xor l
+8224: 6F      	    ld l,a
+8225: 224482  	    ld (seed2),hl
+8228: 09      	    add hl,bc
+8229: C9      	    ret
               	
-8225: 50726573	msg_start      .db "Press START",0
-8229: 73205354	
-822D: 41525400	
-8231: 47414D45	msg_gameover   .db "GAMEOVER ",0
-8235: 4F564552	
-8239: 2000    	
-823B: 00      	read_keys   .db $00
-823C: 00      	gameover    .db $00
-823D: D204    	seed1       .dw 1234
-823F: 3D22    	seed2       .dw 8765
-8241: 01      	direction   .db $01
-8242: 01      	size        .db $01
-8243: 01      	food_y      .db $01
-8244: 01      	food_x      .db $01
-8245: 01      	head_y      .db $01
-8246: 01      	head_x      .db $01
+822A: 50726573	msg_start      .db "Press START",0
+822E: 73205354	
+8232: 41525400	
+8236: 47414D45	msg_gameover   .db "GAMEOVER ",0
+823A: 4F564552	
+823E: 2000    	
+8240: 00      	read_keys   .db $00
+8241: 00      	gameover    .db $00
+8242: D204    	seed1       .dw 1234
+8244: 3D22    	seed2       .dw 8765
+8246: 01      	direction   .db $01
+8247: 01      	size        .db $01
+8248: 01      	food_y      .db $01
+8249: 01      	food_x      .db $01
+824A: 01      	head_y      .db $01
+824B: 01      	head_x      .db $01
 
 
 ; +++ segments +++
 
-#CODE          = $8000 = 32768,  size = $0247 =   583
+#CODE          = $8000 = 32768,  size = $024C =   588
 
 ; +++ global symbols +++
 
@@ -538,10 +540,10 @@ FILL_CIRCLE         = $0121 =   289          Snake.asm:18 (unused)
 FLIP_PIXEL          = $013C =   316          Snake.asm:27 (unused)
 GAMEPAD             = $0040 =    64          Snake.asm:50
 GET_CURSOR          = $0160 =   352          Snake.asm:39 (unused)
-HEAD_DOWN           = $8135 = 33077          Snake.asm:278
-HEAD_LEFT           = $813D = 33085          Snake.asm:284
-HEAD_RIGHT          = $8145 = 33093          Snake.asm:290
-HEAD_UP             = $812D = 33069          Snake.asm:272
+HEAD_DOWN           = $813A = 33082          Snake.asm:280
+HEAD_LEFT           = $8142 = 33090          Snake.asm:286
+HEAD_RIGHT          = $814A = 33098          Snake.asm:292
+HEAD_UP             = $8132 = 33074          Snake.asm:274
 H_Delay             = $0166 =   358          Snake.asm:44
 INIT_LCD            = $0100 =   256          Snake.asm:7 (unused)
 INIT_TERMINAL       = $014E =   334          Snake.asm:33 (unused)
@@ -549,7 +551,7 @@ INV_GRAPHIC         = $014B =   331          Snake.asm:32 (unused)
 KEY_GAMEPAD         = $FB99 = 64409          Snake.asm:53 (unused)
 LCD_DATA            = $0142 =   322          Snake.asm:29 (unused)
 LCD_INST            = $013F =   319          Snake.asm:28 (unused)
-PIXEL_BC_DRAW       = $81D8 = 33240          Snake.asm:416
+PIXEL_BC_DRAW       = $81DD = 33245          Snake.asm:418
 PLOT_TO_LCD         = $0124 =   292          Snake.asm:19
 PRINT_CHARS         = $012A =   298          Snake.asm:21 (unused)
 PRINT_STRING        = $0127 =   295          Snake.asm:20 (unused)
@@ -565,50 +567,51 @@ SET_GR_MODE         = $010C =   268          Snake.asm:11 (unused)
 SET_TXT_MODE        = $010F =   271          Snake.asm:12 (unused)
 TELA_X              = $007F =   127          Snake.asm:61
 TELA_Y              = $003F =    63          Snake.asm:62
-TRY_DOWN            = $817D = 33149          Snake.asm:333
-TRY_LEFT            = $8189 = 33161          Snake.asm:341
-TRY_RIGHT           = $8195 = 33173          Snake.asm:349
-TRY_UP              = $8171 = 33137          Snake.asm:325
+TRY_DOWN            = $8182 = 33154          Snake.asm:335
+TRY_LEFT            = $818E = 33166          Snake.asm:343
+TRY_RIGHT           = $819A = 33178          Snake.asm:351
+TRY_UP              = $8176 = 33142          Snake.asm:327
 VTELA_X             = $003F =    63          Snake.asm:64
 VTELA_Y             = $001F =    31          Snake.asm:65
-_end                = $8247 = 33351          Snake.asm:67 (unused)
-_size               = $0247 =   583          Snake.asm:67 (unused)
+_end                = $824C = 33356          Snake.asm:67 (unused)
+_size               = $024C =   588          Snake.asm:67 (unused)
 _z80_               = $0001 =     1          Snake.asm:1 (unused)
-atualiza_corpo      = $80F4 = 33012          Snake.asm:225
-atualiza_corpo_loop = $810C = 33036          Snake.asm:248
-atualiza_display    = $81DE = 33246          Snake.asm:422
-atualiza_head       = $8115 = 33045          Snake.asm:259
-atualiza_jogo       = $8084 = 32900          Snake.asm:153
-check_colisao       = $80DA = 32986          Snake.asm:205
-check_food          = $8094 = 32916          Snake.asm:162
-comer               = $80A5 = 32933          Snake.asm:174
+atualiza_corpo      = $80F9 = 33017          Snake.asm:227
+atualiza_corpo_loop = $8111 = 33041          Snake.asm:250
+atualiza_display    = $81E3 = 33251          Snake.asm:424
+atualiza_head       = $811A = 33050          Snake.asm:261
+atualiza_jogo       = $8089 = 32905          Snake.asm:155
+check_colisao       = $80DF = 32991          Snake.asm:207
+check_food          = $8099 = 32921          Snake.asm:164
+comer               = $80AA = 32938          Snake.asm:176
 delay_loop          = $804D = 32845          Snake.asm:119
-desenha_food        = $81A1 = 33185          Snake.asm:358
-desenha_snake       = $81AD = 33197          Snake.asm:367
-desenha_snake_loop  = $81B4 = 33204          Snake.asm:371
-direction           = $8241 = 33345          Snake.asm:496
-fim_de_jogo         = $80BC = 32956          Snake.asm:189
-fim_de_jogo_loop    = $80D0 = 32976          Snake.asm:198
-food_x              = $8244 = 33348          Snake.asm:499
-food_y              = $8243 = 33347          Snake.asm:498
-gameover            = $823C = 33340          Snake.asm:493
-head_x              = $8246 = 33350          Snake.asm:501
-head_y              = $8245 = 33349          Snake.asm:500
-ler_teclado         = $814D = 33101          Snake.asm:300
+delay_loop_skip     = $8057 = 32855          Snake.asm:124
+desenha_food        = $81A6 = 33190          Snake.asm:360
+desenha_snake       = $81B2 = 33202          Snake.asm:369
+desenha_snake_loop  = $81B9 = 33209          Snake.asm:373
+direction           = $8246 = 33350          Snake.asm:498
+fim_de_jogo         = $80C1 = 32961          Snake.asm:191
+fim_de_jogo_loop    = $80D5 = 32981          Snake.asm:200
+food_x              = $8249 = 33353          Snake.asm:501
+food_y              = $8248 = 33352          Snake.asm:500
+gameover            = $8241 = 33345          Snake.asm:495
+head_x              = $824B = 33355          Snake.asm:503
+head_y              = $824A = 33354          Snake.asm:502
+ler_teclado         = $8152 = 33106          Snake.asm:302
 loop                = $8045 = 32837          Snake.asm:114
-loop_enter          = $8075 = 32885          Snake.asm:144
-msg_gameover        = $8231 = 33329          Snake.asm:491
-msg_start           = $8225 = 33317          Snake.asm:490
-new_food            = $80B0 = 32944          Snake.asm:181
-prng16              = $820B = 33291          Snake.asm:458
-randomHL            = $81F5 = 33269          Snake.asm:440
-read_keys           = $823B = 33339          Snake.asm:492
-seed1               = $823D = 33341          Snake.asm:494
-seed2               = $823F = 33343          Snake.asm:495
-set_pixel_bc        = $81C2 = 33218          Snake.asm:388
-size                = $8242 = 33346          Snake.asm:497
+loop_enter          = $807A = 32890          Snake.asm:146
+msg_gameover        = $8236 = 33334          Snake.asm:493
+msg_start           = $822A = 33322          Snake.asm:492
+new_food            = $80B5 = 32949          Snake.asm:183
+prng16              = $8210 = 33296          Snake.asm:460
+randomHL            = $81FA = 33274          Snake.asm:442
+read_keys           = $8240 = 33344          Snake.asm:494
+seed1               = $8242 = 33346          Snake.asm:496
+seed2               = $8244 = 33348          Snake.asm:497
+set_pixel_bc        = $81C7 = 33223          Snake.asm:390
+size                = $8247 = 33351          Snake.asm:499
 start_game          = $8005 = 32773          Snake.asm:72
 
 
-total time: 0.0307 sec.
+total time: 0.0311 sec.
 no errors

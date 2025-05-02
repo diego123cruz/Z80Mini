@@ -118,8 +118,10 @@ loop:
     LD B, $62
 delay_loop:
     in A, (GAMEPAD)
+    CP 0
+    JP Z, delay_loop_skip
     LD (read_keys), A
-
+delay_loop_skip:
     LD DE, $0001
     CALL H_Delay
     DJNZ delay_loop
