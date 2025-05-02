@@ -1,0 +1,3892 @@
+              	; --------------------------------------
+              	; zasm: assemble "Z80MiniGame.asm"
+              	; date: 2025-05-01 23:54:09
+              	; --------------------------------------
+
+
+              	; Z80Mini - GameCore
+              	; 05/2025
+              	; Requerimento: Placa base + Game core - Face.
+              	;
+              	;
+              	;
+              	;   ============== COMPILADOR ===================
+              	;
+              	;   Compilador (https://k1.spdns.de/Develop/Projects/zasm/Distributions/):
+              	;
+              	;       Win(CMD):           zasm.exe --z80 -w -u --bin  Z80MiniGame.asm
+              	;       Win(Powershell):    ./zasm.exe --z80 -w -u --bin  Z80MiniGame.asm
+              	;       Macos:              ./zasm --z80 -w -u --bin  Z80MiniGame.asm
+              	;
+              	;
+              	;   =============== GRAVAÇÃO ====================
+              	;
+              	;     GRAVAÇÃO (32kb) (TL866 2 Plus - MacOS):
+              	;	    minipro -p AT28C64B -w Z80MiniGame.rom -s	
+              	;
+              	;
+              	;   =============== HARDWARE ====================
+              	;         - CPU Z80@7.37280Mhz
+              	;         - Rom 32k 0000h - 7FFFh
+              	;         - Ram 32k 8000h - FFFFh
+              	;			
+              	;		  - Display Grafico - 70h
+              	;		  		- 128x64
+              	;         
+              	;         - Ports:
+              	;               - Onboard IN/OUT: 40H
+              	;					- Controle - pullDown (Input)
+              	;						- bit0 - A
+              	;						- bit1 - B
+              	;						- bit2 - Start
+              	;						- bit3 - Select
+              	;						- bit4 - Right
+              	;						- bit5 - Down
+              	;						- bit6 - Left
+              	;						- bit7 - Up
+              	;
+              	;               - User IN/OUT: C0H
+              	;
+              	;   =============== LCD LIB ======================
+              	;   ; Graphical LCD 128 x 64 Library
+              	;   ------------------------------
+              	;   By B. Chiha May-2023
+              	;   https://github.com/bchiha/Z80_LCD_128x64_Graphics_Library/tree/
+              	;
+              	;
+              	;
+              	; -----------------------------------------------------------------------------
+              	; PORTS
+              	; -----------------------------------------------------------------------------
+0070:         	LCDCTRL	    .EQU    $70
+0071:         	LCDDATA     .EQU    $71
+0040:         	GAMEPAD     .EQU    $40
+              	; SIO/2 - 115200
+0000:         	SIOA_D		.EQU	$00
+0002:         	SIOA_C		.EQU	$02
+0001:         	SIOB_D		.EQU	$01 ; Não usado
+0003:         	SIOB_C		.EQU	$03 ; Não usado
+              	
+              	; -----------------------------------------------------------------------------
+              	; H_Delay CONFIG
+              	; -----------------------------------------------------------------------------
+708000:         	kCPUClock:  .EQU 7372800       ;CPU clock speed in Hz
+0024:         	kDelayOH:   .EQU 36             ;Overhead for each 1ms in Tcycles
+001A:         	kDelayLP:   .EQU 26             ;Inner loop time in Tcycles
+1CCC:         	kDelayTA:   .EQU kCPUClock / 1000 ;CPU clock cycles per millisecond
+1CA8:         	kDelayTB:   .EQU kDelayTA - kDelayOH  ;Cycles required for inner loop
+011A:         	kDelayCnt:  .EQU kDelayTB / kDelayLP  ;Loop counter for inner loop
+              	
+              	; -----------------------------------------------------------------------------
+              	; SYSTEM SETTINGS
+              	; -----------------------------------------------------------------------------
+FFF0:         	SYSTEM_SP:	.EQU 	$FFF0	;INITIAL STACK POINTER
+              	
+              	
+              	
+              	; -----------------------------------------------------------------------------
+              	; INIT SYSTEM 
+              	; -----------------------------------------------------------------------------
+0000:         	    .ORG $0000
+0000: F3      	RST00:	DI			    ;Disable INTerrupts
+0001: C36901  			JP	INIT		;Initialize Hardware and go
+              	
+              	;------------------------------------------------------------------------------
+              	; TX a character over RS232 wait for TXDONE first.
+              	;------------------------------------------------------------------------------
+0004: FFFFFFFF	    .ORG $0008
+0008: C30D02  	RST08:	JP	conout
+              	
+              	;------------------------------------------------------------------------------
+              	; RX a character from buffer wait until char ready.
+              	;------------------------------------------------------------------------------
+000B: FFFFFFFF	    .ORG $0010
+000F: FF      	
+0010: C31702  	RST10:		JP	conin
+              	
+              	; =========================================================
+              	; Int 38h - Monitor 
+              	; =========================================================
+0013: FFFFFFFF		.org    $0038
+0017: FF...   	
+0038:         	RST38:
+0038: F3      	    DI
+0039: E5      		PUSH HL
+003A: 2A97FB  	    LD HL, (INT_VEC)
+003D: E9      	    JP (HL)
+              	
+              	; -----------------------------------------------------------------------------
+              	; API
+              	; -----------------------------------------------------------------------------
+003E: FFFFFFFF		.ORG $0100 ; API POINTER
+0042: FF...   	
+              	; LCD
+0100: C31203  	    JP INIT_LCD             ;Initalise the LCD
+0103: C32703  	    JP CLEAR_GBUF           ;Clear the Graphics Buffer
+0106: C33703  	    JP CLEAR_GR_LCD         ;Clear the Graphics LCD Screen
+0109: C35E03  	    JP CLEAR_TXT_LCD        ;Clear the Text LCD Screen
+010C: C37503  	    JP SET_GR_MODE          ;Set Graphics Mode
+010F: C37F03  	    JP SET_TXT_MODE         ;Set Text Mode
+0112: C38403  	    JP DRAW_BOX             ;Draw a rectangle between two points
+0115: C3BF03  	    JP DRAW_LINE            ;Draw a line between two points
+0118: C36A04  	    JP DRAW_CIRCLE          ;Draw a circle from Mid X,Y to Radius
+011B: C33F05  	    JP DRAW_PIXEL           ;Draw one pixel at X,Y
+011E: C3AF03  	    JP FILL_BOX             ;Draw a filled rectangle between two points
+0121: C33105  	    JP FILL_CIRCLE          ;Draw a filled circle from Mid X,Y to Radius
+0124: C39205  	    JP PLOT_TO_LCD          ;Display the Graphics Buffer to the LCD Screen
+0127: C3C405  	    JP PRINT_STRING         ;Print Text on the screen in a given row
+012A: C3E605  	    JP PRINT_CHARS          ;Print Characters on the screen in a given row and column
+012D: C30506  	    JP DELAY_US             ;Microsecond delay for LCD updates
+0130: C30806  	    JP DELAY_MS             ;Millisecond delay for LCD updates
+0133: C30E06  	    JP SET_BUF_CLEAR        ;Clear the Graphics buffer on after Plotting to the screen
+0136: C31606  	    JP SET_BUF_NO_CLEAR     ;Retain the Graphics buffer on after Plotting to the screen
+0139: C35005  	    JP CLEAR_PIXEL          ;Remove a Pixel at X,Y
+013C: C36205  	    JP FLIP_PIXEL           ;Flip a Pixel On/Off at X,Y
+013F: C3FE07  	    JP LCD_INST             ;Send a parallel or serial instruction to LCD
+0142: C30308  	    JP LCD_DATA             ;Send a parallel or serial datum to LCD
+0145: C31608  	    JP SER_SYNC             ;Send serial synchronise byte to LCD
+0148: C3A207  	    JP DRAW_GRAPHIC         ;Draw an ASCII charcter or Sprite to the LCD
+014B: C39A07  	    JP INV_GRAPHIC          ;Inverse graphics printing
+014E: C31B06  	    JP INIT_TERMINAL        ;Initialize the LCD for terminal emulation
+0151: C32F06  	    JP SEND_CHAR_TO_GLCD    ;Send an ASCII Character to the LCD
+0154: C39E06  	    JP SEND_STRING_TO_GLCD  ;Send an ASCII String to the LCD
+0157: C3B706  	    JP SEND_A_TO_GLCD       ;Send register A to the LCD
+015A: C3D406  	    JP SEND_HL_TO_GLCD      ;Send register HL to the LCD
+015D: C3E006  	    JP SET_CURSOR           ;Set the graphics cursor
+0160: C39107  	    JP GET_CURSOR           ;Get the current cursor
+0163: C39607  	    JP DISPLAY_CURSOR       ;Set Cursor on or off
+              	; UTIL
+0166: C39302  	    JP DELAY_DE             ;Delay in milliseconds (DE in millis)
+              	
+              	
+              	
+              	
+              	
+0169:         	INIT:
+0169: 31F0FF  	    LD SP, SYSTEM_SP
+              		; Init Serial
+016C: CDD901  	    CALL setup_serial
+016F: 21B50E  		LD HL, WELLCOME
+0172: CDFF01  	    CALL PRINT
+              	
+              		; Init LCD
+0175: 116400  		LD DE, $0064 ; 100ms
+0178: CD9302  	    CALL DELAY_DE
+              	
+017B: CD1B06  	    CALL INIT_TERMINAL
+017E: CD7503  	    CALL SET_GR_MODE
+0181: CD1606  	    CALL SET_BUF_NO_CLEAR
+              	
+0184: 010000  		LD BC, $0000
+0187: CDE006  	    CALL SET_CURSOR
+018A: 21CF0E  		LD HL, WELLCOME_LCD
+018D: CDE902  		CALL LCD_PRINT_STRING
+              	
+0190: 21C201  		LD  HL, INT38
+0193: 2297FB  	    LD  (INT_VEC), HL
+              	    ;IM  1
+              	    ;EI
+              	
+0196:         	monitor:
+0196: 219601  		LD HL, monitor ; point to return to monitor
+0199: E5      		PUSH HL
+019A:         	monitor0:
+019A: CD0602  		CALL TXCRLF	; Entry point for Monitor, Normal	
+019D: 3E3E    		LD   A,'>'	; Get a ">"	
+019F: CF      		RST 08H		; print it
+              	
+01A0:         	monitor1:
+01A0: D7      		RST 10H	; Get a character from serial
+01A1: FE20    		CP   ' '	; <spc> or less? 	
+01A3: 38FB    		JR   C, monitor1	; Go back
+              	
+01A5: FE3A    		CP   ':'	; ":"?
+01A7: CAA802  		JP   Z,LOAD	; First character of a HEX load
+              	
+01AA: CF      		RST 08H	; Print char on console
+              	
+01AB: FE3F    		CP   '?'
+01AD: CAF801  		JP   Z,HELP
+              	
+01B0: E65F    		AND  $5F	; Make character uppercase
+              	
+01B2: FE52    		CP   'R' 	; reset
+01B4: CA0000  		JP   Z, RST00
+              	
+01B7: FE47    		CP   'G'
+01B9: CAF201  		JP   Z,GOTO
+              	
+01BC: 3E3F    		LD   A,'?'	; Get a "?"	
+01BE: CF      		RST 08H		; Print it
+              	
+01BF: C39A01  	    jp monitor0
+              	
+01C2:         	INT38:
+01C2: F3      		DI
+01C3: F5      		PUSH AF
+01C4: DB40    		IN A, (GAMEPAD)
+01C6: CACC01  		JP Z, INT38_END
+01C9: 3299FB  		LD (GAMEPAD_KEY), A
+01CC:         	INT38_END:
+01CC: F1      		POP AF
+01CD: E1      		POP HL
+01CE: FB      		EI
+01CF: ED4D    		RETI
+              	
+01D1:         	check_keypad:
+01D1: DB40    		in A, (GAMEPAD)
+01D3: CB57    		bit 2, A
+01D5: C20080  		JP NZ, $8000
+01D8: C9      		RET
+              	
+01D9:         	setup_serial:
+              	    ;	Initialise SIO/2 A
+01D9: 3E04    		LD	A,$04
+01DB: D302    		OUT	(SIOA_C),A
+01DD: 3EC4    		LD	A,$C4
+01DF: D302    		OUT	(SIOA_C),A
+              	
+01E1: 3E03    		LD	A,$03
+01E3: D302    		OUT	(SIOA_C),A
+01E5: 3EE1    		LD	A,$E1
+01E7: D302    		OUT	(SIOA_C),A
+              	
+01E9: 3E05    		LD	A,$05
+01EB: D302    		OUT	(SIOA_C),A
+01ED: 3E68    		LD	A, $68
+01EF: D302    		OUT	(SIOA_C),A
+01F1: C9      	    RET
+              	
+              	
+              	
+              	
+              	; GOTO command
+01F2:         	GOTO:
+01F2: CD4902  		CALL GETHL		; ENTRY POINT FOR <G>oto addr. Get XXXX from user.
+01F5: D8      		RET  C			; Return if invalid       	
+01F6: E5      		PUSH HL
+01F7: C9      		RET			; Jump to HL address value
+              	
+              	
+              	; HELP
+01F8:         	HELP:
+01F8: 21380E  		LD HL, msg_help
+01FB: CDFF01  		CALL PRINT
+01FE: C9      		RET
+              	
+              	
+              	;------------------------------------------------------------------------------
+              	; Print string of characters to Serial A until byte=$00, WITH CR, LF
+              	;------------------------------------------------------------------------------
+01FF: 7E      	PRINT:  LD   A,(HL)	; Get character
+0200: B7      			OR   A		; Is it $00 ?
+0201: C8      			RET  Z		; Then RETurn on terminator
+0202: CF      			RST  08H	; Print it
+0203: 23      			INC  HL		; Next Character
+0204: 18F9    			JR   PRINT	; Continue until $00
+              	
+0206: 3E0D    	TXCRLF:	LD   A,$0D	; 
+0208: CF      			RST  08H	; Print character 
+0209: 3E0A    			LD   A,$0A	; 
+020B: CF      			RST  08H	; Print character
+020C: C9      			RET
+              	
+              	;------------------------------------------------------------------------------
+              	; Console output routine - Serial
+              	; Output port to send a character.
+              	;------------------------------------------------------------------------------
+020D: F5      	conout:		PUSH	AF		; Store character
+020E: CD2602  	conoutA1:	CALL	CKSIOA		; See if SIO channel A is finished transmitting
+0211: 28FB    			JR	Z, conoutA1	; Loop until SIO flag signals ready
+0213: F1      			POP	AF		; RETrieve character
+0214: D300    			OUT	(SIOA_D),A	; OUTput the character
+0216: C9      			RET
+              	
+0217:         	conin:
+0217:         	waitForChar:
+0217: CDD101  		CALL check_keypad ; Enquanto aguarda serial, verifica check_keypad
+              		; Check if there is a char in channel A
+021A: 97      		SUB	A
+021B: D302    		OUT 	(SIOA_C),A
+021D: DB02    		IN   	A,(SIOA_C)	; Status byte D2=TX Buff Empty, D0=RX char ready	
+021F: 0F      		RRCA			; Rotates RX status into Carry Flag,	
+0220: 30F5    		JR	NC, waitForChar
+0222: DB00    		IN	A,(SIOA_D)
+0224: B7      		OR A ; clear carry
+0225: C9      		RET
+              		
+              	
+0226:         	CKSIOA:
+0226: 97      			SUB	A
+0227: D302    			OUT 	(SIOA_C),A
+0229: DB02    			IN   	A,(SIOA_C)	; Status byte D2=TX Buff Empty, D0=RX char ready	
+022B: 0F      			RRCA			; Rotates RX status into Carry Flag,	
+022C: CB4F    			BIT  	1,A		; Set Zero flag if still transmitting character	
+022E: C9      	        RET
+              	
+              	
+              	;------------------------------------------------------------------------------
+              	; Get a character from the console, must be $20-$7F to be valid (no control characters)
+              	; <Ctrl-c> and <SPACE> breaks with the Zero Flag set
+              	;------------------------------------------------------------------------------	
+022F: D7      	GETCHR	RST 10H	; RX a Character
+0230: FE03    			CP   $03	; <ctrl-c> User break?
+0232: C8      			RET  Z			
+0233: FE20    			CP   $20	; <space> or better?
+0235: 38F8    			JR   C,GETCHR	; Do it again until we get something usable
+0237: C9      			RET
+              	
+              	;------------------------------------------------------------------------------
+              	; Gets two ASCII characters from the console (assuming them to be HEX 0-9 A-F)
+              	; Moves them into B and C, converts them into a byte value in A and updates a
+              	; Checksum value in E
+              	;------------------------------------------------------------------------------
+0238: CD2F02  	GET2	CALL GETCHR	; Get us a valid character to work with
+023B: 47      			LD   B,A	; Load it in B
+023C: CD2F02  			CALL GETCHR	; Get us another character
+023F: 4F      			LD   C,A	; load it in C
+0240: CD7702  			CALL BCTOA	; Convert ASCII to byte
+0243: 4F      			LD   C,A	; Build the checksum
+0244: 7B      			LD   A,E
+0245: 91      			SUB  C		; The checksum should always equal zero when checked
+0246: 5F      			LD   E,A	; Save the checksum back where it came from
+0247: 79      			LD   A,C	; Retrieve the byte and go back
+0248: C9      			RET
+              	
+              	;------------------------------------------------------------------------------
+              	; Gets four Hex characters from the console, converts them to values in HL
+              	;------------------------------------------------------------------------------
+0249: 210000  	GETHL		LD   HL,$0000	; Gets xxxx but sets Carry Flag on any Terminator
+024C: CD9002  			CALL ECHO	; RX a Character
+024F: FE0D    			CP   $0D	; <CR>?
+0251: 200E    			JR   NZ,GETX2	; other key		
+0253: 37      	SETCY		SCF		; Set Carry Flag
+0254: C9      			RET             ; and Return to main program		
+              	;------------------------------------------------------------------------------
+              	; This routine converts last four hex characters (0-9 A-F) user types into a value in HL
+              	; Rotates the old out and replaces with the new until the user hits a terminating character
+              	;------------------------------------------------------------------------------
+0255: 210000  	GETX		LD   HL,$0000	; CLEAR HL
+0258: CD9002  	GETX1		CALL ECHO	; RX a character from the console
+025B: FE0D    			CP   $0D	; <CR>
+025D: C8      			RET  Z		; quit
+025E: FE2C    			CP   $2C	; <,> can be used to safely quit for multiple entries
+0260: C8      			RET  Z		; (Like filling both DE and HL from the user)
+0261: FE03    	GETX2		CP   $03	; Likewise, a <ctrl-C> will terminate clean, too, but
+0263: 28EE    			JR   Z,SETCY	; It also sets the Carry Flag for testing later.
+0265: 29      			ADD  HL,HL	; Otherwise, rotate the previous low nibble to high
+0266: 29      			ADD  HL,HL	; rather slowly
+0267: 29      			ADD  HL,HL	; until we get to the top
+0268: 29      			ADD  HL,HL	; and then we can continue on.
+0269: D630    			SUB  $30	; Convert ASCII to byte	value
+026B: FE0A    			CP   $0A	; Are we in the 0-9 range?
+026D: 3802    			JR   C,GETX3	; Then we just need to sub $30, but if it is A-F
+026F: D607    			SUB  $07	; We need to take off 7 more to get the value down to
+0271: E60F    	GETX3		AND  $0F	; to the right hex value
+0273: 85      			ADD  A,L	; Add the high nibble to the low
+0274: 6F      			LD   L,A	; Move the byte back to A
+0275: 18E1    			JR   GETX1	; and go back for next character until he terminates
+              	;------------------------------------------------------------------------------
+              	; Convert ASCII characters in B C registers to a byte value in A
+              	;------------------------------------------------------------------------------
+0277: 78      	BCTOA		LD   A,B	; Move the hi order byte to A
+0278: D630    			SUB  $30	; Take it down from Ascii
+027A: FE0A    			CP   $0A	; Are we in the 0-9 range here?
+027C: 3802    			JR   C,BCTOA1	; If so, get the next nybble
+027E: D607    			SUB  $07	; But if A-F, take it down some more
+0280: 07      	BCTOA1		RLCA		; Rotate the nybble from low to high
+0281: 07      			RLCA		; One bit at a time
+0282: 07      			RLCA		; Until we
+0283: 07      			RLCA		; Get there with it
+0284: 47      			LD   B,A	; Save the converted high nybble
+0285: 79      			LD   A,C	; Now get the low order byte
+0286: D630    			SUB  $30	; Convert it down from Ascii
+0288: FE0A    			CP   $0A	; 0-9 at this point?
+028A: 3802    			JR   C,BCTOA2	; Good enough then, but
+028C: D607    			SUB  $07	; Take off 7 more if it's A-F
+028E: 80      	BCTOA2		ADD  A,B	; Add in the high order nybble
+028F: C9      			RET
+              	
+              	;------------------------------------------------------------------------------
+              	; Get a character and echo it back to the user
+              	;------------------------------------------------------------------------------
+0290: D7      	ECHO	RST 10H ; rx
+0291: CF      			RST 08H ; tx
+0292: C9      			RET
+              	
+              	
+              	
+              	; **********************************************************************
+              	; Delay by DE milliseconds
+              	;   On entry: DE = Delay time in milliseconds
+              	;   On exit:  AF BC DE HL IX IY I AF' BC' DE' HL' preserved
+0293: F5      	DELAY_DE:    	PUSH AF
+0294: C5      	            PUSH BC
+0295: D5      	            PUSH DE
+              	; 1 ms loop, DE times...        ;[=36]   [=29]    Overhead for each 1ms
+0296: 011A01  	LoopDE:    LD   BC, kDelayCnt   ;[10]    [9]
+              	; Inner loop, BC times...       ;[=26]   [=20]    Loop time in Tcycles
+0299: 0B      	LoopBC:    DEC  BC             ;[6]     [4]
+029A: 79      	            LD   A,C            ;[4]     [4]
+029B: B0      	            OR   B              ;[4]     [4]
+029C: C29902  	            JP   NZ,LoopBC     ;[12/7]  [8/6] 
+              	; Have we looped once for each millisecond requested?
+029F: 1B      	            DEC  DE             ;[6]     [4]
+02A0: 7B      	            LD   A,E            ;[4]     [4]
+02A1: B2      	            OR   D              ;[4]     [4]
+02A2: 20F2    	            JR   NZ, LoopDE     ;[12/7]  [8/6]
+02A4: D1      	            POP  DE
+02A5: C1      	            POP  BC
+02A6: F1      	            POP  AF
+02A7: C9      	            RET
+              	
+              	
+              	
+              	;------------------------------------------------------------------------------
+              	; LOAD Intel Hex format file from the console.
+              	; [Intel Hex Format is:
+              	; 1) Colon (Frame 0)
+              	; 2) Record Length Field (Frames 1 and 2)
+              	; 3) Load Address Field (Frames 3,4,5,6)
+              	; 4) Record Type Field (Frames 7 and 8)
+              	; 5) Data Field (Frames 9 to 9+2*(Record Length)-1
+              	; 6) Checksum Field - Sum of all byte values from Record Length to and 
+              	;   including Checksum Field = 0 ]
+              	;------------------------------------------------------------------------------	
+02A8: 1E00    	LOAD:	LD   E,0	; First two Characters is the Record Length Field
+02AA: CD3802  			CALL GET2	; Get us two characters into BC, convert it to a byte <A>
+02AD: 57      			LD   D,A	; Load Record Length count into D
+02AE: CD3802  			CALL GET2	; Get next two characters, Memory Load Address <H>
+02B1: 67      			LD   H,A	; put value in H register.
+02B2: CD3802  			CALL GET2	; Get next two characters, Memory Load Address <L>
+02B5: 6F      			LD   L,A	; put value in L register.
+02B6: CD3802  			CALL GET2	; Get next two characters, Record Field Type
+02B9: FE01    			CP   $01	; Record Field Type 00 is Data, 01 is End of File
+02BB: 2009    			JR   NZ,LOAD2	; Must be the end of that file
+02BD: CD3802  			CALL GET2	; Get next two characters, assemble into byte
+02C0: 7B      			LD   A,E	; Recall the Checksum byte
+02C1: A7      			AND  A		; Is it Zero?
+02C2: 281E    			JR   Z,LOAD00	; Print footer reached message
+02C4: 1815    			JR   LOADERR	; Checksums don't add up, Error out
+              			
+02C6: 7A      	LOAD2		LD   A,D	; Retrieve line character counter	
+02C7: A7      			AND  A		; Are we done with this line?
+02C8: 280B    			JR   Z,LOAD3	; Get two more ascii characters, build a byte and checksum
+02CA: CD3802  			CALL GET2	; Get next two chars, convert to byte in A, checksum it
+02CD: 77      			LD   (HL),A	; Move converted byte in A to memory location
+02CE: 23      			INC  HL		; Increment pointer to next memory location	
+02CF: 3E2E    			LD   A,'.'	; Print out a "." for every byte loaded
+02D1: CF      			RST  08H	;
+02D2: 15      			DEC  D		; Decrement line character counter
+02D3: 18F1    			JR   LOAD2	; and keep loading into memory until line is complete
+              			
+02D5: CD3802  	LOAD3		CALL GET2	; Get two chars, build byte and checksum
+02D8: 7B      			LD   A,E	; Check the checksum value
+02D9: A7      			AND  A		; Is it zero?
+02DA: C8      			RET  Z
+              	
+02DB: 21930E  	LOADERR		LD   HL,CKSUMERR  ; Get "Checksum Error" message
+02DE: CDFF01  			CALL PRINT	; Print Message from (HL) and terminate the load
+02E1: C9      			RET
+              	
+02E2: 21A40E  	LOAD00  	LD   HL,LDETXT	; Print load complete message
+02E5: CDFF01  			CALL PRINT
+02E8: C9      			RET
+              	
+              	
+              	
+              	
+              	
+              	#include "LCD.asm"
+              	; Graphical LCD 128 x 64 Library
+              	; ------------------------------
+              	; By B. Chiha May-2023
+              	;
+              	; This is a native Z80 Graphics library to be used with 128x64 Graphical LCD Screens
+              	;
+              	; There are a few variants of these LCD screens, but they must all must use the ST7920
+              	; LCD Controller.  The LCD Screen that I used is the QC12864B.  This screen has two
+              	; ST7921 Panels (128 x 32) stacked one above the other.  Other LCD boards might not do
+              	; this.  If so the PLOT_TO_LCD function will need to be modified. (future work)
+              	;
+              	; These screens have DDRAM (Graphics) and CGRAM (Text) areas.  Both RAM areas can 
+              	; be displayed at the same time.
+              	;
+              	; The Pinout for the QC12864B board is as follows:
+              	;
+              	; Pin	Name	Desc                    Serial  Parallel
+              	; ---   ----    -------------           ------  -------------
+              	; 1     VSS     Ground                  GND     GND
+              	; 2     VDD     Power                   5v      5v
+              	; 3     V0      Contrast                N/A     N/A
+              	; 4     D/I     IR/DR (CS)              5v      A7
+              	; 5     R/W     R/W (SID)               D0      RD (inverted)
+              	; 6     E       Enable (SCLK)           D1      Port 7 (inverted)
+              	; 7     DB0     Data                    N/A     D0
+              	; 8     DB1     Data                    N/A     D1
+              	; 9     DB2     Data                    N/A     D2
+              	; 10    DB3     Data                    N/A     D3
+              	; 11    DB4     Data                    N/A     D4
+              	; 12    DB5     Data                    N/A     D5
+              	; 13    DB6     Data                    N/A     D6
+              	; 14    DB7     Data                    N/A     D7
+              	; 15    PSB     Serial/Para             GND     5v
+              	; 16    NC
+              	; 17    RST     Reset                   RST     RST
+              	; 18    VEE     LCD Drive               N/A     N/A
+              	; 19    A       Backlight               5v/NC   5v/NC
+              	; 20    K       Backlight               GND/NC  GND/NC
+              	;
+              	;
+              	;        ORG 2000H               ;Start location
+              	        
+              	; Modifiable values.  Thse three values can be modified to suit your own set up
+              	; LCD_IR and LCD_DR are the output ports to send an Instruction or Data value.
+              	; V_DELAY_US is the minimum delay needed for a command to be processed by the
+              	; LCD board.  If only some of the data is being sent, make this value larger
+              	        
+              	;Port 7 on TEC is connected to LCD Enable (Pin 6)
+              	;A7 is connected to Register select (Pin 4).  (A7=0 for Instruction, A7=1 for Data)
+0070:         	LCD_IR:	EQU 70H         ;Instruction Register
+0071:         	LCD_DR:	EQU 71H         ;Data Register (A7)
+0000:         	LCD_SER: EQU 00H        ;Serial Port if used
+0010:         	V_DELAY_US: EQU $0010   ;Delay for 76us on your system $0004
+              	
+              	;Serial or Parallel communications to the LCD Screen.  Comment one of 
+              	;the labels below based on the LCD connections. 00H = FALSE, 01H = TRUE
+              	;COMMS_MODE: EQU 00H     ;Using PARALLEL Data connection
+              	;COMMS_MODE: EQU 01H     ;Using SERIAL Data connection
+              	
+              	; Dont need to modify anything else below.
+00F8:         	SER_BT: EQU 11111000B           ;Serial Synchronisation Byte
+00B5:         	UP:     EQU $B5                 ; Up Arrow, change Z80 Mini
+00B6:         	DN:     EQU $B6                 ; Down Arrow, change Z80Mini
+0008:         	BKSP:   EQU 08H                 ; Back space 08H
+0009:         	TAB:    EQU 09H                 ; Horizontal TAB
+000A:         	LF:     EQU 0AH                 ; Line feed
+000C:         	CS:     EQU 0CH                 ; Clear screen
+000D:         	CR:     EQU 0DH                 ; Carriage return
+0020:         	SPACE:  EQU 20H                 ; Space
+008F:         	CURSOR: EQU 8FH                 ; Cursor
+007F:         	DEL     EQU    7FH              ; Delete
+              	
+              	
+              	;-----------------
+              	; LCD_PRINT_STRING
+              	; Entry: HL
+              	; String terminada com 0
+              	;-----------------
+02E9:         	LCD_PRINT_STRING:
+02E9: F5      	        PUSH AF
+02EA: C5      		PUSH BC
+02EB: D5      	        PUSH DE
+02EC: E5      	        PUSH HL
+02ED: 3E00    	        LD A, 0 ; terminador da string..
+02EF: 545D    	        LD DE, HL
+02F1: CD9E06  		CALL SEND_STRING_TO_GLCD
+02F4: E1      	        POP HL
+02F5: D1      	        POP DE
+02F6: C1      	        POP BC 
+02F7: F1      	        POP AF
+02F8: C9      		RET
+              	
+              	
+              	;-----------------
+              	; LCD_IMAGE_128x64 - Print image 128x64, CURSOR 0,0
+              	; Entry: HL
+              	;-----------------
+02F9:         	LCD_IMAGE_128x64: 
+02F9: F5      	        PUSH AF
+02FA: C5      		PUSH BC
+02FB: D5      	        PUSH DE
+02FC: E5      	        PUSH HL
+02FD: 010000  	        LD BC, $0000
+0300: CDE006  	        CALL SET_CURSOR
+0303: 0680    	        LD B, 128
+0305: 0E40    	        LD C, 64
+0307: CDB507  		CALL PLOT_GRAPHIC
+030A: CD9205  	        CALL PLOT_TO_LCD
+030D: E1      	        POP HL
+030E: D1      	        POP DE
+030F: C1      	        POP BC 
+0310: F1      	        POP AF
+0311: C9      		RET
+              	
+              	
+              	
+              	; Initialise LCD
+0312:         	INIT_LCD:
+0312: 212E08  	        LD HL, INIT_BASIC       ;POINT HL TO LCD INITIALIZE TABLE
+0315: 0606    	        LD B, 06H               ;B=4 BYTES
+0317:         	NEXT_CMD:
+0317: 7E      	        LD A, (HL)
+0318: CDFE07  	        CALL LCD_INST
+031B: 23      	        INC HL
+031C: 10F9    	        DJNZ NEXT_CMD
+031E: 118002  	        LD DE, $0280            ;1.6 ms $0140@4Mhz
+0321: CD0806  	        CALL DELAY_MS
+              	        
+0324: CD3703  	        CALL CLEAR_GR_LCD
+              	        
+              	; Clears the Graphics Memory Buffer
+0327:         	CLEAR_GBUF:
+0327: 2A80FB  	        LD HL, (VPORT)
+032A: ED5B80FB	        LD DE, (VPORT)
+032E: 13      	        INC DE
+032F: AF      	        XOR A
+0330: 77      	        LD (HL), A
+0331: 01FF03  	        LD BC, 03FFH
+0334: EDB0    	        LDIR
+0336: C9      	        RET
+              	        
+              	; Clears the Graphics LCD Buffer
+0337:         	CLEAR_GR_LCD:
+0337: CD7503  	        CALL SET_GR_MODE
+033A: 0E00    	        LD C, 00H
+033C:         	CLR_X:
+033C: 3E80    	        LD A, 80H
+033E: B1      	        OR C
+033F: CDFE07  	        CALL LCD_INST
+0342: 3E80    	        LD A, 80H
+0344: CDFE07  	        CALL LCD_INST
+0347: 3E02    	        LD A, 02H 
+0349: CD1608  	        CALL SER_SYNC           ;Data Block Sync
+034C: AF      	        XOR A                   ;Clear Byte
+034D: 0610    	        LD B, 10H
+034F:         	CLR_Y:
+034F: CD0308  	        CALL LCD_DATA
+0352: CD0308  	        CALL LCD_DATA
+0355: 10F8    	        DJNZ CLR_Y
+0357: 0C      	        INC C
+0358: 79      	        LD A, C
+0359: FE20    	        CP 20H
+035B: 20DF    	        JR NZ, CLR_X        
+035D: C9      	        RET
+              	
+              	; Clears the ASCII Text LCD
+035E:         	CLEAR_TXT_LCD:
+035E: CD7F03  	        CALL SET_TXT_MODE
+0361: 3E80    	        LD A, 80H
+0363: CDFE07  	        CALL LCD_INST
+0366: 3E02    	        LD A, 02H 
+0368: CD1608  	        CALL SER_SYNC           ;Data Block Sync
+036B: 0640    	        LD B, 40H
+036D:         	CLR_ROWS:
+036D: 3E20    	        LD A,  " "
+036F: CD0308  	        CALL LCD_DATA
+0372: 10F9    	        DJNZ CLR_ROWS
+0374: C9      	        RET
+              	        
+              	; Set Graphics Mode
+0375:         	SET_GR_MODE:
+0375: 3E34    	        LD A, 34H
+0377: CDFE07  	        CALL LCD_INST
+037A: 3E36    	        LD A, 36H
+037C: C3FE07  	        JP LCD_INST
+              	        
+              	; Set Text Mode
+037F:         	SET_TXT_MODE:
+037F: 3E30    	        LD A, 30H
+0381: C3FE07  	        JP LCD_INST
+              	        
+              	;Draw Box
+              	;Inputs: BC = X0,Y0
+              	;        DE = X1,Y1
+              	;Destroys: HL
+0384:         	DRAW_BOX:
+0384: C5      	        PUSH BC
+0385:         	GTOP:
+0385: CD3F05  	        CALL DRAW_PIXEL
+0388: 7A      	        LD A, D
+0389: 04      	        INC B
+038A: B8      	        CP B
+038B: 30F8    	        JR NC, GTOP
+038D: C1      	        POP BC
+              	        
+038E: C5      	        PUSH BC
+038F: 4B      	        LD C, E
+0390:         	GBOTTOM:
+0390: CD3F05  	        CALL DRAW_PIXEL
+0393: 7A      	        LD A, D
+0394: 04      	        INC B
+0395: B8      	        CP B
+0396: 30F8    	        JR NC, GBOTTOM
+0398: C1      	        POP BC
+              	        
+0399: C5      	        PUSH BC
+039A:         	GLEFT:
+039A: CD3F05  	        CALL DRAW_PIXEL
+039D: 7B      	        LD A, E
+039E: 0C      	        INC C
+039F: B9      	        CP C
+03A0: 30F8    	        JR NC, GLEFT
+03A2: C1      	        POP BC
+              	        
+03A3: C5      	        PUSH BC
+03A4: 42      	        LD B, D
+03A5:         	GRIGHT:
+03A5: CD3F05  	        CALL DRAW_PIXEL
+03A8: 7B      	        LD A, E
+03A9: 0C      	        INC C
+03AA: B9      	        CP C
+03AB: 30F8    	        JR NC, GRIGHT
+03AD: C1      	        POP BC
+03AE: C9      	        RET
+              	        
+              	;Fill Box
+              	;Draws vertical lines from X0,Y0 to X0,Y1 and increase X0 to X1 until X0=X1
+              	;Inputs: BC = X0,Y0
+              	;        DE = X1,Y1
+              	;Destroys: HL
+03AF:         	FILL_BOX:
+03AF: C5      	        PUSH BC
+03B0:         	NEXT_PIXEL:
+03B0: CD3F05  	        CALL DRAW_PIXEL
+03B3: 7B      	        LD A, E
+03B4: 0C      	        INC C
+03B5: B9      	        CP C
+03B6: 30F8    	        JR NC, NEXT_PIXEL
+03B8: C1      	        POP BC
+03B9: 7A      	        LD A, D
+03BA: 04      	        INC B
+03BB: B8      	        CP B
+03BC: 30F1    	        JR NC, FILL_BOX
+03BE: C9      	        RET
+              	        
+              	;Draw a line between two points using Bresenham Line Algorithm
+              	; void plotLine(int x0, int y0, int x1, int y1)
+              	; {
+              	;    int dx =  abs(x1-x0), sx = x0<x1 ? 1 : -1;
+              	;    int dy = -abs(y1-y0), sy = y0<y1 ? 1 : -1;
+              	;    int err = dx+dy, e2; /* error value e_xy */
+              	        
+              	;    for(;;){  /* loop */
+              	;       setPixel(x0,y0);
+              	;       if (x0==x1 && y0==y1) break;
+              	;       e2 = 2*err;
+              	;       if (e2 >= dy) { err += dy; x0 += sx; } /* e_xy+e_x > 0 */
+              	;       if (e2 <= dx) { err += dx; y0 += sy; } /* e_xy+e_y < 0 */
+              	;    }
+              	; }
+              	;Inputs: BC = X0,Y0
+              	;        DE = X1,Y1
+03BF:         	DRAW_LINE:
+              	;check that points are in range
+03BF: 79      	        LD A, C
+03C0: FE40    	        CP 40H
+03C2: D0      	        RET NC
+03C3: 78      	        LD A, B
+03C4: FE80    	        CP 80H
+03C6: D0      	        RET NC
+03C7: 7B      	        LD A, E
+03C8: FE40    	        CP 40H
+03CA: D0      	        RET NC
+03CB: 7A      	        LD A, D
+03CC: FE80    	        CP 80H
+03CE: D0      	        RET NC
+              	        
+              	;sx = x0<x1 ? 1 : -1
+03CF: 2601    	        LD H, 01H
+03D1: 78      	        LD A, B
+03D2: BA      	        CP D
+03D3: 3802    	        JR C, $ + 4
+03D5: 26FF    	        LD H, 0FFH
+03D7: 7C      	        LD A, H
+03D8: 3286FB  	        LD (SX), A
+              	        
+              	;sy = y0<y1 ? 1 : -1
+03DB: 2601    	        LD H, 01H
+03DD: 79      	        LD A, C
+03DE: BB      	        CP E
+03DF: 3802    	        JR C, $ + 4
+03E1: 26FF    	        LD H, 0FFH
+03E3: 7C      	        LD A, H
+03E4: 3287FB  	        LD (SY), A
+              	        
+03E7: ED5384FB	        ld (ENDPT), DE
+              	        
+              	;dx =  abs(x1-x0)
+03EB: C5      	        PUSH BC
+03EC: 6A      	        LD L, D
+03ED: 2600    	        LD H, 0
+03EF: 48      	        LD C, B
+03F0: 0600    	        LD B, 0
+03F2: B7      	        OR A
+03F3: ED42    	        SBC HL, BC
+03F5: CD6004  	        CALL ABSHL
+03F8: 2288FB  	        LD (DX), HL
+03FB: C1      	        POP BC
+              	        
+              	;dy = -abs(y1-y0)
+03FC: C5      	        PUSH BC
+03FD: 6B      	        LD L, E
+03FE: 2600    	        LD H, 0
+0400: 0600    	        LD B, 0
+0402: B7      	        OR A
+0403: ED42    	        SBC HL, BC
+0405: CD6004  	        CALL ABSHL
+0408: AF      	        XOR A
+0409: 95      	        SUB L
+040A: 6F      	        LD L, A
+040B: 9F      	        SBC A, A
+040C: 94      	        SUB H
+040D: 67      	        LD H, A
+040E: 228AFB  	        LD (DY), HL
+0411: C1      	        POP BC
+              	        
+              	;err = dx+dy,
+0412: ED5B88FB	        LD DE, (DX)
+0416: 19      	        ADD HL, DE
+0417: 228CFB  	        LD (ERR), HL
+              	        
+041A:         	LINE_LOOP:
+              	;setPixel(x0,y0)
+041A: CD3F05  	        CALL DRAW_PIXEL
+              	        
+              	;if (x0==x1 && y0==y1) break;
+041D: 3A85FB  	        LD A, (ENDPT + 1)
+0420: B8      	        CP B
+0421: 2005    	        JR NZ, $ + 7
+0423: 3A84FB  	        LD A, (ENDPT)
+0426: B9      	        CP C
+0427: C8      	        RET Z
+              	        
+              	;e2 = 2*err;
+0428: 2A8CFB  	        LD HL, (ERR)
+042B: 29      	        ADD HL, HL              ;E2
+              	        
+              	;if (e2 >= dy)  err += dy; x0 += sx;
+042C: ED5B8AFB	        LD DE, (DY)
+0430: B7      	        OR A
+0431: ED52    	        SBC HL, DE
+0433: 19      	        ADD HL, DE
+0434: FA4504  	        JP M, LL2
+              	        
+0437: E5      	        PUSH HL
+0438: 2A8CFB  	        LD HL, (ERR)
+043B: 19      	        ADD HL, DE
+043C: 228CFB  	        LD (ERR), HL
+043F: 3A86FB  	        LD A, (SX)
+0442: 80      	        ADD A, B
+0443: 47      	        LD B, A
+0444: E1      	        POP HL
+              	        
+0445:         	LL2:
+              	;if (e2 <= dx)  err += dx; y0 += sy;
+0445: ED5B88FB	        LD DE, (DX)
+0449: B7      	        OR A
+044A: ED52    	        SBC HL, DE
+044C: 19      	        ADD HL, DE
+044D: 2803    	        JR Z, LL3
+044F: F21A04  	        JP P, LINE_LOOP
+0452:         	LL3:
+0452: 2A8CFB  	        LD HL, (ERR)
+0455: 19      	        ADD HL, DE
+0456: 228CFB  	        LD (ERR), HL
+0459: 3A87FB  	        LD A, (SY)
+045C: 81      	        ADD A, C
+045D: 4F      	        LD C, A
+              	        
+045E: 18BA    	        JR LINE_LOOP
+              	        
+0460:         	ABSHL:
+0460: CB7C    	        BIT 7, H
+0462: C8      	        RET Z
+0463: AF      	        XOR A
+0464: 95      	        SUB L
+0465: 6F      	        LD L, A
+0466: 9F      	        SBC A, A
+0467: 94      	        SUB H
+0468: 67      	        LD H, A
+0469: C9      	        RET
+              	        
+              	;Draw a circle from a midpoint to a radius using Bresenham Line Algorithm
+              	; void plotCircle(int xm, int ym, int r)
+              	; {
+              	;    int x = -r, y = 0, err = 2-2*r, i = 0; /* II. Quadrant */
+              	;    printf("Midpoint = (%X,%X), Radius = %X\n", xm, ym, r);
+              	;    do {
+              	;       printf("(%X,%X) ", xm-x, ym+y); /*   I. Quadrant */
+              	;       printf("(%X,%X) ", xm-y, ym-x); /*  II. Quadrant */
+              	;       printf("(%X,%X) ", xm+x, ym-y); /* III. Quadrant */
+              	;       printf("(%X,%X) ", xm+y, ym+x); /*  IV. Quadrant */
+              	;       r = err;
+              	;       if (r <= y) err += ++y*2+1;           /* e_xy+e_y < 0 */
+              	;       if (r > x || err > y) err += ++x*2+1; /* e_xy+e_x > 0 or no 2nd y-step */
+              	;       printf("x = %d, r = %d, y = %d, err =%d\n", x, r, y, err);
+              	;    } while (x < 0);
+              	; }
+              	;Inputs BC = xm,ym (Midpoint)
+              	;       E = radius
+046A:         	DRAW_CIRCLE:
+              	;   int x = -r, err = 2-2*r; /* II. Quadrant */
+046A: AF      	        XOR A
+046B: 93      	        SUB E
+046C: 3286FB  	        LD (SX), A              ;x
+              	;   y = 0
+046F: AF      	        XOR A
+0470: 3287FB  	        LD (SY), A              ;y
+              	;   RAD = r
+0473: 1600    	        LD D, 00H
+0475: 7B      	        LD A, E
+0476: ED538EFB	        LD (RAD), DE            ;r
+              	;   err = 2-2*r
+047A: EB      	        EX DE, HL
+047B: 29      	        ADD HL, HL
+047C: EB      	        EX DE, HL
+047D: 210200  	        LD HL, 0002H
+0480: B7      	        OR A
+0481: ED52    	        SBC HL, DE              ;err
+0483: 228CFB  	        LD (ERR), HL
+              	        
+0486:         	CIRCLE_LOOP:
+              	;       setPixel(xm-x, ym+y); /*   I. Quadrant */
+0486: C5      	        PUSH BC
+0487: 3A86FB  	        LD A, (SX)
+048A: ED44    	        NEG
+048C: 80      	        ADD A, B
+048D: 47      	        LD B, A
+048E: 3A87FB  	        LD A, (SY)
+0491: 81      	        ADD A, C
+0492: 4F      	        LD C, A
+0493: CD3F05  	        CALL DRAW_PIXEL
+0496: C1      	        POP BC
+              	;       setPixel(xm+x, ym-y); /* III. Quadrant */
+0497: C5      	        PUSH BC
+0498: 3A86FB  	        LD A, (SX)
+049B: 80      	        ADD A, B
+049C: 47      	        LD B, A
+049D: 3A87FB  	        LD A, (SY)
+04A0: ED44    	        NEG
+04A2: 81      	        ADD A, C
+04A3: 4F      	        LD C, A
+04A4: CD3F05  	        CALL DRAW_PIXEL
+04A7: C1      	        POP BC
+              	;       setPixel(xm-y, ym-x); /*  II. Quadrant */
+04A8: C5      	        PUSH BC
+04A9: 3A87FB  	        LD A, (SY)
+04AC: ED44    	        NEG
+04AE: 80      	        ADD A, B
+04AF: 47      	        LD B, A
+04B0: 3A86FB  	        LD A, (SX)
+04B3: ED44    	        NEG
+04B5: 81      	        ADD A, C
+04B6: 4F      	        LD C, A
+04B7: CD3F05  	        CALL DRAW_PIXEL
+04BA: C1      	        POP BC
+              	;       setPixel(xm+y, ym+x); /*  IV. Quadrant */
+04BB: C5      	        PUSH BC
+04BC: 3A87FB  	        LD A, (SY)
+04BF: 80      	        ADD A, B
+04C0: 47      	        LD B, A
+04C1: 3A86FB  	        LD A, (SX)
+04C4: 81      	        ADD A, C
+04C5: 4F      	        LD C, A
+04C6: CD3F05  	        CALL DRAW_PIXEL
+04C9: C1      	        POP BC
+              	;       r = err;
+04CA: 2A8CFB  	        LD HL, (ERR)
+04CD: 228EFB  	        LD (RAD), HL
+              	;       if (r <= y) err += ++y*2+1;           /* e_xy+e_y < 0 */
+04D0: 3A87FB  	        LD A, (SY)
+04D3: 5F      	        LD E, A
+04D4: 1600    	        LD D, 0
+04D6: B7      	        OR A
+04D7: ED52    	        SBC HL, DE
+04D9: 19      	        ADD HL, DE
+04DA: 2803    	        JR Z, $ + 5
+04DC: F2F204  	        JP P, DS1
+04DF: 3A87FB  	        LD A, (SY)
+04E2: 3C      	        INC A
+04E3: 3287FB  	        LD (SY), A
+04E6: 87      	        ADD A, A
+04E7: 3C      	        INC A
+04E8: 5F      	        LD E, A
+04E9: 1600    	        LD D, 0
+04EB: 2A8CFB  	        LD HL, (ERR)
+04EE: 19      	        ADD HL, DE
+04EF: 228CFB  	        LD (ERR), HL
+              	;       if (r > x || err > y) err += ++x*2+1; /* e_xy+e_x > 0 or no 2nd y-step */
+04F2:         	DS1:
+04F2: 2A8EFB  	        LD HL, (RAD)
+04F5: 3A86FB  	        LD A, (SX)
+04F8: 16FF    	        LD D, 0FFH
+04FA: 5F      	        LD E, A
+04FB: B7      	        OR A
+04FC: ED52    	        SBC HL, DE
+04FE: 19      	        ADD HL, DE
+04FF: 2803    	        JR Z, $ + 5
+0501: F21605  	        JP P, DS2
+0504: 2A8CFB  	        LD HL, (ERR)
+0507: 3A87FB  	        LD A, (SY)
+050A: 1600    	        LD D, 0
+050C: 5F      	        LD E, A
+050D: B7      	        OR A
+050E: ED52    	        SBC HL, DE
+0510: 19      	        ADD HL, DE
+0511: 2816    	        JR Z, DS3
+0513: FA2905  	        JP M, DS3
+0516:         	DS2:
+0516: 3A86FB  	        LD A, (SX)
+0519: 3C      	        INC A
+051A: 3286FB  	        LD (SX), A
+051D: 87      	        ADD A, A
+051E: 3C      	        INC A
+051F: 5F      	        LD E, A
+0520: 16FF    	        LD D, 0FFH
+0522: 2A8CFB  	        LD HL, (ERR)
+0525: 19      	        ADD HL, DE
+0526: 228CFB  	        LD (ERR), HL
+              	;   } while (x < 0);
+0529:         	DS3:
+0529: 3A86FB  	        LD A, (SX)
+052C: B7      	        OR A
+052D: C28604  	        JP NZ, CIRCLE_LOOP
+0530: C9      	        RET
+              	        
+              	;Fill Circle
+              	;Fills a circle by increasing radius until Radius = Original Radius E
+              	;Inputs BC = xm,ym (Midpoint)
+              	;       E = radius
+0531:         	FILL_CIRCLE:
+0531: 1601    	        LD D, 01H               ;Start radius
+0533:         	NEXT_CIRCLE:
+0533: D5      	        PUSH DE                 ;Save end Radius
+0534: 5A      	        LD E, D
+0535: CD6A04  	        CALL DRAW_CIRCLE
+0538: D1      	        POP DE                  ;Restore Radius
+0539: 7B      	        LD A, E
+053A: 14      	        INC D
+053B: BA      	        CP D
+053C: 30F5    	        JR NC, NEXT_CIRCLE
+053E: C9      	        RET
+              	        
+              	;Draw Pixel in position X Y
+              	;Input B = column/X (0-127), C = row/Y (0-63)
+              	;destroys HL
+053F:         	DRAW_PIXEL:
+053F: 79      	        LD A, C
+0540: FE40    	        CP 40H
+0542: D0      	        RET NC
+0543: 78      	        LD A, B
+0544: FE80    	        CP 80H
+0546: D0      	        RET NC
+              	        
+0547: D5      	        PUSH DE
+0548: CD7305  	        CALL SET_GBUF
+              	
+054B: 7A      	        LD A, D
+054C: B6      	        OR (HL)
+054D: 77      	        LD (HL), A
+054E: D1      	        POP DE
+054F: C9      	        RET
+              	
+              	;Clear Pixel in position X Y
+              	;Input B = column/X (0-127), C = row/Y (0-63)
+              	;destroys HL
+0550:         	CLEAR_PIXEL:
+0550: 79      	        LD A, C
+0551: FE40    	        CP 40H
+0553: D0      	        RET NC
+0554: 78      	        LD A, B
+0555: FE80    	        CP 80H
+0557: D0      	        RET NC
+              	        
+0558: D5      	        PUSH DE
+0559: CD7305  	        CALL SET_GBUF
+              	
+055C: 7A      	        LD A, D
+055D: 2F      	        CPL
+055E: A6      	        AND (HL)
+055F: 77      	        LD (HL), A
+0560: D1      	        POP DE
+0561: C9      	        RET
+              	
+              	;Flip Pixel in position X Y
+              	;Input B = column/X (0-127), C = row/Y (0-63)
+              	;destroys HL
+0562:         	FLIP_PIXEL:
+0562: 79      	        LD A, C
+0563: FE40    	        CP 40H
+0565: D0      	        RET NC
+0566: 78      	        LD A, B
+0567: FE80    	        CP 80H
+0569: D0      	        RET NC
+              	        
+056A: D5      	        PUSH DE
+056B: CD7305  	        CALL SET_GBUF
+              	
+056E: 7A      	        LD A, D
+056F: AE      	        XOR (HL)
+0570: 77      	        LD (HL), A
+0571: D1      	        POP DE
+0572: C9      	        RET
+              	
+              	;Helper routine to set HL to the correct GBUF address given X and Y
+              	;Input B = column/X (0-127), C = row/Y (0-63)
+              	;Output HL = address of GBUF X,Y byte, D = Byte with Pixel Bit Set
+              	;Destroys E
+0573:         	SET_GBUF:
+0573: 69      	        LD L, C
+0574: 2600    	        LD H, 00H
+0576: 29      	        ADD HL, HL
+0577: 29      	        ADD HL, HL
+0578: 29      	        ADD HL, HL
+0579: 29      	        ADD HL, HL
+057A: ED5B80FB	        LD DE, (VPORT)
+057E: 1B      	        DEC DE
+057F: 19      	        ADD HL, DE
+              	        
+0580: 78      	        LD A, B
+0581: 1608    	        LD D, 08H
+0583:         	BASE_COL:
+0583: 23      	        INC HL
+0584: 92      	        SUB D
+0585: 30FC    	        JR NC, BASE_COL
+              	        
+0587: 2F      	        CPL
+0588: 1601    	        LD D, 01H
+058A: B7      	        OR A
+058B: C8      	        RET Z
+058C:         	SHIFT_BIT:
+058C: CB22    	        SLA D
+058E: 3D      	        DEC A
+058F: 20FB    	        JR NZ, SHIFT_BIT
+0591: C9      	        RET
+              	
+              	;Main draw routine.  Moves GBUF to LCD and clears buffer
+              	;Destroys all
+0592:         	PLOT_TO_LCD:
+0592: 2A80FB  	        LD HL, (VPORT)
+0595: 0E80    	        LD C, 80H
+0597:         	PLOT_ROW:
+0597: 79      	        LD A, C
+0598: E69F    	        AND 9FH
+059A: CDFE07  	        CALL LCD_INST           ;Vertical
+059D: 3E80    	        LD A, 80H
+059F: CB69    	        BIT 5, C
+05A1: 2802    	        JR Z, $ + 4
+05A3: F608    	        OR 08H
+05A5: CDFE07  	        CALL LCD_INST           ;Horizontal
+05A8: 3E02    	        LD A, 02H 
+05AA: CD1608  	        CALL SER_SYNC           ;Data Block Sync
+05AD: 0610    	        LD B, 10H               ;send eight double bytes (16 bytes)
+05AF:         	PLOT_COLUMN:
+05AF: 7E      	        LD A, (HL)
+05B0: CD0308  	        CALL LCD_DATA
+05B3: 3A90FB  	        LD A, (CLRBUF)
+05B6: B7      	        OR A
+05B7: 2802    	        JR Z, $ + 4
+05B9: 3600    	        LD (HL), 00H            ;Clear Buffer if CLRBUF is non zero
+05BB: 23      	        INC HL
+05BC: 10F1    	        DJNZ PLOT_COLUMN
+05BE: 0C      	        INC C
+05BF: CB71    	        BIT 6, C                ;Is Row = 64?
+05C1: 28D4    	        JR Z, PLOT_ROW
+05C3: C9      	        RET
+              	        
+              	; Print ASCII text on a given row
+              	; Inputs: A = 0 to 3 Row Number
+              	;         DB "String" on next line, terminate with 0
+              	; EG:
+              	;   LD A,2
+              	;   CALL PRINT_STRING
+              	;   DB "This Text",0
+              	;
+05C4:         	PRINT_STRING:
+05C4: 47      	        LD B, A
+05C5: CD7F03  	        CALL SET_TXT_MODE
+05C8: 212A08  	        LD HL, ROWS
+05CB: 78      	        LD A, B
+05CC: 85      	        ADD A, L
+05CD: 3001    	        JR NC, $ + 3
+05CF: 24      	        INC H
+05D0: 6F      	        LD L, A
+05D1: 7E      	        LD A, (HL)
+05D2: CDFE07  	        CALL LCD_INST
+05D5: 3E02    	        LD A, 02H 
+05D7: CD1608  	        CALL SER_SYNC           ;Data Block Sync
+05DA: E1      	        POP HL
+05DB:         	DS_LOOP:
+05DB: 7E      	        LD A, (HL)
+05DC: 23      	        INC HL
+05DD: B7      	        OR A
+05DE: 2805    	        JR Z, DS_EXIT
+05E0: CD0308  	        CALL LCD_DATA
+05E3: 18F6    	        JR DS_LOOP
+05E5:         	DS_EXIT:
+05E5: E9      	        JP (HL)
+              	        
+              	;Print Characters at a position X,Y
+              	;Eventhough there are 16 columns, only every second column can be written
+              	;to and two characters are to be printed.  IE: if you want to print one
+              	;character in column 2, then you must set B=0 and print " x", putting
+              	;a space before the chracter.
+              	;Input B = column/X (0-7), C = row/Y (0-3)
+              	;      HL = Start address of text to display, terminate with 0
+05E6:         	PRINT_CHARS:
+05E6: CD7F03  	        CALL SET_TXT_MODE
+05E9: 112A08  	        LD DE, ROWS
+05EC: 79      	        LD A, C
+05ED: 83      	        ADD A, E
+05EE: 3001    	        JR NC, $ + 3
+05F0: 14      	        INC D
+05F1: 5F      	        LD E, A
+05F2: 1A      	        LD A, (DE)
+05F3: 80      	        ADD A, B
+05F4: CDFE07  	        CALL LCD_INST
+05F7: 3E02    	        LD A, 02H 
+05F9: CD1608  	        CALL SER_SYNC           ;Data Block Sync
+05FC:         	PC_LOOP:
+05FC: 7E      	        LD A, (HL)
+05FD: 23      	        INC HL
+05FE: B7      	        OR A
+05FF: C8      	        RET Z
+0600: CD0308  	        CALL LCD_DATA
+0603: 18F7    	        JR PC_LOOP
+              	        
+              	; Delay for LCD write
+0605:         	DELAY_US:
+0605: 111000  	        LD DE, V_DELAY_US       ;DELAY BETWEEN, was 0010H
+0608:         	DELAY_MS:
+0608: 1B      	        DEC DE                  ;EACH BYTE
+0609: 7A      	        LD A, D                 ;AS PER
+060A: B3      	        OR E                    ;LCD MANUFACTER'S
+060B: 20FB    	        JR NZ, DELAY_MS         ;INSTRUCTIONS
+060D: C9      	        RET
+              	        
+              	; Set Buffer Clearing after outputting to LCD
+              	; Input: A = 0 Buffer to be cleared, A <> 0 Buffer kept
+060E:         	SET_BUF_CLEAR:
+060E: 3EFF    	        LD A, 0FFH
+0610: 3290FB  	        LD (CLRBUF), A
+0613: C32703  	        JP CLEAR_GBUF
+              	        
+0616:         	SET_BUF_NO_CLEAR:
+0616: AF      	        XOR A
+0617: 3290FB  	        LD (CLRBUF), A
+061A: C9      	        RET
+              	
+              	;Initialise the GLCD Terminal
+              	;Clears the GBUF, sets cursor to top left and displays cursor.
+              	;This must be called prior to any Terminal routine.  This routine
+              	;will as call INIT_LCD.
+061B:         	INIT_TERMINAL:
+061B: 2180F7  	        LD HL,TGBUF              ;Reset VPORT and BUFF_TOP to TGBUF
+061E: 2280FB  	        LD (VPORT),HL           ;to GBUF
+0621: 2282FB  	        LD (TBUF),HL
+0624: CD1203  	        CALL INIT_LCD           ;Clear LCD GBUF
+0627: 010000  	        LD BC,0000H
+062A: CDE006  	        CALL SET_CURSOR         ;Move cursor to top left
+062D: 185F    	        JR DRAW_CURSOR          ;Draw Cursor and exit
+              	
+              	;Send or handle ASCII characters to the GLCD screen.  This routines displays
+              	;ASCII charcters to the GLCD screen and handles some special control characters
+              	;It also handles srolling history of 10 lines.  Characters are drawn at the 
+              	;current cursor position.  Cursor increments if characger is drawn.
+              	;       CR / 0DH = will move the cursor down and reset it column
+              	;       LF / 0AH = is ignored
+              	;       FF / 0CH = clears the terminal (restarts)
+              	;       BS / 08H = will delete the character at the cursor and move cursor back one
+              	;       HT / 09H = will TAB 4 spaces
+              	;       UP / 05H = will scroll up one line if any
+              	;       DN / 06H = will scroll down one line if any
+              	;Input: A = ASCII charcter to send to the GLCD screen.
+              	;       A = 0  cursor drawn only
+062F:         	SEND_CHAR_TO_GLCD:
+              	        ;Check for special characters
+062F: B7      	        OR A                    ;Zero?
+0630: 285C    	        JR Z,DRAW_CURSOR
+0632:         	DO_SCRL_UP:
+0632: FEB5    	        CP UP                   ;Up Arrow
+0634: 2007    	        JR NZ,DO_SCRL_DN
+0636: AF      	        XOR A
+0637: CD4C07  	        CALL MOVE_VPORT
+063A: C39205  	        JP PLOT_TO_LCD
+063D:         	DO_SCRL_DN:
+063D: FEB6    	        CP DN                   ;Down Arrow
+063F: 2004    	        JR NZ,DO_CR
+0641: 3E01    	        LD A,1
+0643: 18F2    	        JR $-12                 ;Move VPORT above
+0645:         	DO_CR:
+              	        ;Key is now a drawing character, reset VPORT first
+0645: 2180F7  	        LD HL,TGBUF
+0648: 2280FB  	        LD (VPORT),HL
+064B: FE0A    	        CP LF      ;LF
+064D: C8      	        RET Z
+064E: FE0D    	        CP CR      ;CR
+0650: 200D    	        JR NZ,DO_FF
+0652: 3E20    	        LD A,SPACE              ;Clear Cursor
+0654: CDA207  	        CALL DRAW_GRAPHIC
+0657: CDFE06  	        CALL INC_ROW
+065A: 3293FB  	        LD (CURSOR_YS),A        ;Save start row
+065D: 182F    	        JR DRAW_CURSOR
+065F:         	DO_FF:
+065F: FE0C    	        CP CS                   ;Form Feed / Clear Screen
+0661: 28B8    	        JR Z,INIT_TERMINAL      ;Reset All.
+0663:         	DO_BS:
+0663: FE7F    	        CP DEL                 ;Backspace BKSP
+0665: 200A    	        JR NZ,DO_TAB
+0667: 3E20    	        LD A,SPACE              ;Space
+0669: CDA207  	        CALL DRAW_GRAPHIC
+066C: CD6C07  	        CALL DEC_CURSOR
+066F: 181D    	        JR DRAW_CURSOR
+0671:         	DO_TAB:
+0671: FE09    	        CP TAB                  ;Horizontal Tab
+0673: 2013    	        JR NZ,DO_CHAR
+0675: 3E20    	        LD A,SPACE              ;Space
+0677: CDA207  	        CALL DRAW_GRAPHIC
+067A: CDF106  	        CALL INC_CURSOR
+067D: CDF106  	        CALL INC_CURSOR
+0680: CDF106  	        CALL INC_CURSOR
+0683: CDF106  	        CALL INC_CURSOR
+0686: 1806    	        JR DRAW_CURSOR
+0688:         	DO_CHAR:
+0688: CDA207  	        CALL DRAW_GRAPHIC
+068B: CDF106  	        CALL INC_CURSOR
+068E:         	DRAW_CURSOR:
+068E: 3A94FB  	        LD A,(CURSOR_ON)
+0691: B7      	        OR A
+0692: 3E20    	        LD A,SPACE              ;Space
+0694: 2002    	        JR NZ,$+4               ;Skip cursor draw
+0696: 3E8F    	        LD A,CURSOR             ;Cursor
+0698: CDA207  	        CALL DRAW_GRAPHIC
+069B: C39205  	        JP PLOT_TO_LCD          ;Plot screen and exit
+              	
+              	
+              	
+              	;Send a string of characters to the GLCD.  Prints a string pointed 
+              	;by DE.  It stops printing and returns when either a CR is printed or
+              	;when the next byte is the same as what is in register A
+              	;Inputs: DE = address of string to print
+              	;        A = character to stop printing.
+              	;Destroy: All
+069E:         	SEND_STRING_TO_GLCD:
+069E: 47      	        LD B,A                  ;Save cp in B
+069F:         	PS1:
+069F: 1A      	        LD A,(DE)               ;Get character
+06A0: 13      	        INC DE                  ;Move pointer
+06A1: B8      	        CP B                    ;Same as B?
+06A2: 28EA    	        JR Z,DRAW_CURSOR        ;Yes exit and plot LCD screen
+06A4: FE0D    	        CP CR                   ;Is it a CR?
+06A6: 289D    	        JR Z,DO_CR              ;Yes do a CR and plot LCD screen and exit
+06A8: FE0C    	        CP CS                   ;Is it a FF?
+06AA: 28B3    	        JR Z,DO_FF              ;Yes do a Form Feed and plot LCD screen and exit
+06AC: D9      	        EXX                     ;Save bulk registers
+06AD: CDA207  	        CALL DRAW_GRAPHIC       ;Draw the character
+06B0: CDF106  	        CALL INC_CURSOR         ;Move cursor by one
+06B3: D9      	        EXX                     ;Restore bulk registers
+06B4: 18E9    	        JR PS1                  ;Repeat for next character
+06B6: C9      	        RET     
+              	
+              	;Display the register A in ASCII on the GLCD
+              	;Input: A = value to convert and display
+06B7:         	SEND_A_TO_GLCD:
+06B7: CDBC06  	        CALL DRAW_A             ;Do the conversion
+06BA: 18D2    	        JR DRAW_CURSOR          ;exit and plot LCD screen
+06BC:         	DRAW_A:
+06BC: F5      	        PUSH AF                 ;Save AF
+06BD: 0F      	        RRCA                    ;move high
+06BE: 0F      	        RRCA                    ;nibble to low nibble
+06BF: 0F      	        RRCA
+06C0: 0F      	        RRCA
+06C1: CDC506  	        CALL NIBBLE_TO_GLCD     ;Convert and display
+06C4: F1      	        POP AF                  ;Restore AF
+06C5:         	NIBBLE_TO_GLCD:
+06C5: E60F    	        AND 0FH                 ;mask out high nibble
+06C7: C690    	        ADD A,90H               ;convert to 
+06C9: 27      	        DAA                     ;ASCII
+06CA: CE40    	        ADC A,40H               ;using this
+06CC: 27      	        DAA                     ;amazing routine
+06CD: CDA207  	        CALL DRAW_GRAPHIC       ;Draw the character
+06D0: CDF106  	        CALL INC_CURSOR         ;Move cursor by one
+06D3: C9      	        RET
+              	
+              	;Display the register HL in ASCII on the GLCD
+              	;Input: HL = value to convert and display
+06D4:         	SEND_HL_TO_GLCD:
+06D4: E5      	        PUSH HL                 ;Save HL
+06D5: 7C      	        LD A,H                  ;get H
+06D6: CDBC06  	        CALL DRAW_A             ;Do the conversion
+06D9: E1      	        POP HL
+06DA: 7D      	        LD A,L                  ;get L
+06DB: CDBC06  	        CALL DRAW_A             ;Do the conversion
+06DE: 18AE    	        JR DRAW_CURSOR          ;exit and plot LCD screen
+              	
+              	;Set the Graphic cursor position
+              	;Inputs: BC = X,Y where X = 0..127, Y = 0..63
+              	;Ignores update if one of the X,Y values are out of range
+              	;Destroys: A
+06E0:         	SET_CURSOR:
+              	        ;Check range. Exit if X,Y out of range
+06E0: 79      	        LD A, C
+06E1: FE40    	        CP 40H
+06E3: D0      	        RET NC
+06E4: 78      	        LD A, B
+06E5: FE80    	        CP 80H
+06E7: D0      	        RET NC
+              	        ;Set Cursor and initial start row
+06E8: ED4391FB	        LD (CURSOR_XY),BC       ;Save cursor
+06EC: 79      	        LD A,C
+06ED: 3293FB  	        LD (CURSOR_YS),A        ;And initial Y Start
+06F0: C9      	        RET
+              	
+              	;Increment the cursor by one font character
+              	;A Font Character is 6x6 Pixels.  Move column 6 across until it can't then reset
+              	;column back to 0 and move 6 down.
+              	;If can't go down any further then keep on last row but move column back to 0
+              	;Font Characters maximum 20 across and 10 down
+              	;Output: Carry Set = No screen overflow
+              	;Destroys: A
+06F1:         	INC_CURSOR:
+06F1: 3A92FB  	        LD A,(CURSOR_X)         ;Get X
+06F4: C606    	        ADD A,6                 ;Add 6
+06F6: FE7E    	        CP 126                  ;Is it >= 126?
+06F8: 3004    	        JR NC,INC_ROW           ;Yes, reset column and increment row
+06FA: 3292FB  	        LD (CURSOR_X),A         ;Save new column
+06FD: C9      	        RET
+06FE:         	INC_ROW:
+06FE: AF      	        XOR A
+06FF: 3292FB  	        LD (CURSOR_X),A         ;reset column to 0
+0702: 3A91FB  	        LD A,(CURSOR_Y)         ;get row
+0705: C606    	        ADD A,6                 ;Add 6
+0707: FE3C    	        CP 60                   ;Is it >= 60
+0709: 3807    	        JR C,SAVE_ROW           ;No, save new row
+070B: F5      	        PUSH AF
+070C: CD1607  	        CALL SHIFT_BUFFER       ;Shift buffer up one row
+070F: F1      	        POP AF
+0710: D606    	        SUB 6                   ;overflow, just leave the same
+0712:         	SAVE_ROW:
+0712: 3291FB  	        LD (CURSOR_Y),A         ;Save new row
+0715: C9      	        RET
+              	
+              	;Shift the graphics buffer (GBUF) into the scroll buffer (SBUF) by
+              	;one row (6 lines).  Move the top buffer address to the new top of 
+              	;the scroll buffer
+0716:         	SHIFT_BUFFER:
+              	        ;Check if anymore buffer left
+0716: 2A82FB  	        LD HL,(TBUF)        ;Get top buffer address
+0719: 1100F0  	        LD DE,TGBUF-SBUF    ;Get scroll buffer address
+071C: B7      	        OR A                ;Clear carry
+071D: ED52    	        SBC HL,DE           ;TBUF-SBUF
+071F: 2809    	        JR Z,SKIP_TBUF
+0721: 19      	        ADD HL,DE           ;restore HL
+0722: 116000  	        LD DE,16*6          ;Six pixel rows
+0725: ED52    	        SBC HL,DE           ;Move TBUF down by 6 rows
+0727: 2282FB  	        LD (TBUF),HL        ;Save new TBUF
+072A:         	SKIP_TBUF:
+072A: 2160F0  	        LD HL,TGBUF-SBUF+(16*6) ;Top of scroll buffer less one row
+072D: 1100F0  	        LD DE,TGBUF-SBUF    ;Top of scroll buffer
+0730: 01E00A  	        LD BC,16*6*29       ;19 rows (change to 20 lines 19 to 29 (+10)) Z80 Mini
+0733: EDB0    	        LDIR
+0735: 21E0FA  	        LD HL,TGBUF+0360H   ;clear last row (9*16)
+0738: 11E1FA  	        LD DE,TGBUF+0361H
+073B: 015F00  	        LD BC,5FH
+073E: AF      	        XOR A
+073F: 77      	        LD (HL),A
+0740: EDB0    	        LDIR
+              	        ;Move Y Start up one row
+0742: 3A93FB  	        LD A,(CURSOR_YS)    ;Get Y Start row
+0745: D606    	        SUB 6
+0747: D8      	        RET C               ;Ignore if less than zero
+0748: 3293FB  	        LD (CURSOR_YS),A    
+074B: C9      	        RET
+              	
+              	;Move the VPORT vertically between TBUF and end of GBUB.  VPORT will be 
+              	;shifted by a standard termial row of 6 lines.
+              	;input: A = 0 shift up else shift down
+074C:         	MOVE_VPORT:
+074C: 2A80FB  	        LD HL,(VPORT)       ;get viewport
+074F: EB      	        EX DE,HL
+0750: B7      	        OR A                ;check move
+0751: 200E    	        JR NZ,MOVE_DOWN     ;shift down
+0753:         	MOVE_UP:
+0753: 2A82FB  	        LD HL,(TBUF)        ;get top of buffer
+0756: ED52    	        SBC HL,DE           ;
+0758: C8      	        RET Z               ;if the same, then at top already
+0759: 21A0FF  	        LD HL,0-60H         ;one row up 60
+075C:         	SAVE_VPORT:
+075C: 19      	        ADD HL,DE           ;get new VPORT value
+075D: 2280FB  	        LD (VPORT),HL
+0760: C9      	        RET
+0761:         	MOVE_DOWN:
+0761: 2180F7  	        LD HL,TGBUF         ;get top of graphics buffer
+0764: ED52    	        SBC HL,DE           ;
+0766: C8      	        RET Z               ;if the same, then at top already
+0767: 216000  	        LD HL,60H           ;one row down 60
+076A: 18F0    	        JR SAVE_VPORT
+              	
+              	;Decrement the cursor by one font character up to the current row start
+              	;Used to help with Backspace character or left arrow?
+              	;Destroys: A
+076C:         	DEC_CURSOR:
+076C: 3A92FB  	        LD A,(CURSOR_X)         ;Get X
+076F: D606    	        SUB 6                   ;subract 6
+0771:         	SAVE_COL:
+0771: 3292FB  	        LD (CURSOR_X),A         ;Save new column
+              	        ;if < 0 then just make 0 or 20 depending on Y Start
+0774: D0      	        RET NC
+0775: C5      	        PUSH BC
+0776: 3A93FB  	        LD A,(CURSOR_YS)        ;Get Y Start
+0779: 47      	        LD B,A
+077A: 3A91FB  	        LD A,(CURSOR_Y)         ;Get Y
+077D: 90      	        SUB B
+077E: C1      	        POP BC
+077F: 3E00    	        LD A,0                  ;reset to 0
+0781: 28EE    	        JR Z,SAVE_COL
+0783: 3E78    	        LD A,6*20               ;last column 20
+0785: 3292FB  	        LD (CURSOR_X),A         ;Save new column
+0788: 3A91FB  	        LD A,(CURSOR_Y)
+078B: D606    	        SUB 6                   ;move row one line up
+078D: 3291FB  	        LD (CURSOR_Y),A         ;Save new row
+0790: C9      	        RET
+              	
+              	;Get cursor position
+              	;Outputs: BC = X,Y where X = 0..127, Y = 0..63
+0791:         	GET_CURSOR:
+0791: ED4B91FB	        LD BC,(CURSOR_XY)
+0795: C9      	        RET
+              	
+              	;Display Cursor
+              	;Input: A = 0, Turn cursor on, A = non zero, Turn cursor off
+              	;Default is Cursor ON
+0796:         	DISPLAY_CURSOR:
+0796: 3294FB  	        LD (CURSOR_ON),A
+0799: C9      	        RET
+              	
+              	;Inverse Graphic Drawing
+              	;Initial state is normal.  Calling this routine will TOGGLE the inverse drawing flag
+              	;Destroys: A
+079A:         	INV_GRAPHIC:
+079A: 3A95FB  	        LD A,(INVERSE)
+079D: 2F      	        CPL                 ;flip bits
+079E: 3295FB  	        LD (INVERSE),A
+07A1: C9      	        RET
+              	
+              	;Draw Graphic at the current cursor.  Draw either an ASCII character or
+              	;a custom sprite/picture
+              	;Input: A = ASCII number or 
+              	;    if A=0 Then 
+              	;       HL = Address of graphic data
+              	;       B = width of graphic in pixels (1-128)
+              	;       C = height of graphic in pixels (1-64)
+              	;Destroys: All
+07A2:         	DRAW_GRAPHIC:
+07A2: B7      	        OR A                ;is A=0
+07A3: 2810    	        JR Z,PLOT_GRAPHIC   ;yes, use data pointing to HL
+              	        ;Use internal font table and index it to value in A
+07A5: 3D      	        DEC A               ;fix for A = 0..255
+07A6: 2600    	        LD H,0
+07A8: 6F      	        LD L,A
+07A9: 29      	        ADD HL,HL           ;Multipy A by 2
+07AA: 54      	        LD D,H
+07AB: 5D      	        LD E,L              ;Save in DE
+07AC: 29      	        ADD HL,HL           ;Multipy A by 4
+07AD: 19      	        ADD HL,DE           ;Multiply by 6
+07AE: 113808  	        LD DE,FONT_DATA     ;Font Table
+07B1: 19      	        ADD HL,DE           ;Add index (A*8) to HL
+07B2: 010606  	        LD BC,0606H         ;Six pixels across, Six pixels down
+07B5:         	PLOT_GRAPHIC:
+07B5: 50      	        LD D,B              ;D=Column pixel count
+07B6: 7A      	        LD A,D
+07B7: 3296FB  	        LD (PIXEL_X),A      ;Save original pixel length
+07BA: 59      	        LD E,C              ;E=Row pixel count
+07BB: ED4B91FB	        LD BC,(CURSOR_XY)   ;Get graphics cursor position
+07BF:         	PLOT_BYTE:
+07BF: 7A      	        LD A,D              ;Get column bit count
+07C0: D608    	        SUB 8
+07C2: 57      	        LD D,A
+07C3: D5      	        PUSH DE        
+07C4: 1608    	        LD D,8
+07C6: 5E      	        LD E,(HL)           ;get pixel data
+07C7: 3009    	        JR NC,INV_BIT
+07C9: 82      	        ADD A,D             ;Restore column bit count
+07CA: 57      	        LD D,A
+07CB: 7A      	        LD A,D
+              	        ;D = Rotate adjust count
+07CC: CB0B    	        RRC E               ;rotate it to get first bit in bit 7
+07CE: 15      	        DEC D
+07CF: 20FB    	        JR NZ,$-3
+07D1: 57      	        LD D,A              ;reset D to actual bit count
+07D2:         	INV_BIT:
+07D2: 3E00    	        LD A, 0      ;check inverse flag
+07D4: AB      	        XOR E               ;flip bits
+07D5: 5F      	        LD E,A              ;save new data
+07D6:         	PLOT_BIT:
+07D6: CB03    	        RLC E
+07D8: E5      	        PUSH HL
+07D9: 3005    	        JR NC,REMOVE_PIXEL
+07DB: CD3F05  	        CALL DRAW_PIXEL
+07DE: 1803    	        JR $+5
+07E0:         	REMOVE_PIXEL:
+07E0: CD5005  	        CALL CLEAR_PIXEL
+07E3: E1      	        POP HL
+07E4: 04      	        INC B               ;move X to the right by one
+07E5: 15      	        DEC D
+07E6: 20EE    	        JR NZ,PLOT_BIT
+              	        ;All bits are plotted check if D <= 0
+07E8: 23      	        INC HL              ;move to next pixel byte
+07E9: D1      	        POP DE              ;restore Column/Row bit count
+07EA: 7A      	        LD A,D
+07EB: B7      	        OR A                ;check for zero or lessor
+07EC: 2803    	        JR Z,$+5
+07EE: F2BF07  	        JP P,PLOT_BYTE      ;its greater or zero, do next byte
+              	        ;Move down a row and set column to the start
+07F1: 1D      	        DEC E               ;move column pixel count down by one
+07F2: C8      	        RET Z               ;if its zero no more to do, just exit
+07F3: 0C      	        INC C               ;move down a row
+07F4: 3A92FB  	        LD A,(CURSOR_X)
+07F7: 47      	        LD B,A              ;reset column
+07F8: 3A96FB  	        LD A,(PIXEL_X)
+07FB: 57      	        LD D,A              ;reset pixel length per row
+07FC: 18C1    	        JR PLOT_BYTE
+              	
+              	;Serial/Paralled Communication routines
+              	;Send information to the LCD screen via SERIAL or PARALLEL connection.  Parallel is straight
+              	;forward.  Just send the Byte in the Accumilator to the relevante Instruction or Data port.
+              	;Then call a delay for that byte to be processed by the LCD.
+              	;For Serial communication, three Bytes are to be sent using the SPI protocol.
+              	;The first byte is a synchronise/configuration byte.  This sets
+              	;the Data/Instruction register bit.  The second and third bytes is the actual data to send.
+              	;It is split into two bytes with 4 bits of data set at the upper nibble and zeros for the rest.
+              	;A maximum of 256 Bytes of Data information can be send with only one Synchronise Byte.  The
+              	;LCD Data routine doesn't send the sync byte.  It needs to be done prior by calling SER_SYNC first.
+              	;
+              	;The two routines to use are:
+              	;LCD_DATA, Sends Data information.  Along with SER_SYNC called prior and
+              	;LCD_INST, Sends Instruction information
+              	
+              	;Send to LCD Instruction register
+              	;If serial connection it will send the byte with a synchronise byte.
+              	;If parallel byte is sent to the Instruction register port and a delay is triggered
+              	;Input: A = Byte to send
+07FE:         	LCD_INST:
+              	;IF COMMS_MODE
+              	;        PUSH AF
+              	;        XOR A
+              	;        CALL SER_SYNC
+              	;        POP AF
+              	;        JP SER_BYTE
+              	;ELSE
+07FE: D370    	        OUT (LCD_IR), A
+0800: C30506  	        JP DELAY_US
+              	;ENDIF
+              	
+              	;Send to LCD Data register
+              	;If serial connection it will send the byte with no synchronise byte.  The
+              	;synchronise byte is to be sent separately.
+              	;If parallel byte is sent to the Data register port and a delay is triggered
+              	;Input: A = Byte to send
+0803:         	LCD_DATA:
+              	;IF COMMS_MODE
+              	;        JP SER_BYTE
+              	;ELSE
+0803: D371    	        OUT (LCD_DR), A
+0805: C30506  	        JP DELAY_US
+              	;ENDIF
+              	
+              	;Serial Byte Send
+              	;Send a Byte in two halfs,  First half is the upper nibble with 4 zeros and second
+              	;byte is the lower nibble shifted to the upper nibble with 4 zeros.
+              	;   EG: if Byte to send is 10010110B, then
+              	;   BYTE 1 = 10010000b and
+              	;   BYTE 2 = 01100000b
+              	;Input: A = byte to send
+0808:         	SER_BYTE:
+0808: F5      	        PUSH AF
+0809: CD1108  	        CALL SEND_PART
+080C: F1      	        POP AF
+080D: 07      	        RLCA
+080E: 07      	        RLCA
+080F: 07      	        RLCA
+0810: 07      	        RLCA
+0811:         	SEND_PART:
+0811: E6F0    	        AND 0F0H                ;Mask out lower nibble
+0813: C31708  	        JP SPI_WR               ;Send First Half of Command/Data byte
+              	
+              	;Serial Synchronise Byte
+              	;Send 5 consecutive '1's then '000's for instruction or '010' for data.
+              	;Input: A = 0x00 for instruction register and 0x02 if data register
+0816:         	SER_SYNC:
+              	;IF COMMS_MODE
+              	;        OR SER_BT
+              	;ELSE
+0816: C9      	        RET
+              	;ENDIF
+              	
+              	;SPI Write Routine.
+              	;Send a byte to the LCD using the SPI protocol
+              	;Inputs: A = Byte to be sent
+0817:         	SPI_WR:
+0817: C5      	        PUSH BC
+0818: 0608    	        LD B, 08H       ;Eight Bits to send
+081A: 4F      	        LD C, A         ;SPI Byte
+081B: AF      	        XOR A           ;Clear A
+081C:         	CLK_LOOP:
+081C: CB01    	        RLC C           ;Put Bit 7 in Carry Flag
+081E: 8F      	        ADC A,A         ;Set Bit 0 with Carry Flag
+081F: F602    	        OR 02H          ;Set SCLK high (pulse clock)
+0821: D300    	        OUT (LCD_SER),A ;Output to LCD
+0823: AF      	        XOR A           ;Set SCLK low (and SID)
+0824: D300    	        OUT (LCD_SER),A ;Output to LCD
+0826: 10F4    	        DJNZ CLK_LOOP   ;Get next Bit
+0828: C1      	        POP BC
+0829: C9      	        RET
+              	
+              	; Contstants
+082A: 80908898	ROWS:   DB      80H,90H,88H,98H ;Text Row start position
+              	        
+082E:         	INIT_BASIC:
+082E: 30      	        DB  30H
+082F: 20      	        DB  20H
+0830: 30      	        DB  30H
+0831: 0C      	        DB  0CH
+0832: 01      	        DB  01H
+0833: 02      	        DB  02H
+              	        ;fim
+              	
+              	
+              	
+              	
+0834: 30      	        DB      30H             ;8 Bit interface, basic instruction
+0835: 0C      	        DB      0CH             ;display on, cursor & blink off
+0836: 06      	        DB      06H             ;cursor move to right ,no shift
+0837: 01      	        DB      01H             ;clear RAM
+              	
+              	;General Graphic Data
+              	;Byte 1 = X pixel length, Byte 2 = Y pixel length
+              	;Byte n = Pixel data where bits represent pixels.  Read from LSB
+0838:         	FONT_DATA:
+              	        ;001
+0838: 1E      	        DB 00011110b   ;  ####
+0839: 21      	        DB 00100001b   ; #    #
+083A: 21      	        DB 00100001b   ; #    #
+083B: 21      	        DB 00100001b   ; #    #
+083C: 21      	        DB 00100001b   ; #    #
+083D: 1E      	        DB 00011110b   ;  ####
+              	        ;002
+083E: 1E      	        DB 00011110b   ;  ####
+083F: 3F      	        DB 00111111b   ; ######
+0840: 3F      	        DB 00111111b   ; ######
+0841: 3F      	        DB 00111111b   ; ######
+0842: 3F      	        DB 00111111b   ; ######
+0843: 1E      	        DB 00011110b   ;  ####
+              	        ;003 Up Arrow
+0844: 0C      	        DB 00001100b   ;   ##
+0845: 1E      	        DB 00011110b   ;  ####
+0846: 3F      	        DB 00111111b   ; ######
+0847: 0C      	        DB 00001100b   ;   ##
+0848: 0C      	        DB 00001100b   ;   ##
+0849: 0C      	        DB 00001100b   ;   ##
+              	        ;004 Down Arrow
+084A: 0C      	        DB 00001100b   ;   ##
+084B: 0C      	        DB 00001100b   ;   ##
+084C: 0C      	        DB 00001100b   ;   ##
+084D: 3F      	        DB 00111111b   ; ######
+084E: 1E      	        DB 00011110b   ;  ####
+084F: 0C      	        DB 00001100b   ;   ##
+              	        ;005 Left Arrow
+0850: 08      	        DB 00001000b   ;   #
+0851: 18      	        DB 00011000b   ;  ##
+0852: 3F      	        DB 00111111b   ; ######
+0853: 3F      	        DB 00111111b   ; ######
+0854: 18      	        DB 00011000b   ;  ##
+0855: 08      	        DB 00001000b   ;   #
+              	        ;006 Right Arrow
+0856: 04      	        DB 00000100b   ;    #
+0857: 06      	        DB 00000110b   ;    ##
+0858: 3F      	        DB 00111111b   ; ######
+0859: 3F      	        DB 00111111b   ; ######
+085A: 06      	        DB 00000110b   ;    ##
+085B: 04      	        DB 00000100b   ;    #
+              	        ;007 Up Hat
+085C: 0C      	        DB 00001100b   ;   ##
+085D: 1E      	        DB 00011110b   ;  ####
+085E: 3F      	        DB 00111111b   ; ######
+085F: 00      	        DB 00000000b   ;
+0860: 00      	        DB 00000000b   ;
+0861: 00      	        DB 00000000b   ;
+              	        ;008 Down Hat
+0862: 00      	        DB 00000000b   ;
+0863: 00      	        DB 00000000b   ;
+0864: 00      	        DB 00000000b   ;
+0865: 3F      	        DB 00111111b   ; ######
+0866: 1E      	        DB 00011110b   ;  ####
+0867: 0C      	        DB 00001100b   ;   ##
+              	        ;009 Left Hat
+0868: 08      	        DB 00001000b   ;   #
+0869: 18      	        DB 00011000b   ;  ##
+086A: 38      	        DB 00111000b   ; ###
+086B: 38      	        DB 00111000b   ; ###
+086C: 18      	        DB 00011000b   ;  ##
+086D: 08      	        DB 00001000b   ;   #
+              	        ;010 Right Hat
+086E: 04      	        DB 00000100b   ;    #
+086F: 06      	        DB 00000110b   ;    ##
+0870: 07      	        DB 00000111b   ;    ###
+0871: 07      	        DB 00000111b   ;    ###
+0872: 06      	        DB 00000110b   ;    ##
+0873: 04      	        DB 00000100b   ;    #
+              	        ;011 Note 1
+0874: 04      	        DB 00000100b   ;    #
+0875: 04      	        DB 00000100b   ;    # 
+0876: 04      	        DB 00000100b   ;    # 
+0877: 1C      	        DB 00011100b   ;  ###
+0878: 3C      	        DB 00111100b   ; ####
+0879: 18      	        DB 00011000b   ;  ##
+              	        ;012 Note 2
+087A: 04      	        DB 00000100b   ;    #
+087B: 06      	        DB 00000110b   ;    ## 
+087C: 05      	        DB 00000101b   ;    # #
+087D: 1C      	        DB 00011100b   ;  ###
+087E: 3C      	        DB 00111100b   ; ####
+087F: 18      	        DB 00011000b   ;  ##
+              	        ;013 Rocket
+0880: 0C      	        DB 00001100b   ;   ##
+0881: 0C      	        DB 00001100b   ;   ##
+0882: 0C      	        DB 00001100b   ;   ##
+0883: 0C      	        DB 00001100b   ;   ##
+0884: 1E      	        DB 00011110b   ;  ####
+0885: 33      	        DB 00110011b   ; ##  ##
+              	        ;014 Bomb
+0886: 1E      	        DB 00011110b   ;  ####
+0887: 0C      	        DB 00001100b   ;   ##
+0888: 1E      	        DB 00011110b   ;  ####
+0889: 1E      	        DB 00011110b   ;  ####
+088A: 1E      	        DB 00011110b   ;  ####
+088B: 0C      	        DB 00001100b   ;   ##
+              	        ;015 Explosion
+088C: 0C      	        DB 00001100b   ;   ##
+088D: 3F      	        DB 00111111b   ; ######
+088E: 06      	        DB 00000110b   ;    ##
+088F: 0C      	        DB 00001100b   ;   ##
+0890: 18      	        DB 00011000b   ;  ##
+0891: 0C      	        DB 00001100b   ;   ##
+              	        ;016
+0892: 36      	        DB 00110110b   ; ## ##
+0893: 24      	        DB 00100100b   ; #  #
+0894: 00      	        DB 00000000b   ;
+0895: 00      	        DB 00000000b   ;
+0896: 00      	        DB 00000000b   ;
+0897: 00      	        DB 00000000b   ;
+              	        ;017
+0898: 36      	        DB 00110110b   ; ## ##
+0899: 12      	        DB 00010010b   ;  #  #
+089A: 00      	        DB 00000000b   ;
+089B: 00      	        DB 00000000b   ;
+089C: 00      	        DB 00000000b   ;
+089D: 00      	        DB 00000000b   ;
+              	        ;018
+089E: 0E      	        DB 00001110b   ;   ###
+089F: 12      	        DB 00010010b   ;  #  #
+08A0: 38      	        DB 00111000b   ; ###
+08A1: 12      	        DB 00010010b   ;  #  #
+08A2: 3E      	        DB 00111110b   ; #####
+08A3: 00      	        DB 00000000b   ;
+              	        ;019
+08A4: 1C      	        DB 00011100b   ;  ###
+08A5: 22      	        DB 00100010b   ; #   #
+08A6: 2A      	        DB 00101010b   ; # # #
+08A7: 22      	        DB 00100010b   ; #   #
+08A8: 1C      	        DB 00011100b   ;  ###
+08A9: 00      	        DB 00000000b   ;
+              	        ;020
+08AA: 3E      	        DB 00111110b   ; #####
+08AB: 34      	        DB 00110100b   ; ## #
+08AC: 34      	        DB 00110100b   ; ## #
+08AD: 14      	        DB 00010100b   ;  # #
+08AE: 14      	        DB 00010100b   ;  # #
+08AF: 00      	        DB 00000000b   ;
+              	        ;021
+08B0: 1C      	        DB 00011100b   ;  ###
+08B1: 18      	        DB 00011000b   ;  ##
+08B2: 24      	        DB 00100100b   ; #  #
+08B3: 18      	        DB 00011000b   ;  ##
+08B4: 38      	        DB 00111000b   ; ###
+08B5: 00      	        DB 00000000b   ;
+              	        ;022
+08B6: 0C      	        DB 00001100b   ;   ##
+08B7: 0C      	        DB 00001100b   ;   ##
+08B8: 02      	        DB 00000010b   ;     #
+08B9: 00      	        DB 00000000b   ;
+08BA: 00      	        DB 00000000b   ;
+08BB: 00      	        DB 00000000b   ;
+              	        ;023
+08BC: 14      	        DB 00010100b   ;  # #
+08BD: 00      	        DB 00000000b   ;
+08BE: 08      	        DB 00001000b   ;   #
+08BF: 22      	        DB 00100010b   ; #   # 
+08C0: 1C      	        DB 00011100b   ;  ###
+08C1: 00      	        DB 00000000b   ;
+              	        ;024
+08C2: 14      	        DB 00010100b   ;  # #
+08C3: 00      	        DB 00000000b   ;
+08C4: 00      	        DB 00000000b   ;
+08C5: 1C      	        DB 00011100b   ;  ###
+08C6: 22      	        DB 00100010b   ; #   # 
+08C7: 00      	        DB 00000000b   ;
+              	        ;025
+08C8: 08      	        DB 00001000b   ;   #
+08C9: 00      	        DB 00000000b   ;
+08CA: 18      	        DB 00011000b   ;  ##
+08CB: 22      	        DB 00100010b   ; #   #
+08CC: 1C      	        DB 00011100b   ;  ###
+08CD: 00      	        DB 00000000b   ;
+              	        ;026
+08CE: 08      	        DB 00001000b   ;   #
+08CF: 00      	        DB 00000000b   ;
+08D0: 08      	        DB 00001000b   ;   #
+08D1: 08      	        DB 00001000b   ;   #
+08D2: 08      	        DB 00001000b   ;   #
+08D3: 00      	        DB 00000000b   ;
+              	        ;027
+08D4: 00      	        DB 00000000b   ;
+08D5: 00      	        DB 00000000b   ;
+08D6: 3E      	        DB 00111110b   ; #####
+08D7: 06      	        DB 00000110b   ;    ##
+08D8: 06      	        DB 00000110b   ;    ##
+08D9: 00      	        DB 00000000b   ;
+              	        ;028
+08DA: 1C      	        DB 00011100b   ;  ###
+08DB: 1C      	        DB 00011100b   ;  ###
+08DC: 3E      	        DB 00111110b   ; #####
+08DD: 08      	        DB 00001000b   ;   #
+08DE: 1C      	        DB 00011100b   ;  ###
+08DF: 00      	        DB 00000000b   ;
+              	        ;029
+08E0: 08      	        DB 00001000b   ;   #
+08E1: 1C      	        DB 00011100b   ;  ###
+08E2: 3E      	        DB 00111110b   ; #####
+08E3: 1C      	        DB 00011100b   ;  ###
+08E4: 08      	        DB 00001000b   ;   #
+08E5: 00      	        DB 00000000b   ;
+              	        ;030
+08E6: 14      	        DB 00010100b   ;  # #
+08E7: 3E      	        DB 00111110b   ; #####
+08E8: 3E      	        DB 00111110b   ; #####
+08E9: 1C      	        DB 00011100b   ;  ###
+08EA: 08      	        DB 00001000b   ;   #
+08EB: 00      	        DB 00000000b   ;
+              	        ;031
+08EC: 08      	        DB 00001000b   ;   #
+08ED: 1C      	        DB 00011100b   ;  ###
+08EE: 3E      	        DB 00111110b   ; #####
+08EF: 08      	        DB 00001000b   ;   #
+08F0: 1C      	        DB 00011100b   ;  ###
+08F1: 00      	        DB 00000000b   ;
+              	        ;032 Space
+08F2: 00      	        DB 00000000b   ;
+08F3: 00      	        DB 00000000b   ;
+08F4: 00      	        DB 00000000b   ;
+08F5: 00      	        DB 00000000b   ;
+08F6: 00      	        DB 00000000b   ;
+08F7: 00      	        DB 00000000b   ;
+              	        ;033 !
+08F8: 08      	        DB 00001000b   ;   #
+08F9: 08      	        DB 00001000b   ;   #
+08FA: 08      	        DB 00001000b   ;   #
+08FB: 00      	        DB 00000000b   ;
+08FC: 08      	        DB 00001000b   ;   #
+08FD: 00      	        DB 00000000b   ;
+              	        ;034 "
+08FE: 14      	        DB 00010100b   ;  # #
+08FF: 14      	        DB 00010100b   ;  # #
+0900: 00      	        DB 00000000b   ;
+0901: 00      	        DB 00000000b   ;
+0902: 00      	        DB 00000000b   ;
+0903: 00      	        DB 00000000b   ;
+              	        ;035 #
+0904: 14      	        DB 00010100b   ;  # #
+0905: 3E      	        DB 00111110b   ; #####
+0906: 14      	        DB 00010100b   ;  # #
+0907: 3E      	        DB 00111110b   ; #####
+0908: 14      	        DB 00010100b   ;  # #
+0909: 00      	        DB 00000000b   ;
+              	        ;036 $
+090A: 1E      	        DB 00011110b   ;  ####
+090B: 28      	        DB 00101000b   ; # #
+090C: 1C      	        DB 00011100b   ;  ###
+090D: 0A      	        DB 00001010b   ;   # #
+090E: 3C      	        DB 00111100b   ; ####
+090F: 00      	        DB 00000000b   ;
+              	        ;037 %
+0910: 32      	        DB 00110010b   ; ##  #
+0911: 34      	        DB 00110100b   ; ## #
+0912: 08      	        DB 00001000b   ;   #
+0913: 16      	        DB 00010110b   ;  # ##
+0914: 26      	        DB 00100110b   ; #  ##
+0915: 00      	        DB 00000000b   ;
+              	        ;038 &
+0916: 18      	        DB 00011000b   ;  ##
+0917: 24      	        DB 00100100b   ; #  #
+0918: 1A      	        DB 00011010b   ;  ## #
+0919: 24      	        DB 00100100b   ; #  #
+091A: 1A      	        DB 00011010b   ;  ## #
+091B: 00      	        DB 00000000b   ;
+              	        ;039 '
+091C: 04      	        DB 00000100b   ;    #
+091D: 08      	        DB 00001000b   ;   #
+091E: 00      	        DB 00000000b   ;
+091F: 00      	        DB 00000000b   ;
+0920: 00      	        DB 00000000b   ;
+0921: 00      	        DB 00000000b   ;
+              	        ;040 (
+0922: 04      	        DB 00000100b   ;    #
+0923: 08      	        DB 00001000b   ;   #
+0924: 08      	        DB 00001000b   ;   #
+0925: 08      	        DB 00001000b   ;   #
+0926: 04      	        DB 00000100b   ;    #
+0927: 00      	        DB 00000000b   ;
+              	        ;041 )
+0928: 10      	        DB 00010000b   ;  #
+0929: 08      	        DB 00001000b   ;   #
+092A: 08      	        DB 00001000b   ;   #
+092B: 08      	        DB 00001000b   ;   #
+092C: 10      	        DB 00010000b   ;  #
+092D: 00      	        DB 00000000b   ;
+              	        ;042 *
+092E: 2A      	        DB 00101010b   ; # # #
+092F: 1C      	        DB 00011100b   ;  ###
+0930: 3E      	        DB 00111110b   ; #####
+0931: 1C      	        DB 00011100b   ;  ###
+0932: 2A      	        DB 00101010b   ; # # #
+0933: 00      	        DB 00000000b   ;
+              	        ;043 +
+0934: 00      	        DB 00000000b   ;
+0935: 08      	        DB 00001000b   ;   #
+0936: 1C      	        DB 00011100b   ;  ###
+0937: 08      	        DB 00001000b   ;   #
+0938: 00      	        DB 00000000b   ;
+0939: 00      	        DB 00000000b   ;
+              	        ;044 ,
+093A: 00      	        DB 00000000b   ;
+093B: 00      	        DB 00000000b   ;
+093C: 00      	        DB 00000000b   ;
+093D: 08      	        DB 00001000b   ;   #
+093E: 10      	        DB 00010000b   ;  #
+093F: 00      	        DB 00000000b   ;
+              	        ;045 -
+0940: 00      	        DB 00000000b   ;
+0941: 00      	        DB 00000000b   ;
+0942: 1C      	        DB 00011100b   ;  ###
+0943: 00      	        DB 00000000b   ;
+0944: 00      	        DB 00000000b   ;
+0945: 00      	        DB 00000000b   ;
+              	        ;046 .
+0946: 00      	        DB 00000000b   ;
+0947: 00      	        DB 00000000b   ;
+0948: 00      	        DB 00000000b   ;
+0949: 00      	        DB 00000000b   ;
+094A: 10      	        DB 00010000b   ;  #
+094B: 00      	        DB 00000000b   ;
+              	        ;047 /
+094C: 04      	        DB 00000100b   ;    #
+094D: 08      	        DB 00001000b   ;   #
+094E: 08      	        DB 00001000b   ;   #
+094F: 08      	        DB 00001000b   ;   #
+0950: 10      	        DB 00010000b   ;  #
+0951: 00      	        DB 00000000b   ;
+              	        ;048 0
+0952: 1C      	        DB 00011100b   ;  ###
+0953: 14      	        DB 00010100b   ;  # #
+0954: 14      	        DB 00010100b   ;  # #
+0955: 14      	        DB 00010100b   ;  # #
+0956: 1C      	        DB 00011100b   ;  ###
+0957: 00      	        DB 00000000b   ;
+              	        ;049 1
+0958: 08      	        DB 00001000b   ;   #
+0959: 18      	        DB 00011000b   ;  ##
+095A: 08      	        DB 00001000b   ;   #
+095B: 08      	        DB 00001000b   ;   #
+095C: 1C      	        DB 00011100b   ;  ###
+095D: 00      	        DB 00000000b   ;
+              	        ;050 2
+095E: 1C      	        DB 00011100b   ;  ###
+095F: 04      	        DB 00000100b   ;    #
+0960: 1C      	        DB 00011100b   ;  ###
+0961: 10      	        DB 00010000b   ;  #
+0962: 1C      	        DB 00011100b   ;  ###
+0963: 00      	        DB 00000000b   ;
+              	        ;051 3
+0964: 1C      	        DB 00011100b   ;  ###
+0965: 04      	        DB 00000100b   ;    #
+0966: 0C      	        DB 00001100b   ;   ##
+0967: 04      	        DB 00000100b   ;    #
+0968: 1C      	        DB 00011100b   ;  ###
+0969: 00      	        DB 00000000b   ;
+              	        ;052 4
+096A: 10      	        DB 00010000b   ;  #
+096B: 10      	        DB 00010000b   ;  #
+096C: 14      	        DB 00010100b   ;  # #
+096D: 1C      	        DB 00011100b   ;  ###
+096E: 04      	        DB 00000100b   ;    #
+096F: 00      	        DB 00000000b   ;
+              	        ;053 5
+0970: 1C      	        DB 00011100b   ;  ###
+0971: 10      	        DB 00010000b   ;  #
+0972: 1C      	        DB 00011100b   ;  ###
+0973: 04      	        DB 00000100b   ;    #
+0974: 1C      	        DB 00011100b   ;  ###
+0975: 00      	        DB 00000000b   ;
+              	        ;054 6
+0976: 18      	        DB 00011000b   ;  ##
+0977: 10      	        DB 00010000b   ;  #
+0978: 1C      	        DB 00011100b   ;  ###
+0979: 14      	        DB 00010100b   ;  # #
+097A: 1C      	        DB 00011100b   ;  ###
+097B: 00      	        DB 00000000b   ;
+              	        ;055 7
+097C: 1C      	        DB 00011100b   ;  ###
+097D: 04      	        DB 00000100b   ;    #
+097E: 08      	        DB 00001000b   ;   #
+097F: 10      	        DB 00010000b   ;  #
+0980: 10      	        DB 00010000b   ;  #
+0981: 00      	        DB 00000000b   ;
+              	        ;056 8
+0982: 1C      	        DB 00011100b   ;  ###
+0983: 14      	        DB 00010100b   ;  # #
+0984: 1C      	        DB 00011100b   ;  ###
+0985: 14      	        DB 00010100b   ;  # #
+0986: 1C      	        DB 00011100b   ;  ###
+0987: 00      	        DB 00000000b   ;
+              	        ;057 9
+0988: 1C      	        DB 00011100b   ;  ###
+0989: 14      	        DB 00010100b   ;  # #
+098A: 1C      	        DB 00011100b   ;  ###
+098B: 04      	        DB 00000100b   ;    #
+098C: 1C      	        DB 00011100b   ;  ###
+098D: 00      	        DB 00000000b   ;
+              	        ;058 :
+098E: 00      	        DB 00000000b   ;
+098F: 08      	        DB 00001000b   ;   #
+0990: 00      	        DB 00000000b   ;
+0991: 08      	        DB 00001000b   ;   #
+0992: 00      	        DB 00000000b   ;
+0993: 00      	        DB 00000000b   ;
+              	        ;059 ;
+0994: 00      	        DB 00000000b   ;
+0995: 08      	        DB 00001000b   ;   #
+0996: 00      	        DB 00000000b   ;
+0997: 08      	        DB 00001000b   ;   #
+0998: 10      	        DB 00010000b   ;  #
+0999: 00      	        DB 00000000b   ;
+              	        ;060 <
+099A: 04      	        DB 00000100b   ;    #
+099B: 08      	        DB 00001000b   ;   #
+099C: 10      	        DB 00010000b   ;  #
+099D: 08      	        DB 00001000b   ;   #
+099E: 04      	        DB 00000100b   ;    #
+099F: 00      	        DB 00000000b   ;
+              	        ;061 =
+09A0: 00      	        DB 00000000b   ;
+09A1: 1C      	        DB 00011100b   ;  ###
+09A2: 00      	        DB 00000000b   ;
+09A3: 1C      	        DB 00011100b   ;  ###
+09A4: 00      	        DB 00000000b   ;
+09A5: 00      	        DB 00000000b   ;
+              	        ;062 >
+09A6: 10      	        DB 00010000b   ;  #
+09A7: 08      	        DB 00001000b   ;   #
+09A8: 04      	        DB 00000100b   ;    #
+09A9: 08      	        DB 00001000b   ;   #
+09AA: 10      	        DB 00010000b   ;  #
+09AB: 00      	        DB 00000000b   ;
+              	        ;063 ?
+09AC: 1C      	        DB 00011100b   ;  ###
+09AD: 22      	        DB 00100010b   ; #   # 
+09AE: 0C      	        DB 00001100b   ;   ##
+09AF: 00      	        DB 00000000b   ;
+09B0: 08      	        DB 00001000b   ;   #
+09B1: 00      	        DB 00000000b   ;
+              	        ;064 @
+09B2: 1C      	        DB 00011100b   ;  ###
+09B3: 22      	        DB 00100010b   ; #   #
+09B4: 26      	        DB 00100110b   ; #  ##
+09B5: 2A      	        DB 00101010b   ; # # # 
+09B6: 0C      	        DB 00001100b   ;   ##
+09B7: 00      	        DB 00000000b   ;
+              	        ;065 A
+09B8: 18      	        DB 00011000b   ;  ##
+09B9: 24      	        DB 00100100b   ; #  #
+09BA: 22      	        DB 00100010b   ; #   #
+09BB: 3E      	        DB 00111110b   ; #####
+09BC: 22      	        DB 00100010b   ; #   #
+09BD: 00      	        DB 00000000b   ; 
+              	        ;066 B
+09BE: 38      	        DB 00111000b   ; ###
+09BF: 24      	        DB 00100100b   ; #  #
+09C0: 3C      	        DB 00111100b   ; ####
+09C1: 22      	        DB 00100010b   ; #   #
+09C2: 3C      	        DB 00111100b   ; ####
+09C3: 00      	        DB 00000000b   ; 
+              	        ;067 C
+09C4: 1C      	        DB 00011100b   ;  ###
+09C5: 22      	        DB 00100010b   ; #   # 
+09C6: 20      	        DB 00100000b   ; #
+09C7: 22      	        DB 00100010b   ; #   # 
+09C8: 1C      	        DB 00011100b   ;  ###
+09C9: 00      	        DB 00000000b   ;
+              	        ;068 D
+09CA: 3C      	        DB 00111100b   ; ####
+09CB: 26      	        DB 00100110b   ; #  ##
+09CC: 22      	        DB 00100010b   ; #   #
+09CD: 22      	        DB 00100010b   ; #   #
+09CE: 3C      	        DB 00111100b   ; ####
+09CF: 00      	        DB 00000000b   ;
+              	        ;069 E
+09D0: 3E      	        DB 00111110b   ; #####
+09D1: 20      	        DB 00100000b   ; #
+09D2: 3C      	        DB 00111100b   ; ####
+09D3: 20      	        DB 00100000b   ; #
+09D4: 3E      	        DB 00111110b   ; #####
+09D5: 00      	        DB 00000000b   ;
+              	        ;070 F
+09D6: 3E      	        DB 00111110b   ; #####
+09D7: 20      	        DB 00100000b   ; #
+09D8: 3C      	        DB 00111100b   ; ####
+09D9: 20      	        DB 00100000b   ; #
+09DA: 20      	        DB 00100000b   ; #
+09DB: 00      	        DB 00000000b   ;
+              	        ;071 G
+09DC: 1C      	        DB 00011100b   ;  ###
+09DD: 20      	        DB 00100000b   ; #    
+09DE: 26      	        DB 00100110b   ; #  ##
+09DF: 22      	        DB 00100010b   ; #   # 
+09E0: 1C      	        DB 00011100b   ;  ###
+09E1: 00      	        DB 00000000b   ;
+              	        ;072 H
+09E2: 24      	        DB 00100100b   ; #  #
+09E3: 22      	        DB 00100010b   ; #   #
+09E4: 3E      	        DB 00111110b   ; #####
+09E5: 22      	        DB 00100010b   ; #   #
+09E6: 22      	        DB 00100010b   ; #   #
+09E7: 00      	        DB 00000000b   ;
+              	        ;073 I
+09E8: 1C      	        DB 00011100b   ;  ###
+09E9: 08      	        DB 00001000b   ;   #
+09EA: 08      	        DB 00001000b   ;   #
+09EB: 08      	        DB 00001000b   ;   #
+09EC: 1C      	        DB 00011100b   ;  ###
+09ED: 00      	        DB 00000000b   ;
+              	        ;074 J
+09EE: 0C      	        DB 00001100b   ;   ##
+09EF: 04      	        DB 00000100b   ;    #
+09F0: 04      	        DB 00000100b   ;    #
+09F1: 14      	        DB 00010100b   ;  # #
+09F2: 1C      	        DB 00011100b   ;  ###
+09F3: 00      	        DB 00000000b   ;
+              	        ;075 K
+09F4: 24      	        DB 00100100b   ; #  #
+09F5: 28      	        DB 00101000b   ; # #
+09F6: 30      	        DB 00110000b   ; ##
+09F7: 28      	        DB 00101000b   ; # #
+09F8: 24      	        DB 00100100b   ; #  #
+09F9: 00      	        DB 00000000b   ;
+              	        ;076 L
+09FA: 20      	        DB 00100000b   ; #
+09FB: 20      	        DB 00100000b   ; #
+09FC: 20      	        DB 00100000b   ; #
+09FD: 20      	        DB 00100000b   ; #
+09FE: 3C      	        DB 00111100b   ; ####
+09FF: 00      	        DB 00000000b   ; 
+              	        ;077 M
+0A00: 22      	        DB 00100010b   ; #   #
+0A01: 36      	        DB 00110110b   ; ## ##
+0A02: 2A      	        DB 00101010b   ; # # #
+0A03: 22      	        DB 00100010b   ; #   #
+0A04: 22      	        DB 00100010b   ; #   #
+0A05: 00      	        DB 00000000b   ; 
+              	        ;078 N
+0A06: 22      	        DB 00100010b   ; #   #
+0A07: 32      	        DB 00110010b   ; ##  #
+0A08: 2A      	        DB 00101010b   ; # # #
+0A09: 26      	        DB 00100110b   ; #  ##
+0A0A: 22      	        DB 00100010b   ; #   #
+0A0B: 00      	        DB 00000000b   ; 
+              	        ;079 O
+0A0C: 1C      	        DB 00011100b   ;  ###
+0A0D: 26      	        DB 00100110b   ; #  ## 
+0A0E: 22      	        DB 00100010b   ; #   #
+0A0F: 22      	        DB 00100010b   ; #   # 
+0A10: 1C      	        DB 00011100b   ;  ###
+0A11: 00      	        DB 00000000b   ; 
+              	        ;080 P
+0A12: 38      	        DB 00111000b   ; ###
+0A13: 24      	        DB 00100100b   ; #  #
+0A14: 38      	        DB 00111000b   ; ###
+0A15: 20      	        DB 00100000b   ; #
+0A16: 20      	        DB 00100000b   ; #
+0A17: 00      	        DB 00000000b   ; 
+              	        ;081 Q
+0A18: 1C      	        DB 00011100b   ;  ###
+0A19: 22      	        DB 00100010b   ; #   # 
+0A1A: 22      	        DB 00100010b   ; #   #
+0A1B: 26      	        DB 00100110b   ; #  ## 
+0A1C: 1E      	        DB 00011110b   ;  ####
+0A1D: 00      	        DB 00000000b   ; 
+              	        ;082 R
+0A1E: 38      	        DB 00111000b   ; ###
+0A1F: 24      	        DB 00100100b   ; #  #
+0A20: 38      	        DB 00111000b   ; ###
+0A21: 28      	        DB 00101000b   ; # #
+0A22: 24      	        DB 00100100b   ; #  #
+0A23: 00      	        DB 00000000b   ; 
+              	        ;083 S
+0A24: 1E      	        DB 00011110b   ;  ####
+0A25: 20      	        DB 00100000b   ; #
+0A26: 1C      	        DB 00011100b   ;  ###
+0A27: 02      	        DB 00000010b   ;     #
+0A28: 3C      	        DB 00111100b   ; ####
+0A29: 00      	        DB 00000000b   ; 
+              	        ;084 T
+0A2A: 3E      	        DB 00111110b   ; #####
+0A2B: 08      	        DB 00001000b   ;   #
+0A2C: 08      	        DB 00001000b   ;   #
+0A2D: 08      	        DB 00001000b   ;   #
+0A2E: 08      	        DB 00001000b   ;   #
+0A2F: 00      	        DB 00000000b   ; 
+              	        ;085 U
+0A30: 24      	        DB 00100100b   ; #  #
+0A31: 22      	        DB 00100010b   ; #   #
+0A32: 22      	        DB 00100010b   ; #   #
+0A33: 22      	        DB 00100010b   ; #   #
+0A34: 1C      	        DB 00011100b   ;  ###
+0A35: 00      	        DB 00000000b   ; 
+              	        ;086 V
+0A36: 22      	        DB 00100010b   ; #   #
+0A37: 22      	        DB 00100010b   ; #   #
+0A38: 14      	        DB 00010100b   ;  # #
+0A39: 14      	        DB 00010100b   ;  # #
+0A3A: 08      	        DB 00001000b   ;   #
+0A3B: 00      	        DB 00000000b   ; 
+              	        ;087 W
+0A3C: 24      	        DB 00100100b   ; #  #
+0A3D: 22      	        DB 00100010b   ; #   #
+0A3E: 2A      	        DB 00101010b   ; # # #
+0A3F: 2A      	        DB 00101010b   ; # # #
+0A40: 14      	        DB 00010100b   ;  # #
+0A41: 00      	        DB 00000000b   ; 
+              	        ;088 X
+0A42: 22      	        DB 00100010b   ; #   #
+0A43: 14      	        DB 00010100b   ;  # #
+0A44: 08      	        DB 00001000b   ;   #
+0A45: 14      	        DB 00010100b   ;  # #
+0A46: 22      	        DB 00100010b   ; #   #
+0A47: 00      	        DB 00000000b   ; 
+              	        ;089 Y
+0A48: 22      	        DB 00100010b   ; #   #
+0A49: 14      	        DB 00010100b   ;  # #
+0A4A: 08      	        DB 00001000b   ;   #
+0A4B: 08      	        DB 00001000b   ;   #
+0A4C: 08      	        DB 00001000b   ;   #
+0A4D: 00      	        DB 00000000b   ; 
+              	        ;090 Z
+0A4E: 3E      	        DB 00111110b   ; #####
+0A4F: 04      	        DB 00000100b   ;    #
+0A50: 08      	        DB 00001000b   ;   #
+0A51: 10      	        DB 00010000b   ;  #
+0A52: 3E      	        DB 00111110b   ; #####
+0A53: 00      	        DB 00000000b   ; 
+              	        ;091 [
+0A54: 0C      	        DB 00001100b   ;   ##
+0A55: 08      	        DB 00001000b   ;   #
+0A56: 08      	        DB 00001000b   ;   #
+0A57: 08      	        DB 00001000b   ;   #
+0A58: 0C      	        DB 00001100b   ;   ##
+0A59: 00      	        DB 00000000b   ; 
+              	        ;092 \
+0A5A: 10      	        DB 00010000b   ;  #
+0A5B: 08      	        DB 00001000b   ;   #
+0A5C: 08      	        DB 00001000b   ;   #
+0A5D: 08      	        DB 00001000b   ;   #
+0A5E: 04      	        DB 00000100b   ;    #
+0A5F: 00      	        DB 00000000b   ; 
+              	        ;093 ]
+0A60: 18      	        DB 00011000b   ;  ##
+0A61: 08      	        DB 00001000b   ;   #
+0A62: 08      	        DB 00001000b   ;   #
+0A63: 08      	        DB 00001000b   ;   #
+0A64: 18      	        DB 00011000b   ;  ##
+0A65: 00      	        DB 00000000b   ; 
+              	        ;094 ^
+0A66: 08      	        DB 00001000b   ;   #
+0A67: 14      	        DB 00010100b   ;  # #
+0A68: 00      	        DB 00000000b   ; 
+0A69: 00      	        DB 00000000b   ; 
+0A6A: 00      	        DB 00000000b   ; 
+0A6B: 00      	        DB 00000000b   ; 
+              	        ;095 _
+0A6C: 00      	        DB 00000000b   ; 
+0A6D: 00      	        DB 00000000b   ; 
+0A6E: 00      	        DB 00000000b   ; 
+0A6F: 00      	        DB 00000000b   ; 
+0A70: 3E      	        DB 00111110b   ; #####
+0A71: 00      	        DB 00000000b   ; 
+              	        ;096 `
+0A72: 08      	        DB 00001000b   ;   #
+0A73: 04      	        DB 00000100b   ;    #
+0A74: 00      	        DB 00000000b   ;
+0A75: 00      	        DB 00000000b   ;
+0A76: 00      	        DB 00000000b   ;
+0A77: 00      	        DB 00000000b   ;
+              	        ;097 a
+0A78: 00      	        DB 00000000b   ; 
+0A79: 1C      	        DB 00011100b   ;  ###
+0A7A: 22      	        DB 00100010b   ; #   #
+0A7B: 26      	        DB 00100110b   ; #  ##
+0A7C: 1A      	        DB 00011010b   ;  ## #
+0A7D: 00      	        DB 00000000b   ; 
+              	        ;098 b
+0A7E: 20      	        DB 00100000b   ; #
+0A7F: 3C      	        DB 00111100b   ; ####
+0A80: 22      	        DB 00100010b   ; #   #
+0A81: 22      	        DB 00100010b   ; #   #
+0A82: 3C      	        DB 00111100b   ; ####
+0A83: 00      	        DB 00000000b   ; 
+              	        ;099 c
+0A84: 00      	        DB 00000000b   ; 
+0A85: 1C      	        DB 00011100b   ;  ###
+0A86: 20      	        DB 00100000b   ; #   
+0A87: 20      	        DB 00100000b   ; #   
+0A88: 1C      	        DB 00011100b   ;  ###
+0A89: 00      	        DB 00000000b   ; 
+              	        ;100 d
+0A8A: 02      	        DB 00000010b   ;     #
+0A8B: 1E      	        DB 00011110b   ;  ####
+0A8C: 22      	        DB 00100010b   ; #   #
+0A8D: 22      	        DB 00100010b   ; #   #
+0A8E: 1E      	        DB 00011110b   ;  ####
+0A8F: 00      	        DB 00000000b   ; 
+              	        ;101 e
+0A90: 1C      	        DB 00011100b   ;  ###
+0A91: 22      	        DB 00100010b   ; #   #
+0A92: 3C      	        DB 00111100b   ; ####
+0A93: 20      	        DB 00100000b   ; #
+0A94: 1E      	        DB 00011110b   ;  ####
+0A95: 00      	        DB 00000000b   ; 
+              	        ;102 f
+0A96: 0E      	        DB 00001110b   ;   ###
+0A97: 10      	        DB 00010000b   ;  # 
+0A98: 3C      	        DB 00111100b   ; ####
+0A99: 10      	        DB 00010000b   ;  # 
+0A9A: 10      	        DB 00010000b   ;  # 
+0A9B: 00      	        DB 00000000b   ; 
+              	        ;103 g
+0A9C: 1E      	        DB 00011110b   ;  ####
+0A9D: 22      	        DB 00100010b   ; #   #
+0A9E: 1E      	        DB 00011110b   ;  ####
+0A9F: 02      	        DB 00000010b   ;     #
+0AA0: 3C      	        DB 00111100b   ; ####
+0AA1: 00      	        DB 00000000b   ; 
+              	        ;104 h
+0AA2: 20      	        DB 00100000b   ; #
+0AA3: 20      	        DB 00100000b   ; #
+0AA4: 3C      	        DB 00111100b   ; ####
+0AA5: 22      	        DB 00100010b   ; #   #
+0AA6: 22      	        DB 00100010b   ; #   #
+0AA7: 00      	        DB 00000000b   ; 
+              	        ;105 i
+0AA8: 08      	        DB 00001000b   ;   #
+0AA9: 00      	        DB 00000000b   ; 
+0AAA: 08      	        DB 00001000b   ;   #
+0AAB: 08      	        DB 00001000b   ;   #
+0AAC: 08      	        DB 00001000b   ;   #
+0AAD: 00      	        DB 00000000b   ; 
+              	        ;106 j
+0AAE: 04      	        DB 00000100b   ;    # 
+0AAF: 00      	        DB 00000000b   ; 
+0AB0: 04      	        DB 00000100b   ;    # 
+0AB1: 04      	        DB 00000100b   ;    # 
+0AB2: 18      	        DB 00011000b   ;  ##
+0AB3: 00      	        DB 00000000b   ; 
+              	        ;107 k
+0AB4: 20      	        DB 00100000b   ; #
+0AB5: 24      	        DB 00100100b   ; #  #
+0AB6: 28      	        DB 00101000b   ; # #
+0AB7: 34      	        DB 00110100b   ; ## #
+0AB8: 22      	        DB 00100010b   ; #   #
+0AB9: 00      	        DB 00000000b   ; 
+              	        ;108 l
+0ABA: 08      	        DB 00001000b   ;   #
+0ABB: 08      	        DB 00001000b   ;   #
+0ABC: 08      	        DB 00001000b   ;   #
+0ABD: 08      	        DB 00001000b   ;   #
+0ABE: 0C      	        DB 00001100b   ;   ##
+0ABF: 00      	        DB 00000000b   ; 
+              	        ;109 m
+0AC0: 00      	        DB 00000000b   ; 
+0AC1: 14      	        DB 00010100b   ;  # #
+0AC2: 2A      	        DB 00101010b   ; # # #
+0AC3: 2A      	        DB 00101010b   ; # # #
+0AC4: 2A      	        DB 00101010b   ; # # #
+0AC5: 00      	        DB 00000000b   ; 
+              	        ;110 n
+0AC6: 00      	        DB 00000000b   ; 
+0AC7: 1C      	        DB 00011100b   ;  ###
+0AC8: 22      	        DB 00100010b   ; #   #
+0AC9: 22      	        DB 00100010b   ; #   #
+0ACA: 22      	        DB 00100010b   ; #   #
+0ACB: 00      	        DB 00000000b   ; 
+              	        ;111 o
+0ACC: 00      	        DB 00000000b   ; 
+0ACD: 1C      	        DB 00011100b   ;  ###
+0ACE: 22      	        DB 00100010b   ; #   #
+0ACF: 22      	        DB 00100010b   ; #   #
+0AD0: 1C      	        DB 00011100b   ;  ###
+0AD1: 00      	        DB 00000000b   ; 
+              	        ;112 p
+0AD2: 1C      	        DB 00011100b   ;  ###
+0AD3: 22      	        DB 00100010b   ; #   #
+0AD4: 22      	        DB 00100010b   ; #   #
+0AD5: 3C      	        DB 00111100b   ; ####
+0AD6: 20      	        DB 00100000b   ; #
+0AD7: 00      	        DB 00000000b   ; 
+              	        ;113 q
+0AD8: 1C      	        DB 00011100b   ;  ###
+0AD9: 22      	        DB 00100010b   ; #   #
+0ADA: 22      	        DB 00100010b   ; #   #
+0ADB: 1E      	        DB 00011110b   ;  ####
+0ADC: 02      	        DB 00000010b   ;     #
+0ADD: 00      	        DB 00000000b   ; 
+              	        ;114 r
+0ADE: 00      	        DB 00000000b   ; 
+0ADF: 2C      	        DB 00101100b   ; # ##
+0AE0: 30      	        DB 00110000b   ; ##
+0AE1: 20      	        DB 00100000b   ; #
+0AE2: 20      	        DB 00100000b   ; #
+0AE3: 00      	        DB 00000000b   ; 
+              	        ;115 s
+0AE4: 1C      	        DB 00011100b   ;  ###
+0AE5: 20      	        DB 00100000b   ; #
+0AE6: 1C      	        DB 00011100b   ;  ###
+0AE7: 02      	        DB 00000010b   ;     #
+0AE8: 3C      	        DB 00111100b   ; ####
+0AE9: 00      	        DB 00000000b   ; 
+              	        ;116 t
+0AEA: 08      	        DB 00001000b   ;   #
+0AEB: 1C      	        DB 00011100b   ;  ###
+0AEC: 08      	        DB 00001000b   ;   #
+0AED: 08      	        DB 00001000b   ;   #
+0AEE: 04      	        DB 00000100b   ;    #
+0AEF: 00      	        DB 00000000b   ; 
+              	        ;117 u
+0AF0: 00      	        DB 00000000b   ; 
+0AF1: 22      	        DB 00100010b   ; #   # 
+0AF2: 22      	        DB 00100010b   ; #   # 
+0AF3: 22      	        DB 00100010b   ; #   # 
+0AF4: 1C      	        DB 00011100b   ;  ###
+0AF5: 00      	        DB 00000000b   ; 
+              	        ;118 v
+0AF6: 00      	        DB 00000000b   ; 
+0AF7: 22      	        DB 00100010b   ; #   # 
+0AF8: 22      	        DB 00100010b   ; #   # 
+0AF9: 14      	        DB 00010100b   ;  # # 
+0AFA: 08      	        DB 00001000b   ;   #
+0AFB: 00      	        DB 00000000b   ; 
+              	        ;119 w
+0AFC: 00      	        DB 00000000b   ; 
+0AFD: 22      	        DB 00100010b   ; #   # 
+0AFE: 22      	        DB 00100010b   ; #   # 
+0AFF: 2A      	        DB 00101010b   ; # # # 
+0B00: 36      	        DB 00110110b   ; ## ##
+0B01: 00      	        DB 00000000b   ; 
+              	        ;120 x
+0B02: 00      	        DB 00000000b   ; 
+0B03: 22      	        DB 00100010b   ; #   # 
+0B04: 1C      	        DB 00011100b   ;  ###
+0B05: 1C      	        DB 00011100b   ;  ###
+0B06: 22      	        DB 00100010b   ; #   # 
+0B07: 00      	        DB 00000000b   ; 
+              	        ;121 y
+0B08: 22      	        DB 00100010b   ; #   # 
+0B09: 22      	        DB 00100010b   ; #   # 
+0B0A: 1E      	        DB 00011110b   ;  ####
+0B0B: 02      	        DB 00000010b   ;     #
+0B0C: 3C      	        DB 00111100b   ; ####
+0B0D: 00      	        DB 00000000b   ; 
+              	        ;122 z
+0B0E: 00      	        DB 00000000b   ; 
+0B0F: 3C      	        DB 00111100b   ; #### 
+0B10: 08      	        DB 00001000b   ;   #
+0B11: 10      	        DB 00010000b   ;  #
+0B12: 3C      	        DB 00111100b   ; #### 
+0B13: 00      	        DB 00000000b   ; 
+              	        ;123 {
+0B14: 0C      	        DB 00001100b   ;   ##
+0B15: 08      	        DB 00001000b   ;   #
+0B16: 10      	        DB 00010000b   ;  #
+0B17: 08      	        DB 00001000b   ;   #
+0B18: 0C      	        DB 00001100b   ;   ##
+0B19: 00      	        DB 00000000b   ; 
+              	        ;124 |
+0B1A: 08      	        DB 00001000b   ;   # 
+0B1B: 08      	        DB 00001000b   ;   # 
+0B1C: 08      	        DB 00001000b   ;   # 
+0B1D: 08      	        DB 00001000b   ;   # 
+0B1E: 08      	        DB 00001000b   ;   # 
+0B1F: 00      	        DB 00000000b   ; 
+              	        ;125 }
+0B20: 18      	        DB 00011000b   ;  ##
+0B21: 08      	        DB 00001000b   ;   #
+0B22: 04      	        DB 00000100b   ;    #
+0B23: 08      	        DB 00001000b   ;   #
+0B24: 18      	        DB 00011000b   ;  ##
+0B25: 00      	        DB 00000000b   ; 
+              	        ;126 ~
+0B26: 14      	        DB 00010100b   ;  # #
+0B27: 28      	        DB 00101000b   ; # #
+0B28: 00      	        DB 00000000b   ; 
+0B29: 00      	        DB 00000000b   ; 
+0B2A: 00      	        DB 00000000b   ; 
+0B2B: 00      	        DB 00000000b   ; 
+              	        ;127 
+0B2C: 2A      	        DB 00101010b   ; # # #
+0B2D: 15      	        DB 00010101b   ;  # # #
+0B2E: 2A      	        DB 00101010b   ; # # #
+0B2F: 15      	        DB 00010101b   ;  # # #
+0B30: 2A      	        DB 00101010b   ; # # #
+0B31: 15      	        DB 00010101b   ;  # # #
+              	        ;128
+0B32: 00      	        DB 00000000b   ; 
+0B33: 00      	        DB 00000000b   ; 
+0B34: 00      	        DB 00000000b   ; 
+0B35: 00      	        DB 00000000b   ; 
+0B36: 00      	        DB 00000000b   ; 
+0B37: 00      	        DB 00000000b   ; 
+              	        ;129
+0B38: 38      	        DB 00111000b   ; ###
+0B39: 38      	        DB 00111000b   ; ###
+0B3A: 38      	        DB 00111000b   ; ###
+0B3B: 00      	        DB 00000000b   ; 
+0B3C: 00      	        DB 00000000b   ; 
+0B3D: 00      	        DB 00000000b   ; 
+              	        ;130
+0B3E: 07      	        DB 00000111b   ;    ###
+0B3F: 07      	        DB 00000111b   ;    ###
+0B40: 07      	        DB 00000111b   ;    ###
+0B41: 00      	        DB 00000000b   ; 
+0B42: 00      	        DB 00000000b   ; 
+0B43: 00      	        DB 00000000b   ; 
+              	        ;131
+0B44: 3F      	        DB 00111111b   ; ######
+0B45: 3F      	        DB 00111111b   ; ######
+0B46: 3F      	        DB 00111111b   ; ######
+0B47: 00      	        DB 00000000b   ; 
+0B48: 00      	        DB 00000000b   ; 
+0B49: 00      	        DB 00000000b   ; 
+              	        ;132
+0B4A: 00      	        DB 00000000b   ; 
+0B4B: 00      	        DB 00000000b   ; 
+0B4C: 00      	        DB 00000000b   ; 
+0B4D: 38      	        DB 00111000b   ; ###
+0B4E: 38      	        DB 00111000b   ; ###
+0B4F: 38      	        DB 00111000b   ; ###
+              	        ;133
+0B50: 38      	        DB 00111000b   ; ###
+0B51: 38      	        DB 00111000b   ; ###
+0B52: 38      	        DB 00111000b   ; ###
+0B53: 38      	        DB 00111000b   ; ###
+0B54: 38      	        DB 00111000b   ; ###
+0B55: 38      	        DB 00111000b   ; ###
+              	        ;134
+0B56: 07      	        DB 00000111b   ;    ###
+0B57: 07      	        DB 00000111b   ;    ###
+0B58: 07      	        DB 00000111b   ;    ###
+0B59: 38      	        DB 00111000b   ; ###
+0B5A: 38      	        DB 00111000b   ; ###
+0B5B: 38      	        DB 00111000b   ; ###
+              	        ;135
+0B5C: 3F      	        DB 00111111b   ; ######
+0B5D: 3F      	        DB 00111111b   ; ######
+0B5E: 3F      	        DB 00111111b   ; ######
+0B5F: 38      	        DB 00111000b   ; ###
+0B60: 38      	        DB 00111000b   ; ###
+0B61: 38      	        DB 00111000b   ; ###
+              	        ;136
+0B62: 00      	        DB 00000000b   ; 
+0B63: 00      	        DB 00000000b   ; 
+0B64: 00      	        DB 00000000b   ; 
+0B65: 07      	        DB 00000111b   ;    ###
+0B66: 07      	        DB 00000111b   ;    ###
+0B67: 07      	        DB 00000111b   ;    ###
+              	        ;137
+0B68: 38      	        DB 00111000b   ; ###
+0B69: 38      	        DB 00111000b   ; ###
+0B6A: 38      	        DB 00111000b   ; ###
+0B6B: 07      	        DB 00000111b   ;    ###
+0B6C: 07      	        DB 00000111b   ;    ###
+0B6D: 07      	        DB 00000111b   ;    ###
+              	        ;138
+0B6E: 07      	        DB 00000111b   ;    ###
+0B6F: 07      	        DB 00000111b   ;    ###
+0B70: 07      	        DB 00000111b   ;    ###
+0B71: 07      	        DB 00000111b   ;    ###
+0B72: 07      	        DB 00000111b   ;    ###
+0B73: 07      	        DB 00000111b   ;    ###
+              	        ;139
+0B74: 3F      	        DB 00111111b   ; ######
+0B75: 3F      	        DB 00111111b   ; ######
+0B76: 3F      	        DB 00111111b   ; ######
+0B77: 07      	        DB 00000111b   ;    ###
+0B78: 07      	        DB 00000111b   ;    ###
+0B79: 07      	        DB 00000111b   ;    ###
+              	        ;140
+0B7A: 00      	        DB 00000000b   ; 
+0B7B: 00      	        DB 00000000b   ; 
+0B7C: 00      	        DB 00000000b   ; 
+0B7D: 3F      	        DB 00111111b   ; ######
+0B7E: 3F      	        DB 00111111b   ; ######
+0B7F: 3F      	        DB 00111111b   ; ######
+              	        ;141
+0B80: 38      	        DB 00111000b   ; ###
+0B81: 38      	        DB 00111000b   ; ###
+0B82: 38      	        DB 00111000b   ; ###
+0B83: 3F      	        DB 00111111b   ; ######
+0B84: 3F      	        DB 00111111b   ; ######
+0B85: 3F      	        DB 00111111b   ; ######
+              	        ;142
+0B86: 07      	        DB 00000111b   ;    ###
+0B87: 07      	        DB 00000111b   ;    ###
+0B88: 07      	        DB 00000111b   ;    ###
+0B89: 3F      	        DB 00111111b   ; ######
+0B8A: 3F      	        DB 00111111b   ; ######
+0B8B: 3F      	        DB 00111111b   ; ######
+              	        ;143
+0B8C: 3F      	        DB 00111111b   ; ######
+0B8D: 3F      	        DB 00111111b   ; ######
+0B8E: 3F      	        DB 00111111b   ; ######
+0B8F: 3F      	        DB 00111111b   ; ######
+0B90: 3F      	        DB 00111111b   ; ######
+0B91: 3F      	        DB 00111111b   ; ######
+              	        ;144
+0B92: 00      	        DB 00000000b   ; 
+0B93: 00      	        DB 00000000b   ; 
+0B94: 0C      	        DB 00001100b   ;   ##
+0B95: 0C      	        DB 00001100b   ;   ##
+0B96: 00      	        DB 00000000b   ; 
+0B97: 00      	        DB 00000000b   ; 
+              	        ;145
+0B98: 0C      	        DB 00001100b   ;   ##
+0B99: 0C      	        DB 00001100b   ;   ##
+0B9A: 0C      	        DB 00001100b   ;   ##
+0B9B: 0C      	        DB 00001100b   ;   ##
+0B9C: 00      	        DB 00000000b   ; 
+0B9D: 00      	        DB 00000000b   ; 
+              	        ;146
+0B9E: 00      	        DB 00000000b   ; 
+0B9F: 00      	        DB 00000000b   ; 
+0BA0: 0F      	        DB 00001111b   ;   ####
+0BA1: 0F      	        DB 00001111b   ;   ####
+0BA2: 00      	        DB 00000000b   ; 
+0BA3: 00      	        DB 00000000b   ; 
+              	        ;147
+0BA4: 0C      	        DB 00001100b   ;   ##
+0BA5: 0C      	        DB 00001100b   ;   ##
+0BA6: 0F      	        DB 00001111b   ;   ####
+0BA7: 07      	        DB 00000111b   ;    ###
+0BA8: 00      	        DB 00000000b   ; 
+0BA9: 00      	        DB 00000000b   ; 
+              	        ;148
+0BAA: 00      	        DB 00000000b   ; 
+0BAB: 00      	        DB 00000000b   ; 
+0BAC: 0C      	        DB 00001100b   ;   ##
+0BAD: 0C      	        DB 00001100b   ;   ##
+0BAE: 0C      	        DB 00001100b   ;   ##
+0BAF: 0C      	        DB 00001100b   ;   ##
+              	        ;149
+0BB0: 0C      	        DB 00001100b   ;   ##
+0BB1: 0C      	        DB 00001100b   ;   ##
+0BB2: 0C      	        DB 00001100b   ;   ##
+0BB3: 0C      	        DB 00001100b   ;   ##
+0BB4: 0C      	        DB 00001100b   ;   ##
+0BB5: 0C      	        DB 00001100b   ;   ##
+              	        ;150
+0BB6: 00      	        DB 00000000b   ; 
+0BB7: 00      	        DB 00000000b   ; 
+0BB8: 07      	        DB 00000111b   ;    ###
+0BB9: 0F      	        DB 00001111b   ;   ####
+0BBA: 0C      	        DB 00001100b   ;   ##
+0BBB: 0C      	        DB 00001100b   ;   ##
+              	        ;151
+0BBC: 0C      	        DB 00001100b   ;   ##
+0BBD: 0C      	        DB 00001100b   ;   ##
+0BBE: 0F      	        DB 00001111b   ;   ####
+0BBF: 0F      	        DB 00001111b   ;   ####
+0BC0: 0C      	        DB 00001100b   ;   ##
+0BC1: 0C      	        DB 00001100b   ;   ##
+              	        ;152
+0BC2: 00      	        DB 00000000b   ; 
+0BC3: 00      	        DB 00000000b   ; 
+0BC4: 3C      	        DB 00111100b   ; ####
+0BC5: 3C      	        DB 00111100b   ; ####
+0BC6: 00      	        DB 00000000b   ; 
+0BC7: 00      	        DB 00000000b   ; 
+              	        ;153
+0BC8: 0C      	        DB 00001100b   ;   ##
+0BC9: 0C      	        DB 00001100b   ;   ##
+0BCA: 3C      	        DB 00111100b   ; ####
+0BCB: 38      	        DB 00111000b   ; ###
+0BCC: 00      	        DB 00000000b   ; 
+0BCD: 00      	        DB 00000000b   ; 
+              	        ;154
+0BCE: 00      	        DB 00000000b   ; 
+0BCF: 00      	        DB 00000000b   ; 
+0BD0: 3F      	        DB 00111111b   ; ######
+0BD1: 3F      	        DB 00111111b   ; ######
+0BD2: 00      	        DB 00000000b   ; 
+0BD3: 00      	        DB 00000000b   ; 
+              	        ;155
+0BD4: 0C      	        DB 00001100b   ;   ##
+0BD5: 0C      	        DB 00001100b   ;   ##
+0BD6: 3F      	        DB 00111111b   ; ######
+0BD7: 3F      	        DB 00111111b   ; ######
+0BD8: 00      	        DB 00000000b   ; 
+0BD9: 00      	        DB 00000000b   ; 
+              	        ;156
+0BDA: 00      	        DB 00000000b   ; 
+0BDB: 00      	        DB 00000000b   ; 
+0BDC: 38      	        DB 00111000b   ; ###
+0BDD: 3C      	        DB 00111100b   ; ####
+0BDE: 0C      	        DB 00001100b   ;   ##
+0BDF: 0C      	        DB 00001100b   ;   ##
+              	        ;157
+0BE0: 0C      	        DB 00001100b   ;   ##
+0BE1: 0C      	        DB 00001100b   ;   ##
+0BE2: 3C      	        DB 00111100b   ; ####
+0BE3: 3C      	        DB 00111100b   ; ####
+0BE4: 0C      	        DB 00001100b   ;   ##
+0BE5: 0C      	        DB 00001100b   ;   ##
+              	        ;158
+0BE6: 00      	        DB 00000000b   ; 
+0BE7: 00      	        DB 00000000b   ; 
+0BE8: 3F      	        DB 00111111b   ; ######
+0BE9: 3F      	        DB 00111111b   ; ######
+0BEA: 0C      	        DB 00001100b   ;   ##
+0BEB: 0C      	        DB 00001100b   ;   ##
+              	        ;159
+0BEC: 0C      	        DB 00001100b   ;   ##
+0BED: 0C      	        DB 00001100b   ;   ##
+0BEE: 3F      	        DB 00111111b   ; ######
+0BEF: 3F      	        DB 00111111b   ; ######
+0BF0: 0C      	        DB 00001100b   ;   ##
+0BF1: 0C      	        DB 00001100b   ;   ##
+              	        ;160
+0BF2: 00      	        DB 00000000b   ; 
+0BF3: 12      	        DB 00010010b   ;  #  #
+0BF4: 00      	        DB 00000000b   ; 
+0BF5: 00      	        DB 00000000b   ; 
+0BF6: 12      	        DB 00010010b   ;  #  #
+0BF7: 00      	        DB 00000000b   ; 
+              	        ;161
+0BF8: 12      	        DB 00010010b   ;  #  #
+0BF9: 12      	        DB 00010010b   ;  #  #
+0BFA: 12      	        DB 00010010b   ;  #  #
+0BFB: 12      	        DB 00010010b   ;  #  #
+0BFC: 00      	        DB 00000000b   ; 
+0BFD: 00      	        DB 00000000b   ; 
+              	        ;162
+0BFE: 00      	        DB 00000000b   ; 
+0BFF: 0F      	        DB 00001111b   ;   ####
+0C00: 00      	        DB 00000000b   ; 
+0C01: 00      	        DB 00000000b   ; 
+0C02: 0F      	        DB 00001111b   ;   ####
+0C03: 00      	        DB 00000000b   ; 
+              	        ;163
+0C04: 12      	        DB 00010010b   ;  #  #
+0C05: 13      	        DB 00010011b   ;  #  ##
+0C06: 10      	        DB 00010000b   ;  #
+0C07: 10      	        DB 00010000b   ;  #
+0C08: 0F      	        DB 00001111b   ;   ####
+0C09: 00      	        DB 00000000b   ; 
+              	        ;164
+0C0A: 00      	        DB 00000000b   ; 
+0C0B: 00      	        DB 00000000b   ; 
+0C0C: 12      	        DB 00010010b   ;  #  #
+0C0D: 12      	        DB 00010010b   ;  #  #
+0C0E: 12      	        DB 00010010b   ;  #  #
+0C0F: 12      	        DB 00010010b   ;  #  #
+              	        ;165
+0C10: 12      	        DB 00010010b   ;  #  #
+0C11: 12      	        DB 00010010b   ;  #  #
+0C12: 12      	        DB 00010010b   ;  #  #
+0C13: 12      	        DB 00010010b   ;  #  #
+0C14: 12      	        DB 00010010b   ;  #  #
+0C15: 12      	        DB 00010010b   ;  #  #
+              	        ;166
+0C16: 00      	        DB 00000000b   ; 
+0C17: 0F      	        DB 00001111b   ;   ####
+0C18: 10      	        DB 00010000b   ;  #
+0C19: 10      	        DB 00010000b   ;  #
+0C1A: 13      	        DB 00010011b   ;  #  ##
+0C1B: 12      	        DB 00010010b   ;  #  #
+              	        ;167
+0C1C: 12      	        DB 00010010b   ;  #  #
+0C1D: 13      	        DB 00010011b   ;  #  ##
+0C1E: 10      	        DB 00010000b   ;  #
+0C1F: 10      	        DB 00010000b   ;  #
+0C20: 13      	        DB 00010011b   ;  #  ##
+0C21: 12      	        DB 00010010b   ;  #  #
+              	        ;168
+0C22: 00      	        DB 00000000b   ; 
+0C23: 3C      	        DB 00111100b   ; ####
+0C24: 00      	        DB 00000000b   ; 
+0C25: 00      	        DB 00000000b   ; 
+0C26: 3C      	        DB 00111100b   ; ####
+0C27: 00      	        DB 00000000b   ; 
+              	        ;169
+0C28: 12      	        DB 00010010b   ;  #  #
+0C29: 32      	        DB 00110010b   ; ##  #
+0C2A: 02      	        DB 00000010b   ;     #
+0C2B: 02      	        DB 00000010b   ;     #
+0C2C: 3C      	        DB 00111100b   ; ####
+0C2D: 00      	        DB 00000000b   ; 
+              	        ;170
+0C2E: 00      	        DB 00000000b   ; 
+0C2F: 3F      	        DB 00111111b   ; ######
+0C30: 00      	        DB 00000000b   ; 
+0C31: 00      	        DB 00000000b   ; 
+0C32: 3F      	        DB 00111111b   ; ######
+0C33: 00      	        DB 00000000b   ; 
+              	        ;171
+0C34: 12      	        DB 00010010b   ;  #  #
+0C35: 33      	        DB 00110011b   ; ##  ##
+0C36: 00      	        DB 00000000b   ; 
+0C37: 00      	        DB 00000000b   ; 
+0C38: 3F      	        DB 00111111b   ; ######
+0C39: 00      	        DB 00000000b   ; 
+              	        ;172
+0C3A: 00      	        DB 00000000b   ; 
+0C3B: 3C      	        DB 00111100b   ; ####
+0C3C: 02      	        DB 00000010b   ;     #
+0C3D: 02      	        DB 00000010b   ;     #
+0C3E: 32      	        DB 00110010b   ; ##  #
+0C3F: 12      	        DB 00010010b   ;  #  #
+              	        ;173
+0C40: 12      	        DB 00010010b   ;  #  #
+0C41: 32      	        DB 00110010b   ; ##  #
+0C42: 02      	        DB 00000010b   ;     #
+0C43: 02      	        DB 00000010b   ;     #
+0C44: 32      	        DB 00110010b   ; ##  #
+0C45: 12      	        DB 00010010b   ;  #  #
+              	        ;174
+0C46: 00      	        DB 00000000b   ; 
+0C47: 3F      	        DB 00111111b   ; ######
+0C48: 00      	        DB 00000000b   ; 
+0C49: 00      	        DB 00000000b   ; 
+0C4A: 33      	        DB 00110011b   ; ##  ##
+0C4B: 12      	        DB 00010010b   ;  #  #
+              	        ;175
+0C4C: 12      	        DB 00010010b   ;  #  #
+0C4D: 33      	        DB 00110011b   ; ##  ##
+0C4E: 00      	        DB 00000000b   ; 
+0C4F: 00      	        DB 00000000b   ; 
+0C50: 33      	        DB 00110011b   ; ##  ##
+0C51: 12      	        DB 00010010b   ;  #  #
+              	        ;176
+0C52: 0C      	        DB 00001100b   ;   ##
+0C53: 18      	        DB 00011000b   ;  ##
+0C54: 30      	        DB 00110000b   ; ##
+0C55: 20      	        DB 00100000b   ; #
+0C56: 00      	        DB 00000000b   ; 
+0C57: 00      	        DB 00000000b   ; 
+              	        ;177
+0C58: 0C      	        DB 00001100b   ;   ##
+0C59: 06      	        DB 00000110b   ;    ##
+0C5A: 03      	        DB 00000011b   ;     ##
+0C5B: 01      	        DB 00000001b   ;      #
+0C5C: 00      	        DB 00000000b   ; 
+0C5D: 00      	        DB 00000000b   ; 
+              	        ;178
+0C5E: 00      	        DB 00000000b   ; 
+0C5F: 00      	        DB 00000000b   ; 
+0C60: 01      	        DB 00000001b   ;      #
+0C61: 03      	        DB 00000011b   ;     ##
+0C62: 06      	        DB 00000110b   ;    ##
+0C63: 0C      	        DB 00001100b   ;   ##
+              	        ;179
+0C64: 00      	        DB 00000000b   ; 
+0C65: 00      	        DB 00000000b   ; 
+0C66: 20      	        DB 00100000b   ; #
+0C67: 30      	        DB 00110000b   ; ##
+0C68: 18      	        DB 00011000b   ;  ##
+0C69: 0C      	        DB 00001100b   ;   ##
+              	        ;180
+0C6A: 0C      	        DB 00001100b   ;   ##
+0C6B: 1E      	        DB 00011110b   ;  ####
+0C6C: 33      	        DB 00110011b   ; ##  ##
+0C6D: 21      	        DB 00100001b   ; #    # 
+0C6E: 00      	        DB 00000000b   ; 
+0C6F: 00      	        DB 00000000b   ; 
+              	        ;181
+0C70: 0C      	        DB 00001100b   ;   ##
+0C71: 06      	        DB 00000110b   ;    ##
+0C72: 03      	        DB 00000011b   ;     ##
+0C73: 03      	        DB 00000011b   ;     ##
+0C74: 06      	        DB 00000110b   ;    ##
+0C75: 0C      	        DB 00001100b   ;   ##
+              	        ;182
+0C76: 00      	        DB 00000000b   ; 
+0C77: 00      	        DB 00000000b   ; 
+0C78: 21      	        DB 00100001b   ; #    # 
+0C79: 33      	        DB 00110011b   ; ##  ##
+0C7A: 1E      	        DB 00011110b   ;  ####
+0C7B: 0C      	        DB 00001100b   ;   ##
+              	        ;183
+0C7C: 0C      	        DB 00001100b   ;   ##
+0C7D: 18      	        DB 00011000b   ;  ##
+0C7E: 30      	        DB 00110000b   ; ##
+0C7F: 30      	        DB 00110000b   ; ##
+0C80: 18      	        DB 00011000b   ;  ##
+0C81: 0C      	        DB 00001100b   ;   ##
+              	        ;184
+0C82: 0C      	        DB 00001100b   ;   ##
+0C83: 18      	        DB 00011000b   ;  ##
+0C84: 31      	        DB 00110001b   ; ##   #
+0C85: 23      	        DB 00100011b   ; #   ##
+0C86: 06      	        DB 00000110b   ;    ##
+0C87: 0C      	        DB 00001100b   ;   ##
+              	        ;185
+0C88: 0C      	        DB 00001100b   ;   ##
+0C89: 06      	        DB 00000110b   ;    ##
+0C8A: 23      	        DB 00100011b   ; #   ##
+0C8B: 31      	        DB 00110001b   ; ##   #
+0C8C: 18      	        DB 00011000b   ;  ##
+0C8D: 0C      	        DB 00001100b   ;   ##
+              	        ;186
+0C8E: 0C      	        DB 00001100b   ;   ##
+0C8F: 1E      	        DB 00011110b   ;  ####
+0C90: 33      	        DB 00110011b   ; ##  ##
+0C91: 33      	        DB 00110011b   ; ##  ##
+0C92: 1E      	        DB 00011110b   ;  ####
+0C93: 0C      	        DB 00001100b   ;   ##
+              	        ;187
+0C94: 33      	        DB 00110011b   ; ##  ##
+0C95: 33      	        DB 00110011b   ; ##  ##
+0C96: 0C      	        DB 00001100b   ;   ##
+0C97: 0C      	        DB 00001100b   ;   ##
+0C98: 33      	        DB 00110011b   ; ##  ##
+0C99: 33      	        DB 00110011b   ; ##  ##
+              	        ;188
+0C9A: 03      	        DB 00000011b   ;     ##
+0C9B: 03      	        DB 00000011b   ;     ##
+0C9C: 0C      	        DB 00001100b   ;   ##
+0C9D: 0C      	        DB 00001100b   ;   ##
+0C9E: 30      	        DB 00110000b   ; ##
+0C9F: 30      	        DB 00110000b   ; ##
+              	        ;189
+0CA0: 30      	        DB 00110000b   ; ##
+0CA1: 30      	        DB 00110000b   ; ##
+0CA2: 0C      	        DB 00001100b   ;   ##
+0CA3: 0C      	        DB 00001100b   ;   ##
+0CA4: 03      	        DB 00000011b   ;     ##
+0CA5: 03      	        DB 00000011b   ;     ##
+              	        ;190
+0CA6: 2A      	        DB 00101010b   ; # # #
+0CA7: 14      	        DB 00010100b   ;  # #
+0CA8: 2A      	        DB 00101010b   ; # # #
+0CA9: 14      	        DB 00010100b   ;  # #
+0CAA: 2A      	        DB 00101010b   ; # # #
+0CAB: 00      	        DB 00000000b   ; 
+              	        ;191
+0CAC: 14      	        DB 00010100b   ;  # #
+0CAD: 2A      	        DB 00101010b   ; # # #
+0CAE: 14      	        DB 00010100b   ;  # #
+0CAF: 2A      	        DB 00101010b   ; # # #
+0CB0: 14      	        DB 00010100b   ;  # #
+0CB1: 00      	        DB 00000000b   ; 
+              	        ;192
+0CB2: 00      	        DB 00000000b   ; 
+0CB3: 1A      	        DB 00011010b   ;  ## #
+0CB4: 24      	        DB 00100100b   ; #  #
+0CB5: 24      	        DB 00100100b   ; #  #
+0CB6: 1A      	        DB 00011010b   ;  ## #
+0CB7: 00      	        DB 00000000b   ; 
+              	        ;193
+0CB8: 18      	        DB 00011000b   ;  ##
+0CB9: 24      	        DB 00100100b   ; #  #
+0CBA: 2C      	        DB 00101100b   ; # ##
+0CBB: 22      	        DB 00100010b   ; #   #
+0CBC: 2C      	        DB 00101100b   ; # ##
+0CBD: 00      	        DB 00000000b   ; 
+              	        ;194
+0CBE: 00      	        DB 00000000b   ; 
+0CBF: 22      	        DB 00100010b   ; #   #
+0CC0: 1C      	        DB 00011100b   ;  ###
+0CC1: 22      	        DB 00100010b   ; #   #
+0CC2: 1C      	        DB 00011100b   ;  ###
+0CC3: 00      	        DB 00000000b   ; 
+              	        ;195
+0CC4: 1C      	        DB 00011100b   ;  ###
+0CC5: 30      	        DB 00110000b   ; ##
+0CC6: 1C      	        DB 00011100b   ;  ###
+0CC7: 22      	        DB 00100010b   ; #   #
+0CC8: 1C      	        DB 00011100b   ;  ### 
+0CC9: 00      	        DB 00000000b   ; 
+              	        ;196
+0CCA: 0E      	        DB 00001110b   ;   ### 
+0CCB: 30      	        DB 00110000b   ; ##
+0CCC: 3C      	        DB 00111100b   ; ####
+0CCD: 30      	        DB 00110000b   ; ##
+0CCE: 0E      	        DB 00001110b   ;   ###
+0CCF: 00      	        DB 00000000b   ; 
+              	        ;197
+0CD0: 1C      	        DB 00011100b   ;  ###
+0CD1: 22      	        DB 00100010b   ; #   #
+0CD2: 3E      	        DB 00111110b   ; #####
+0CD3: 22      	        DB 00100010b   ; #   #
+0CD4: 1C      	        DB 00011100b   ;  ###
+0CD5: 00      	        DB 00000000b   ; 
+              	        ;198
+0CD6: 20      	        DB 00100000b   ; #
+0CD7: 10      	        DB 00010000b   ;  #
+0CD8: 08      	        DB 00001000b   ;   #
+0CD9: 14      	        DB 00010100b   ;  # #
+0CDA: 22      	        DB 00100010b   ; #   # 
+0CDB: 00      	        DB 00000000b   ; 
+              	        ;199
+0CDC: 24      	        DB 00100100b   ; #  #
+0CDD: 24      	        DB 00100100b   ; #  #
+0CDE: 38      	        DB 00111000b   ; ###
+0CDF: 20      	        DB 00100000b   ; #
+0CE0: 20      	        DB 00100000b   ; # 
+0CE1: 00      	        DB 00000000b   ; 
+              	        ;200
+0CE2: 00      	        DB 00000000b   ; 
+0CE3: 3E      	        DB 00111110b   ; #####
+0CE4: 14      	        DB 00010100b   ;  # #
+0CE5: 14      	        DB 00010100b   ;  # #
+0CE6: 24      	        DB 00100100b   ; #  #
+0CE7: 00      	        DB 00000000b   ; 
+              	        ;201
+0CE8: 00      	        DB 00000000b   ; 
+0CE9: 1E      	        DB 00011110b   ;  ####
+0CEA: 34      	        DB 00110100b   ; ## #
+0CEB: 34      	        DB 00110100b   ; ## #
+0CEC: 18      	        DB 00011000b   ;  ##
+0CED: 00      	        DB 00000000b   ; 
+              	        ;202
+0CEE: 06      	        DB 00000110b   ;    ##
+0CEF: 1C      	        DB 00011100b   ;  ###
+0CF0: 36      	        DB 00110110b   ; ## ##
+0CF1: 1C      	        DB 00011100b   ;  ###
+0CF2: 30      	        DB 00110000b   ; ##
+0CF3: 00      	        DB 00000000b   ; 
+              	        ;203
+0CF4: 06      	        DB 00000110b   ;    ##
+0CF5: 04      	        DB 00000100b   ;    #
+0CF6: 36      	        DB 00110110b   ; ## ##
+0CF7: 1C      	        DB 00011100b   ;  ###
+0CF8: 30      	        DB 00110000b   ; ##
+0CF9: 00      	        DB 00000000b   ; 
+              	        ;204
+0CFA: 32      	        DB 00110010b   ; ##  #
+0CFB: 1C      	        DB 00011100b   ;  ###
+0CFC: 0C      	        DB 00001100b   ;   ##
+0CFD: 16      	        DB 00010110b   ;  # ##
+0CFE: 22      	        DB 00100010b   ; #   #
+0CFF: 00      	        DB 00000000b   ; 
+              	        ;205
+0D00: 00      	        DB 00000000b   ; 
+0D01: 14      	        DB 00010100b   ;  # #
+0D02: 22      	        DB 00100010b   ; #   #
+0D03: 2A      	        DB 00101010b   ; # # #
+0D04: 1C      	        DB 00011100b   ;  ###
+0D05: 00      	        DB 00000000b   ; 
+              	        ;206
+0D06: 3E      	        DB 00111110b   ; #####
+0D07: 12      	        DB 00010010b   ;  #  #
+0D08: 08      	        DB 00001000b   ;   #
+0D09: 12      	        DB 00010010b   ;  #  #
+0D0A: 3E      	        DB 00111110b   ; #####
+0D0B: 00      	        DB 00000000b   ; 
+              	        ;207
+0D0C: 1C      	        DB 00011100b   ;  ###
+0D0D: 22      	        DB 00100010b   ; #   #
+0D0E: 22      	        DB 00100010b   ; #   #
+0D0F: 14      	        DB 00010100b   ;  # #
+0D10: 36      	        DB 00110110b   ; ## ##
+0D11: 00      	        DB 00000000b   ; 
+              	        ;208
+0D12: 1C      	        DB 00011100b   ;  ###
+0D13: 1C      	        DB 00011100b   ;  ###
+0D14: 0A      	        DB 00001010b   ;   # #
+0D15: 1C      	        DB 00011100b   ;  ###
+0D16: 28      	        DB 00101000b   ; # #
+0D17: 08      	        DB 00001000b   ;   #
+              	        ;209
+0D18: 1C      	        DB 00011100b   ;  ###
+0D19: 1C      	        DB 00011100b   ;  ###
+0D1A: 28      	        DB 00101000b   ; # #
+0D1B: 1C      	        DB 00011100b   ;  ###
+0D1C: 0A      	        DB 00001010b   ;   # #
+0D1D: 08      	        DB 00001000b   ;   #
+              	        ;210
+0D1E: 1C      	        DB 00011100b   ;  ###
+0D1F: 1C      	        DB 00011100b   ;  ###
+0D20: 2A      	        DB 00101010b   ; # # #
+0D21: 1C      	        DB 00011100b   ;  ###
+0D22: 08      	        DB 00001000b   ;   # 
+0D23: 08      	        DB 00001000b   ;   #
+              	        ;211
+0D24: 1C      	        DB 00011100b   ;  ###
+0D25: 1C      	        DB 00011100b   ;  ###
+0D26: 08      	        DB 00001000b   ;   # 
+0D27: 1C      	        DB 00011100b   ;  ###
+0D28: 2A      	        DB 00101010b   ; # # #
+0D29: 08      	        DB 00001000b   ;   #
+              	        ;212
+0D2A: 14      	        DB 00010100b   ;  # # 
+0D2B: 00      	        DB 00000000b   ; 
+0D2C: 14      	        DB 00010100b   ;  # # 
+0D2D: 14      	        DB 00010100b   ;  # # 
+0D2E: 1C      	        DB 00011100b   ;  ###
+0D2F: 00      	        DB 00000000b   ; 
+              	        ;213
+0D30: 14      	        DB 00010100b   ;  # # 
+0D31: 00      	        DB 00000000b   ; 
+0D32: 1C      	        DB 00011100b   ;  ###
+0D33: 14      	        DB 00010100b   ;  # # 
+0D34: 1C      	        DB 00011100b   ;  ###
+0D35: 00      	        DB 00000000b   ; 
+              	        ;214
+0D36: 14      	        DB 00010100b   ;  # # 
+0D37: 00      	        DB 00000000b   ; 
+0D38: 1C      	        DB 00011100b   ;  ###
+0D39: 14      	        DB 00010100b   ;  # # 
+0D3A: 1E      	        DB 00011110b   ;  ####
+0D3B: 00      	        DB 00000000b   ; 
+              	        ;215
+0D3C: 14      	        DB 00010100b   ;  # # 
+0D3D: 00      	        DB 00000000b   ; 
+0D3E: 1C      	        DB 00011100b   ;  ###
+0D3F: 14      	        DB 00010100b   ;  # # 
+0D40: 14      	        DB 00010100b   ;  # # 
+0D41: 00      	        DB 00000000b   ; 
+              	        ;216
+0D42: 28      	        DB 00101000b   ; # #
+0D43: 2C      	        DB 00101100b   ; # ## 
+0D44: 3E      	        DB 00111110b   ; ##### 
+0D45: 0C      	        DB 00001100b   ;   ## 
+0D46: 08      	        DB 00001000b   ;   #
+0D47: 00      	        DB 00000000b   ; 
+              	        ;217
+0D48: 0A      	        DB 00001010b   ;   # #
+0D49: 1A      	        DB 00011010b   ;  ## #
+0D4A: 3E      	        DB 00111110b   ; #####
+0D4B: 18      	        DB 00011000b   ;  ## 
+0D4C: 08      	        DB 00001000b   ;   #
+0D4D: 00      	        DB 00000000b   ; 
+              	        ;218
+0D4E: 08      	        DB 00001000b   ;   #
+0D4F: 1C      	        DB 00011100b   ;  ###
+0D50: 08      	        DB 00001000b   ;   #
+0D51: 00      	        DB 00000000b   ;  
+0D52: 1C      	        DB 00011100b   ;  ###
+0D53: 00      	        DB 00000000b   ;
+              	        ;219
+0D54: 08      	        DB 00001000b   ;   #
+0D55: 00      	        DB 00000000b   ; 
+0D56: 3E      	        DB 00111110b   ; #####
+0D57: 00      	        DB 00000000b   ;
+0D58: 08      	        DB 00001000b   ;   #
+0D59: 00      	        DB 00000000b   ;
+              	        ;220
+0D5A: 04      	        DB 00000100b   ;    #
+0D5B: 08      	        DB 00001000b   ;   # 
+0D5C: 10      	        DB 00010000b   ;  #
+0D5D: 08      	        DB 00001000b   ;   # 
+0D5E: 1C      	        DB 00011100b   ;  ###
+0D5F: 00      	        DB 00000000b   ; 
+              	        ;221
+0D60: 10      	        DB 00010000b   ;  #
+0D61: 08      	        DB 00001000b   ;   # 
+0D62: 04      	        DB 00000100b   ;    #
+0D63: 08      	        DB 00001000b   ;   # 
+0D64: 1C      	        DB 00011100b   ;  ###
+0D65: 00      	        DB 00000000b   ; 
+              	        ;222
+0D66: 1C      	        DB 00011100b   ;  ###
+0D67: 00      	        DB 00000000b   ; 
+0D68: 1C      	        DB 00011100b   ;  ###
+0D69: 00      	        DB 00000000b   ; 
+0D6A: 1C      	        DB 00011100b   ;  ###
+0D6B: 00      	        DB 00000000b   ; 
+              	        ;223
+0D6C: 06      	        DB 00000110b   ;    ## 
+0D6D: 04      	        DB 00000100b   ;    # 
+0D6E: 34      	        DB 00110100b   ; ## #
+0D6F: 14      	        DB 00010100b   ;  # # 
+0D70: 08      	        DB 00001000b   ;   # 
+0D71: 00      	        DB 00000000b   ; 
+              	        ;224
+0D72: 1E      	        DB 00011110b   ;  #### 
+0D73: 0E      	        DB 00001110b   ;   ### 
+0D74: 0E      	        DB 00001110b   ;   ### 
+0D75: 12      	        DB 00010010b   ;  #  #
+0D76: 20      	        DB 00100000b   ; # 
+0D77: 00      	        DB 00000000b   ; 
+              	        ;225
+0D78: 20      	        DB 00100000b   ; #
+0D79: 12      	        DB 00010010b   ;  #  #
+0D7A: 0E      	        DB 00001110b   ;   ###
+0D7B: 0E      	        DB 00001110b   ;   ###
+0D7C: 1E      	        DB 00011110b   ;  ####
+0D7D: 00      	        DB 00000000b   ; 
+              	        ;226
+0D7E: 02      	        DB 00000010b   ;      #
+0D7F: 24      	        DB 00100100b   ;  #  #
+0D80: 38      	        DB 00111000b   ;  ###
+0D81: 38      	        DB 00111000b   ;  ###
+0D82: 3C      	        DB 00111100b   ;  #### 
+0D83: 00      	        DB 00000000b   ; 
+              	        ;227
+0D84: 3C      	        DB 00111100b   ; ####
+0D85: 38      	        DB 00111000b   ; ###
+0D86: 38      	        DB 00111000b   ; ###
+0D87: 24      	        DB 00100100b   ; #  # 
+0D88: 02      	        DB 00000010b   ;     #
+0D89: 00      	        DB 00000000b   ; 
+              	        ;228
+0D8A: 3E      	        DB 00111110b   ; #####
+0D8B: 22      	        DB 00100010b   ; #   #
+0D8C: 22      	        DB 00100010b   ; #   #
+0D8D: 22      	        DB 00100010b   ; #   #
+0D8E: 3E      	        DB 00111110b   ; #####
+0D8F: 00      	        DB 00000000b   ; 
+              	        ;229
+0D90: 3E      	        DB 00111110b   ; #####
+0D91: 26      	        DB 00100110b   ; #  ##
+0D92: 2A      	        DB 00101010b   ; # # #
+0D93: 32      	        DB 00110010b   ; ##  #
+0D94: 3E      	        DB 00111110b   ; #####
+0D95: 00      	        DB 00000000b   ; 
+              	        ;230
+0D96: 08      	        DB 00001000b   ;   # 
+0D97: 12      	        DB 00010010b   ;  #  #
+0D98: 24      	        DB 00100100b   ; #  #
+0D99: 12      	        DB 00010010b   ;  #  #
+0D9A: 08      	        DB 00001000b   ;   # 
+0D9B: 00      	        DB 00000000b   ; 
+              	        ;231
+0D9C: 08      	        DB 00001000b   ;   # 
+0D9D: 24      	        DB 00100100b   ; #  #
+0D9E: 12      	        DB 00010010b   ;  #  #
+0D9F: 24      	        DB 00100100b   ; #  #
+0DA0: 08      	        DB 00001000b   ;   # 
+0DA1: 00      	        DB 00000000b   ; 
+              	        ;232 TEC-1G
+0DA2: 1D      	        DB 00011101b   ;  ### #
+0DA3: 08      	        DB 00001000b   ;   #
+0DA4: 09      	        DB 00001001b   ;   #  #
+0DA5: 08      	        DB 00001000b   ;   #
+0DA6: 09      	        DB 00001001b   ;   #  #
+0DA7: 00      	        DB 00000000b   ; 
+              	        ;233 TEC-1G
+0DA8: 37      	        DB 00110111b   ; ## ###
+0DA9: 04      	        DB 00000100b   ;    #
+0DAA: 34      	        DB 00110100b   ; ## #
+0DAB: 04      	        DB 00000100b   ;    #
+0DAC: 37      	        DB 00110111b   ; ## ###
+0DAD: 00      	        DB 00000000b   ; 
+              	        ;234 TEC-1G
+0DAE: 00      	        DB 00000000b   ; 
+0DAF: 01      	        DB 00000001b   ;      #
+0DB0: 1C      	        DB 00011100b   ;  ###
+0DB1: 00      	        DB 00000000b   ; 
+0DB2: 00      	        DB 00000000b   ; 
+0DB3: 00      	        DB 00000000b   ; 
+              	        ;235 TEC-1G
+0DB4: 2E      	        DB 00101110b   ; # ###
+0DB5: 28      	        DB 00101000b   ; # #
+0DB6: 2A      	        DB 00101010b   ; # # #
+0DB7: 2A      	        DB 00101010b   ; # # #
+0DB8: 2E      	        DB 00101110b   ; # ###
+0DB9: 00      	        DB 00000000b   ; 
+              	        ;236 Z80
+0DBA: 1D      	        DB 00011101b   ;  ### #
+0DBB: 05      	        DB 00000101b   ;    # #
+0DBC: 09      	        DB 00001001b   ;   #  #
+0DBD: 11      	        DB 00010001b   ;  #   #
+0DBE: 1D      	        DB 00011101b   ;  ### #
+0DBF: 00      	        DB 00000000b   ; 
+              	        ;237 Z80
+0DC0: 37      	        DB 00110111b   ; ## ###
+0DC1: 15      	        DB 00010101b   ;  # # #
+0DC2: 35      	        DB 00110101b   ; ## # #
+0DC3: 15      	        DB 00010101b   ;  # # #
+0DC4: 37      	        DB 00110111b   ; ## ###
+0DC5: 00      	        DB 00000000b   ; 
+              	        ;238 CPU
+0DC6: 1D      	        DB 00011101b   ;  ### #
+0DC7: 11      	        DB 00010001b   ;  #   #
+0DC8: 11      	        DB 00010001b   ;  #   #
+0DC9: 11      	        DB 00010001b   ;  #   #
+0DCA: 1D      	        DB 00011101b   ;  ### #
+0DCB: 00      	        DB 00000000b   ; 
+              	        ;239 CPU
+0DCC: 35      	        DB 00110101b   ; ## # #
+0DCD: 15      	        DB 00010101b   ;  # # #
+0DCE: 35      	        DB 00110101b   ; ## # #
+0DCF: 05      	        DB 00000101b   ;    # #
+0DD0: 07      	        DB 00000111b   ;    ###
+0DD1: 00      	        DB 00000000b   ; 
+              	        ;240
+0DD2: 00      	        DB 00000000b   ; 
+0DD3: 00      	        DB 00000000b   ; 
+0DD4: 00      	        DB 00000000b   ; 
+0DD5: 00      	        DB 00000000b   ; 
+0DD6: 00      	        DB 00000000b   ; 
+0DD7: 00      	        DB 00000000b   ; 
+              	        ;241
+0DD8: 00      	        DB 00000000b   ; 
+0DD9: 00      	        DB 00000000b   ; 
+0DDA: 00      	        DB 00000000b   ; 
+0DDB: 00      	        DB 00000000b   ; 
+0DDC: 00      	        DB 00000000b   ; 
+0DDD: 00      	        DB 00000000b   ; 
+              	        ;242
+0DDE: 00      	        DB 00000000b   ; 
+0DDF: 00      	        DB 00000000b   ; 
+0DE0: 00      	        DB 00000000b   ; 
+0DE1: 00      	        DB 00000000b   ; 
+0DE2: 00      	        DB 00000000b   ; 
+0DE3: 00      	        DB 00000000b   ; 
+              	        ;243
+0DE4: 00      	        DB 00000000b   ; 
+0DE5: 00      	        DB 00000000b   ; 
+0DE6: 00      	        DB 00000000b   ; 
+0DE7: 00      	        DB 00000000b   ; 
+0DE8: 00      	        DB 00000000b   ; 
+0DE9: 00      	        DB 00000000b   ; 
+              	        ;244
+0DEA: 00      	        DB 00000000b   ; 
+0DEB: 00      	        DB 00000000b   ; 
+0DEC: 00      	        DB 00000000b   ; 
+0DED: 00      	        DB 00000000b   ; 
+0DEE: 00      	        DB 00000000b   ; 
+0DEF: 00      	        DB 00000000b   ; 
+              	        ;245
+0DF0: 00      	        DB 00000000b   ; 
+0DF1: 00      	        DB 00000000b   ; 
+0DF2: 00      	        DB 00000000b   ; 
+0DF3: 00      	        DB 00000000b   ; 
+0DF4: 00      	        DB 00000000b   ; 
+0DF5: 00      	        DB 00000000b   ; 
+              	        ;246
+0DF6: 00      	        DB 00000000b   ; 
+0DF7: 00      	        DB 00000000b   ; 
+0DF8: 00      	        DB 00000000b   ; 
+0DF9: 00      	        DB 00000000b   ; 
+0DFA: 00      	        DB 00000000b   ; 
+0DFB: 00      	        DB 00000000b   ; 
+              	        ;247
+0DFC: 00      	        DB 00000000b   ; 
+0DFD: 00      	        DB 00000000b   ; 
+0DFE: 00      	        DB 00000000b   ; 
+0DFF: 00      	        DB 00000000b   ; 
+0E00: 00      	        DB 00000000b   ; 
+0E01: 00      	        DB 00000000b   ; 
+              	        ;248
+0E02: 00      	        DB 00000000b   ; 
+0E03: 00      	        DB 00000000b   ; 
+0E04: 00      	        DB 00000000b   ; 
+0E05: 00      	        DB 00000000b   ; 
+0E06: 00      	        DB 00000000b   ; 
+0E07: 00      	        DB 00000000b   ; 
+              	        ;249
+0E08: 00      	        DB 00000000b   ; 
+0E09: 00      	        DB 00000000b   ; 
+0E0A: 00      	        DB 00000000b   ; 
+0E0B: 00      	        DB 00000000b   ; 
+0E0C: 00      	        DB 00000000b   ; 
+0E0D: 00      	        DB 00000000b   ; 
+              	        ;250
+0E0E: 00      	        DB 00000000b   ; 
+0E0F: 00      	        DB 00000000b   ; 
+0E10: 00      	        DB 00000000b   ; 
+0E11: 00      	        DB 00000000b   ; 
+0E12: 00      	        DB 00000000b   ; 
+0E13: 00      	        DB 00000000b   ; 
+              	        ;251
+0E14: 00      	        DB 00000000b   ; 
+0E15: 00      	        DB 00000000b   ; 
+0E16: 00      	        DB 00000000b   ; 
+0E17: 00      	        DB 00000000b   ; 
+0E18: 00      	        DB 00000000b   ; 
+0E19: 00      	        DB 00000000b   ; 
+              	        ;252
+0E1A: 00      	        DB 00000000b   ; 
+0E1B: 00      	        DB 00000000b   ; 
+0E1C: 00      	        DB 00000000b   ; 
+0E1D: 00      	        DB 00000000b   ; 
+0E1E: 00      	        DB 00000000b   ; 
+0E1F: 00      	        DB 00000000b   ; 
+              	        ;253
+0E20: 00      	        DB 00000000b   ; 
+0E21: 00      	        DB 00000000b   ; 
+0E22: 00      	        DB 00000000b   ; 
+0E23: 00      	        DB 00000000b   ; 
+0E24: 00      	        DB 00000000b   ; 
+0E25: 00      	        DB 00000000b   ; 
+              	        ;254
+0E26: 00      	        DB 00000000b   ; 
+0E27: 00      	        DB 00000000b   ; 
+0E28: 00      	        DB 00000000b   ; 
+0E29: 00      	        DB 00000000b   ; 
+0E2A: 00      	        DB 00000000b   ; 
+0E2B: 00      	        DB 00000000b   ; 
+              	        ;255
+0E2C: 00      	        DB 00000000b   ; 
+0E2D: 00      	        DB 00000000b   ; 
+0E2E: 00      	        DB 00000000b   ; 
+0E2F: 00      	        DB 00000000b   ; 
+0E30: 00      	        DB 00000000b   ; 
+0E31: 00      	        DB 00000000b   ; 
+              	        ;256
+0E32: 00      	        DB 00000000b   ; 
+0E33: 00      	        DB 00000000b   ; 
+0E34: 00      	        DB 00000000b   ; 
+0E35: 00      	        DB 00000000b   ; 
+0E36: 00      	        DB 00000000b   ; 
+0E37: 01      	        DB 00000001b   ;      #
+              	        
+              	
+              	;    JP INIT_LCD             ;Initalise the LCD
+              	;    JP CLEAR_GBUF           ;Clear the Graphics Buffer
+              	;    JP CLEAR_GR_LCD         ;Clear the Graphics LCD Screen
+              	;    JP CLEAR_TXT_LCD        ;Clear the Text LCD Screen
+              	;    JP SET_GR_MODE          ;Set Graphics Mode
+              	;    JP SET_TXT_MODE         ;Set Text Mode
+              	;    JP DRAW_BOX             ;Draw a rectangle between two points
+              	;    JP DRAW_LINE            ;Draw a line between two points
+              	;    JP DRAW_CIRCLE          ;Draw a circle from Mid X,Y to Radius
+              	;    JP DRAW_PIXEL           ;Draw one pixel at X,Y
+              	;    JP FILL_BOX             ;Draw a filled rectangle between two points
+              	;    JP FILL_CIRCLE          ;Draw a filled circle from Mid X,Y to Radius
+              	;    JP PLOT_TO_LCD          ;Display the Graphics Buffer to the LCD Screen
+              	;    JP PRINT_STRING         ;Print Text on the screen in a given row
+              	;    JP PRINT_CHARS          ;Print Characters on the screen in a given row and column
+              	;    JP DELAY_US             ;Microsecond delay for LCD updates
+              	;    JP DELAY_MS             ;Millisecond delay for LCD updates
+              	;    JP SET_BUF_CLEAR        ;Clear the Graphics buffer on after Plotting to the screen
+              	;    JP SET_BUF_NO_CLEAR     ;Retain the Graphics buffer on after Plotting to the screen
+              	;    JP CLEAR_PIXEL          ;Remove a Pixel at X,Y
+              	;    JP FLIP_PIXEL           ;Flip a Pixel On/Off at X,Y
+              	;    JP LCD_INST             ;Send a parallel or serial instruction to LCD
+              	;    JP LCD_DATA             ;Send a parallel or serial datum to LCD
+              	;    JP SER_SYNC             ;Send serial synchronise byte to LCD
+              	;    JP DRAW_GRAPHIC         ;Draw an ASCII charcter or Sprite to the LCD
+              	;    JP INV_GRAPHIC          ;Inverse graphics printing
+              	;    JP INIT_TERMINAL        ;Initialize the LCD for terminal emulation
+              	;    JP SEND_CHAR_TO_GLCD    ;Send an ASCII Character to the LCD
+              	;    JP SEND_STRING_TO_GLCD  ;Send an ASCII String to the LCD
+              	;    JP SEND_A_TO_GLCD       ;Send register A to the LCD
+              	;    JP SEND_HL_TO_GLCD      ;Send register HL to the LCD
+              	;    JP SET_CURSOR           ;Set the graphics cursor
+              	;    JP GET_CURSOR           ;Get the current cursor
+              	;    JP DISPLAY_CURSOR       ;Set Cursor on or off
+              	
+              	
+0E38:         	msg_help:
+0E38: 0D0A    			.BYTE	CR, LF
+0E3A: 52202020			.TEXT	"R           - Reset"
+0E3E: 20202020	
+0E42: 20202020	
+0E46: 2D205265	
+0E4A: 736574  	
+0E4D: 0D0A    			.BYTE	CR, LF
+0E4F: 47202020			.TEXT	"G           - Goto nnnn"
+0E53: 20202020	
+0E57: 20202020	
+0E5B: 2D20476F	
+0E5F: 746F206E	
+0E63: 6E6E6E  	
+0E66: 0D0A    			.BYTE	CR, LF
+0E68: 3A6E6E6E			.TEXT	":nnnnnn...  - Load Intel-Hex file record"
+0E6C: 6E6E6E2E	
+0E70: 2E2E2020	
+0E74: 2D204C6F	
+0E78: 61642049	
+0E7C: 6E74656C	
+0E80: 2D486578	
+0E84: 2066696C	
+0E88: 65207265	
+0E8C: 636F7264	
+0E90: 0D0A    			.BYTE	CR, LF
+0E92: 00      	        .BYTE   $00
+              	
+0E93:         	CKSUMERR:
+0E93: 43686563			.BYTE	"Checksum error"
+0E97: 6B73756D	
+0E9B: 20657272	
+0E9F: 6F72    	
+0EA1: 0D0A00  			.BYTE	CR, LF,$00
+              	
+0EA4:         	LDETXT:
+0EA4: 4C6F6164			.TEXT	"Load complete."
+0EA8: 20636F6D	
+0EAC: 706C6574	
+0EB0: 652E    	
+0EB2: 0D0A00  			.BYTE	CR, LF, $00
+              	
+0EB5: 0C0D0D0A	WELLCOME: .db CS, CR, CR, LF,"Z80Mini - Game core", CR, LF, 00H
+0EB9: 5A38304D	
+0EBD: 696E6920	
+0EC1: 2D204761	
+0EC5: 6D652063	
+0EC9: 6F72650D	
+0ECD: 0A00    	
+0ECF: 5A38304D	WELLCOME_LCD: .db "Z80Mini - Game core", CR, 00H
+0ED3: 696E6920	
+0ED7: 2D204761	
+0EDB: 6D652063	
+0EDF: 6F72650D	
+0EE3: 00      	
+              	
+0EE4: 52554E20	MSG_MENU0  .db "RUN (JP $8000)",CR, 00H
+0EE8: 284A5020	
+0EEC: 24383030	
+0EF0: 30290D00	
+              	
+              	
+              	; RAM Locations - Move this section to RAM if necessary
+              	;---------------
+0EF4: FFFFFFFF	.ORG $F000              ;Start location
+0EF8: FF...   	
+              	        
+0780:         	SBUF:   EQU 16 * $78     ;Scroll Buffer size  16 * 60 = 960 byte (10 lines), change to 20 lines (16 * 120($78))
+F000: FFFFFFFF	        DS SBUF         ;Scroll Buffer space abover GBUF 
+F004: FF...   	
+F780: FFFFFFFF	GBUF:   DS 0400H        ;Graphics Buffer 16 * 64 = 1024 byte
+F784: FF...   	
+F780:         	TGBUF:  EQU GBUF        ;Terminal GBUF
+FB80: 80F7    	VPORT:  DW GBUF         ;View port start address
+FB82: 80F7    	TBUF:   DW GBUF         ;Top of Buffer pointer
+FB84: 0000    	ENDPT:  DW 0000H        ;End Point for Line
+FB86: 00      	SX:     DB 00H          ;Sign of X
+FB87: 00      	SY:     DB 00H          ;Sign of Y
+FB88: 0000    	DX:     DW 0000H        ;Change of X
+FB8A: 0000    	DY:     DW 0000H        ;Change of Y
+FB8C: 0000    	ERR:    DW 0000H        ;Error Rate
+FB8E: 0000    	RAD:    DW 0000H        ;Radius
+FB90: 00      	CLRBUF: DB 00H          ;Clear Buffer Flag on LCD Displaying
+FB91: 0000    	CURSOR_XY: DW 0000H     ;Cursor Address X,Y
+FB91:         	CURSOR_Y: EQU CURSOR_XY   ;Cursor Y
+FB92:         	CURSOR_X: EQU CURSOR_XY+1 ;Cursor X
+FB93: 00      	CURSOR_YS: DB 00H       ;Start Y row for new line
+FB94: 00      	CURSOR_ON: DB 00H       ;Cursor on/off flag
+FB95: 00      	INVERSE: DB 00H         ;Inverse Flag
+FB96: 00      	PIXEL_X: DB 00H         ;Pixel X length
+FB97: 0000    	INT_VEC: DW 0000H       ;Vetor de interrupção
+FB99: 00      	GAMEPAD_KEY: DB 00H 	;Guarda tecla lida na interrupcao
+              	
+              	.end
+
+
+; +++ segments +++
+
+#CODE          = $0000 =     0,  size = $FB9A = 64410
+
+; +++ global symbols +++
+
+ABSHL               = $0460 =  1120          LCD.asm:392
+BASE_COL            = $0583 =  1411          LCD.asm:642
+BCTOA               = $0277 =   631          Z80MiniGame.asm:383
+BCTOA1              = $0280 =   640          Z80MiniGame.asm:388
+BCTOA2              = $028E =   654          Z80MiniGame.asm:398
+BKSP                = $0008 =     8          LCD.asm:64 (unused)
+CIRCLE_LOOP         = $0486 =  1158          LCD.asm:442
+CKSIOA              = $0226 =   550          Z80MiniGame.asm:310
+CKSUMERR            = $0E93 =  3731          Z80MiniGame.asm:504
+CLEAR_GBUF          = $0327 =   807          LCD.asm:132
+CLEAR_GR_LCD        = $0337 =   823          LCD.asm:143
+CLEAR_PIXEL         = $0550 =  1360          LCD.asm:587
+CLEAR_TXT_LCD       = $035E =   862          LCD.asm:167
+CLK_LOOP            = $081C =  2076          LCD.asm:1225
+CLRBUF              = $FB90 = 64400          Z80MiniGame.asm:535
+CLR_ROWS            = $036D =   877          LCD.asm:174
+CLR_X               = $033C =   828          LCD.asm:146
+CLR_Y               = $034F =   847          LCD.asm:156
+CR                  = $000D =    13          LCD.asm:68
+CS                  = $000C =    12          LCD.asm:67
+CURSOR              = $008F =   143          LCD.asm:70
+CURSOR_ON           = $FB94 = 64404          Z80MiniGame.asm:540
+CURSOR_X            = $FB92 = 64402          Z80MiniGame.asm:538
+CURSOR_XY           = $FB91 = 64401          Z80MiniGame.asm:536
+CURSOR_Y            = $FB91 = 64401          Z80MiniGame.asm:537
+CURSOR_YS           = $FB93 = 64403          Z80MiniGame.asm:539
+DEC_CURSOR          = $076C =  1900          LCD.asm:1022
+DEL                 = $007F =   127          LCD.asm:71
+DELAY_DE            = $0293 =   659          Z80MiniGame.asm:414
+DELAY_MS            = $0608 =  1544          LCD.asm:751
+DELAY_US            = $0605 =  1541          LCD.asm:749
+DISPLAY_CURSOR      = $0796 =  1942          LCD.asm:1053
+DN                  = $00B6 =   182          LCD.asm:63
+DO_BS               = $0663 =  1635          LCD.asm:827 (unused)
+DO_CHAR             = $0688 =  1672          LCD.asm:844
+DO_CR               = $0645 =  1605          LCD.asm:811
+DO_FF               = $065F =  1631          LCD.asm:824
+DO_SCRL_DN          = $063D =  1597          LCD.asm:806
+DO_SCRL_UP          = $0632 =  1586          LCD.asm:800 (unused)
+DO_TAB              = $0671 =  1649          LCD.asm:834
+DRAW_A              = $06BC =  1724          LCD.asm:887
+DRAW_BOX            = $0384 =   900          LCD.asm:196
+DRAW_CIRCLE         = $046A =  1130          LCD.asm:421
+DRAW_CURSOR         = $068E =  1678          LCD.asm:847
+DRAW_GRAPHIC        = $07A2 =  1954          LCD.asm:1074
+DRAW_LINE           = $03BF =   959          LCD.asm:273
+DRAW_PIXEL          = $053F =  1343          LCD.asm:567
+DS1                 = $04F2 =  1266          LCD.asm:510
+DS2                 = $0516 =  1302          LCD.asm:529
+DS3                 = $0529 =  1321          LCD.asm:541
+DS_EXIT             = $05E5 =  1509          LCD.asm:717
+DS_LOOP             = $05DB =  1499          LCD.asm:710
+DX                  = $FB88 = 64392          Z80MiniGame.asm:531
+DY                  = $FB8A = 64394          Z80MiniGame.asm:532
+ECHO                = $0290 =   656          Z80MiniGame.asm:404
+ENDPT               = $FB84 = 64388          Z80MiniGame.asm:528
+ERR                 = $FB8C = 64396          Z80MiniGame.asm:533
+FILL_BOX            = $03AF =   943          LCD.asm:241
+FILL_CIRCLE         = $0531 =  1329          LCD.asm:551
+FLIP_PIXEL          = $0562 =  1378          LCD.asm:608
+FONT_DATA           = $0838 =  2104          LCD.asm:1259
+GAMEPAD             = $0040 =    64          Z80MiniGame.asm:57
+GAMEPAD_KEY         = $FB99 = 64409          Z80MiniGame.asm:544
+GBOTTOM             = $0390 =   912          LCD.asm:208
+GBUF                = $F780 = 63360          Z80MiniGame.asm:524
+GET2                = $0238 =   568          Z80MiniGame.asm:335
+GETCHR              = $022F =   559          Z80MiniGame.asm:323
+GETHL               = $0249 =   585          Z80MiniGame.asm:350
+GETX                = $0255 =   597          Z80MiniGame.asm:360 (unused)
+GETX1               = $0258 =   600          Z80MiniGame.asm:361
+GETX2               = $0261 =   609          Z80MiniGame.asm:366
+GETX3               = $0271 =   625          Z80MiniGame.asm:376
+GET_CURSOR          = $0791 =  1937          LCD.asm:1046
+GLEFT               = $039A =   922          LCD.asm:217
+GOTO                = $01F2 =   498          Z80MiniGame.asm:255
+GRIGHT              = $03A5 =   933          LCD.asm:227
+GTOP                = $0385 =   901          LCD.asm:198
+HELP                = $01F8 =   504          Z80MiniGame.asm:263
+INC_CURSOR          = $06F1 =  1777          LCD.asm:941
+INC_ROW             = $06FE =  1790          LCD.asm:948
+INIT                = $0169 =   361          Z80MiniGame.asm:156
+INIT_BASIC          = $082E =  2094          LCD.asm:1239
+INIT_LCD            = $0312 =   786          LCD.asm:118
+INIT_TERMINAL       = $061B =  1563          LCD.asm:774
+INT38               = $01C2 =   450          Z80MiniGame.asm:215
+INT38_END           = $01CC =   460          Z80MiniGame.asm:221
+INT_VEC             = $FB97 = 64407          Z80MiniGame.asm:543
+INVERSE             = $FB95 = 64405          Z80MiniGame.asm:541
+INV_BIT             = $07D2 =  2002          LCD.asm:1111
+INV_GRAPHIC         = $079A =  1946          LCD.asm:1060
+LCDCTRL             = $0070 =   112          Z80MiniGame.asm:55 (unused)
+LCDDATA             = $0071 =   113          Z80MiniGame.asm:56 (unused)
+LCD_DATA            = $0803 =  2051          LCD.asm:1180
+LCD_DR              = $0071 =   113          LCD.asm:51
+LCD_IMAGE_128x64    = $02F9 =   761          LCD.asm:98 (unused)
+LCD_INST            = $07FE =  2046          LCD.asm:1163
+LCD_IR              = $0070 =   112          LCD.asm:50
+LCD_PRINT_STRING    = $02E9 =   745          LCD.asm:79
+LCD_SER             = $0000 =     0          LCD.asm:52
+LDETXT              = $0EA4 =  3748          Z80MiniGame.asm:508
+LF                  = $000A =    10          LCD.asm:66
+LINE_LOOP           = $041A =  1050          LCD.asm:342
+LL2                 = $0445 =  1093          LCD.asm:374
+LL3                 = $0452 =  1106          LCD.asm:382
+LOAD                = $02A8 =   680          Z80MiniGame.asm:447
+LOAD00              = $02E2 =   738          Z80MiniGame.asm:483
+LOAD2               = $02C6 =   710          Z80MiniGame.asm:463
+LOAD3               = $02D5 =   725          Z80MiniGame.asm:474
+LOADERR             = $02DB =   731          Z80MiniGame.asm:479
+LoopBC              = $0299 =   665          Z80MiniGame.asm:420
+LoopDE              = $0296 =   662          Z80MiniGame.asm:418
+MOVE_DOWN           = $0761 =  1889          LCD.asm:1012
+MOVE_UP             = $0753 =  1875          LCD.asm:1003 (unused)
+MOVE_VPORT          = $074C =  1868          LCD.asm:998
+MSG_MENU0           = $0EE4 =  3812          Z80MiniGame.asm:515 (unused)
+NEXT_CIRCLE         = $0533 =  1331          LCD.asm:553
+NEXT_CMD            = $0317 =   791          LCD.asm:121
+NEXT_PIXEL          = $03B0 =   944          LCD.asm:243
+NIBBLE_TO_GLCD      = $06C5 =  1733          LCD.asm:895
+PC_LOOP             = $05FC =  1532          LCD.asm:740
+PIXEL_X             = $FB96 = 64406          Z80MiniGame.asm:542
+PLOT_BIT            = $07D6 =  2006          LCD.asm:1115
+PLOT_BYTE           = $07BF =  1983          LCD.asm:1095
+PLOT_COLUMN         = $05AF =  1455          LCD.asm:674
+PLOT_GRAPHIC        = $07B5 =  1973          LCD.asm:1089
+PLOT_ROW            = $0597 =  1431          LCD.asm:662
+PLOT_TO_LCD         = $0592 =  1426          LCD.asm:659
+PRINT               = $01FF =   511          Z80MiniGame.asm:272
+PRINT_CHARS         = $05E6 =  1510          LCD.asm:727
+PRINT_STRING        = $05C4 =  1476          LCD.asm:696
+PS1                 = $069F =  1695          LCD.asm:866
+RAD                 = $FB8E = 64398          Z80MiniGame.asm:534
+REMOVE_PIXEL        = $07E0 =  2016          LCD.asm:1121
+ROWS                = $082A =  2090          LCD.asm:1237
+RST00               = $0000 =     0          Z80MiniGame.asm:85
+RST08               = $0008 =     8          Z80MiniGame.asm:92 (unused)
+RST10               = $0010 =    16          Z80MiniGame.asm:98 (unused)
+RST38               = $0038 =    56          Z80MiniGame.asm:104 (unused)
+SAVE_COL            = $0771 =  1905          LCD.asm:1025
+SAVE_ROW            = $0712 =  1810          LCD.asm:959
+SAVE_VPORT          = $075C =  1884          LCD.asm:1008
+SBUF                = $0780 =  1920          Z80MiniGame.asm:522
+SEND_A_TO_GLCD      = $06B7 =  1719          LCD.asm:884
+SEND_CHAR_TO_GLCD   = $062F =  1583          LCD.asm:796
+SEND_HL_TO_GLCD     = $06D4 =  1748          LCD.asm:907
+SEND_PART           = $0811 =  2065          LCD.asm:1203
+SEND_STRING_TO_GLCD = $069E =  1694          LCD.asm:864
+SER_BT              = $00F8 =   248          LCD.asm:61 (unused)
+SER_BYTE            = $0808 =  2056          LCD.asm:1195 (unused)
+SER_SYNC            = $0816 =  2070          LCD.asm:1210
+SETCY               = $0253 =   595          Z80MiniGame.asm:354
+SET_BUF_CLEAR       = $060E =  1550          LCD.asm:760
+SET_BUF_NO_CLEAR    = $0616 =  1558          LCD.asm:765
+SET_CURSOR          = $06E0 =  1760          LCD.asm:920
+SET_GBUF            = $0573 =  1395          LCD.asm:629
+SET_GR_MODE         = $0375 =   885          LCD.asm:181
+SET_TXT_MODE        = $037F =   895          LCD.asm:188
+SHIFT_BIT           = $058C =  1420          LCD.asm:651
+SHIFT_BUFFER        = $0716 =  1814          LCD.asm:966
+SIOA_C              = $0002 =     2          Z80MiniGame.asm:60
+SIOA_D              = $0000 =     0          Z80MiniGame.asm:59
+SIOB_C              = $0003 =     3          Z80MiniGame.asm:62 (unused)
+SIOB_D              = $0001 =     1          Z80MiniGame.asm:61 (unused)
+SKIP_TBUF           = $072A =  1834          LCD.asm:977
+SPACE               = $0020 =    32          LCD.asm:69
+SPI_WR              = $0817 =  2071          LCD.asm:1220
+SX                  = $FB86 = 64390          Z80MiniGame.asm:529
+SY                  = $FB87 = 64391          Z80MiniGame.asm:530
+SYSTEM_SP           = $FFF0 = 65520          Z80MiniGame.asm:77
+TAB                 = $0009 =     9          LCD.asm:65
+TBUF                = $FB82 = 64386          Z80MiniGame.asm:527
+TGBUF               = $F780 = 63360          Z80MiniGame.asm:525
+TXCRLF              = $0206 =   518          Z80MiniGame.asm:279
+UP                  = $00B5 =   181          LCD.asm:62
+VPORT               = $FB80 = 64384          Z80MiniGame.asm:526
+V_DELAY_US          = $0010 =    16          LCD.asm:53
+WELLCOME            = $0EB5 =  3765          Z80MiniGame.asm:512
+WELLCOME_LCD        = $0ECF =  3791          Z80MiniGame.asm:513
+_end                = $FB9A = 64410          Z80MiniGame.asm:84 (unused)
+_size               = $FB9A = 64410          Z80MiniGame.asm:84 (unused)
+_z80_               = $0001 =     1          Z80MiniGame.asm:1 (unused)
+check_keypad        = $01D1 =   465          Z80MiniGame.asm:227
+conin               = $0217 =   535          Z80MiniGame.asm:296
+conout              = $020D =   525          Z80MiniGame.asm:289
+conoutA1            = $020E =   526          Z80MiniGame.asm:290
+kCPUClock           = $8000 =7372800          Z80MiniGame.asm:67
+kDelayCnt           = $011A =   282          Z80MiniGame.asm:72
+kDelayLP            = $001A =    26          Z80MiniGame.asm:69
+kDelayOH            = $0024 =    36          Z80MiniGame.asm:68
+kDelayTA            = $1CCC =  7372          Z80MiniGame.asm:70
+kDelayTB            = $1CA8 =  7336          Z80MiniGame.asm:71
+monitor             = $0196 =   406          Z80MiniGame.asm:181
+monitor0            = $019A =   410          Z80MiniGame.asm:184
+monitor1            = $01A0 =   416          Z80MiniGame.asm:189
+msg_help            = $0E38 =  3640          Z80MiniGame.asm:494
+setup_serial        = $01D9 =   473          Z80MiniGame.asm:233
+waitForChar         = $0217 =   535          Z80MiniGame.asm:297
+
+
+total time: 0.1109 sec.
+no errors
