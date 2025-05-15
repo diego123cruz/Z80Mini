@@ -61,15 +61,19 @@ START_RAM     .equ    $8000
 STACK         .equ    $FF00  
 CKEY_TIMEOUT  .equ    100  ; 100ms +-
 
-; BAUD RATE CONSTANTS
-B300:	.EQU	0220H	;300 BAUD
-B1200:	.EQU	0080H	;1200 BAUD
-B2400:	.EQU	003FH	;2400 BAUD
-B4800:	.EQU	001BH	;4800 BAUD - Default
-B9600:	.EQU	000BH	;9600 BAUD
 
-SERIAL_RX_PORT:          .EQU $C0             ; Serial RX port - bit7
-SERIAL_TX_PORT:          .EQU $C0             ; Serial TX Port - bit6
+CR		.EQU	0DH
+LF		.EQU	0AH
+ESC		.EQU	1BH
+CTRLC	.EQU	03H
+CLS		.EQU	0CH
+
+
+; SIO/2 - 115200
+SIOA_D		.EQU	$00
+SIOA_C		.EQU	$02
+SIOB_D		.EQU	$01 ; Não usado
+SIOB_C		.EQU	$03 ; Não usado
 
 ; ---------------------------------------------------------
 ; RAM MAP - Monitor | $FF00 - $FFFF
@@ -153,10 +157,20 @@ ISR_MD_TMP  .equ    $FFDE   ; (2) data register temp
 ; Start ROM
 ; =========================================================
 .org    $0000
-    LD  HL, INT38
-    LD  (INT_VEC), HL
-    JP  START
+RST00:
+    JP ORG_0
 
+;------------------------------------------------------------------------------
+; TX a character over RS232 wait for TXDONE first.
+;------------------------------------------------------------------------------
+    .ORG $0008
+RST08:	JP	conout
+
+;------------------------------------------------------------------------------
+; RX a character from buffer wait until char ready.
+;------------------------------------------------------------------------------
+    .ORG $0010
+RST10:		JP	conin
 
 ; =========================================================
 ; Int 38h - Monitor 
@@ -166,6 +180,15 @@ ISR_MD_TMP  .equ    $FFDE   ; (2) data register temp
     LD (USR_HL), HL          ; Save HL
     LD HL, (INT_VEC)
     JP (HL)
+
+
+ORG_0:
+    LD  HL, INT38
+    LD  (INT_VEC), HL
+    JP  START
+
+
+
 
 INT_ERROR:
     DI
@@ -1959,11 +1982,25 @@ PRINT_END_HL:
 START:
     LD  SP, STACK
 
-    ; if Moni Back(Reset + Press), then Loader Intel Hex
-    IN A, (Port40)
-    BIT 5, A
-    CALL NZ, START_INTEL
 
+    ;	Initialise SIO/2 A
+	LD	A,$04
+	OUT	(SIOA_C),A
+	LD	A,$C4
+	OUT	(SIOA_C),A
+
+	LD	A,$03
+	OUT	(SIOA_C),A
+	LD	A,$E1
+	OUT	(SIOA_C),A
+
+	LD	A,$05
+	OUT	(SIOA_C),A
+	LD	A, $68
+	OUT	(SIOA_C),A
+
+    LD HL, msg_bemvindo
+    CALL PRINT
 
     LD  A, 1                 ; Monitor mode
     LD  (SYSMODE), A
@@ -1995,8 +2032,39 @@ START_COM:
     XOR A
     OUT (Port40), A
 
-START_LOOP:
-    JP START_LOOP
+monitor:
+	LD HL, monitor ; point to return to monitor
+	PUSH HL
+monitor0:
+	CALL TXCRLF	; Entry point for Monitor, Normal	
+	LD   A,'>'	; Get a ">"	
+	RST 08H		; print it
+
+monitor1:
+	RST 10H	; Get a character from serial
+	CP   ' '	; <spc> or less? 	
+	JR   C, monitor1	; Go back
+
+	CP   ':'	; ":"?
+	JP   Z,LOAD	; First character of a HEX load
+
+	RST 08H	; Print char on console
+
+	CP   '?'
+	JP   Z,HELP
+
+	AND  $5F	; Make character uppercase
+
+	CP   'R' 	; reset
+	JP   Z, RST00
+
+	CP   'G'
+	JP   Z,GOTO
+
+	LD   A,'?'	; Get a "?"	
+	RST 08H		; Print it
+
+    jp monitor0
 
 START_WARM:
     LD  SP, STACK
@@ -2075,325 +2143,233 @@ LED_FONT .db $3F, $06, $5B, $4F, $66, $6D, $7D, $07, $7F, $67 ; 0-9
 ;
 ; ---------------------------------------------------------
 
-
-; ---------------------------------------------------------
-;
-;   SERIAL INTEL HEX LOADDER
-;
-;   Serial 4800-N-8-1
-;
-; ---------------------------------------------------------
-START_INTEL:
-    DI
-
-    LD	HL, B4800
-	LD	(BAUD),HL	;DEFAULT SERIAL=4800 BAUD
-
-    LD    HL,TXDATA
-    LD    (PUTCH),HL ;USE THE BITBANG SERIAL TRANSMIT
-    LD    HL,RXDATA
-    LD    (GETCH),HL  ;USE THE BITBANG SERIAL RECEIVE
-
-    LD    HL,INITSZ  ;VT100 TERMINAL COMMANDS FOR CLEAR SCREEN,CURSOR HOME
-    CALL  SNDMSG     ;INITIALISE THE TERMINAL
-    
-    LD    HL,SIGNON
-    CALL  SNDMSG     ;SEND THE SIGNON
-
-    CALL INTELFN
-    RET
-
-INTEL_ERROR:
-    LD HL, INT_ERROR
-    LD (INT_VEC), HL
-    IM 1
-    EI
-
-INTEL_ERROR_LOOP:
-    LD A, $0
-    OUT (Port40), a
-    JP INTEL_ERROR_LOOP
-
-INTEL_SUCCESS:
-    IM 1
-    EI
-    RET
-
-;-----------------------------------
-; OUTPUT A CHARACTER TO THE TERMINAL
-;-----------------------------------       
-OUTCH:  LD   IX,(PUTCH)
-       JP   (IX)
-;------------------------------------
-; INPUT A CHARACTER FROM THE TERMINAL
-;------------------------------------
-INCH:  LD   IX,(GETCH)
-      JP   (IX)
-
-;------------
-; ASCII CODES
-;------------
-ESC:    .EQU   1BH
-CR:     .EQU   0DH
-LF:     .EQU   0AH
+; GOTO command
+GOTO:
+	CALL GETHL		; ENTRY POINT FOR <G>oto addr. Get XXXX from user.
+	RET  C			; Return if invalid       	
+	PUSH HL
+	RET			; Jump to HL address value
 
 
-;-=========================== INTEL
-
-;------------------------------------
-; FUNCTION 1 RECEIVE INTEL HEX FORMAT
-;------------------------------------
-INTELFN:
-    CALL  INTELH
-    JP    NZ, INTEL_ERROR      ;SHOW THE ERROR 
-
-    LD    HL,SUCCESS
-    CALL  SNDMSG     ;SEND THE SUCCESS
-
-    JP    INTEL_SUCCESS        ;JUST RETURN IF ALL OK
-;-----------------------
-; RECEIVE INTEL HEX FILE
-;-----------------------
-INTELH:	LD	IX,STACK	;POINT TO SYSTEM VARIABLES
-;
-; WAIT FOR RECORD MARK
-;
-INTEL1:	XOR	A
-	LD	(IX+3),A	;CLEAR CHECKSUM
-	CALL	RXDATA	;WAIT FOR THE RECORD MARK
-	CP	':'	;TO BE TRANSMITTED
-	JR	NZ,INTEL1	;NOT RECORD MARK
-
-;
-; GET RECORD LENGTH
-;
-	CALL	GETBYT
-	LD	(IX+0),A	;NUMBER OF DATA BYTES
-;
-; GET ADDRESS FIELD
-;
-	CALL	GETBYT
-	LD	(IX+2),A	;LOAD ADDRESS HIGH BYTE
-	CALL	GETBYT
-	LD	(IX+1),A	;LOAD ADDRESS LOW BYTE
-;
-; GET RECORD TYPE
-;
-	CALL	GETBYT
-	JR	NZ,INTEL4	;END OF FILE RECORD
-;
-; READ IN THE DATA
-;
-	LD	B,(IX+0)	;NUMBER OF DATA BYTES
-	LD	H,(IX+2)	;LOAD ADDRESS HIGH BYTE
-	LD	L,(IX+1)	;LOAD ADDRESS LOW BYTE
-
-INTEL2:	CALL	GETBYT	;GET DATA BYTE
-	LD	(HL),A	;STORE DATA BYTE
-	INC	HL
-	DJNZ	INTEL2	;LOAD MORE BYTES
-;
-; GET CHECKSUM AND COMPARE
-;
-	LD	A,(IX+3)	;CONVERT CHECKSUM TO
-	NEG		;TWO'S COMPLEMENT
-	LD	(IX+4),A	;SAVE COMPUTED CHECKSUM
-	CALL	GETBYT
-	LD	(IX+3),A	;SAVE RECORD CHECKSUM
-	CP	(IX+4)	;COMPARE CHECKSUM
-	JR	Z,INTEL1	;CHECKSUM OK,NEXT RECORD
-    RET             ;NZ=CHECKSUM ERROR
-;
-; END OF FILE RECORD
-;
-INTEL4:	LD	A,(IX+3)	;CONVERT CHECKSUM TO
-	NEG		;TWO'S COMPLEMENT
-	LD	(IX+4),A	;SAVE COMPUTED CHECKSUM
-	CALL	GETBYT
-	LD	(IX+3),A	;SAVE EOF CHECKSUM
-	CP	(IX+4)	;COMPARE CHECKSUM
-	RET  	    ;NZ=CHECKSUM ERROR
-
-;--------------------------
-; GET BYTE FROM SERIAL PORT
-;--------------------------
-GETBYT:	PUSH	BC
-	CALL	RXDATA
-	BIT	6,A
-	JR	Z,GETBT1
-	ADD	A,09H
-GETBT1:	AND	0FH
-	SLA 	A
-	SLA	A
-	SLA	A
-	SLA	A
-	LD	C,A
-;
-; GET LOW NYBBLE
-;
-	CALL	RXDATA
-	BIT	6,A
-	JR	Z,GETBT2
-	ADD	A,09H
-GETBT2:	AND	0FH
-	OR	C
-	LD	B,A
-	ADD	A,(IX+3)
-	LD	(IX+3),A	;ADD TO CHECKSUM
-	LD	A,B
-	AND	A	;CLEAR CARRY
-    POP	BC
-	RET
-
-;=========================== INTEL FIM
-
-
-;-----------------------------------------
-; SEND AN ASCII STRING OUT THE SERIAL PORT
-;-----------------------------------------
-; 
-; SENDS A ZERO TERMINATED STRING OR 
-; 128 CHARACTERS MAX. OUT THE SERIAL PORT
-;
-;      ENTRY : HL = POINTER TO 00H TERMINATED STRING
-;      EXIT  : NONE
-;
-;       MODIFIES : A,B,C
-;          
-SNDMSG: LD    B,128         ;128 CHARS MAX
-SDMSG1: LD    A,(HL)        ;GET THE CHAR
-       CP    00H          ;ZERO TERMINATOR?
-       JR    Z,SDMSG2      ;FOUND A ZERO TERMINATOR, EXIT  
-       CALL  OUTCH         ;TRANSMIT THE CHAR
-       INC   HL
-       DJNZ  SDMSG1        ;128 CHARS MAX!    
-SDMSG2: RET
-
-;-----------------
-; ONE SECOND DELAY
-;-----------------
-;
-; ENTRY : NONE
-; EXIT : FLAG REGISTER MODIFIED
-;
-DELONE:	PUSH	BC
-	PUSH	DE
-	PUSH	HL
-	LD	DE,0001H
-	LD	HL,0870H
-DELON1:	LD	B,92H
-DELON2:	DJNZ	DELON2	;INNER LOOP
-	SBC	HL,DE
-	JP	NC,DELON1	;OUTER LOOP
-	POP	HL
-	POP	DE
-	POP	BC
-	RET
-
-;------------------------
-; SERIAL TRANSMIT ROUTINE
-;------------------------
-;TRANSMIT BYTE SERIALLY ON DOUT
-;
-; ENTRY : A = BYTE TO TRANSMIT
-;  EXIT : NO REGISTERS MODIFIED
-;
-TXDATA:	PUSH	AF
-	PUSH	BC
-	PUSH	HL
-	LD	HL,(BAUD)
-	LD	C,A
-;
-; TRANSMIT START BIT
-;
-	XOR	A
-	OUT	(SERIAL_TX_PORT),A
-	CALL	BITIME
-;
-; TRANSMIT DATA
-;
-	LD	B,08H
-	RRC	C
-NXTBIT:	RRC	C	;SHIFT BITS TO D6,
-	LD	A,C	;LSB FIRST AND OUTPUT
-	AND	40H	;THEM FOR ONE BIT TIME.
-	OUT	(SERIAL_TX_PORT),A
-	CALL	BITIME
-	DJNZ	NXTBIT
-;
-; SEND STOP BITS
-;
-	LD	A,40H
-	OUT	(SERIAL_TX_PORT),A
-	CALL	BITIME
-	CALL	BITIME
-	POP	HL
-	POP	BC
-	POP	AF
-	RET
-;-----------------------
-; SERIAL RECEIVE ROUTINE
-;-----------------------
-;RECEIVE SERIAL BYTE FROM DIN
-;
-; ENTRY : NONE
-;  EXIT : A= RECEIVED BYTE IF CARRY CLEAR
-;
-; REGISTERS MODIFIED A AND F
-;
-RXDATA:	PUSH	BC
-	PUSH	HL
-;
-; WAIT FOR START BIT 
-;
-RXDAT1: IN	A,(SERIAL_RX_PORT)
-	    BIT	7,A
-	    JR	NZ,RXDAT1	;NO START BIT
-;
-; DETECTED START BIT
-;
-	LD	HL,(BAUD)
-	SRL	H
-	RR	L 	;DELAY FOR HALF BIT TIME
-	CALL 	BITIME
-	IN	A,(SERIAL_RX_PORT)
-	BIT	7,A
-	JR	NZ,RXDAT1	;START BIT NOT VALID
-;
-; DETECTED VALID START BIT,READ IN DATA
-;
-	LD	B,08H
-RXDAT2:	LD	HL,(BAUD)
-	CALL	BITIME	;DELAY ONE BIT TIME
-	IN	A,(SERIAL_RX_PORT)
-	RL	A
-	RR	C	;SHIFT BIT INTO DATA REG
-	DJNZ	RXDAT2
-	LD	A,C
-	OR	A	;CLEAR CARRY FLAG
-    POP	HL
-	POP	BC
-	RET
-;---------------
-; BIT TIME DELAY
-;---------------
-;DELAY FOR ONE SERIAL BIT TIME
-;ENTRY : HL = DELAY TIME
-; NO REGISTERS MODIFIED
-;
-BITIME:	PUSH	HL
-	PUSH	DE
-	LD	DE,0001H
-BITIM1:	SBC	HL,DE
-	JP	NC,BITIM1
-	POP	DE
-	POP	HL
+; HELP
+HELP:
+	LD HL, msg_help
+	CALL PRINT
 	RET
 
 
-SIGNON:      .DB     CR,LF,"Load intel hex...",CR,LF,00H
-SUCCESS:      .DB    "Load success... ",CR,LF,00H
-INITSZ:      .DB     27,"[H",27,"[2J",00H
+;------------------------------------------------------------------------------
+; Print string of characters to Serial A until byte=$00, WITH CR, LF
+;------------------------------------------------------------------------------
+PRINT:  LD   A,(HL)	; Get character
+		OR   A		; Is it $00 ?
+		RET  Z		; Then RETurn on terminator
+		RST  08H	; Print it
+		INC  HL		; Next Character
+		JR   PRINT	; Continue until $00
+
+TXCRLF:	LD   A,$0D	; 
+		RST  08H	; Print character 
+		LD   A,$0A	; 
+		RST  08H	; Print character
+		RET
+
+;------------------------------------------------------------------------------
+; Console output routine - Serial
+; Output port to send a character.
+;------------------------------------------------------------------------------
+conout:		PUSH	AF		; Store character
+conoutA1:	CALL	CKSIOA		; See if SIO channel A is finished transmitting
+		JR	Z, conoutA1	; Loop until SIO flag signals ready
+		POP	AF		; RETrieve character
+		OUT	(SIOA_D),A	; OUTput the character
+		RET
+
+conin:
+waitForChar:
+	; Check if there is a char in channel A
+	SUB	A
+	OUT 	(SIOA_C),A
+	IN   	A,(SIOA_C)	; Status byte D2=TX Buff Empty, D0=RX char ready	
+	RRCA			; Rotates RX status into Carry Flag,	
+	JR	NC, waitForChar
+	IN	A,(SIOA_D)
+	OR A ; clear carry
+	RET
+	
+
+CKSIOA:
+		SUB	A
+		OUT 	(SIOA_C),A
+		IN   	A,(SIOA_C)	; Status byte D2=TX Buff Empty, D0=RX char ready	
+		RRCA			; Rotates RX status into Carry Flag,	
+		BIT  	1,A		; Set Zero flag if still transmitting character	
+        RET
+
+
+;------------------------------------------------------------------------------
+; Get a character from the console, must be $20-$7F to be valid (no control characters)
+; <Ctrl-c> and <SPACE> breaks with the Zero Flag set
+;------------------------------------------------------------------------------	
+GETCHR	RST 10H	; RX a Character
+		CP   $03	; <ctrl-c> User break?
+		RET  Z			
+		CP   $20	; <space> or better?
+		JR   C,GETCHR	; Do it again until we get something usable
+		RET
+
+;------------------------------------------------------------------------------
+; Gets two ASCII characters from the console (assuming them to be HEX 0-9 A-F)
+; Moves them into B and C, converts them into a byte value in A and updates a
+; Checksum value in E
+;------------------------------------------------------------------------------
+GET2	CALL GETCHR	; Get us a valid character to work with
+		LD   B,A	; Load it in B
+		CALL GETCHR	; Get us another character
+		LD   C,A	; load it in C
+		CALL BCTOA	; Convert ASCII to byte
+		LD   C,A	; Build the checksum
+		LD   A,E
+		SUB  C		; The checksum should always equal zero when checked
+		LD   E,A	; Save the checksum back where it came from
+		LD   A,C	; Retrieve the byte and go back
+		RET
+
+;------------------------------------------------------------------------------
+; Gets four Hex characters from the console, converts them to values in HL
+;------------------------------------------------------------------------------
+GETHL		LD   HL,$0000	; Gets xxxx but sets Carry Flag on any Terminator
+		CALL ECHO	; RX a Character
+		CP   $0D	; <CR>?
+		JR   NZ,GETX2	; other key		
+SETCY		SCF		; Set Carry Flag
+		RET             ; and Return to main program		
+;------------------------------------------------------------------------------
+; This routine converts last four hex characters (0-9 A-F) user types into a value in HL
+; Rotates the old out and replaces with the new until the user hits a terminating character
+;------------------------------------------------------------------------------
+GETX		LD   HL,$0000	; CLEAR HL
+GETX1		CALL ECHO	; RX a character from the console
+		CP   $0D	; <CR>
+		RET  Z		; quit
+		CP   $2C	; <,> can be used to safely quit for multiple entries
+		RET  Z		; (Like filling both DE and HL from the user)
+GETX2		CP   $03	; Likewise, a <ctrl-C> will terminate clean, too, but
+		JR   Z,SETCY	; It also sets the Carry Flag for testing later.
+		ADD  HL,HL	; Otherwise, rotate the previous low nibble to high
+		ADD  HL,HL	; rather slowly
+		ADD  HL,HL	; until we get to the top
+		ADD  HL,HL	; and then we can continue on.
+		SUB  $30	; Convert ASCII to byte	value
+		CP   $0A	; Are we in the 0-9 range?
+		JR   C,GETX3	; Then we just need to sub $30, but if it is A-F
+		SUB  $07	; We need to take off 7 more to get the value down to
+GETX3		AND  $0F	; to the right hex value
+		ADD  A,L	; Add the high nibble to the low
+		LD   L,A	; Move the byte back to A
+		JR   GETX1	; and go back for next character until he terminates
+;------------------------------------------------------------------------------
+; Convert ASCII characters in B C registers to a byte value in A
+;------------------------------------------------------------------------------
+BCTOA		LD   A,B	; Move the hi order byte to A
+		SUB  $30	; Take it down from Ascii
+		CP   $0A	; Are we in the 0-9 range here?
+		JR   C,BCTOA1	; If so, get the next nybble
+		SUB  $07	; But if A-F, take it down some more
+BCTOA1		RLCA		; Rotate the nybble from low to high
+		RLCA		; One bit at a time
+		RLCA		; Until we
+		RLCA		; Get there with it
+		LD   B,A	; Save the converted high nybble
+		LD   A,C	; Now get the low order byte
+		SUB  $30	; Convert it down from Ascii
+		CP   $0A	; 0-9 at this point?
+		JR   C,BCTOA2	; Good enough then, but
+		SUB  $07	; Take off 7 more if it's A-F
+BCTOA2		ADD  A,B	; Add in the high order nybble
+		RET
+
+;------------------------------------------------------------------------------
+; Get a character and echo it back to the user
+;------------------------------------------------------------------------------
+ECHO	RST 10H ; rx
+		RST 08H ; tx
+		RET
+
+
+
+
+;------------------------------------------------------------------------------
+; LOAD Intel Hex format file from the console.
+; [Intel Hex Format is:
+; 1) Colon (Frame 0)
+; 2) Record Length Field (Frames 1 and 2)
+; 3) Load Address Field (Frames 3,4,5,6)
+; 4) Record Type Field (Frames 7 and 8)
+; 5) Data Field (Frames 9 to 9+2*(Record Length)-1
+; 6) Checksum Field - Sum of all byte values from Record Length to and 
+;   including Checksum Field = 0 ]
+;------------------------------------------------------------------------------	
+LOAD:	LD   E,0	; First two Characters is the Record Length Field
+		CALL GET2	; Get us two characters into BC, convert it to a byte <A>
+		LD   D,A	; Load Record Length count into D
+		CALL GET2	; Get next two characters, Memory Load Address <H>
+		LD   H,A	; put value in H register.
+		CALL GET2	; Get next two characters, Memory Load Address <L>
+		LD   L,A	; put value in L register.
+		CALL GET2	; Get next two characters, Record Field Type
+		CP   $01	; Record Field Type 00 is Data, 01 is End of File
+		JR   NZ,LOAD2	; Must be the end of that file
+		CALL GET2	; Get next two characters, assemble into byte
+		LD   A,E	; Recall the Checksum byte
+		AND  A		; Is it Zero?
+		JR   Z,LOAD00	; Print footer reached message
+		JR   LOADERR	; Checksums don't add up, Error out
+		
+LOAD2		LD   A,D	; Retrieve line character counter	
+		AND  A		; Are we done with this line?
+		JR   Z,LOAD3	; Get two more ascii characters, build a byte and checksum
+		CALL GET2	; Get next two chars, convert to byte in A, checksum it
+		LD   (HL),A	; Move converted byte in A to memory location
+		INC  HL		; Increment pointer to next memory location	
+		LD   A,'.'	; Print out a "." for every byte loaded
+		RST  08H	;
+		DEC  D		; Decrement line character counter
+		JR   LOAD2	; and keep loading into memory until line is complete
+		
+LOAD3		CALL GET2	; Get two chars, build byte and checksum
+		LD   A,E	; Check the checksum value
+		AND  A		; Is it zero?
+		RET  Z
+
+LOADERR		LD   HL,CKSUMERR  ; Get "Checksum Error" message
+		CALL PRINT	; Print Message from (HL) and terminate the load
+		RET
+
+LOAD00  	LD   HL,LDETXT	; Print load complete message
+		CALL PRINT
+		RET
+
+
+msg_bemvindo:   .db CR, LF, "Z80 Mini - Z80 Membership Card - Face", CR, LF, "? to Help", CR, LF, 0
+msg_help:
+		.BYTE	CR, LF
+		.TEXT	"R           - Reset"
+		.BYTE	CR, LF
+		.TEXT	"G           - Goto nnnn"
+		.BYTE	CR, LF
+		.TEXT	":nnnnnn...  - Load Intel-Hex file record"
+		.BYTE	CR, LF
+        .BYTE   $00
+
+CKSUMERR:
+		.BYTE	"Checksum error"
+		.BYTE	CR, LF,$00
+
+LDETXT:
+		.TEXT	"Load complete."
+		.BYTE	CR, LF, $00
+
 
 ; =========================================================
 ; Tabela display

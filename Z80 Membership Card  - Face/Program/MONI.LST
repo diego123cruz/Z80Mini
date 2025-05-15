@@ -1,0 +1,2655 @@
+              	; --------------------------------------
+              	; zasm: assemble "Moni.asm"
+              	; date: 2025-05-14 22:36:44
+              	; --------------------------------------
+
+
+              	; ---------------------------------------------------------
+              	;   Z80 Mini  -  inicio 01/2022
+              	;   Diego Cruz - github.com/diego123cruz
+              	;
+              	;   Hardware baseado em: http://www.sunrise-ev.com/z80.htm
+              	;   Software próprio - em construção
+              	; ---------------------------------------------------------
+              	;   Z80@4Mhz
+              	;   ROM 32k - 28C256
+              	;   RAM 32k - 65256
+              	;   Display 7 segmentos 8 digitos
+              	;   Teclado 16 teclas + Fn (Tecla de função? ou outra coisa?)
+              	;   Entrada 40h
+              	;   Saida 40h
+              	;
+              	;
+              	; ---------------------------------------------------------
+              	;   Display 7 Segmentos - In(Port40) AND 00000111b
+              	; ---------------------------------------------------------
+              	;
+              	;   ------------------------------------------------
+              	;   | 00h | 01h | 02h | 03h | 04h | 05h | 06h | 07h |
+              	;   ------------------------------------------------
+              	;
+              	;               A(0)
+              	;            ---------
+              	;           |         |
+              	;      F(5) |         | B(1)
+              	;           |   G(6)  |
+              	;            ---------
+              	;           |         |
+              	;      E(4) |         | C(2)
+              	;           |         |
+              	;            ---------         Ponto(7)
+              	;               D(3) 
+              	;
+              	;
+              	;
+              	;
+              	;
+              	; ---------------------------------------------------------
+              	; Teclado 
+              	; ---------------------------------------------------------
+              	;   
+              	;   Keys:        
+              	;       Fn - In(Port40) AND 00010000b - pulldown
+              	;       0 - In(Port40) AND 00000111b
+              	;
+              	;
+              	;
+              	;
+              	
+              	
+              	; ---------------------------------------------------------
+              	; Constantes
+              	; ---------------------------------------------------------
+              	
+0040:         	Port40        .equ    $40
+00C0:         	PortC0        .equ    $C0
+8000:         	START_RAM     .equ    $8000
+FF00:         	STACK         .equ    $FF00  
+0064:         	CKEY_TIMEOUT  .equ    100  ; 100ms +-
+              	
+              	
+000D:         	CR		.EQU	0DH
+000A:         	LF		.EQU	0AH
+001B:         	ESC		.EQU	1BH
+0003:         	CTRLC	.EQU	03H
+000C:         	CLS		.EQU	0CH
+              	
+              	
+              	; SIO/2 - 115200
+0000:         	SIOA_D		.EQU	$00
+0002:         	SIOA_C		.EQU	$02
+0001:         	SIOB_D		.EQU	$01 ; Não usado
+0003:         	SIOB_C		.EQU	$03 ; Não usado
+              	
+              	; ---------------------------------------------------------
+              	; RAM MAP - Monitor | $FF00 - $FFFF
+              	; ---------------------------------------------------------
+              	; Cada digito fica em um ponto da memoria RAM
+FF00:         	DIG_0       .equ    $FF00   ;(1) endereço do digito 0 na memoria RAM
+FF01:         	DIG_1       .equ    $FF01   ;(1) endereço do digito 1 na memoria RAM
+FF02:         	DIG_2       .equ    $FF02   ;(1) endereço do digito 2 na memoria RAM
+FF03:         	DIG_3       .equ    $FF03   ;(1) endereço do digito 3 na memoria RAM
+FF04:         	DIG_4       .equ    $FF04   ;(1) endereço do digito 4 na memoria RAM
+FF05:         	DIG_5       .equ    $FF05   ;(1) endereço do digito 5 na memoria RAM
+FF06:         	DIG_6       .equ    $FF06   ;(1) endereço do digito 6 na memoria RAM
+FF07:         	DIG_7       .equ    $FF07   ;(1) endereço do digito 7 na memoria RAM
+FF08:         	KEY_PRESS   .equ    $FF08   ;(1) key atual
+FF09:         	INPUT       .equ    $FF09   ;(1) temp input from int
+FF0A:         	TMP_KEY     .equ    $FF0A   ;(1) tmp key
+FF0B:         	KEY_TIMEOUT .equ    $FF0B   ;(1) tempo para retornar a tecla, CKEY_TIMEOUT
+FF0C:         	SHOW_DIG    .equ    $FF0C   ;(1) Atual digito no display
+FF0D:         	PC_RAM      .equ    $FF0D   ;(2) save pc to user start $8000
+              	
+FF0F:         	SYSMODE     .equ    $FF0F   ;(1) System mode. 
+              	                            ; 0 - User Mode
+              	                            ; 1 - Monitor
+              	                            ; 2 - Examine Memoria
+              	                            ; 3 - Change Data(Memory)
+              	                            ; 4 - Show register PC
+              	                            ; 5 - Show register SP
+              	                            ; 6 - Show register AF
+              	                            ; 7 - Show register BC
+              	                            ; 8 - Show register DE
+              	                            ; 9 - Show register HL
+              	                            ; A - Show register IX
+              	                            ; B - Show register IY
+              	                            ; C - Show register AF'
+              	                            ; D - Show register BC'
+              	                            ; E - Show register DE'
+              	                            ; F - Show register HL'
+              	                            ; 80 - Modify Any
+              	                            ; 76 - HALT
+FF10:         	TicCounter  .equ    $FF10   ;(2) TicCounter inc 1ms
+FF12:         	EXM_COUNT   .equ    $FF12   ;(1) Count digits Examine function, 4 digits
+FF13:         	MDF_COUNT   .equ    $FF13   ;(1) Count digits moDify function, 2 digits
+FF14:         	USR_PC      .equ    $FF14   ;(2) PC 
+FF16:         	USR_SP      .equ    $FF16   ;(2) SP
+FF18:         	USR_HL      .equ    $FF18   ;(2) HL
+FF1A:         	USR_BC      .equ    $FF1A   ;(2) BC
+FF1C:         	USR_DE      .equ    $FF1C   ;(2) DE
+FF1E:         	USR_AF      .equ    $FF1E   ;(2) AF
+FF20:         	USR_IX      .equ    $FF20   ;(2) IX
+FF22:         	USR_IY      .equ    $FF22   ;(2) IY
+FF24:         	USR_AFA     .equ    $FF24   ;(2) AF' (Aux)
+FF26:         	USR_BCA     .equ    $FF26   ;(2) BC' (Aux)
+FF28:         	USR_DEA     .equ    $FF28   ;(2) DE' (Aux)
+FF2A:         	USR_HLA     .equ    $FF2A   ;(2) HL' (Aux)
+              	; SP Temp   .equ    $FF2C
+FF2C:         	CPU_FLAGS   .equ    $FF2C   ;(1) Flags atual (AF ou AF') SYSMODE
+FF2D:         	INT_VEC     .equ    $FF2D   ;(2) vector int38
+              	
+              	; Serial intel hex loader
+FF30:         	BAUD	    .equ	$FF30	;(2) BAUD RATE
+FF32:         	PUTCH       .equ    $FF32   ;(2) OUTPUT A CHARACTER TO SERIAL
+FF34:         	GETCH       .equ    $FF34   ;(2) WAIT FOR A CHARACTER FROM SERIAL
+              	
+              	
+              	; Copy USER_DISPx to DIG_x WHEN USER_MODE
+FFD0:         	USER_DISP0  .equ    $FFD0   ; Mode User - Display Dig 0  - 01234567
+FFD1:         	USER_DISP1  .equ    $FFD1   ; Mode User - Display Dig 1  - 01234567
+FFD2:         	USER_DISP2  .equ    $FFD2   ; Mode User - Display Dig 2  - 01234567
+FFD3:         	USER_DISP3  .equ    $FFD3   ; Mode User - Display Dig 3  - 01234567
+FFD4:         	USER_DISP4  .equ    $FFD4   ; Mode User - Display Dig 4  - 01234567
+FFD5:         	USER_DISP5  .equ    $FFD5   ; Mode User - Display Dig 5  - 01234567
+FFD6:         	USER_DISP6  .equ    $FFD6   ; Mode User - Display Dig 6  - 01234567
+FFD7:         	USER_DISP7  .equ    $FFD7   ; Mode User - Display Dig 7  - 01234567
+              	
+FFD8:         	LAST_SYS    .equ    $FFD8   ; (1) Last SYSMODE
+FFDC:         	ISR_MD_HL   .equ    $FFDC   ; (2) endereço do registrador para alterar
+FFDE:         	ISR_MD_TMP  .equ    $FFDE   ; (2) data register temp
+              	
+              	
+              	; =========================================================
+              	; Start ROM
+              	; =========================================================
+0000:         	.org    $0000
+0000:         	RST00:
+0000: C34000  	    JP ORG_0
+              	
+              	;------------------------------------------------------------------------------
+              	; TX a character over RS232 wait for TXDONE first.
+              	;------------------------------------------------------------------------------
+0003: FFFFFFFF	    .ORG $0008
+0007: FF      	
+0008: C3EC0C  	RST08:	JP	conout
+              	
+              	;------------------------------------------------------------------------------
+              	; RX a character from buffer wait until char ready.
+              	;------------------------------------------------------------------------------
+000B: FFFFFFFF	    .ORG $0010
+000F: FF      	
+0010: C3F60C  	RST10:		JP	conin
+              	
+              	; =========================================================
+              	; Int 38h - Monitor 
+              	; =========================================================
+0013: FFFFFFFF	.org    $38
+0017: FF...   	
+0038: F3      	    DI
+0039: 2218FF  	    LD (USR_HL), HL          ; Save HL
+003C: 2A2DFF  	    LD HL, (INT_VEC)
+003F: E9      	    JP (HL)
+              	
+              	
+0040:         	ORG_0:
+0040: 216F00  	    LD  HL, INT38
+0043: 222DFF  	    LD  (INT_VEC), HL
+0046: C30A0C  	    JP  START
+              	
+              	
+              	
+              	
+0049:         	INT_ERROR:
+0049: F3      	    DI
+004A: F5      	    PUSH AF
+004B: E5      	    PUSH HL
+              	
+004C: 216F00  	    LD  HL, INT38
+004F: 222DFF  	    LD  (INT_VEC), HL
+              	
+0052: 3E99    	    LD A, $99
+0054: 320FFF  	    LD (SYSMODE), A
+              	
+0057: E1      	    POP HL
+0058: F1      	    POP AF
+              	    
+0059: C38C0C  	    JP START_WARM
+              	
+005C:         	INT_HALT:
+005C: F3      	    DI
+005D: F5      	    PUSH AF
+005E: E5      	    PUSH HL
+              	
+005F: 216F00  	    LD  HL, INT38
+0062: 222DFF  	    LD  (INT_VEC), HL
+              	
+0065: 3E76    	    LD A, $76
+0067: 320FFF  	    LD (SYSMODE), A
+              	
+006A: E1      	    POP HL
+006B: F1      	    POP AF
+              	    
+006C: C38C0C  	    JP START_WARM
+              	
+              	
+006F:         	INT38:
+006F: ED7316FF	    LD (USR_SP), SP          ; Save SP
+              	    ;LD (USR_HL), HL          ; Save HL
+0073: E1      	    POP  HL                  ; Recupera PC da stack
+0074: 2214FF  	    LD (USR_PC), HL          ; Save PC
+0077: E5      	    PUSH HL                  ;
+0078: 212CFF  	    LD HL, $FF2C             ; Carrega Temp SP to HL
+007B: F9      	    LD SP, HL                ; Set temp HL
+007C: D9      	    EXX                      ; Inverte HL e HL', DE.... BC....
+007D: E5      	    PUSH  HL                 ; Save HL'
+007E: D5      	    PUSH  DE                 ; Save DE'                
+007F: C5      	    PUSH  BC                 ; Save BC'
+0080: 08      	    EX    AF, AF'
+0081: F5      	    PUSH  AF                 ; Save AF'
+0082: 08      	    EX    AF, AF'
+0083: D9      	    EXX                      ; Troca HL' e HL,, DE... BC...
+0084: FDE5    	    PUSH  IY                 ; Save IY
+0086: DDE5    	    PUSH  IX                 ; Save IX
+0088: F5      	    PUSH  AF                 ; Save AF
+0089: D5      	    PUSH  DE                 ; Save DE
+008A: C5      	    PUSH  BC                 ; Save BC
+008B: 2A16FF  	    LD HL, (USR_SP)          ; Recupera SP
+008E: F9      	    LD SP, HL                ; Devolve SP original
+              	
+              	    ; check HALT
+008F: 2A16FF  	    LD HL, (USR_SP)
+0092: CD920C  	    CALL LD_HL_HL
+0095: 2B      	    DEC HL
+0096: 7E      	    LD  A, (HL)
+0097: FE76    	    CP  $76    ; halt code
+0099: CA9F00  	    JP  Z, C_HALT
+009C: C3D300  	    jp SKIP_CHK
+              	
+009F:         	C_HALT:
+009F: 215C00  	    LD HL, INT_HALT
+00A2: 222DFF  	    LD (INT_VEC), HL
+              	
+00A5: 3E76    	    LD A, $76
+00A7: 320FFF  	    LD  (SYSMODE), A
+              	
+00AA: E1      	    POP HL                   ; Troca o PC
+00AB: 2A14FF  	    LD HL, (USR_PC)          ; Recupera PC
+00AE: E5      	    PUSH HL                  ; Devolve PC to stack
+              	
+00AF: 2A24FF  	    LD HL, (USR_AFA)          ; Load AF' in HL
+00B2: E5      	    PUSH  HL                 ; Push AF'
+00B3: F1      	    POP AF                   ; Recovery AF'
+00B4: 08      	    EX AF, AF'
+              	
+00B5: 2A2AFF  	    LD HL, (USR_HLA)          ; Recovery HL'
+00B8: ED5B28FF	    LD DE, (USR_DEA)          ; Recovery DE'
+00BC: ED4B26FF	    LD BC, (USR_BCA)          ; Recovery BC'
+00C0: D9      	    EXX
+              	
+00C1: 2A1EFF  	    LD HL, (USR_AF)          ; Load AF in HL
+00C4: E5      	    PUSH  HL                 ; Push AF
+00C5: F1      	    POP AF                   ; Recovery AF
+              	
+00C6: 2A18FF  	    LD HL, (USR_HL)          ; Recovery HL
+00C9: ED5B1CFF	    LD DE, (USR_DE)          ; Recovery DE
+00CD: ED4B1AFF	    LD BC, (USR_BC)          ; Recovery BC
+              	
+00D1: FB      	    EI
+00D2: 76      	    HALT                     ; aguarda proxima int
+              	
+00D3:         	SKIP_CHK:
+              	    ; TicCounter
+00D3: 2A10FF  	    LD  HL, (TicCounter)     ; Increment 1ms, used to DELAY_A
+00D6: 23      	    INC  HL
+00D7: 2210FF  	    LD  (TicCounter), HL
+              	
+              	    ; Timeout Key
+00DA: 3A0BFF  	     LD A, (KEY_TIMEOUT)
+00DD: FE00    	     CP 0
+00DF: CAE600  	     JP Z, ENTER_MAIN
+00E2: 3D      	     DEC A
+00E3: 320BFF  	     LD (KEY_TIMEOUT), A
+              	
+              	    ; Main
+00E6:         	ENTER_MAIN:
+00E6: CD2901  	    CALL UPDATE_DISPLAYS
+00E9: CD4501  	    CALL UPDATE_KEYS
+00EC: CD9401  	    CALL UPDATE_FLAGS
+              	
+              	    ; Show atual digit
+00EF: 3A0CFF  	    LD  A, (SHOW_DIG)
+00F2: D340    	    OUT (Port40), A
+              	
+              	    ;CALL    TRATAMENTO_INT38H; Get key, update display   
+00F4: C34402  	    JP      SYS_MAIN         ; Execute function monitor
+              	
+00F7:         	EXIT_SYS:
+00F7: E1      	    POP HL                   ; Troca o PC
+00F8: 2A14FF  	    LD HL, (USR_PC)          ; Recupera PC
+00FB: E5      	    PUSH HL                  ; Devolve PC to stack
+              	
+00FC: 2A24FF  	    LD HL, (USR_AFA)          ; Load AF' in HL
+00FF: E5      	    PUSH  HL                 ; Push AF'
+0100: F1      	    POP AF                   ; Recovery AF'
+0101: 08      	    EX AF, AF'
+              	
+0102: 2A2AFF  	    LD HL, (USR_HLA)          ; Recovery HL'
+0105: ED5B28FF	    LD DE, (USR_DEA)          ; Recovery DE'
+0109: ED4B26FF	    LD BC, (USR_BCA)          ; Recovery BC'
+010D: D9      	    EXX
+              	
+010E: DD2A20FF	    LD IX, (USR_IX)          ; Recovery IX
+0112: FD2A22FF	    LD IY, (USR_IY)          ; Recovery IY
+              	
+0116: 2A1EFF  	    LD HL, (USR_AF)          ; Load AF in HL
+0119: E5      	    PUSH  HL                 ; Push AF
+011A: F1      	    POP AF                   ; Recovery AF
+              	
+011B: 2A18FF  	    LD HL, (USR_HL)          ; Recovery HL
+011E: ED5B1CFF	    LD DE, (USR_DE)          ; Recovery DE
+0122: ED4B1AFF	    LD BC, (USR_BC)          ; Recovery BC
+              	
+0126: FB      	    EI                       ; Enable interrupt
+0127: ED4D    	    RETI                     ; Return interrupt
+              	
+              	
+              	; =========================================================
+              	; Update display - Tratamento Int 38h
+              	; =========================================================
+0129:         	UPDATE_DISPLAYS:    
+0129: DB40    	    IN    A, (Port40)
+012B: 3209FF  	    LD    (INPUT), A
+012E: E607    	    AND   $07
+0130: FE08    	    CP    $08
+0132: D24401  	    JP    NC, UPDATE_DISPLAYS_RET ; IF A > 7 RET
+0135: 3C      	    INC   A
+0136: FE08    	    CP    $08
+0138: C23D01  	    JP    NZ, UPDATE_DISPLAYS_OK
+013B: 3E00    	    LD    A, $00
+013D:         	UPDATE_DISPLAYS_OK:
+013D: 26FF    	    LD    H, $FF
+013F: 6F      	    LD    L, A
+0140: 7E      	    LD    A, (HL)
+0141: 320CFF  	    LD   (SHOW_DIG), A
+0144:         	UPDATE_DISPLAYS_RET:
+0144: C9      	    RET
+              	
+              	; =========================================================
+              	; Update KEY - Tratamento Int 38h
+              	; =========================================================
+0145:         	UPDATE_KEYS:    
+0145: DB40    	    IN    A, (Port40)
+0147: 3209FF  	    LD    (INPUT), A
+014A: E607    	    AND   $07
+014C: FE08    	    CP    $08
+014E: D27701  	    JP    NC, UPDATE_KEY_RET ; IF A > 7 RET
+0151: 3A09FF  	    LD  A,  (INPUT)
+0154: CB5F    	    BIT  3, A
+0156: CA7801  	    JP  Z, TRATAB3
+0159: 3A09FF  	    LD  A,  (INPUT)
+015C: CB67    	    BIT  4, A
+015E: CA7E01  	    JP  Z, TRATAB4
+0161: C37701  	    JP  UPDATE_KEY_RET
+0164:         	UPDATE_KEY_GET:
+0164: 3209FF  	    LD    (INPUT), A
+0167: E607    	    AND   $07
+0169: 010000  	    LD    BC, 0
+016C: 4F      	    LD    C, A
+016D: 09      	    ADD   HL, BC
+016E: 7E      	    LD    A, (HL)
+016F: 3208FF  	    LD   (KEY_PRESS), A
+0172: 3E64    	    LD A, CKEY_TIMEOUT
+0174: 320BFF  	    LD (KEY_TIMEOUT), A
+0177:         	UPDATE_KEY_RET:
+0177: C9      	    RET
+              	
+0178:         	TRATAB3:
+0178: 218401  	    LD    HL, KEYSB3
+017B: C36401  	    JP  UPDATE_KEY_GET
+              	
+017E:         	TRATAB4:
+017E: 218C01  	    LD    HL, KEYSB4
+0181: C36401  	    JP  UPDATE_KEY_GET
+              	
+0184: 00010407	KEYSB3 .db $00, $01, $04, $07, $0F, $02, $05, $08
+0188: 0F020508	
+018C: 0E030609	KEYSB4 .db $0E, $03, $06, $09, $0D, $0C, $0B, $0A
+0190: 0D0C0B0A	
+              	
+              	
+              	; =========================================================
+              	; Update Flags - Tratamento Int 38h
+              	; =========================================================
+0194:         	UPDATE_FLAGS:
+0194: 3A0FFF  	    LD    A, (SYSMODE)
+0197: FE06    	    CP    $06
+0199: CAA201  	    JP    Z, UPDATE_FLAGS_MAIN
+019C: FE0C    	    CP    $0C
+019E: CAA201  	    JP    Z, UPDATE_FLAGS_MAIN
+01A1:         	UPDATE_FLAGS_RET:
+01A1: C9      	    RET
+              	
+01A2:         	UPDATE_FLAGS_MAIN:
+01A2: 3A09FF  	    LD    A, (INPUT)
+01A5: E607    	    AND   $07
+              	
+01A7: FE07    	    CP    $07
+01A9: CAD201  	    JP    Z, UPDATE_FLAG_S
+01AC: FE00    	    CP    $00
+01AE: CADE01  	    JP    Z, UPDATE_FLAG_Z
+01B1: FE01    	    CP    $01
+01B3: CAEA01  	    JP    Z, UPDATE_FLAG_X1
+01B6: FE02    	    CP    $02
+01B8: CAF601  	    JP    Z, UPDATE_FLAG_H
+01BB: FE03    	    CP    $03
+01BD: CA0202  	    JP    Z, UPDATE_FLAG_X2
+01C0: FE04    	    CP    $04
+01C2: CA0E02  	    JP    Z, UPDATE_FLAG_PV
+01C5: FE05    	    CP    $05
+01C7: CA1A02  	    JP    Z, UPDATE_FLAG_N
+01CA: FE06    	    CP    $06
+01CC: CA2602  	    JP    Z, UPDATE_FLAG_C
+01CF: C3A101  	    JP    UPDATE_FLAGS_RET
+              	
+01D2:         	UPDATE_FLAG_S:
+01D2: CD3202  	    CALL  SHOW_DIG_FLAG_ON
+01D5: 3A2CFF  	    LD  A, (CPU_FLAGS)
+01D8: CB7F    	    BIT 7, A
+01DA: CC3B02  	    CALL Z, SHOW_DIG_FLAG_OFF
+01DD: C9      	    RET
+              	
+01DE:         	UPDATE_FLAG_Z:
+01DE: CD3202  	    CALL  SHOW_DIG_FLAG_ON
+01E1: 3A2CFF  	    LD  A, (CPU_FLAGS)
+01E4: CB77    	    BIT 6, A
+01E6: CC3B02  	    CALL Z, SHOW_DIG_FLAG_OFF
+01E9: C9      	    RET
+              	
+01EA:         	UPDATE_FLAG_X1:
+01EA: CD3202  	    CALL  SHOW_DIG_FLAG_ON
+01ED: 3A2CFF  	    LD  A, (CPU_FLAGS)
+01F0: CB6F    	    BIT 5, A
+01F2: CC3B02  	    CALL Z, SHOW_DIG_FLAG_OFF
+01F5: C9      	    RET
+              	
+01F6:         	UPDATE_FLAG_H:
+01F6: CD3202  	    CALL  SHOW_DIG_FLAG_ON
+01F9: 3A2CFF  	    LD  A, (CPU_FLAGS)
+01FC: CB67    	    BIT 4, A
+01FE: CC3B02  	    CALL Z, SHOW_DIG_FLAG_OFF
+0201: C9      	    RET
+              	
+0202:         	UPDATE_FLAG_X2:
+0202: CD3202  	    CALL  SHOW_DIG_FLAG_ON
+0205: 3A2CFF  	    LD  A, (CPU_FLAGS)
+0208: CB5F    	    BIT 3, A
+020A: CC3B02  	    CALL Z, SHOW_DIG_FLAG_OFF
+020D: C9      	    RET
+              	
+020E:         	UPDATE_FLAG_PV:
+020E: CD3202  	    CALL  SHOW_DIG_FLAG_ON
+0211: 3A2CFF  	    LD  A, (CPU_FLAGS)
+0214: CB57    	    BIT 2, A
+0216: CC3B02  	    CALL Z, SHOW_DIG_FLAG_OFF
+0219: C9      	    RET
+              	
+021A:         	UPDATE_FLAG_N:
+021A: CD3202  	    CALL  SHOW_DIG_FLAG_ON
+021D: 3A2CFF  	    LD  A, (CPU_FLAGS)
+0220: CB4F    	    BIT 1, A
+0222: CC3B02  	    CALL Z, SHOW_DIG_FLAG_OFF
+0225: C9      	    RET
+              	
+0226:         	UPDATE_FLAG_C:
+0226: CD3202  	    CALL  SHOW_DIG_FLAG_ON
+0229: 3A2CFF  	    LD  A, (CPU_FLAGS)
+022C: CB47    	    BIT 0, A
+022E: CC3B02  	    CALL Z, SHOW_DIG_FLAG_OFF
+0231: C9      	    RET
+              	
+0232:         	SHOW_DIG_FLAG_ON:
+0232: 3A0CFF  	    LD  A, (SHOW_DIG)
+0235: F680    	    OR  $80
+0237: 320CFF  	    LD  (SHOW_DIG), A
+023A: C9      	    RET
+              	
+023B:         	SHOW_DIG_FLAG_OFF:
+023B: 3A0CFF  	    LD  A, (SHOW_DIG)
+023E: E67F    	    AND  $7F
+0240: 320CFF  	    LD  (SHOW_DIG), A 
+0243: C9      	    RET
+              	
+              	; =========================================================
+              	; SYS MAIN
+              	; =========================================================
+0244:         	SYS_MAIN:
+0244: 3A0FFF  	    LD  A, (SYSMODE)
+0247: FE00    	    CP  $00                  ; User mode can back to monitor
+0249: CA5608  	    JP  Z, USER_MODE        
+              	
+024C: 3A0FFF  	    LD  A, (SYSMODE)
+024F: FE01    	    CP  $01                  ; monitor
+0251: CA6C08  	    JP  Z, MONITOR_MODE
+              	
+0254: 3A0FFF  	    LD  A,  (SYSMODE)
+0257: FE02    	    CP  $02                  ; Examine RAM
+0259: CADF02  	    JP  Z, EXAMINE_RAM
+              	
+025C: 3A0FFF  	    LD  A, (SYSMODE)
+025F: FE03    	    CP  $03                  ; Modify Data (Memory)
+0261: CA7803  	    JP  Z,  MODIFY_RAM
+              	
+0264: 3A0FFF  	    LD  A, (SYSMODE)
+0267: FE04    	    CP  $04                  ; Show register PC
+0269: CAC703  	    JP  Z,  SHOW_REG_PC
+              	
+026C: 3A0FFF  	    LD  A, (SYSMODE)
+026F: FE05    	    CP  $05                  ; Show register SP
+0271: CA1A04  	    JP  Z,  SHOW_REG_SP
+              	
+0274: 3A0FFF  	    LD  A, (SYSMODE)
+0277: FE06    	    CP  $06                  ; Show register AF
+0279: CA6504  	    JP  Z,  SHOW_REG_AF
+              	
+027C: 3A0FFF  	    LD  A, (SYSMODE)
+027F: FE07    	    CP  $07                  ; Show register BC
+0281: CABF04  	    JP  Z,  SHOW_REG_BC
+              	
+0284: 3A0FFF  	    LD  A, (SYSMODE)
+0287: FE08    	    CP  $08                  ; Show register DE
+0289: CA1505  	    JP  Z,  SHOW_REG_DE
+              	
+028C: 3A0FFF  	    LD  A, (SYSMODE)
+028F: FE09    	    CP  $09                  ; Show register HL
+0291: CA6B05  	    JP  Z,  SHOW_REG_HL
+              	
+0294: 3A0FFF  	    LD  A, (SYSMODE)
+0297: FE0A    	    CP  $0A                  ; Show register IX
+0299: CAC105  	    JP  Z,  SHOW_REG_IX
+              	
+029C: 3A0FFF  	    LD  A, (SYSMODE)
+029F: FE0B    	    CP  $0B                  ; Show register IY
+02A1: CA1706  	    JP  Z,  SHOW_REG_IY
+              	
+02A4: 3A0FFF  	    LD  A, (SYSMODE)
+02A7: FE0C    	    CP  $0C                  ; Show register AF'
+02A9: CA6D06  	    JP  Z,  SHOW_REG_AFaux
+              	
+02AC: 3A0FFF  	    LD  A, (SYSMODE)
+02AF: FE0D    	    CP  $0D                  ; Show register BC'
+02B1: CACC06  	    JP  Z,  SHOW_REG_BCaux
+              	
+02B4: 3A0FFF  	    LD  A, (SYSMODE)
+02B7: FE0E    	    CP  $0E                  ; Show register DE'
+02B9: CA2707  	    JP  Z,  SHOW_REG_DEaux
+              	
+02BC: 3A0FFF  	    LD  A, (SYSMODE)
+02BF: FE0F    	    CP  $0F                  ; Show register HL'
+02C1: CA8207  	    JP  Z,  SHOW_REG_HLaux
+              	
+              	
+02C4: 3A0FFF  	    LD  A, (SYSMODE)        ; Show HALT
+02C7: FE76    	    CP  $76
+02C9: CADD07  	    JP  Z, SHOW_HALT
+              	
+02CC: 3A0FFF  	    LD  A, (SYSMODE)        ; Modify Any
+02CF: FE80    	    CP  $80
+02D1: CA160A  	    JP  Z, MD_HL
+              	
+              	
+02D4: 3A0FFF  	    LD  A, (SYSMODE)        ; Show ERROR
+02D7: FE99    	    CP  $99
+02D9: CA0C08  	    JP  Z, SHOW_ERROR
+              	
+02DC: C3F700  	    JP  EXIT_SYS
+              	
+              	
+              	; =========================================================
+              	; Examine RAM Mode
+              	; =========================================================
+02DF:         	EXAMINE_RAM:
+02DF: CD3B08  	    CALL GET_KEY_A
+02E2: FEFF    	    CP  $FF
+02E4: CAF700  	    JP  Z, EXIT_SYS
+              	
+02E7: F5      	    PUSH  AF
+02E8: F5      	    PUSH  AF
+02E9: 3A12FF  	    LD  A, (EXM_COUNT)
+02EC: FE03    	    CP  3
+02EE: CA0C03  	    JP  Z, EXAMINE_KEY_POS_3
+              	
+02F1: 3A12FF  	    LD  A, (EXM_COUNT)
+02F4: FE02    	    CP  2
+02F6: CA2A03  	    JP  Z, EXAMINE_KEY_POS_2
+              	
+02F9: 3A12FF  	    LD  A, (EXM_COUNT)
+02FC: FE01    	    CP  1
+02FE: CA4403  	    JP  Z, EXAMINE_KEY_POS_1
+              	
+0301: 3A12FF  	    LD  A, (EXM_COUNT)
+0304: FE00    	    CP  0
+0306: CA6503  	    JP  Z, EXAMINE_KEY_POS_0
+              	
+0309: C3F700  	    JP  EXIT_SYS
+              	
+030C:         	EXAMINE_KEY_POS_3:
+030C: F1      	    POP  AF
+030D: CB07    	    RLC  A
+030F: CB07    	    RLC  A
+0311: CB07    	    RLC  A
+0313: CB07    	    RLC  A
+0315: 67      	    LD  H, A
+0316: 220DFF  	    LD  (PC_RAM), HL
+0319: F1      	    POP  AF
+031A: CDFB0A  	    CALL GET_NUM_FROM_LOW
+031D: 3200FF  	    LD  (DIG_0), A
+0320: 3A12FF  	    LD  A, (EXM_COUNT)
+0323: 3D      	    DEC A
+0324: 3212FF  	    LD  (EXM_COUNT), A
+0327: C3F700  	    JP  EXIT_SYS
+              	
+              	
+032A:         	EXAMINE_KEY_POS_2:
+032A: F1      	    POP  AF
+032B: 2A0DFF  	    LD  HL, (PC_RAM)
+032E: B4      	    OR  H
+032F: 67      	    LD  H, A
+0330: 220DFF  	    LD  (PC_RAM), HL
+0333: F1      	    POP  AF
+0334: CDFB0A  	    CALL GET_NUM_FROM_LOW
+0337: 3201FF  	    LD  (DIG_1), A
+033A: 3A12FF  	    LD  A, (EXM_COUNT)
+033D: 3D      	    DEC A
+033E: 3212FF  	    LD  (EXM_COUNT), A
+0341: C3F700  	    JP  EXIT_SYS
+              	
+0344:         	EXAMINE_KEY_POS_1:
+0344: F1      	    POP  AF
+0345: 2A0DFF  	    LD  HL, (PC_RAM)
+0348: CB07    	    RLC  A
+034A: CB07    	    RLC  A
+034C: CB07    	    RLC  A
+034E: CB07    	    RLC  A
+0350: 6F      	    LD  L, A
+0351: 220DFF  	    LD  (PC_RAM), HL
+0354: F1      	    POP  AF
+0355: CDFB0A  	    CALL GET_NUM_FROM_LOW
+0358: 3202FF  	    LD  (DIG_2), A
+035B: 3A12FF  	    LD  A, (EXM_COUNT)
+035E: 3D      	    DEC A
+035F: 3212FF  	    LD  (EXM_COUNT), A
+0362: C3F700  	    JP  EXIT_SYS
+              	
+              	
+0365:         	EXAMINE_KEY_POS_0:
+0365: F1      	    POP  AF
+0366: 2A0DFF  	    LD  HL, (PC_RAM)
+0369: B5      	    OR  L
+036A: 6F      	    LD  L, A
+036B: 220DFF  	    LD  (PC_RAM), HL
+036E: F1      	    POP  AF
+036F: CDFB0A  	    CALL GET_NUM_FROM_LOW
+0372: 3203FF  	    LD  (DIG_3), A
+0375: C34D09  	    JP  GO_MONITOR
+              	
+              	; =========================================================
+              	; MODIFY RAM Mode
+              	; =========================================================
+0378:         	MODIFY_RAM:
+              	
+0378: CD3B08  	    CALL GET_KEY_A
+037B: FEFF    	    CP  $FF
+037D: CAF700  	    JP  Z, EXIT_SYS
+              	
+0380: F5      	    PUSH  AF
+0381: F5      	    PUSH  AF
+0382: 3A13FF  	    LD  A, (MDF_COUNT)
+0385: FE01    	    CP  1
+0387: CA9503  	    JP  Z, MODIFY_KEY_POS_1
+              	
+038A: 3A13FF  	    LD  A, (MDF_COUNT)
+038D: FE00    	    CP  0
+038F: CAB303  	    JP  Z, MODIFY_KEY_POS_0
+              	
+0392: C3F700  	    JP  EXIT_SYS
+              	
+0395:         	MODIFY_KEY_POS_1:
+0395: F1      	    POP  AF
+0396: CB07    	    RLC  A
+0398: CB07    	    RLC  A
+039A: CB07    	    RLC  A
+039C: CB07    	    RLC  A
+039E: 2A0DFF  	    LD  HL, (PC_RAM)
+03A1: 77      	    LD  (HL), A
+              	
+03A2: F1      	    POP  AF
+03A3: CDFB0A  	    CALL GET_NUM_FROM_LOW
+03A6: 3206FF  	    LD  (DIG_6), A
+03A9: 3A13FF  	    LD  A, (MDF_COUNT)
+03AC: 3D      	    DEC A
+03AD: 3213FF  	    LD  (MDF_COUNT), A
+03B0: C3F700  	    JP  EXIT_SYS
+              	
+03B3:         	MODIFY_KEY_POS_0:
+03B3: F1      	    POP  AF
+03B4: 2A0DFF  	    LD  HL, (PC_RAM)
+03B7: 46      	    LD  B, (HL)
+03B8: B0      	    OR  B
+03B9: 2A0DFF  	    LD  HL, (PC_RAM)
+03BC: 77      	    LD  (HL), A
+              	
+03BD: F1      	    POP  AF
+03BE: CDFB0A  	    CALL GET_NUM_FROM_LOW
+03C1: 3207FF  	    LD  (DIG_7), A
+03C4: C34D09  	    JP  GO_MONITOR
+              	    
+              	
+03C7:         	SHOW_REG_PC:
+03C7: CD3B08  	    CALL  GET_KEY_A
+03CA: FE00    	    CP  $00
+03CC: CA4D09  	    JP Z, GO_MONITOR
+03CF: FE01    	    CP  $01
+03D1: CA5809  	    JP Z, GO_SHOW_REG_PC
+03D4: FE02    	    CP  $02
+03D6: CA6309  	    JP Z, GO_SHOW_REG_SP
+03D9: FE03    	    CP  $03
+03DB: CA6E09  	    JP Z, GO_SHOW_REG_AF
+03DE: FE04    	    CP  $04
+03E0: CA7909  	    JP Z, GO_SHOW_REG_BC
+03E3: FE05    	    CP  $05
+03E5: CA8409  	    JP Z, GO_SHOW_REG_DE
+03E8: FE06    	    CP  $06
+03EA: CA8F09  	    JP Z, GO_SHOW_REG_HL
+03ED: FE07    	    CP  $07
+03EF: CA9A09  	    JP Z, GO_SHOW_REG_IX
+03F2: FE08    	    CP  $08
+03F4: CAA509  	    JP Z, GO_SHOW_REG_IY
+              	
+              	    ; RUN
+03F7: FE0F    	    CP  $0F
+03F9: CADC09  	    JP  Z,  FIRE
+              	
+              	    ; Modify
+03FC: FE0D    	    CP  $0D
+03FE: CAE509  	    JP  Z,  MODIFY_ANY
+              	
+0401: 3E73    	    LD  A, $73               ; P
+0403: 3200FF  	    LD  (DIG_0), A
+              	
+0406: 3E39    	    LD  A, $39
+0408: 3201FF  	    LD  (DIG_1), A           ; C
+              	
+040B: 2A14FF  	    LD HL, (USR_PC)
+040E: CDAD0B  	    CALL PRINT_END_HL
+              	
+0411: 2114FF  	    LD HL, USR_PC
+0414: 22DCFF  	    LD (ISR_MD_HL), HL
+              	
+0417: C3F700  	    JP  EXIT_SYS
+              	
+              	
+041A:         	SHOW_REG_SP:
+041A: CD3B08  	    CALL  GET_KEY_A
+041D: FE00    	    CP  $00
+041F: CA4D09  	    JP Z, GO_MONITOR
+0422: FE01    	    CP  $01
+0424: CA5809  	    JP Z, GO_SHOW_REG_PC
+0427: FE02    	    CP  $02
+0429: CA6309  	    JP Z, GO_SHOW_REG_SP
+042C: FE03    	    CP  $03
+042E: CA6E09  	    JP Z, GO_SHOW_REG_AF
+0431: FE04    	    CP  $04
+0433: CA7909  	    JP Z, GO_SHOW_REG_BC
+0436: FE05    	    CP  $05
+0438: CA8409  	    JP Z, GO_SHOW_REG_DE
+043B: FE06    	    CP  $06
+043D: CA8F09  	    JP Z, GO_SHOW_REG_HL
+0440: FE07    	    CP  $07
+0442: CA9A09  	    JP Z, GO_SHOW_REG_IX
+0445: FE08    	    CP  $08
+0447: CAA509  	    JP Z, GO_SHOW_REG_IY
+              	
+              	    ; RUN
+044A: FE0F    	    CP  $0F
+044C: CADC09  	    JP  Z,  FIRE
+              	
+044F: CDC10A  	    CALL  CLEAR_DISPLAY
+              	
+0452: 3E6D    	    LD  A, $6D               ; S
+0454: 3200FF  	    LD  (DIG_0), A
+              	
+0457: 3E73    	    LD  A, $73               ; P
+0459: 3201FF  	    LD  (DIG_1), A
+              	
+045C: 2A16FF  	    LD HL, (USR_SP)
+045F: CDAD0B  	    CALL PRINT_END_HL
+0462: C3F700  	    JP  EXIT_SYS
+              	
+              	
+0465:         	SHOW_REG_AF:
+0465: CD3B08  	    CALL  GET_KEY_A
+0468: FE00    	    CP  $00
+046A: CA4D09  	    JP Z, GO_MONITOR
+046D: FE01    	    CP  $01
+046F: CA5809  	    JP Z, GO_SHOW_REG_PC
+0472: FE02    	    CP  $02
+0474: CA6309  	    JP Z, GO_SHOW_REG_SP
+0477: FE03    	    CP  $03
+0479: CAB009  	    JP Z, GO_SHOW_REG_AFaux
+047C: FE04    	    CP  $04
+047E: CA7909  	    JP Z, GO_SHOW_REG_BC
+0481: FE05    	    CP  $05
+0483: CA8409  	    JP Z, GO_SHOW_REG_DE
+0486: FE06    	    CP  $06
+0488: CA8F09  	    JP Z, GO_SHOW_REG_HL
+048B: FE07    	    CP  $07
+048D: CA9A09  	    JP Z, GO_SHOW_REG_IX
+0490: FE08    	    CP  $08
+0492: CAA509  	    JP Z, GO_SHOW_REG_IY
+              	
+              	    ; RUN
+0495: FE0F    	    CP  $0F
+0497: CADC09  	    JP  Z,  FIRE
+              	
+              	    ; Modify
+049A: FE0D    	    CP  $0D
+049C: CAE509  	    JP  Z,  MODIFY_ANY
+              	
+049F: CDC10A  	    CALL  CLEAR_DISPLAY
+              	
+04A2: 3E77    	    LD  A, $77               ; A
+04A4: 3200FF  	    LD  (DIG_0), A
+              	
+04A7: 3E71    	    LD  A, $71               ; F
+04A9: 3201FF  	    LD  (DIG_1), A
+              	
+04AC: 2A1EFF  	    LD  HL, (USR_AF)
+04AF: 7D      	    LD  A, L
+04B0: 322CFF  	    LD (CPU_FLAGS), A
+04B3: CDAD0B  	    CALL PRINT_END_HL
+              	
+04B6: 211EFF  	    LD HL, USR_AF
+04B9: 22DCFF  	    LD (ISR_MD_HL), HL
+              	
+04BC: C3F700  	    JP  EXIT_SYS
+              	
+              	
+04BF:         	SHOW_REG_BC:
+04BF: CD3B08  	    CALL  GET_KEY_A
+04C2: FE00    	    CP  $00
+04C4: CA4D09  	    JP Z, GO_MONITOR
+04C7: FE01    	    CP  $01
+04C9: CA5809  	    JP Z, GO_SHOW_REG_PC
+04CC: FE02    	    CP  $02
+04CE: CA6309  	    JP Z, GO_SHOW_REG_SP
+04D1: FE03    	    CP  $03
+04D3: CA6E09  	    JP Z, GO_SHOW_REG_AF
+04D6: FE04    	    CP  $04
+04D8: CABB09  	    JP Z, GO_SHOW_REG_BCaux
+04DB: FE05    	    CP  $05
+04DD: CA8409  	    JP Z, GO_SHOW_REG_DE
+04E0: FE06    	    CP  $06
+04E2: CA8F09  	    JP Z, GO_SHOW_REG_HL
+04E5: FE07    	    CP  $07
+04E7: CA9A09  	    JP Z, GO_SHOW_REG_IX
+04EA: FE08    	    CP  $08
+04EC: CAA509  	    JP Z, GO_SHOW_REG_IY
+              	
+              	    ; RUN
+04EF: FE0F    	    CP  $0F
+04F1: CADC09  	    JP  Z,  FIRE
+              	
+              	    ; Modify
+04F4: FE0D    	    CP  $0D
+04F6: CAE509  	    JP  Z,  MODIFY_ANY
+              	
+              	
+              	
+04F9: CDC10A  	    CALL  CLEAR_DISPLAY
+              	
+04FC: 3E7C    	    LD  A, $7C               ; B
+04FE: 3200FF  	    LD  (DIG_0), A
+              	
+0501: 3E39    	    LD  A, $39               ; C
+0503: 3201FF  	    LD  (DIG_1), A
+              	
+0506: 2A1AFF  	    LD HL, (USR_BC)
+0509: CDAD0B  	    CALL PRINT_END_HL
+              	
+050C: 211AFF  	    LD HL, USR_BC
+050F: 22DCFF  	    LD (ISR_MD_HL), HL
+              	
+0512: C3F700  	    JP  EXIT_SYS
+              	
+0515:         	SHOW_REG_DE:
+0515: CD3B08  	    CALL  GET_KEY_A
+0518: FE00    	    CP  $00
+051A: CA4D09  	    JP Z, GO_MONITOR
+051D: FE01    	    CP  $01
+051F: CA5809  	    JP Z, GO_SHOW_REG_PC
+0522: FE02    	    CP  $02
+0524: CA6309  	    JP Z, GO_SHOW_REG_SP
+0527: FE03    	    CP  $03
+0529: CA6E09  	    JP Z, GO_SHOW_REG_AF
+052C: FE04    	    CP  $04
+052E: CA7909  	    JP Z, GO_SHOW_REG_BC
+0531: FE05    	    CP  $05
+0533: CAC609  	    JP Z, GO_SHOW_REG_DEaux
+0536: FE06    	    CP  $06
+0538: CA8F09  	    JP Z, GO_SHOW_REG_HL
+053B: FE07    	    CP  $07
+053D: CA9A09  	    JP Z, GO_SHOW_REG_IX
+0540: FE08    	    CP  $08
+0542: CAA509  	    JP Z, GO_SHOW_REG_IY
+              	
+              	    ; RUN
+0545: FE0F    	    CP  $0F
+0547: CADC09  	    JP  Z,  FIRE
+              	
+              	    ; Modify
+054A: FE0D    	    CP  $0D
+054C: CAE509  	    JP  Z,  MODIFY_ANY
+              	
+054F: CDC10A  	    CALL  CLEAR_DISPLAY
+              	
+0552: 3E5E    	    LD  A, $5E               ; D
+0554: 3200FF  	    LD  (DIG_0), A
+              	
+0557: 3E79    	    LD  A, $79               ; E
+0559: 3201FF  	    LD  (DIG_1), A
+              	
+055C: 2A1CFF  	    LD HL, (USR_DE)
+055F: CDAD0B  	    CALL PRINT_END_HL
+              	
+0562: 211CFF  	    LD HL, USR_DE
+0565: 22DCFF  	    LD (ISR_MD_HL), HL
+              	
+0568: C3F700  	    JP  EXIT_SYS
+              	
+056B:         	SHOW_REG_HL:
+056B: CD3B08  	    CALL  GET_KEY_A
+056E: FE00    	    CP  $00
+0570: CA4D09  	    JP Z, GO_MONITOR
+0573: FE01    	    CP  $01
+0575: CA5809  	    JP Z, GO_SHOW_REG_PC
+0578: FE02    	    CP  $02
+057A: CA6309  	    JP Z, GO_SHOW_REG_SP
+057D: FE03    	    CP  $03
+057F: CA6E09  	    JP Z, GO_SHOW_REG_AF
+0582: FE04    	    CP  $04
+0584: CA7909  	    JP Z, GO_SHOW_REG_BC
+0587: FE05    	    CP  $05
+0589: CA8409  	    JP Z, GO_SHOW_REG_DE
+058C: FE06    	    CP  $06
+058E: CAD109  	    JP Z, GO_SHOW_REG_HLaux
+0591: FE07    	    CP  $07
+0593: CA9A09  	    JP Z, GO_SHOW_REG_IX
+0596: FE08    	    CP  $08
+0598: CAA509  	    JP Z, GO_SHOW_REG_IY
+              	
+              	    ; RUN
+059B: FE0F    	    CP  $0F
+059D: CADC09  	    JP  Z,  FIRE
+              	
+              	    ; Modify
+05A0: FE0D    	    CP  $0D
+05A2: CAE509  	    JP  Z,  MODIFY_ANY
+              	
+05A5: CDC10A  	    CALL  CLEAR_DISPLAY
+              	
+05A8: 3E76    	    LD  A, $76               ; H
+05AA: 3200FF  	    LD  (DIG_0), A
+              	
+05AD: 3E38    	    LD  A, $38               ; L
+05AF: 3201FF  	    LD  (DIG_1), A
+              	
+05B2: 2A18FF  	    LD HL, (USR_HL)
+05B5: CDAD0B  	    CALL PRINT_END_HL
+              	
+05B8: 2118FF  	    LD HL, USR_HL
+05BB: 22DCFF  	    LD (ISR_MD_HL), HL
+              	
+05BE: C3F700  	    JP  EXIT_SYS
+              	
+05C1:         	SHOW_REG_IX:
+05C1: CD3B08  	    CALL  GET_KEY_A
+05C4: FE00    	    CP  $00
+05C6: CA4D09  	    JP Z, GO_MONITOR
+05C9: FE01    	    CP  $01
+05CB: CA5809  	    JP Z, GO_SHOW_REG_PC
+05CE: FE02    	    CP  $02
+05D0: CA6309  	    JP Z, GO_SHOW_REG_SP
+05D3: FE03    	    CP  $03
+05D5: CA6E09  	    JP Z, GO_SHOW_REG_AF
+05D8: FE04    	    CP  $04
+05DA: CA7909  	    JP Z, GO_SHOW_REG_BC
+05DD: FE05    	    CP  $05
+05DF: CA8409  	    JP Z, GO_SHOW_REG_DE
+05E2: FE06    	    CP  $06
+05E4: CA8F09  	    JP Z, GO_SHOW_REG_HL
+05E7: FE07    	    CP  $07
+05E9: CA9A09  	    JP Z, GO_SHOW_REG_IX
+05EC: FE08    	    CP  $08
+05EE: CAA509  	    JP Z, GO_SHOW_REG_IY
+              	
+              	    ; RUN
+05F1: FE0F    	    CP  $0F
+05F3: CADC09  	    JP  Z,  FIRE
+              	
+              	    ; Modify
+05F6: FE0D    	    CP  $0D
+05F8: CAE509  	    JP  Z,  MODIFY_ANY
+              	
+05FB: CDC10A  	    CALL  CLEAR_DISPLAY
+              	
+05FE: 3E06    	    LD  A, $06               ; I
+0600: 3200FF  	    LD  (DIG_0), A
+              	
+0603: 3E70    	    LD  A, $70               ; X
+0605: 3201FF  	    LD  (DIG_1), A
+              	
+0608: 2A20FF  	    LD HL, (USR_IX)
+060B: CDAD0B  	    CALL PRINT_END_HL
+              	
+060E: 2120FF  	    LD HL, USR_IX
+0611: 22DCFF  	    LD (ISR_MD_HL), HL
+              	
+0614: C3F700  	    JP  EXIT_SYS
+              	
+0617:         	SHOW_REG_IY:
+0617: CD3B08  	    CALL  GET_KEY_A
+061A: FE00    	    CP  $00
+061C: CA4D09  	    JP Z, GO_MONITOR
+061F: FE01    	    CP  $01
+0621: CA5809  	    JP Z, GO_SHOW_REG_PC
+0624: FE02    	    CP  $02
+0626: CA6309  	    JP Z, GO_SHOW_REG_SP
+0629: FE03    	    CP  $03
+062B: CA6E09  	    JP Z, GO_SHOW_REG_AF
+062E: FE04    	    CP  $04
+0630: CA7909  	    JP Z, GO_SHOW_REG_BC
+0633: FE05    	    CP  $05
+0635: CA8409  	    JP Z, GO_SHOW_REG_DE
+0638: FE06    	    CP  $06
+063A: CA8F09  	    JP Z, GO_SHOW_REG_HL
+063D: FE07    	    CP  $07
+063F: CA9A09  	    JP Z, GO_SHOW_REG_IX
+0642: FE08    	    CP  $08
+0644: CAA509  	    JP Z, GO_SHOW_REG_IY
+              	
+              	    ; RUN
+0647: FE0F    	    CP  $0F
+0649: CADC09  	    JP  Z,  FIRE
+              	
+              	    ; Modify
+064C: FE0D    	    CP  $0D
+064E: CAE509  	    JP  Z,  MODIFY_ANY
+              	
+0651: CDC10A  	    CALL  CLEAR_DISPLAY
+              	
+0654: 3E06    	    LD  A, $06               ; I
+0656: 3200FF  	    LD  (DIG_0), A
+              	
+0659: 3E6E    	    LD  A, $6E               ; Y
+065B: 3201FF  	    LD  (DIG_1), A
+              	
+065E: 2A22FF  	    LD HL, (USR_IY)
+0661: CDAD0B  	    CALL PRINT_END_HL
+              	
+0664: 2122FF  	    LD HL, USR_IY
+0667: 22DCFF  	    LD (ISR_MD_HL), HL
+              	
+066A: C3F700  	    JP  EXIT_SYS
+              	
+066D:         	SHOW_REG_AFaux:
+066D: CD3B08  	    CALL  GET_KEY_A
+0670: FE00    	    CP  $00
+0672: CA4D09  	    JP Z, GO_MONITOR
+0675: FE01    	    CP  $01
+0677: CA5809  	    JP Z, GO_SHOW_REG_PC
+067A: FE02    	    CP  $02
+067C: CA6309  	    JP Z, GO_SHOW_REG_SP
+067F: FE03    	    CP  $03
+0681: CA6E09  	    JP Z, GO_SHOW_REG_AF
+0684: FE04    	    CP  $04
+0686: CA7909  	    JP Z, GO_SHOW_REG_BC
+0689: FE05    	    CP  $05
+068B: CA8409  	    JP Z, GO_SHOW_REG_DE
+068E: FE06    	    CP  $06
+0690: CA8F09  	    JP Z, GO_SHOW_REG_HL
+0693: FE07    	    CP  $07
+0695: CA9A09  	    JP Z, GO_SHOW_REG_IX
+0698: FE08    	    CP  $08
+069A: CAA509  	    JP Z, GO_SHOW_REG_IY
+              	
+              	    ; RUN
+069D: FE0F    	    CP  $0F
+069F: CADC09  	    JP  Z,  FIRE
+              	
+              	    ; Modify
+06A2: FE0D    	    CP  $0D
+06A4: CAE509  	    JP  Z,  MODIFY_ANY
+              	
+06A7: CDC10A  	    CALL  CLEAR_DISPLAY
+              	
+              	
+06AA: 3E77    	    LD  A, $77               ; A
+06AC: 3200FF  	    LD  (DIG_0), A
+              	
+06AF: 3E71    	    LD  A, $71               ; F
+06B1: 3201FF  	    LD  (DIG_1), A
+              	
+06B4: 3E20    	    LD  A, $20               ; '
+06B6: 3202FF  	    LD  (DIG_2), A
+              	
+06B9: 2A24FF  	    LD HL, (USR_AFA)
+06BC: 7D      	    LD  A, L
+06BD: 322CFF  	    LD (CPU_FLAGS), A
+06C0: CDAD0B  	    CALL PRINT_END_HL
+              	
+06C3: 2124FF  	    LD HL, USR_AFA
+06C6: 22DCFF  	    LD (ISR_MD_HL), HL
+              	
+06C9: C3F700  	    JP  EXIT_SYS
+              	
+              	
+06CC:         	SHOW_REG_BCaux:
+06CC: CD3B08  	    CALL  GET_KEY_A
+06CF: FE00    	    CP  $00
+06D1: CA4D09  	    JP Z, GO_MONITOR
+06D4: FE01    	    CP  $01
+06D6: CA5809  	    JP Z, GO_SHOW_REG_PC
+06D9: FE02    	    CP  $02
+06DB: CA6309  	    JP Z, GO_SHOW_REG_SP
+06DE: FE03    	    CP  $03
+06E0: CA6E09  	    JP Z, GO_SHOW_REG_AF
+06E3: FE04    	    CP  $04
+06E5: CA7909  	    JP Z, GO_SHOW_REG_BC
+06E8: FE05    	    CP  $05
+06EA: CA8409  	    JP Z, GO_SHOW_REG_DE
+06ED: FE06    	    CP  $06
+06EF: CA8F09  	    JP Z, GO_SHOW_REG_HL
+06F2: FE07    	    CP  $07
+06F4: CA9A09  	    JP Z, GO_SHOW_REG_IX
+06F7: FE08    	    CP  $08
+06F9: CAA509  	    JP Z, GO_SHOW_REG_IY
+              	
+              	    ; RUN
+06FC: FE0F    	    CP  $0F
+06FE: CADC09  	    JP  Z,  FIRE
+              	
+              	    ; Modify
+0701: FE0D    	    CP  $0D
+0703: CAE509  	    JP  Z,  MODIFY_ANY
+              	
+0706: CDC10A  	    CALL  CLEAR_DISPLAY
+              	
+              	
+0709: 3E7C    	    LD  A, $7C               ; B
+070B: 3200FF  	    LD  (DIG_0), A
+              	
+070E: 3E39    	    LD  A, $39               ; C
+0710: 3201FF  	    LD  (DIG_1), A
+              	
+0713: 3E20    	    LD  A, $20               ; '
+0715: 3202FF  	    LD  (DIG_2), A
+              	
+0718: 2A26FF  	    LD HL, (USR_BCA)
+071B: CDAD0B  	    CALL PRINT_END_HL
+              	
+071E: 2126FF  	    LD HL, USR_BCA
+0721: 22DCFF  	    LD (ISR_MD_HL), HL
+              	
+0724: C3F700  	    JP  EXIT_SYS
+              	
+0727:         	SHOW_REG_DEaux:
+0727: CD3B08  	    CALL  GET_KEY_A
+072A: FE00    	    CP  $00
+072C: CA4D09  	    JP Z, GO_MONITOR
+072F: FE01    	    CP  $01
+0731: CA5809  	    JP Z, GO_SHOW_REG_PC
+0734: FE02    	    CP  $02
+0736: CA6309  	    JP Z, GO_SHOW_REG_SP
+0739: FE03    	    CP  $03
+073B: CA6E09  	    JP Z, GO_SHOW_REG_AF
+073E: FE04    	    CP  $04
+0740: CA7909  	    JP Z, GO_SHOW_REG_BC
+0743: FE05    	    CP  $05
+0745: CA8409  	    JP Z, GO_SHOW_REG_DE
+0748: FE06    	    CP  $06
+074A: CA8F09  	    JP Z, GO_SHOW_REG_HL
+074D: FE07    	    CP  $07
+074F: CA9A09  	    JP Z, GO_SHOW_REG_IX
+0752: FE08    	    CP  $08
+0754: CAA509  	    JP Z, GO_SHOW_REG_IY
+              	
+              	    ; RUN
+0757: FE0F    	    CP  $0F
+0759: CADC09  	    JP  Z,  FIRE
+              	
+              	    ; Modify
+075C: FE0D    	    CP  $0D
+075E: CAE509  	    JP  Z,  MODIFY_ANY
+              	
+0761: CDC10A  	    CALL  CLEAR_DISPLAY
+              	
+0764: 3E5E    	    LD  A, $5E               ; D
+0766: 3200FF  	    LD  (DIG_0), A
+              	
+0769: 3E79    	    LD  A, $79               ; E
+076B: 3201FF  	    LD  (DIG_1), A
+              	
+076E: 3E20    	    LD  A, $20               ; '
+0770: 3202FF  	    LD  (DIG_2), A
+              	
+0773: 2A28FF  	    LD HL, (USR_DEA)
+0776: CDAD0B  	    CALL PRINT_END_HL
+              	
+0779: 2128FF  	    LD HL, USR_DEA
+077C: 22DCFF  	    LD (ISR_MD_HL), HL
+              	
+077F: C3F700  	    JP  EXIT_SYS
+              	
+0782:         	SHOW_REG_HLaux:
+0782: CD3B08  	    CALL  GET_KEY_A
+0785: FE00    	    CP  $00
+0787: CA4D09  	    JP Z, GO_MONITOR
+078A: FE01    	    CP  $01
+078C: CA5809  	    JP Z, GO_SHOW_REG_PC
+078F: FE02    	    CP  $02
+0791: CA6309  	    JP Z, GO_SHOW_REG_SP
+0794: FE03    	    CP  $03
+0796: CA6E09  	    JP Z, GO_SHOW_REG_AF
+0799: FE04    	    CP  $04
+079B: CA7909  	    JP Z, GO_SHOW_REG_BC
+079E: FE05    	    CP  $05
+07A0: CA8409  	    JP Z, GO_SHOW_REG_DE
+07A3: FE06    	    CP  $06
+07A5: CA8F09  	    JP Z, GO_SHOW_REG_HL
+07A8: FE07    	    CP  $07
+07AA: CA9A09  	    JP Z, GO_SHOW_REG_IX
+07AD: FE08    	    CP  $08
+07AF: CAA509  	    JP Z, GO_SHOW_REG_IY
+              	
+              	    ; RUN
+07B2: FE0F    	    CP  $0F
+07B4: CADC09  	    JP  Z,  FIRE
+              	
+              	    ; Modify
+07B7: FE0D    	    CP  $0D
+07B9: CAE509  	    JP  Z,  MODIFY_ANY
+              	
+07BC: CDC10A  	    CALL  CLEAR_DISPLAY
+              	
+07BF: 3E76    	    LD  A, $76               ; H
+07C1: 3200FF  	    LD  (DIG_0), A
+              	
+07C4: 3E38    	    LD  A, $38               ; L
+07C6: 3201FF  	    LD  (DIG_1), A
+              	
+07C9: 3E20    	    LD  A, $20               ; '
+07CB: 3202FF  	    LD  (DIG_2), A
+              	
+07CE: 2A2AFF  	    LD HL, (USR_HLA)
+07D1: CDAD0B  	    CALL PRINT_END_HL
+              	
+07D4: 212AFF  	    LD HL, USR_HLA
+07D7: 22DCFF  	    LD (ISR_MD_HL), HL
+              	
+07DA: C3F700  	    JP  EXIT_SYS
+              	
+07DD:         	SHOW_HALT:
+07DD: 3A09FF  	    LD  A, (INPUT)
+07E0: FEFB    	    CP  $FB
+07E2: CA4D09  	    JP  Z, GO_MONITOR
+              	
+07E5: 3E40    	    LD  A, $40               ; -
+07E7: 3200FF  	    LD  (DIG_0), A
+07EA: 3201FF  	    LD  (DIG_1), A
+              	
+07ED: 3E76    	    LD  A, $76               ; H
+07EF: 3202FF  	    LD  (DIG_2), A
+              	
+07F2: 3E77    	    LD  A, $77               ; A
+07F4: 3203FF  	    LD  (DIG_3), A
+              	
+07F7: 3E38    	    LD  A, $38               ; L
+07F9: 3204FF  	    LD  (DIG_4), A
+              	
+07FC: 3E78    	    LD  A, $78               ; T
+07FE: 3205FF  	    LD  (DIG_5), A
+              	
+0801: 3E40    	    LD  A, $40               ; -
+0803: 3206FF  	    LD  (DIG_6), A
+0806: 3207FF  	    LD  (DIG_7), A
+              	
+0809: C3F700  	    JP EXIT_SYS
+              	
+080C:         	SHOW_ERROR:
+080C: 3A09FF  	    LD  A, (INPUT)
+080F: FEFB    	    CP  $FB
+0811: CA4D09  	    JP  Z, GO_MONITOR
+              	
+0814: 3E79    	    LD  A, $79               ; E
+0816: 3200FF  	    LD  (DIG_0), A
+              	
+0819: 3E50    	    LD  A, $50               ; R
+081B: 3201FF  	    LD  (DIG_1), A
+              	
+081E: 3E50    	    LD  A, $50               ; R
+0820: 3202FF  	    LD  (DIG_2), A
+              	
+0823: 3E3F    	    LD  A, $3F               ; O
+0825: 3203FF  	    LD  (DIG_3), A
+              	
+0828: 3E50    	    LD  A, $50               ; R
+082A: 3204FF  	    LD  (DIG_4), A
+              	
+082D: 3E00    	    LD  A, $0               ; ''
+082F: 3205FF  	    LD  (DIG_5), A           
+0832: 3206FF  	    LD  (DIG_6), A
+0835: 3207FF  	    LD  (DIG_7), A
+              	
+0838: C3F700  	    JP EXIT_SYS
+              	
+              	; =========================================================
+              	; GET KEY IN A, IF A == FFh then no KEY
+              	; =========================================================
+083B:         	GET_KEY_A:
+083B: 3A0BFF  	    LD  A, (KEY_TIMEOUT)
+083E: FE00    	    CP  0
+0840: CA4608  	    JP  Z, RET_KEY
+0843: 3EFF    	    LD  A, $FF
+0845: C9      	    RET
+              	
+0846:         	RET_KEY:
+0846: 3E64    	    LD A, CKEY_TIMEOUT
+0848: 320BFF  	    LD (KEY_TIMEOUT), A
+              	
+084B: 3A08FF  	    LD  A, (KEY_PRESS)
+084E: F5      	    PUSH  AF
+084F: 3EFF    	    LD  A, $FF
+0851: 3208FF  	    LD  (KEY_PRESS), A
+0854: F1      	    POP  AF
+0855: C9      	    RET
+              	
+              	
+              	; =========================================================
+              	; MONITOR Mode
+              	; =========================================================
+0856:         	USER_MODE:
+0856: 3A09FF  	    LD  A, (INPUT)
+0859: FEFB    	    CP  $FB
+085B: CA4D09  	    JP  Z, GO_MONITOR
+              	    
+              	    ; Copy USER_DISPx to DIG_x
+085E: 21D0FF  	    LD	HL, USER_DISP0
+0861: 1100FF  		LD	DE, DIG_0
+0864: 010800  		LD	BC, $0008
+0867: EDB0    		LDIR
+              	
+0869: C3F700  	    JP  EXIT_SYS
+              	
+086C:         	MONITOR_MODE:
+              	    ; Mostra o endereço
+086C: 2A0DFF  	    LD  HL, (PC_RAM)
+086F: CD500B  	    CALL PRINT_HL
+              	
+              	    ; Limpa digitos
+0872: 3E00    	    LD  A, 0
+0874: 3204FF  	    LD  (DIG_4), A
+0877: 3205FF  	    LD  (DIG_5), A
+              	
+              	    ; Mostra os dados no endereço
+087A: 2A0DFF  	    LD  HL, (PC_RAM)
+087D: 7E      	    LD  A, (HL)
+087E: CD230B  	    CALL  PRINT_A
+              	
+              	
+0881: CD3B08  	    CALL  GET_KEY_A
+              	
+              	    ; Incrementa endereço
+0884: 320AFF  	    LD (TMP_KEY), A
+0887: FE0A    	    CP  $0A
+0889: CA0909  	    JP  Z,  PC_RAM_INC
+              	
+              	    ; Decrementa endereço
+088C: 3A0AFF  	    LD  A, (TMP_KEY)
+088F: FE0B    	    CP  $0B
+0891: CAFF08  	    JP  Z,  PC_RAM_DEC
+              	
+              	    ; Examina memoria
+0894: 3A0AFF  	    LD  A, (TMP_KEY)
+0897: FE0E    	    CP  $0E
+0899: CA1309  	    JP  Z,  GO_EXAMINE
+              	
+              	    ; + moDify Memory
+089C: 3A0AFF  	    LD  A, (TMP_KEY)
+089F: FE0C    	    CP  $0C
+08A1: CA2E09  	    JP  Z,  GO_ADD_MODIFY
+              	
+              	    ; moDify Memory
+08A4: 3A0AFF  	    LD  A, (TMP_KEY)
+08A7: FE0D    	    CP  $0D
+08A9: CA3809  	    JP  Z,  GO_MODIFY
+              	
+              	    ; RUN
+08AC: 3A0AFF  	    LD  A, (TMP_KEY)
+08AF: FE0F    	    CP  $0F
+08B1: CADC09  	    JP  Z,  FIRE
+              	
+              	    ; Show register PC
+08B4: 3A0AFF  	    LD  A, (TMP_KEY)
+08B7: FE01    	    CP  $01
+08B9: CA5809  	    JP  Z, GO_SHOW_REG_PC
+              	
+              	    ; Show register SP
+08BC: 3A0AFF  	    LD  A, (TMP_KEY)
+08BF: FE02    	    CP  $02
+08C1: CA6309  	    JP  Z, GO_SHOW_REG_SP
+              	
+              	    ; Show register AF
+08C4: 3A0AFF  	    LD  A, (TMP_KEY)
+08C7: FE03    	    CP  $03
+08C9: CA6E09  	    JP  Z, GO_SHOW_REG_AF
+              	
+              	    ; Show register BC
+08CC: 3A0AFF  	    LD  A, (TMP_KEY)
+08CF: FE04    	    CP  $04
+08D1: CA7909  	    JP  Z, GO_SHOW_REG_BC
+              	
+              	    ; Show register DE
+08D4: 3A0AFF  	    LD  A, (TMP_KEY)
+08D7: FE05    	    CP  $05
+08D9: CA8409  	    JP  Z, GO_SHOW_REG_DE
+              	
+              	    ; Show register HL
+08DC: 3A0AFF  	    LD  A, (TMP_KEY)
+08DF: FE06    	    CP  $06
+08E1: CA8F09  	    JP  Z, GO_SHOW_REG_HL
+              	
+              	    ; Show register IX
+08E4: 3A0AFF  	    LD  A, (TMP_KEY)
+08E7: FE07    	    CP  $07
+08E9: CA9A09  	    JP  Z, GO_SHOW_REG_IX
+              	
+              	    ; Show register iY
+08EC: 3A0AFF  	    LD  A, (TMP_KEY)
+08EF: FE08    	    CP  $08
+08F1: CAA509  	    JP  Z, GO_SHOW_REG_IY
+              	
+              	    ; Back to user mode
+08F4: 3A0AFF  	    LD  A, (TMP_KEY)
+08F7: FE09    	    CP  $09
+08F9: CA0E0A  	    JP  Z, GO_USER_MODE
+              	
+08FC: C3F700  	    JP  EXIT_SYS
+              	    
+              	
+08FF:         	PC_RAM_DEC:
+08FF: 2A0DFF  	    LD  HL, (PC_RAM)
+0902: 2B      	    DEC  HL
+0903: 220DFF  	    LD  (PC_RAM), HL
+0906: C3F700  	    JP  EXIT_SYS
+              	
+0909:         	PC_RAM_INC:
+0909: 2A0DFF  	    LD  HL, (PC_RAM)
+090C: 23      	    INC  HL
+090D: 220DFF  	    LD  (PC_RAM), HL
+0910: C3F700  	    JP  EXIT_SYS
+              	
+0913:         	GO_EXAMINE:
+0913: 3E03    	    LD  A, $03
+0915: 3212FF  	    LD (EXM_COUNT), A        ; Set count 4 digits, position display
+0918: 3E02    	    LD  A, $02
+091A: 320FFF  	    LD (SYSMODE), A          ; Examine mode
+091D: 3E40    	    LD A, 01000000b
+091F: 3200FF  	    LD (DIG_0), A
+0922: 3201FF  	    LD (DIG_1), A
+0925: 3202FF  	    LD (DIG_2), A
+0928: 3203FF  	    LD (DIG_3), A
+092B: C3F700  	    JP  EXIT_SYS
+              	
+092E:         	GO_ADD_MODIFY:
+092E: 2A0DFF  	    LD  HL, (PC_RAM)
+0931: 23      	    INC HL
+0932: 220DFF  	    LD  (PC_RAM), HL
+0935: CD500B  	    CALL  PRINT_HL
+0938:         	GO_MODIFY:
+0938: 3E01    	    LD  A, $01                  ; Set count 2 digits, position display
+093A: 3213FF  	    LD  (MDF_COUNT), A
+093D: 3E03    	    LD  A, $03                  ; moDify mode (Memory)
+093F: 320FFF  	    LD  (SYSMODE), A
+0942: 3E40    	    LD  A, 01000000b
+0944: 3206FF  	    LD  (DIG_6), A
+0947: 3207FF  	    LD  (DIG_7), A
+094A: C3F700  	    JP  EXIT_SYS
+              	
+094D:         	GO_MONITOR:
+094D: CDC10A  	    CALL  CLEAR_DISPLAY
+0950: 3E01    	    LD  A, $01
+0952: 320FFF  	    LD  (SYSMODE), A
+0955: C3F700  	    JP  EXIT_SYS
+              	
+0958:         	GO_SHOW_REG_PC:
+0958: CDC10A  	    CALL CLEAR_DISPLAY
+095B: 3E04    	    LD  A, $04
+095D: 320FFF  	    LD  (SYSMODE), A
+0960: C3F700  	    JP  EXIT_SYS
+              	
+0963:         	GO_SHOW_REG_SP:
+0963: CDC10A  	    CALL CLEAR_DISPLAY
+0966: 3E05    	    LD  A, $05
+0968: 320FFF  	    LD  (SYSMODE), A
+096B: C3F700  	    JP  EXIT_SYS
+              	
+096E:         	GO_SHOW_REG_AF:
+096E: CDC10A  	    CALL CLEAR_DISPLAY
+0971: 3E06    	    LD  A, $06
+0973: 320FFF  	    LD  (SYSMODE), A
+0976: C3F700  	    JP  EXIT_SYS
+              	
+0979:         	GO_SHOW_REG_BC:
+0979: CDC10A  	    CALL CLEAR_DISPLAY
+097C: 3E07    	    LD  A, $07
+097E: 320FFF  	    LD  (SYSMODE), A
+0981: C3F700  	    JP  EXIT_SYS
+              	
+0984:         	GO_SHOW_REG_DE:
+0984: CDC10A  	    CALL CLEAR_DISPLAY
+0987: 3E08    	    LD  A, $08
+0989: 320FFF  	    LD  (SYSMODE), A
+098C: C3F700  	    JP  EXIT_SYS
+              	
+098F:         	GO_SHOW_REG_HL:
+098F: CDC10A  	    CALL CLEAR_DISPLAY
+0992: 3E09    	    LD  A, $09
+0994: 320FFF  	    LD  (SYSMODE), A
+0997: C3F700  	    JP  EXIT_SYS
+              	
+099A:         	GO_SHOW_REG_IX:
+099A: CDC10A  	    CALL CLEAR_DISPLAY
+099D: 3E0A    	    LD  A, $0A
+099F: 320FFF  	    LD  (SYSMODE), A
+09A2: C3F700  	    JP  EXIT_SYS
+              	
+09A5:         	GO_SHOW_REG_IY:
+09A5: CDC10A  	    CALL CLEAR_DISPLAY
+09A8: 3E0B    	    LD  A, $0B
+09AA: 320FFF  	    LD  (SYSMODE), A
+09AD: C3F700  	    JP  EXIT_SYS
+              	
+09B0:         	GO_SHOW_REG_AFaux:
+09B0: CDC10A  	    CALL CLEAR_DISPLAY
+09B3: 3E0C    	    LD  A, $0C
+09B5: 320FFF  	    LD  (SYSMODE), A
+09B8: C3F700  	    JP  EXIT_SYS
+              	
+09BB:         	GO_SHOW_REG_BCaux:
+09BB: CDC10A  	    CALL CLEAR_DISPLAY
+09BE: 3E0D    	    LD  A, $0D
+09C0: 320FFF  	    LD  (SYSMODE), A
+09C3: C3F700  	    JP  EXIT_SYS
+              	
+09C6:         	GO_SHOW_REG_DEaux:
+09C6: CDC10A  	    CALL CLEAR_DISPLAY
+09C9: 3E0E    	    LD  A, $0E
+09CB: 320FFF  	    LD  (SYSMODE), A
+09CE: C3F700  	    JP  EXIT_SYS
+              	
+09D1:         	GO_SHOW_REG_HLaux:
+09D1: CDC10A  	    CALL CLEAR_DISPLAY
+09D4: 3E0F    	    LD  A, $0F
+09D6: 320FFF  	    LD  (SYSMODE), A
+09D9: C3F700  	    JP  EXIT_SYS
+              	
+              	
+09DC:         	FIRE:
+              	    ;LD  A, 1
+              	    ;LD (SYSMODE), A          ; Monitor mode
+09DC: 2A0DFF  	    LD  HL, (PC_RAM)
+09DF: 2214FF  	    LD  (USR_PC), HL
+09E2: C3F700  	    JP  EXIT_SYS
+              	
+09E5:         	MODIFY_ANY:
+              	    ;;CALL CLEAR_DISPLAY
+              	
+09E5: 3E03    	    LD  A, $03
+09E7: 3212FF  	    LD (EXM_COUNT), A        ; Set count 4 digits, position display
+              	
+09EA: 3E00    	    LD A, 00000000b
+09EC: 3202FF  	    LD (DIG_2), A
+09EF: 3203FF  	    LD (DIG_3), A
+09F2: 3E40    	    LD A, 01000000b
+09F4: 3204FF  	    LD (DIG_4), A
+09F7: 3205FF  	    LD (DIG_5), A
+09FA: 3206FF  	    LD (DIG_6), A
+09FD: 3207FF  	    LD (DIG_7), A
+              	
+0A00: 3A0FFF  	    LD  A, (SYSMODE)
+0A03: 32D8FF  	    LD (LAST_SYS), A
+              	
+0A06: 3E80    	    LD  A, $80
+0A08: 320FFF  	    LD  (SYSMODE), A
+0A0B: C3F700  	    JP EXIT_SYS
+              	
+              	
+              	
+0A0E:         	GO_USER_MODE:
+0A0E: 3E00    	    LD  A, 0
+0A10: 320FFF  	    LD  (SYSMODE), A
+0A13: C3F700  	    JP  EXIT_SYS
+              	
+              	
+              	; =========================================================
+              	; Modify (HL)
+              	; =========================================================
+0A16:         	MD_HL:
+0A16: CD3B08  	    CALL GET_KEY_A
+0A19: FEFF    	    CP  $FF
+0A1B: CAF700  	    JP  Z, EXIT_SYS
+              	
+0A1E: F5      	    PUSH  AF
+0A1F: F5      	    PUSH  AF
+0A20: 3A12FF  	    LD  A, (EXM_COUNT)
+0A23: FE03    	    CP  3
+0A25: CA430A  	    JP  Z, MD_HL_KEY_POS_3
+              	
+0A28: 3A12FF  	    LD  A, (EXM_COUNT)
+0A2B: FE02    	    CP  2
+0A2D: CA610A  	    JP  Z, MD_HL_KEY_POS_2
+              	
+0A30: 3A12FF  	    LD  A, (EXM_COUNT)
+0A33: FE01    	    CP  1
+0A35: CA7B0A  	    JP  Z, MD_HL_KEY_POS_1
+              	
+0A38: 3A12FF  	    LD  A, (EXM_COUNT)
+0A3B: FE00    	    CP  0
+0A3D: CA9C0A  	    JP  Z, MD_HL_KEY_POS_0
+              	
+0A40: C3F700  	    JP  EXIT_SYS
+              	
+0A43:         	MD_HL_KEY_POS_3:
+0A43: F1      	    POP  AF
+0A44: CB07    	    RLC  A
+0A46: CB07    	    RLC  A
+0A48: CB07    	    RLC  A
+0A4A: CB07    	    RLC  A
+0A4C: 67      	    LD  H, A
+0A4D: 22DEFF  	    LD  (ISR_MD_TMP), HL
+0A50: F1      	    POP  AF
+0A51: CDFB0A  	    CALL GET_NUM_FROM_LOW
+0A54: 3204FF  	    LD  (DIG_4), A
+0A57: 3A12FF  	    LD  A, (EXM_COUNT)
+0A5A: 3D      	    DEC A
+0A5B: 3212FF  	    LD  (EXM_COUNT), A
+0A5E: C3F700  	    JP  EXIT_SYS
+              	
+              	
+0A61:         	MD_HL_KEY_POS_2:
+0A61: F1      	    POP  AF
+0A62: 2ADEFF  	    LD  HL, (ISR_MD_TMP)
+0A65: B4      	    OR  H
+0A66: 67      	    LD  H, A
+0A67: 22DEFF  	    LD  (ISR_MD_TMP), HL
+0A6A: F1      	    POP  AF
+0A6B: CDFB0A  	    CALL GET_NUM_FROM_LOW
+0A6E: 3205FF  	    LD  (DIG_5), A
+0A71: 3A12FF  	    LD  A, (EXM_COUNT)
+0A74: 3D      	    DEC A
+0A75: 3212FF  	    LD  (EXM_COUNT), A
+0A78: C3F700  	    JP  EXIT_SYS
+              	
+0A7B:         	MD_HL_KEY_POS_1:
+0A7B: F1      	    POP  AF
+0A7C: 2ADEFF  	    LD  HL, (ISR_MD_TMP)
+0A7F: CB07    	    RLC  A
+0A81: CB07    	    RLC  A
+0A83: CB07    	    RLC  A
+0A85: CB07    	    RLC  A
+0A87: 6F      	    LD  L, A
+0A88: 22DEFF  	    LD  (ISR_MD_TMP), HL
+0A8B: F1      	    POP  AF
+0A8C: CDFB0A  	    CALL GET_NUM_FROM_LOW
+0A8F: 3206FF  	    LD  (DIG_6), A
+0A92: 3A12FF  	    LD  A, (EXM_COUNT)
+0A95: 3D      	    DEC A
+0A96: 3212FF  	    LD  (EXM_COUNT), A
+0A99: C3F700  	    JP  EXIT_SYS
+              	
+              	
+0A9C:         	MD_HL_KEY_POS_0:
+0A9C: F1      	    POP  AF
+0A9D: 2ADEFF  	    LD  HL, (ISR_MD_TMP)
+0AA0: B5      	    OR  L
+0AA1: 6F      	    LD  L, A
+0AA2: 22DEFF  	    LD  (ISR_MD_TMP), HL
+0AA5: F1      	    POP  AF
+0AA6: CDFB0A  	    CALL GET_NUM_FROM_LOW
+0AA9: 3207FF  	    LD  (DIG_7), A
+              	
+              	
+0AAC: ED5BDCFF	    LD DE, (ISR_MD_HL) ; endereço de memoria do registrador
+0AB0: 2ADEFF  	    LD HL, (ISR_MD_TMP) ; dados
+              	
+0AB3: 7D      	    LD A, L
+0AB4: 12      	    LD (DE), A
+0AB5: 13      	    INC DE
+0AB6: 7C      	    LD A, H
+0AB7: 12      	    LD (DE), A
+              	
+0AB8: 3AD8FF  	    LD  A, (LAST_SYS)
+0ABB: 320FFF  	    LD  (SYSMODE), A
+0ABE: C3F700  	    JP  EXIT_SYS
+              	
+              	
+              	; =========================================================
+              	; LIMPA DISPLAY
+              	; =========================================================
+0AC1:         	CLEAR_DISPLAY:
+0AC1: F5      	    PUSH  AF
+0AC2: 3E00    	    LD  A, 0
+0AC4: 3200FF  	    LD  (DIG_0), A
+0AC7: 3201FF  	    LD  (DIG_1), A
+0ACA: 3202FF  	    LD  (DIG_2), A
+0ACD: 3203FF  	    LD  (DIG_3), A
+0AD0: 3204FF  	    LD  (DIG_4), A
+0AD3: 3205FF  	    LD  (DIG_5), A
+0AD6: 3206FF  	    LD  (DIG_6), A
+0AD9: 3207FF  	    LD  (DIG_7), A
+0ADC: F1      	    POP  AF
+0ADD: C9      	    RET
+              	
+              	; =========================================================
+              	; LIMPA USER DISPLAY
+              	; =========================================================
+0ADE:         	CLEAR_USER_DISPLAY:
+0ADE: F5      	    PUSH  AF
+0ADF: 3E00    	    LD  A, 0
+0AE1: 32D0FF  	    LD  (USER_DISP0), A
+0AE4: 32D1FF  	    LD  (USER_DISP1), A
+0AE7: 32D2FF  	    LD  (USER_DISP2), A
+0AEA: 32D3FF  	    LD  (USER_DISP3), A
+0AED: 32D4FF  	    LD  (USER_DISP4), A
+0AF0: 32D5FF  	    LD  (USER_DISP5), A
+0AF3: 32D6FF  	    LD  (USER_DISP6), A
+0AF6: 32D7FF  	    LD  (USER_DISP7), A
+0AF9: F1      	    POP  AF
+0AFA: C9      	    RET
+              	
+              	
+              	; =========================================================
+              	; PEGA LOW NUM EM A E RETORNA CHAR 7SEG EM A
+              	; =========================================================
+0AFB:         	GET_NUM_FROM_LOW:
+0AFB: E5      	    PUSH    HL
+0AFC: C5      	    PUSH    BC
+0AFD: 21C10C  	    LD      HL, LED_FONT
+0B00: E60F    	    AND     $0F
+0B02: 010000  	    LD      BC, 0
+0B05: 4F      	    LD      C, A
+0B06: 09      	    ADD     HL, BC
+0B07: 7E      	    LD      A, (HL)
+0B08: C1      	    POP     BC
+0B09: E1      	    POP     HL
+0B0A: C9      	    RET
+              	
+              	; =========================================================
+              	; PEGA HIGH NUM EM A E RETORNA CHAR 7SEG EM A
+              	; =========================================================
+0B0B:         	GET_NUM_FROM_HIGH:
+0B0B: E5      	    PUSH    HL
+0B0C: C5      	    PUSH    BC
+0B0D: 21C10C  	    LD      HL, LED_FONT
+0B10: E6F0    	    AND     $F0
+0B12: CB0F    	    RRC     A
+0B14: CB0F    	    RRC     A
+0B16: CB0F    	    RRC     A
+0B18: CB0F    	    RRC     A
+0B1A: 010000  	    LD      BC, 0
+0B1D: 4F      	    LD      C, A
+0B1E: 09      	    ADD     HL, BC
+0B1F: 7E      	    LD      A, (HL)
+0B20: C1      	    POP     BC
+0B21: E1      	    POP     HL
+0B22: C9      	    RET
+              	
+              	; =========================================================
+              	; Mostra o que esta em A nos digitos 6 e 7
+              	; =========================================================
+0B23:         	PRINT_A:
+0B23: E5      	    PUSH    HL
+0B24: C5      	    PUSH    BC
+0B25: F5      	    PUSH    AF
+0B26: F5      	    PUSH    AF
+              	
+0B27: 21C10C  	    LD	HL, LED_FONT
+0B2A: E60F    	    AND $0F
+0B2C: 010000  	    LD      BC, 0
+0B2F: 4F      	    LD      C, A
+0B30: 09      	    ADD HL, BC
+0B31: 7E      	    LD  A, (HL)
+0B32: 3207FF  	    LD  (DIG_7), A
+              	
+0B35: F1      	    POP    AF
+0B36: 21C10C  	    LD	HL, LED_FONT
+0B39: E6F0    	    AND  $F0
+0B3B: CB0F    	    RRC  A
+0B3D: CB0F    	    RRC  A
+0B3F: CB0F    	    RRC  A
+0B41: CB0F    	    RRC  A
+0B43: 010000  	    LD      BC, 0
+0B46: 4F      	    LD      C, A
+0B47: 09      	    ADD HL, BC
+0B48: 7E      	    LD  A, (HL)
+0B49: 3206FF  	    LD  (DIG_6), A
+              	
+0B4C: F1      	    POP     AF
+0B4D: C1      	    POP     BC
+0B4E: E1      	    POP     HL
+0B4F: C9      	    RET
+              	
+              	; =========================================================
+              	; Mostra o que esta em HL - Display(HHLLXXXX)
+              	; =========================================================
+0B50:         	PRINT_HL:
+0B50: F5      	    PUSH  AF
+0B51: E5      	    PUSH  HL
+0B52: C5      	    PUSH  BC
+              	
+0B53: E5      	    PUSH  HL
+0B54: E5      	    PUSH  HL
+0B55: E5      	    PUSH  HL
+              	
+0B56: 7D      	    LD  A, L
+0B57: 21C10C  	    LD	HL, LED_FONT
+0B5A: E60F    	    AND $0F
+0B5C: 010000  	    LD      BC, 0
+0B5F: 4F      	    LD      C, A
+0B60: 09      	    ADD HL, BC
+0B61: 7E      	    LD  A, (HL)
+0B62: 2103FF  	    LD  HL, DIG_3
+0B65: 77      	    LD  (HL), A
+              	
+0B66: E1      	    POP  HL
+0B67: 7D      	    LD  A, L
+0B68: 21C10C  	    LD	HL, LED_FONT
+0B6B: E6F0    	    AND  $F0
+0B6D: CB0F    	    RRC  A
+0B6F: CB0F    	    RRC  A
+0B71: CB0F    	    RRC  A
+0B73: CB0F    	    RRC  A
+0B75: 010000  	    LD      BC, 0
+0B78: 4F      	    LD      C, A
+0B79: 09      	    ADD HL, BC
+0B7A: 7E      	    LD  A, (HL)
+0B7B: 2102FF  	    LD  HL, DIG_2
+0B7E: 77      	    LD  (HL), A
+              	
+0B7F: E1      	    POP  HL
+0B80: 7C      	    LD  A, H
+0B81: 21C10C  	    LD	HL, LED_FONT
+0B84: E60F    	    AND $0F
+0B86: 010000  	    LD      BC, 0
+0B89: 4F      	    LD      C, A
+0B8A: 09      	    ADD HL, BC
+0B8B: 7E      	    LD  A, (HL)
+0B8C: 2101FF  	    LD  HL, DIG_1
+0B8F: 77      	    LD  (HL), A
+              	
+0B90: E1      	    POP  HL
+0B91: 7C      	    LD  A, H
+0B92: 21C10C  	    LD	HL, LED_FONT
+0B95: E6F0    	    AND  $F0
+0B97: CB0F    	    RRC  A
+0B99: CB0F    	    RRC  A
+0B9B: CB0F    	    RRC  A
+0B9D: CB0F    	    RRC  A
+0B9F: 010000  	    LD      BC, 0
+0BA2: 4F      	    LD      C, A
+0BA3: 09      	    ADD HL, BC
+0BA4: 7E      	    LD  A, (HL)
+0BA5: 2100FF  	    LD  HL, DIG_0
+0BA8: 77      	    LD  (HL), A
+              	
+0BA9: C1      	    POP  BC
+0BAA: E1      	    POP  HL
+0BAB: F1      	    POP  AF
+              	
+0BAC: C9      	    RET
+              	
+              	; =========================================================
+              	; Mostra o que esta em HL - Display(XXXXHHLL)
+              	; =========================================================
+0BAD:         	PRINT_END_HL:
+0BAD: F5      	    PUSH  AF
+0BAE: E5      	    PUSH  HL
+0BAF: C5      	    PUSH  BC
+              	
+0BB0: E5      	    PUSH  HL
+0BB1: E5      	    PUSH  HL
+0BB2: E5      	    PUSH  HL
+              	
+0BB3: 7D      	    LD  A, L
+0BB4: 21C10C  	    LD	HL, LED_FONT
+0BB7: E60F    	    AND $0F
+0BB9: 010000  	    LD      BC, 0
+0BBC: 4F      	    LD      C, A
+0BBD: 09      	    ADD HL, BC
+0BBE: 7E      	    LD  A, (HL)
+0BBF: 2107FF  	    LD  HL, DIG_7
+0BC2: 77      	    LD  (HL), A
+              	
+0BC3: E1      	    POP  HL
+0BC4: 7D      	    LD  A, L
+0BC5: 21C10C  	    LD	HL, LED_FONT
+0BC8: E6F0    	    AND  $F0
+0BCA: CB0F    	    RRC  A
+0BCC: CB0F    	    RRC  A
+0BCE: CB0F    	    RRC  A
+0BD0: CB0F    	    RRC  A
+0BD2: 010000  	    LD      BC, 0
+0BD5: 4F      	    LD      C, A
+0BD6: 09      	    ADD HL, BC
+0BD7: 7E      	    LD  A, (HL)
+0BD8: 2106FF  	    LD  HL, DIG_6
+0BDB: 77      	    LD  (HL), A
+              	
+0BDC: E1      	    POP  HL
+0BDD: 7C      	    LD  A, H
+0BDE: 21C10C  	    LD	HL, LED_FONT
+0BE1: E60F    	    AND $0F
+0BE3: 010000  	    LD      BC, 0
+0BE6: 4F      	    LD      C, A
+0BE7: 09      	    ADD HL, BC
+0BE8: 7E      	    LD  A, (HL)
+0BE9: 2105FF  	    LD  HL, DIG_5
+0BEC: 77      	    LD  (HL), A
+              	
+0BED: E1      	    POP  HL
+0BEE: 7C      	    LD  A, H
+0BEF: 21C10C  	    LD	HL, LED_FONT
+0BF2: E6F0    	    AND  $F0
+0BF4: CB0F    	    RRC  A
+0BF6: CB0F    	    RRC  A
+0BF8: CB0F    	    RRC  A
+0BFA: CB0F    	    RRC  A
+0BFC: 010000  	    LD      BC, 0
+0BFF: 4F      	    LD      C, A
+0C00: 09      	    ADD HL, BC
+0C01: 7E      	    LD  A, (HL)
+0C02: 2104FF  	    LD  HL, DIG_4
+0C05: 77      	    LD  (HL), A
+              	
+0C06: C1      	    POP  BC
+0C07: E1      	    POP  HL
+0C08: F1      	    POP  AF
+              	
+0C09: C9      	    RET
+              	
+              	; =========================================================
+              	; Start Sistem ?
+              	; =========================================================
+0C0A:         	START:
+0C0A: 3100FF  	    LD  SP, STACK
+              	
+              	
+              	    ;	Initialise SIO/2 A
+0C0D: 3E04    		LD	A,$04
+0C0F: D302    		OUT	(SIOA_C),A
+0C11: 3EC4    		LD	A,$C4
+0C13: D302    		OUT	(SIOA_C),A
+              	
+0C15: 3E03    		LD	A,$03
+0C17: D302    		OUT	(SIOA_C),A
+0C19: 3EE1    		LD	A,$E1
+0C1B: D302    		OUT	(SIOA_C),A
+              	
+0C1D: 3E05    		LD	A,$05
+0C1F: D302    		OUT	(SIOA_C),A
+0C21: 3E68    		LD	A, $68
+0C23: D302    		OUT	(SIOA_C),A
+              	
+0C25: 21B00D  	    LD HL, msg_bemvindo
+0C28: CDDE0C  	    CALL PRINT
+              	
+0C2B: 3E01    	    LD  A, 1                 ; Monitor mode
+0C2D: 320FFF  	    LD  (SYSMODE), A
+              	
+0C30:         	START_COM:
+0C30: 210080  	    LD  HL, START_RAM
+0C33: 220DFF  	    LD  (PC_RAM), HL
+              	
+              	    ; start vars
+0C36: 3E64    	    LD  A, CKEY_TIMEOUT
+0C38: 320BFF  	    LD  (KEY_TIMEOUT), A
+              	
+0C3B: 3EFF    	    LD A, $FF
+0C3D: 3208FF  	    LD (KEY_PRESS), A
+              	
+0C40: 3E00    	    LD  A, $00
+0C42: 3200FF  	    LD  (DIG_0), A
+0C45: 3201FF  	    LD  (DIG_1), A
+0C48: 3202FF  	    LD  (DIG_2), A
+0C4B: 3203FF  	    LD  (DIG_3), A
+0C4E: 3204FF  	    LD  (DIG_4), A
+0C51: 3205FF  	    LD  (DIG_5), A
+0C54: 3206FF  	    LD  (DIG_6), A
+0C57: 3207FF  	    LD  (DIG_7), A
+              	
+0C5A: ED56    	    IM  1
+0C5C: FB      	    EI
+              	
+0C5D: AF      	    XOR A
+0C5E: D340    	    OUT (Port40), A
+              	
+0C60:         	monitor:
+0C60: 21600C  		LD HL, monitor ; point to return to monitor
+0C63: E5      		PUSH HL
+0C64:         	monitor0:
+0C64: CDE50C  		CALL TXCRLF	; Entry point for Monitor, Normal	
+0C67: 3E3E    		LD   A,'>'	; Get a ">"	
+0C69: CF      		RST 08H		; print it
+              	
+0C6A:         	monitor1:
+0C6A: D7      		RST 10H	; Get a character from serial
+0C6B: FE20    		CP   ' '	; <spc> or less? 	
+0C6D: 38FB    		JR   C, monitor1	; Go back
+              	
+0C6F: FE3A    		CP   ':'	; ":"?
+0C71: CA6F0D  		JP   Z,LOAD	; First character of a HEX load
+              	
+0C74: CF      		RST 08H	; Print char on console
+              	
+0C75: FE3F    		CP   '?'
+0C77: CAD70C  		JP   Z,HELP
+              	
+0C7A: E65F    		AND  $5F	; Make character uppercase
+              	
+0C7C: FE52    		CP   'R' 	; reset
+0C7E: CA0000  		JP   Z, RST00
+              	
+0C81: FE47    		CP   'G'
+0C83: CAD10C  		JP   Z,GOTO
+              	
+0C86: 3E3F    		LD   A,'?'	; Get a "?"	
+0C88: CF      		RST 08H		; Print it
+              	
+0C89: C3640C  	    jp monitor0
+              	
+0C8C:         	START_WARM:
+0C8C: 3100FF  	    LD  SP, STACK
+              	
+0C8F: C3300C  	    JP START_COM
+              	
+              	
+              	; =========================================================
+              	; HL = (HL)
+              	; =========================================================
+0C92:         	LD_HL_HL:
+0C92: 7E      		LD      A,(HL)		;7
+0C93: 23      		INC     HL		;6
+0C94: 66      		LD      H,(HL)		;7
+0C95: 6F      		LD      L,A		;4
+0C96: C9      		RET			;10
+              	
+              	; =========================================================
+              	; Delay
+              	; =========================================================
+0C97:         	delay:
+0C97: C5      		push bc                       ; 2.75 us
+0C98: 06FF    	    ld b, 255                     ; 1.75 us
+0C9A:         	delay_loop_b:
+0C9A: 0EFF    		ld c, 255                     ; 1.75 us
+0C9C:         	delay_loop:
+0C9C: 0D      		dec c                         ; 1 us
+0C9D: C29C0C  	    jp nz, delay_loop             ; true = 3 us, false 1.75 us
+0CA0: 05      	    dec b                         ; 1 us
+0CA1: C29A0C  	    jp nz, delay_loop_b           ; true = 3 us, false 1.75 us
+0CA4: C1      	    pop bc                        ; 2.50 us
+0CA5: C9      	    ret                           ; 2.50 us
+              	
+              	
+              	;============================================================================
+              	;	Subroutine	Delay_A
+              	;
+              	;	Entry:	A = Millisecond count
+              	;============================================================================
+0CA6: E5      	DELAY_A:	PUSH	HL			; Save count
+0CA7: 2110FF  			LD	HL,TicCounter
+0CAA: 86      			ADD	A,(HL)			; A = cycle count
+0CAB: BE      	DlyLp		CP	(HL)			; Wait required TicCounter times
+0CAC: C2AB0C  			JP	NZ,DlyLp		;  loop if not done
+0CAF: E1      			POP	HL
+0CB0: C9      			RET
+              	
+              	
+0CB1: 0E01    	DELAY_100mS	LD	C,1
+0CB3: C5      	DELAY_C		PUSH	BC
+0CB4: 0600    			LD	B,0
+0CB6: C5      	DELAY_LP	PUSH	BC
+0CB7: 10FE    			DJNZ	$		;13   * 256 / 4 = 832uSec
+0CB9: C1      			POP	BC
+0CBA: 10FA    			DJNZ	DELAY_LP	;~100mSEC
+0CBC: 0D      			DEC	C
+0CBD: 20F7    			JR  NZ,	DELAY_LP	;*4 ~= 7mSec
+0CBF: C1      			POP	BC
+0CC0: C9      			RET
+              	
+              	; Mapa char to display 0-F
+0CC1: 3F065B4F	LED_FONT .db $3F, $06, $5B, $4F, $66, $6D, $7D, $07, $7F, $67 ; 0-9
+0CC5: 666D7D07	
+0CC9: 7F67    	
+0CCB: 777C395E	         .DB $77, $7C, $39, $5E, $79, $71                     ; A-F
+0CCF: 7971    	
+              	
+              	
+              	
+              	
+              	; ---------------------------------------------------------
+              	;   FFFFFFFF      I     MM           MM
+              	;   F             I     M  M       M  M
+              	;   F             I     M    M   M    M
+              	;   FFFFFFF       I     M      M      M
+              	;   F             I     M             M
+              	;   F             I     M             M
+              	;   F             I     M             M
+              	;
+              	; ---------------------------------------------------------
+              	
+              	; GOTO command
+0CD1:         	GOTO:
+0CD1: CD250D  		CALL GETHL		; ENTRY POINT FOR <G>oto addr. Get XXXX from user.
+0CD4: D8      		RET  C			; Return if invalid       	
+0CD5: E5      		PUSH HL
+0CD6: C9      		RET			; Jump to HL address value
+              	
+              	
+              	; HELP
+0CD7:         	HELP:
+0CD7: 21E50D  		LD HL, msg_help
+0CDA: CDDE0C  		CALL PRINT
+0CDD: C9      		RET
+              	
+              	
+              	;------------------------------------------------------------------------------
+              	; Print string of characters to Serial A until byte=$00, WITH CR, LF
+              	;------------------------------------------------------------------------------
+0CDE: 7E      	PRINT:  LD   A,(HL)	; Get character
+0CDF: B7      			OR   A		; Is it $00 ?
+0CE0: C8      			RET  Z		; Then RETurn on terminator
+0CE1: CF      			RST  08H	; Print it
+0CE2: 23      			INC  HL		; Next Character
+0CE3: 18F9    			JR   PRINT	; Continue until $00
+              	
+0CE5: 3E0D    	TXCRLF:	LD   A,$0D	; 
+0CE7: CF      			RST  08H	; Print character 
+0CE8: 3E0A    			LD   A,$0A	; 
+0CEA: CF      			RST  08H	; Print character
+0CEB: C9      			RET
+              	
+              	;------------------------------------------------------------------------------
+              	; Console output routine - Serial
+              	; Output port to send a character.
+              	;------------------------------------------------------------------------------
+0CEC: F5      	conout:		PUSH	AF		; Store character
+0CED: CD020D  	conoutA1:	CALL	CKSIOA		; See if SIO channel A is finished transmitting
+0CF0: 28FB    			JR	Z, conoutA1	; Loop until SIO flag signals ready
+0CF2: F1      			POP	AF		; RETrieve character
+0CF3: D300    			OUT	(SIOA_D),A	; OUTput the character
+0CF5: C9      			RET
+              	
+0CF6:         	conin:
+0CF6:         	waitForChar:
+              		; Check if there is a char in channel A
+0CF6: 97      		SUB	A
+0CF7: D302    		OUT 	(SIOA_C),A
+0CF9: DB02    		IN   	A,(SIOA_C)	; Status byte D2=TX Buff Empty, D0=RX char ready	
+0CFB: 0F      		RRCA			; Rotates RX status into Carry Flag,	
+0CFC: 30F8    		JR	NC, waitForChar
+0CFE: DB00    		IN	A,(SIOA_D)
+0D00: B7      		OR A ; clear carry
+0D01: C9      		RET
+              		
+              	
+0D02:         	CKSIOA:
+0D02: 97      			SUB	A
+0D03: D302    			OUT 	(SIOA_C),A
+0D05: DB02    			IN   	A,(SIOA_C)	; Status byte D2=TX Buff Empty, D0=RX char ready	
+0D07: 0F      			RRCA			; Rotates RX status into Carry Flag,	
+0D08: CB4F    			BIT  	1,A		; Set Zero flag if still transmitting character	
+0D0A: C9      	        RET
+              	
+              	
+              	;------------------------------------------------------------------------------
+              	; Get a character from the console, must be $20-$7F to be valid (no control characters)
+              	; <Ctrl-c> and <SPACE> breaks with the Zero Flag set
+              	;------------------------------------------------------------------------------	
+0D0B: D7      	GETCHR	RST 10H	; RX a Character
+0D0C: FE03    			CP   $03	; <ctrl-c> User break?
+0D0E: C8      			RET  Z			
+0D0F: FE20    			CP   $20	; <space> or better?
+0D11: 38F8    			JR   C,GETCHR	; Do it again until we get something usable
+0D13: C9      			RET
+              	
+              	;------------------------------------------------------------------------------
+              	; Gets two ASCII characters from the console (assuming them to be HEX 0-9 A-F)
+              	; Moves them into B and C, converts them into a byte value in A and updates a
+              	; Checksum value in E
+              	;------------------------------------------------------------------------------
+0D14: CD0B0D  	GET2	CALL GETCHR	; Get us a valid character to work with
+0D17: 47      			LD   B,A	; Load it in B
+0D18: CD0B0D  			CALL GETCHR	; Get us another character
+0D1B: 4F      			LD   C,A	; load it in C
+0D1C: CD530D  			CALL BCTOA	; Convert ASCII to byte
+0D1F: 4F      			LD   C,A	; Build the checksum
+0D20: 7B      			LD   A,E
+0D21: 91      			SUB  C		; The checksum should always equal zero when checked
+0D22: 5F      			LD   E,A	; Save the checksum back where it came from
+0D23: 79      			LD   A,C	; Retrieve the byte and go back
+0D24: C9      			RET
+              	
+              	;------------------------------------------------------------------------------
+              	; Gets four Hex characters from the console, converts them to values in HL
+              	;------------------------------------------------------------------------------
+0D25: 210000  	GETHL		LD   HL,$0000	; Gets xxxx but sets Carry Flag on any Terminator
+0D28: CD6C0D  			CALL ECHO	; RX a Character
+0D2B: FE0D    			CP   $0D	; <CR>?
+0D2D: 200E    			JR   NZ,GETX2	; other key		
+0D2F: 37      	SETCY		SCF		; Set Carry Flag
+0D30: C9      			RET             ; and Return to main program		
+              	;------------------------------------------------------------------------------
+              	; This routine converts last four hex characters (0-9 A-F) user types into a value in HL
+              	; Rotates the old out and replaces with the new until the user hits a terminating character
+              	;------------------------------------------------------------------------------
+0D31: 210000  	GETX		LD   HL,$0000	; CLEAR HL
+0D34: CD6C0D  	GETX1		CALL ECHO	; RX a character from the console
+0D37: FE0D    			CP   $0D	; <CR>
+0D39: C8      			RET  Z		; quit
+0D3A: FE2C    			CP   $2C	; <,> can be used to safely quit for multiple entries
+0D3C: C8      			RET  Z		; (Like filling both DE and HL from the user)
+0D3D: FE03    	GETX2		CP   $03	; Likewise, a <ctrl-C> will terminate clean, too, but
+0D3F: 28EE    			JR   Z,SETCY	; It also sets the Carry Flag for testing later.
+0D41: 29      			ADD  HL,HL	; Otherwise, rotate the previous low nibble to high
+0D42: 29      			ADD  HL,HL	; rather slowly
+0D43: 29      			ADD  HL,HL	; until we get to the top
+0D44: 29      			ADD  HL,HL	; and then we can continue on.
+0D45: D630    			SUB  $30	; Convert ASCII to byte	value
+0D47: FE0A    			CP   $0A	; Are we in the 0-9 range?
+0D49: 3802    			JR   C,GETX3	; Then we just need to sub $30, but if it is A-F
+0D4B: D607    			SUB  $07	; We need to take off 7 more to get the value down to
+0D4D: E60F    	GETX3		AND  $0F	; to the right hex value
+0D4F: 85      			ADD  A,L	; Add the high nibble to the low
+0D50: 6F      			LD   L,A	; Move the byte back to A
+0D51: 18E1    			JR   GETX1	; and go back for next character until he terminates
+              	;------------------------------------------------------------------------------
+              	; Convert ASCII characters in B C registers to a byte value in A
+              	;------------------------------------------------------------------------------
+0D53: 78      	BCTOA		LD   A,B	; Move the hi order byte to A
+0D54: D630    			SUB  $30	; Take it down from Ascii
+0D56: FE0A    			CP   $0A	; Are we in the 0-9 range here?
+0D58: 3802    			JR   C,BCTOA1	; If so, get the next nybble
+0D5A: D607    			SUB  $07	; But if A-F, take it down some more
+0D5C: 07      	BCTOA1		RLCA		; Rotate the nybble from low to high
+0D5D: 07      			RLCA		; One bit at a time
+0D5E: 07      			RLCA		; Until we
+0D5F: 07      			RLCA		; Get there with it
+0D60: 47      			LD   B,A	; Save the converted high nybble
+0D61: 79      			LD   A,C	; Now get the low order byte
+0D62: D630    			SUB  $30	; Convert it down from Ascii
+0D64: FE0A    			CP   $0A	; 0-9 at this point?
+0D66: 3802    			JR   C,BCTOA2	; Good enough then, but
+0D68: D607    			SUB  $07	; Take off 7 more if it's A-F
+0D6A: 80      	BCTOA2		ADD  A,B	; Add in the high order nybble
+0D6B: C9      			RET
+              	
+              	;------------------------------------------------------------------------------
+              	; Get a character and echo it back to the user
+              	;------------------------------------------------------------------------------
+0D6C: D7      	ECHO	RST 10H ; rx
+0D6D: CF      			RST 08H ; tx
+0D6E: C9      			RET
+              	
+              	
+              	
+              	
+              	;------------------------------------------------------------------------------
+              	; LOAD Intel Hex format file from the console.
+              	; [Intel Hex Format is:
+              	; 1) Colon (Frame 0)
+              	; 2) Record Length Field (Frames 1 and 2)
+              	; 3) Load Address Field (Frames 3,4,5,6)
+              	; 4) Record Type Field (Frames 7 and 8)
+              	; 5) Data Field (Frames 9 to 9+2*(Record Length)-1
+              	; 6) Checksum Field - Sum of all byte values from Record Length to and 
+              	;   including Checksum Field = 0 ]
+              	;------------------------------------------------------------------------------	
+0D6F: 1E00    	LOAD:	LD   E,0	; First two Characters is the Record Length Field
+0D71: CD140D  			CALL GET2	; Get us two characters into BC, convert it to a byte <A>
+0D74: 57      			LD   D,A	; Load Record Length count into D
+0D75: CD140D  			CALL GET2	; Get next two characters, Memory Load Address <H>
+0D78: 67      			LD   H,A	; put value in H register.
+0D79: CD140D  			CALL GET2	; Get next two characters, Memory Load Address <L>
+0D7C: 6F      			LD   L,A	; put value in L register.
+0D7D: CD140D  			CALL GET2	; Get next two characters, Record Field Type
+0D80: FE01    			CP   $01	; Record Field Type 00 is Data, 01 is End of File
+0D82: 2009    			JR   NZ,LOAD2	; Must be the end of that file
+0D84: CD140D  			CALL GET2	; Get next two characters, assemble into byte
+0D87: 7B      			LD   A,E	; Recall the Checksum byte
+0D88: A7      			AND  A		; Is it Zero?
+0D89: 281E    			JR   Z,LOAD00	; Print footer reached message
+0D8B: 1815    			JR   LOADERR	; Checksums don't add up, Error out
+              			
+0D8D: 7A      	LOAD2		LD   A,D	; Retrieve line character counter	
+0D8E: A7      			AND  A		; Are we done with this line?
+0D8F: 280B    			JR   Z,LOAD3	; Get two more ascii characters, build a byte and checksum
+0D91: CD140D  			CALL GET2	; Get next two chars, convert to byte in A, checksum it
+0D94: 77      			LD   (HL),A	; Move converted byte in A to memory location
+0D95: 23      			INC  HL		; Increment pointer to next memory location	
+0D96: 3E2E    			LD   A,'.'	; Print out a "." for every byte loaded
+0D98: CF      			RST  08H	;
+0D99: 15      			DEC  D		; Decrement line character counter
+0D9A: 18F1    			JR   LOAD2	; and keep loading into memory until line is complete
+              			
+0D9C: CD140D  	LOAD3		CALL GET2	; Get two chars, build byte and checksum
+0D9F: 7B      			LD   A,E	; Check the checksum value
+0DA0: A7      			AND  A		; Is it zero?
+0DA1: C8      			RET  Z
+              	
+0DA2: 21400E  	LOADERR		LD   HL,CKSUMERR  ; Get "Checksum Error" message
+0DA5: CDDE0C  			CALL PRINT	; Print Message from (HL) and terminate the load
+0DA8: C9      			RET
+              	
+0DA9: 21510E  	LOAD00  	LD   HL,LDETXT	; Print load complete message
+0DAC: CDDE0C  			CALL PRINT
+0DAF: C9      			RET
+              	
+              	
+0DB0: 0D0A5A38	msg_bemvindo:   .db CR, LF, "Z80 Mini - Z80 Membership Card - Face", CR, LF, "? to Help", CR, LF, 0
+0DB4: 30204D69	
+0DB8: 6E69202D	
+0DBC: 205A3830	
+0DC0: 204D656D	
+0DC4: 62657273	
+0DC8: 68697020	
+0DCC: 43617264	
+0DD0: 202D2046	
+0DD4: 6163650D	
+0DD8: 0A3F2074	
+0DDC: 6F204865	
+0DE0: 6C700D0A	
+0DE4: 00      	
+0DE5:         	msg_help:
+0DE5: 0D0A    			.BYTE	CR, LF
+0DE7: 52202020			.TEXT	"R           - Reset"
+0DEB: 20202020	
+0DEF: 20202020	
+0DF3: 2D205265	
+0DF7: 736574  	
+0DFA: 0D0A    			.BYTE	CR, LF
+0DFC: 47202020			.TEXT	"G           - Goto nnnn"
+0E00: 20202020	
+0E04: 20202020	
+0E08: 2D20476F	
+0E0C: 746F206E	
+0E10: 6E6E6E  	
+0E13: 0D0A    			.BYTE	CR, LF
+0E15: 3A6E6E6E			.TEXT	":nnnnnn...  - Load Intel-Hex file record"
+0E19: 6E6E6E2E	
+0E1D: 2E2E2020	
+0E21: 2D204C6F	
+0E25: 61642049	
+0E29: 6E74656C	
+0E2D: 2D486578	
+0E31: 2066696C	
+0E35: 65207265	
+0E39: 636F7264	
+0E3D: 0D0A    			.BYTE	CR, LF
+0E3F: 00      	        .BYTE   $00
+              	
+0E40:         	CKSUMERR:
+0E40: 43686563			.BYTE	"Checksum error"
+0E44: 6B73756D	
+0E48: 20657272	
+0E4C: 6F72    	
+0E4E: 0D0A00  			.BYTE	CR, LF,$00
+              	
+0E51:         	LDETXT:
+0E51: 4C6F6164			.TEXT	"Load complete."
+0E55: 20636F6D	
+0E59: 706C6574	
+0E5D: 652E    	
+0E5F: 0D0A00  			.BYTE	CR, LF, $00
+              	
+              	
+              	; =========================================================
+              	; Tabela display
+              	; =========================================================
+              	; 
+              	;   0 - $3F     A - $77     K - $7A     U - $1C     . - $80
+              	;   1 - $06     B - $7C     L - $38     V - $3E     Ñ - $55
+              	;   2 - $5B     C - $39     M - $37     W - $1D     : - $41
+              	;   3 - $4F     D - $5E     N - $54     X - $70     ; - $88
+              	;   4 - $66     E - $79     O - $3F     Y - $6E     _ - $08
+              	;   5 - $6D     F - $71     P - $73     Z - $49     ~ - $01
+              	;   6 - $7D     G - $6F     Q - $67                 ' - $20
+              	;   7 - $07     H - $76     R - $50     + - $46     
+              	;   8 - $7F     I - $06     S - $6D     , - $04     
+              	;   9 - $67     J - $1E     T - $78     - - $40     
+              	
+              	.end
+
+
+; +++ segments +++
+
+#CODE          = $0000 =     0,  size = $0E62 =  3682
+
+; +++ global symbols +++
+
+BAUD                = $FF30 = 65328          Moni.asm:136 (unused)
+BCTOA               = $0D53 =  3411          Moni.asm:2274
+BCTOA1              = $0D5C =  3420          Moni.asm:2279
+BCTOA2              = $0D6A =  3434          Moni.asm:2289
+CKEY_TIMEOUT        = $0064 =   100          Moni.asm:62
+CKSIOA              = $0D02 =  3330          Moni.asm:2201
+CKSUMERR            = $0E40 =  3648          Moni.asm:2365
+CLEAR_DISPLAY       = $0AC1 =  2753          Moni.asm:1738
+CLEAR_USER_DISPLAY  = $0ADE =  2782          Moni.asm:1755 (unused)
+CLS                 = $000C =    12          Moni.asm:69 (unused)
+CPU_FLAGS           = $FF2C = 65324          Moni.asm:132
+CR                  = $000D =    13          Moni.asm:65
+CTRLC               = $0003 =     3          Moni.asm:68 (unused)
+C_HALT              = $009F =   159          Moni.asm:259
+DELAY_100mS         = $0CB1 =  3249          Moni.asm:2116 (unused)
+DELAY_A             = $0CA6 =  3238          Moni.asm:2107 (unused)
+DELAY_C             = $0CB3 =  3251          Moni.asm:2117 (unused)
+DELAY_LP            = $0CB6 =  3254          Moni.asm:2119
+DIG_0               = $FF00 = 65280          Moni.asm:82
+DIG_1               = $FF01 = 65281          Moni.asm:83
+DIG_2               = $FF02 = 65282          Moni.asm:84
+DIG_3               = $FF03 = 65283          Moni.asm:85
+DIG_4               = $FF04 = 65284          Moni.asm:86
+DIG_5               = $FF05 = 65285          Moni.asm:87
+DIG_6               = $FF06 = 65286          Moni.asm:88
+DIG_7               = $FF07 = 65287          Moni.asm:89
+DlyLp               = $0CAB =  3243          Moni.asm:2110
+ECHO                = $0D6C =  3436          Moni.asm:2295
+ENTER_MAIN          = $00E6 =   230          Moni.asm:305
+ESC                 = $001B =    27          Moni.asm:67 (unused)
+EXAMINE_KEY_POS_0   = $0365 =   869          Moni.asm:673
+EXAMINE_KEY_POS_1   = $0344 =   836          Moni.asm:655
+EXAMINE_KEY_POS_2   = $032A =   810          Moni.asm:641
+EXAMINE_KEY_POS_3   = $030C =   780          Moni.asm:624
+EXAMINE_RAM         = $02DF =   735          Moni.asm:599
+EXIT_SYS            = $00F7 =   247          Moni.asm:317
+EXM_COUNT           = $FF12 = 65298          Moni.asm:117
+FIRE                = $09DC =  2524          Moni.asm:1596
+GET2                = $0D14 =  3348          Moni.asm:2226
+GETCH               = $FF34 = 65332          Moni.asm:138 (unused)
+GETCHR              = $0D0B =  3339          Moni.asm:2214
+GETHL               = $0D25 =  3365          Moni.asm:2241
+GETX                = $0D31 =  3377          Moni.asm:2251 (unused)
+GETX1               = $0D34 =  3380          Moni.asm:2252
+GETX2               = $0D3D =  3389          Moni.asm:2257
+GETX3               = $0D4D =  3405          Moni.asm:2267
+GET_KEY_A           = $083B =  2107          Moni.asm:1347
+GET_NUM_FROM_HIGH   = $0B0B =  2827          Moni.asm:1789 (unused)
+GET_NUM_FROM_LOW    = $0AFB =  2811          Moni.asm:1773
+GOTO                = $0CD1 =  3281          Moni.asm:2147
+GO_ADD_MODIFY       = $092E =  2350          Moni.asm:1502
+GO_EXAMINE          = $0913 =  2323          Moni.asm:1490
+GO_MODIFY           = $0938 =  2360          Moni.asm:1507
+GO_MONITOR          = $094D =  2381          Moni.asm:1517
+GO_SHOW_REG_AF      = $096E =  2414          Moni.asm:1535
+GO_SHOW_REG_AFaux   = $09B0 =  2480          Moni.asm:1571
+GO_SHOW_REG_BC      = $0979 =  2425          Moni.asm:1541
+GO_SHOW_REG_BCaux   = $09BB =  2491          Moni.asm:1577
+GO_SHOW_REG_DE      = $0984 =  2436          Moni.asm:1547
+GO_SHOW_REG_DEaux   = $09C6 =  2502          Moni.asm:1583
+GO_SHOW_REG_HL      = $098F =  2447          Moni.asm:1553
+GO_SHOW_REG_HLaux   = $09D1 =  2513          Moni.asm:1589
+GO_SHOW_REG_IX      = $099A =  2458          Moni.asm:1559
+GO_SHOW_REG_IY      = $09A5 =  2469          Moni.asm:1565
+GO_SHOW_REG_PC      = $0958 =  2392          Moni.asm:1523
+GO_SHOW_REG_SP      = $0963 =  2403          Moni.asm:1529
+GO_USER_MODE        = $0A0E =  2574          Moni.asm:1627
+HELP                = $0CD7 =  3287          Moni.asm:2155
+INPUT               = $FF09 = 65289          Moni.asm:91
+INT38               = $006F =   111          Moni.asm:226
+INT_ERROR           = $0049 =    73          Moni.asm:193 (unused)
+INT_HALT            = $005C =    92          Moni.asm:209
+INT_VEC             = $FF2D = 65325          Moni.asm:133
+ISR_MD_HL           = $FFDC = 65500          Moni.asm:152
+ISR_MD_TMP          = $FFDE = 65502          Moni.asm:153
+KEYSB3              = $0184 =   388          Moni.asm:405
+KEYSB4              = $018C =   396          Moni.asm:406
+KEY_PRESS           = $FF08 = 65288          Moni.asm:90
+KEY_TIMEOUT         = $FF0B = 65291          Moni.asm:93
+LAST_SYS            = $FFD8 = 65496          Moni.asm:151
+LDETXT              = $0E51 =  3665          Moni.asm:2369
+LD_HL_HL            = $0C92 =  3218          Moni.asm:2078
+LED_FONT            = $0CC1 =  3265          Moni.asm:2129
+LF                  = $000A =    10          Moni.asm:66
+LOAD                = $0D6F =  3439          Moni.asm:2313
+LOAD00              = $0DA9 =  3497          Moni.asm:2349
+LOAD2               = $0D8D =  3469          Moni.asm:2329
+LOAD3               = $0D9C =  3484          Moni.asm:2340
+LOADERR             = $0DA2 =  3490          Moni.asm:2345
+MDF_COUNT           = $FF13 = 65299          Moni.asm:118
+MD_HL               = $0A16 =  2582          Moni.asm:1636
+MD_HL_KEY_POS_0     = $0A9C =  2716          Moni.asm:1710
+MD_HL_KEY_POS_1     = $0A7B =  2683          Moni.asm:1692
+MD_HL_KEY_POS_2     = $0A61 =  2657          Moni.asm:1678
+MD_HL_KEY_POS_3     = $0A43 =  2627          Moni.asm:1661
+MODIFY_ANY          = $09E5 =  2533          Moni.asm:1603
+MODIFY_KEY_POS_0    = $03B3 =   947          Moni.asm:722
+MODIFY_KEY_POS_1    = $0395 =   917          Moni.asm:705
+MODIFY_RAM          = $0378 =   888          Moni.asm:687
+MONITOR_MODE        = $086C =  2156          Moni.asm:1382
+ORG_0               = $0040 =    64          Moni.asm:185
+PC_RAM              = $FF0D = 65293          Moni.asm:95
+PC_RAM_DEC          = $08FF =  2303          Moni.asm:1478
+PC_RAM_INC          = $0909 =  2313          Moni.asm:1484
+PRINT               = $0CDE =  3294          Moni.asm:2164
+PRINT_A             = $0B23 =  2851          Moni.asm:1809
+PRINT_END_HL        = $0BAD =  2989          Moni.asm:1913
+PRINT_HL            = $0B50 =  2896          Moni.asm:1844
+PUTCH               = $FF32 = 65330          Moni.asm:137 (unused)
+Port40              = $0040 =    64          Moni.asm:58
+PortC0              = $00C0 =   192          Moni.asm:59 (unused)
+RET_KEY             = $0846 =  2118          Moni.asm:1354
+RST00               = $0000 =     0          Moni.asm:160
+RST08               = $0008 =     8          Moni.asm:167 (unused)
+RST10               = $0010 =    16          Moni.asm:173 (unused)
+SETCY               = $0D2F =  3375          Moni.asm:2245
+SHOW_DIG            = $FF0C = 65292          Moni.asm:94
+SHOW_DIG_FLAG_OFF   = $023B =   571          Moni.asm:505
+SHOW_DIG_FLAG_ON    = $0232 =   562          Moni.asm:499
+SHOW_ERROR          = $080C =  2060          Moni.asm:1317
+SHOW_HALT           = $07DD =  2013          Moni.asm:1290
+SHOW_REG_AF         = $0465 =  1125          Moni.asm:818
+SHOW_REG_AFaux      = $066D =  1645          Moni.asm:1093
+SHOW_REG_BC         = $04BF =  1215          Moni.asm:866
+SHOW_REG_BCaux      = $06CC =  1740          Moni.asm:1145
+SHOW_REG_DE         = $0515 =  1301          Moni.asm:913
+SHOW_REG_DEaux      = $0727 =  1831          Moni.asm:1194
+SHOW_REG_HL         = $056B =  1387          Moni.asm:958
+SHOW_REG_HLaux      = $0782 =  1922          Moni.asm:1242
+SHOW_REG_IX         = $05C1 =  1473          Moni.asm:1003
+SHOW_REG_IY         = $0617 =  1559          Moni.asm:1048
+SHOW_REG_PC         = $03C7 =   967          Moni.asm:736
+SHOW_REG_SP         = $041A =  1050          Moni.asm:780
+SIOA_C              = $0002 =     2          Moni.asm:74
+SIOA_D              = $0000 =     0          Moni.asm:73
+SIOB_C              = $0003 =     3          Moni.asm:76 (unused)
+SIOB_D              = $0001 =     1          Moni.asm:75 (unused)
+SKIP_CHK            = $00D3 =   211          Moni.asm:291
+STACK               = $FF00 = 65280          Moni.asm:61
+START               = $0C0A =  3082          Moni.asm:1982
+START_COM           = $0C30 =  3120          Moni.asm:2008
+START_RAM           = $8000 = 32768          Moni.asm:60
+START_WARM          = $0C8C =  3212          Moni.asm:2069
+SYSMODE             = $FF0F = 65295          Moni.asm:97
+SYS_MAIN            = $0244 =   580          Moni.asm:514
+TMP_KEY             = $FF0A = 65290          Moni.asm:92
+TRATAB3             = $0178 =   376          Moni.asm:397
+TRATAB4             = $017E =   382          Moni.asm:401
+TXCRLF              = $0CE5 =  3301          Moni.asm:2171
+TicCounter          = $FF10 = 65296          Moni.asm:116
+UPDATE_DISPLAYS     = $0129 =   297          Moni.asm:350
+UPDATE_DISPLAYS_OK  = $013D =   317          Moni.asm:360
+UPDATE_DISPLAYS_RET = $0144 =   324          Moni.asm:365
+UPDATE_FLAGS        = $0194 =   404          Moni.asm:412
+UPDATE_FLAGS_MAIN   = $01A2 =   418          Moni.asm:421
+UPDATE_FLAGS_RET    = $01A1 =   417          Moni.asm:418
+UPDATE_FLAG_C       = $0226 =   550          Moni.asm:492
+UPDATE_FLAG_H       = $01F6 =   502          Moni.asm:464
+UPDATE_FLAG_N       = $021A =   538          Moni.asm:485
+UPDATE_FLAG_PV      = $020E =   526          Moni.asm:478
+UPDATE_FLAG_S       = $01D2 =   466          Moni.asm:443
+UPDATE_FLAG_X1      = $01EA =   490          Moni.asm:457
+UPDATE_FLAG_X2      = $0202 =   514          Moni.asm:471
+UPDATE_FLAG_Z       = $01DE =   478          Moni.asm:450
+UPDATE_KEYS         = $0145 =   325          Moni.asm:371
+UPDATE_KEY_GET      = $0164 =   356          Moni.asm:384
+UPDATE_KEY_RET      = $0177 =   375          Moni.asm:394
+USER_DISP0          = $FFD0 = 65488          Moni.asm:142
+USER_DISP1          = $FFD1 = 65489          Moni.asm:143
+USER_DISP2          = $FFD2 = 65490          Moni.asm:144
+USER_DISP3          = $FFD3 = 65491          Moni.asm:145
+USER_DISP4          = $FFD4 = 65492          Moni.asm:146
+USER_DISP5          = $FFD5 = 65493          Moni.asm:147
+USER_DISP6          = $FFD6 = 65494          Moni.asm:148
+USER_DISP7          = $FFD7 = 65495          Moni.asm:149
+USER_MODE           = $0856 =  2134          Moni.asm:1369
+USR_AF              = $FF1E = 65310          Moni.asm:124
+USR_AFA             = $FF24 = 65316          Moni.asm:127
+USR_BC              = $FF1A = 65306          Moni.asm:122
+USR_BCA             = $FF26 = 65318          Moni.asm:128
+USR_DE              = $FF1C = 65308          Moni.asm:123
+USR_DEA             = $FF28 = 65320          Moni.asm:129
+USR_HL              = $FF18 = 65304          Moni.asm:121
+USR_HLA             = $FF2A = 65322          Moni.asm:130
+USR_IX              = $FF20 = 65312          Moni.asm:125
+USR_IY              = $FF22 = 65314          Moni.asm:126
+USR_PC              = $FF14 = 65300          Moni.asm:119
+USR_SP              = $FF16 = 65302          Moni.asm:120
+_end                = $0E62 =  3682          Moni.asm:159 (unused)
+_size               = $0E62 =  3682          Moni.asm:159 (unused)
+_z80_               = $0001 =     1          Moni.asm:1 (unused)
+conin               = $0CF6 =  3318          Moni.asm:2188
+conout              = $0CEC =  3308          Moni.asm:2181
+conoutA1            = $0CED =  3309          Moni.asm:2182
+delay               = $0C97 =  3223          Moni.asm:2088 (unused)
+delay_loop          = $0C9C =  3228          Moni.asm:2093
+delay_loop_b        = $0C9A =  3226          Moni.asm:2091
+monitor             = $0C60 =  3168          Moni.asm:2035
+monitor0            = $0C64 =  3172          Moni.asm:2038
+monitor1            = $0C6A =  3178          Moni.asm:2043
+msg_bemvindo        = $0DB0 =  3504          Moni.asm:2354
+msg_help            = $0DE5 =  3557          Moni.asm:2355
+waitForChar         = $0CF6 =  3318          Moni.asm:2189
+
+
+total time: 0.0833 sec.
+no errors
