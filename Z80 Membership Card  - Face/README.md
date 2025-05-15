@@ -1,4 +1,4 @@
-<img src="https://github.com/diego123cruz/Z80Mini/blob/main/Z80%20Mem%C2%ADber%C2%ADship%20Card%20%20-%20Face/Z80%20Membership%20Card.jpeg" title="Z80 Mem­ber­ship Card - Face" alt="Z80 Mem­ber­ship Card - Face">
+<img src="https://github.com/diego123cruz/Z80Mini/blob/main/Z80%20Membership%20Card%20%20-%20Face/Z80%20Membership%20Card.jpeg" title="Z80 Mem­ber­ship Card - Face" alt="Z80 Mem­ber­ship Card - Face">
 
 
 ### Z80 Mem­ber­ship Card - Face
@@ -12,18 +12,18 @@ O circuito ou código-fonte podem conter partes do projeto original mencionado a
 
 #### Base board
 
-![Base](https://github.com/diego123cruz/Z80Mini/blob/main/Z80%20Mem%C2%ADber%C2%ADship%20Card%20%20-%20Face/Base.jpeg)
+![Base](https://github.com/diego123cruz/Z80Mini/blob/main/Z80%20Membership%20Card%20%20-%20Face/Base.jpeg)
 
 
 
 #### Keyboard
 
-![keys](https://github.com/diego123cruz/Z80Mini/blob/main/Z80%20Mem%C2%ADber%C2%ADship%20Card%20%20-%20Face/Keyboard.jpeg)
+![keys](https://github.com/diego123cruz/Z80Mini/blob/main/Z80%20Membership%20Card%20%20-%20Face/Keyboard.jpeg)
 
 
 
 #### 7Seg display
 
-![7Segs display](https://github.com/diego123cruz/Z80Mini/blob/main/Z80%20Mem%C2%ADber%C2%ADship%20Card%20%20-%20Face/7SegDisplay.jpeg)
+![7Segs display](https://github.com/diego123cruz/Z80Mini/blob/main/Z80%20Membership%20Card%20%20-%20Face/7SegDisplay.jpeg)
 
 
