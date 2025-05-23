@@ -1,0 +1,597 @@
+              	; --------------------------------------
+              	; zasm: assemble "Main.asm"
+              	; date: 2025-05-22 13:19:23
+              	; --------------------------------------
+
+
+              	; **********************************************************************
+              	; **  Z80 Mini GameCore - API - Public functions                      **
+              	; **********************************************************************
+              	;----------------------------------------------------------------------------------------------------------
+              	;	Display LCD
+              	;----------------------------------------------------------------------------------------------------------
+0100:         	INIT_LCD			        .EQU	$0100			;Initalise the LCD
+0103:         	CLEAR_GBUF			        .EQU	$0103			;Clear the Graphics Buffer
+0106:         	CLEAR_GR_LCD			    .EQU	$0106			;Clear the Graphics LCD Screen
+0109:         	CLEAR_TXT_LCD			    .EQU	$0109			;Clear the Text LCD Screen
+010C:         	SET_GR_MODE			        .EQU	$010C			;Set Graphics Mode
+010F:         	SET_TXT_MODE			    .EQU	$010F			;Set Text Mode
+0112:         	DRAW_BOX			        .EQU	$0112			;Draw a rectangle between two points
+0115:         	DRAW_LINE			        .EQU	$0115			;Draw a line between two points Inputs: BC = X0,Y0  DE = X1,Y1
+0118:         	DRAW_CIRCLE			        .EQU	$0118			;Draw a circle from Mid X,Y to Radius
+011B:         	DRAW_PIXEL			        .EQU	$011B			;Draw one pixel at X,Y Input B = column/X (0-127), C = row/Y (0-63)
+011E:         	FILL_BOX			        .EQU	$011E			;Draw a filled rectangle between two points
+0121:         	FILL_CIRCLE			        .EQU	$0121			;Draw a filled circle from Mid X,Y to Radius
+0124:         	PLOT_TO_LCD			        .EQU	$0124			;Display the Graphics Buffer to the LCD Screen
+0127:         	PRINT_STRING			    .EQU	$0127			;Print Text on the screen in a given row
+012A:         	PRINT_CHARS			        .EQU	$012A			;Print Characters on the screen in a given row and column
+012D:         	DELAY_US			        .EQU	$012D			;Microsecond delay for LCD updates
+0130:         	DELAY_MS             		.EQU	$0130			;Millisecond delay for LCD updates
+0133:         	SET_BUF_CLEAR			    .EQU	$0133			;Clear the Graphics buffer on after Plotting to the screen
+0136:         	SET_BUF_NO_CLEAR     		.EQU	$0136			;Retain the Graphics buffer on after Plotting to the screen
+0139:         	CLEAR_PIXEL          		.EQU	$0139			;Remove a Pixel at X,Y
+013C:         	FLIP_PIXEL			        .EQU	$013C			;Flip a Pixel On/Off at X,Y
+013F:         	LCD_INST             		.EQU	$013F			;Send a parallel instruction to LCD
+0142:         	LCD_DATA             		.EQU	$0142			;Send a parallel datum to LCD
+0145:         	SER_SYNC             		.EQU	$0145			;Send serial synchronise byte to LCD
+0148:         	DRAW_GRAPHIC         		.EQU	$0148			;Draw an ASCII charcter or Sprite to the LCD
+014B:         	INV_GRAPHIC          		.EQU	$014B			;Inverse graphics printing
+014E:         	INIT_TERMINAL        		.EQU	$014E			;Initialize the LCD for terminal emulation
+0151:         	SEND_CHAR_TO_GLCD    		.EQU	$0151			;Send an ASCII Character to the LCD
+0154:         	SEND_STRING_TO_GLCD 		.EQU	$0154			;Send an ASCII String to the LCD
+0157:         	SEND_A_TO_GLCD       		.EQU	$0157			;Send register A to the LCD
+015A:         	SEND_HL_TO_GLCD      		.EQU	$015A			;Send register HL to the LCD
+015D:         	SET_CURSOR           		.EQU	$015D			;Set the graphics cursor
+0160:         	GET_CURSOR           		.EQU	$0160			;Get the current cursor
+0163:         	DISPLAY_CURSOR       		.EQU	$0163			;Set Cursor on or off
+              	;----------------------------------------------------------------------------------------------------------
+              	;	UTIL
+              	;----------------------------------------------------------------------------------------------------------
+0166:         	H_Delay              		.EQU	$0166			;Delay in milliseconds (DE in millis)
+              	;----------------------------------------------------------------------------------------------------------
+              	;	FIM
+              	;----------------------------------------------------------------------------------------------------------
+              	
+              	
+              	;         - Ports:
+              	;               - Onboard IN/OUT: 40H
+              	;					- Controle - pullDown (Input)
+              	;						- bit0 - A
+              	;						- bit1 - B
+              	;						- bit2 - Start
+              	;						- bit3 - Select
+              	;						- bit4 - Right
+              	;						- bit5 - Down
+              	;						- bit6 - Left
+              	;						- bit7 - Up
+              	
+0040:         	GAMEPAD         .equ    $40
+8000:         	.org $8000
+              	
+8000:         	init:
+8000: 3E01    	    LD A, 1
+8002: 322083  	    LD (gameover), A ; Gameover
+              	
+8005: AF      	    XOR A
+8006: 322183  	    LD (cursor_x), A
+8009: 322283  	    LD (cursor_y), A
+800C: 322583  	    ld (bomb_alive), A
+800F: DD212683	    LD IX, predios
+8013: 012E13  	    LD BC, 0x132E
+8016: DD7100  	    LD (IX), BC
+8019: DD7001  	
+801C: 013F19  	    LD BC, 0x193F
+801F: DD7102  	    LD (IX+2), BC
+8022: DD7003  	
+8025: 01332E  	    LD BC, 0x2e33
+8028: DD7104  	    LD (IX+4), BC
+802B: DD7005  	
+802E: 013F34  	    LD BC, 0x343F
+8031: DD7106  	    LD (IX+6), BC
+8034: DD7007  	
+8037: 013046  	    LD BC, 0x4630
+803A: DD7108  	    LD (IX+8), BC
+803D: DD7009  	
+8040: 013F4C  	    LD BC, 0x4c3F
+8043: DD710A  	    LD (IX+10), BC
+8046: DD700B  	
+8049: 012E58  	    LD BC, 0x582E
+804C: DD710C  	    LD (IX+12), BC
+804F: DD700D  	
+8052: 013F5E  	    LD BC, 0x5e3F
+8055: DD710E  	    LD (IX+14), BC
+8058: DD700F  	
+805B: 01336A  	    LD BC, 0x6a33
+805E: DD7110  	    LD (IX+16), BC
+8061: DD7011  	
+8064: 013F70  	    LD BC, 0x703F
+8067: DD7112  	    LD (IX+18), BC
+806A: DD7013  	
+              	
+806D:         	loop:
+806D: CDD181  	    CALL ler_gamepad
+8070: CD8582  	    call update_bomb
+8073: CDAE82  	    call update_airplane
+8076: CDAE80  	    call update_predios
+8079: CDE181  	    call update_screen
+              	
+              	    ; Check GameOver
+807C: 3A2083  	    LD A, (gameover)
+807F: FE00    	    CP 0
+8081: CA6D80  	    JP Z, loop
+              	
+8084: 012B1E  	    LD BC, $1E2B
+8087: CD5D01  	    CALL SET_CURSOR
+808A: 3E00    	    LD A, 0
+808C: 110B83  	    LD DE, msg_start
+808F: CD5401  	    CALL SEND_STRING_TO_GLCD
+8092:         	loop_enter:
+8092: DB40    	    in A, (GAMEPAD)
+8094: CB57    	    bit 2, A
+8096: CA9280  	    JP Z, loop_enter
+8099: 3E00    	    LD A, 0
+809B: 322083  	    LD (gameover), A
+809E: C36D80  	    jp loop
+              	
+              	
+80A1:         	inc_bc:
+80A1: 03      	    INC BC
+80A2: 03      	    INC BC
+80A3: 03      	    INC BC
+80A4: 03      	    INC BC
+80A5: C9      	    ret
+              	
+80A6:         	inc_b:
+80A6: 04      	    inc B
+80A7: 04      	    inc B
+80A8: 04      	    inc B
+80A9: 04      	    inc B
+80AA: 04      	    inc B
+80AB: 04      	    inc B
+80AC: 04      	    inc B
+80AD: C9      	    ret
+              	
+80AE:         	update_predios:
+80AE: 3A2583  	    LD A, (bomb_alive)
+80B1: FE00    	    cp 0
+80B3: C8      	    RET Z
+80B4: DD212683	    LD IX, predios
+80B8:         	p1:
+80B8: DD4E00  	    ld bc, (IX)
+80BB: DD4601  	
+80BE: 3A2483  	    ld a, (bomb_y)
+80C1: C607    	    add a, 7
+80C3: B9      	    cp c
+80C4: DAF080  	    jp C, p2
+80C7: 3A2483  	    ld a, (bomb_y)
+80CA: B9      	    cp c
+80CB: D2F080  	    jp NC, p2
+80CE: 3A2383  	    ld a, (bomb_x)
+80D1: C605    	    add a, 5
+80D3: B8      	    cp B
+80D4: DAF080  	    jp C, p2
+80D7: 3A2383  	    ld a, (bomb_x)
+80DA: C5      	    PUSH BC
+80DB: CDA680  	    CALL inc_b
+80DE: B8      	    cp b
+80DF: C1      	    POP BC
+80E0: D2F080  	    JP NC, p2
+80E3: CDA180  	    CALL inc_bc
+80E6: DD7100  	    LD (IX), bc
+80E9: DD7001  	
+80EC: AF      	    xor a
+80ED: 322583  	    ld (bomb_alive), a
+              	
+80F0:         	p2:
+80F0: DD4E04  	    ld bc, (IX+4)
+80F3: DD4605  	
+80F6: 3A2483  	    ld a, (bomb_y)
+80F9: C607    	    add a, 7
+80FB: B9      	    cp c
+80FC: DA2881  	    jp C, p3
+80FF: 3A2483  	    ld a, (bomb_y)
+8102: B9      	    cp c
+8103: D22881  	    jp NC, p3
+8106: 3A2383  	    ld a, (bomb_x)
+8109: C605    	    add a, 5
+810B: B8      	    cp B
+810C: DA2881  	    jp C, p3
+810F: 3A2383  	    ld a, (bomb_x)
+8112: C5      	    PUSH BC
+8113: CDA680  	    CALL inc_b
+8116: B8      	    cp b
+8117: C1      	    POP BC
+8118: D22881  	    JP NC, p3
+811B: CDA180  	    CALL inc_bc
+811E: DD7104  	    LD (IX+4), bc
+8121: DD7005  	
+8124: AF      	    xor a
+8125: 322583  	    ld (bomb_alive), a
+              	
+8128:         	p3:
+8128: DD4E08  	    ld bc, (IX+8)
+812B: DD4609  	
+812E: 3A2483  	    ld a, (bomb_y)
+8131: C607    	    add a, 7
+8133: B9      	    cp c
+8134: DA6081  	    jp C, p4
+8137: 3A2483  	    ld a, (bomb_y)
+813A: B9      	    cp c
+813B: D26081  	    jp NC, p4
+813E: 3A2383  	    ld a, (bomb_x)
+8141: C605    	    add a, 5
+8143: B8      	    cp B
+8144: DA6081  	    jp C, p4
+8147: 3A2383  	    ld a, (bomb_x)
+814A: C5      	    PUSH BC
+814B: CDA680  	    CALL inc_b
+814E: B8      	    cp b
+814F: C1      	    POP BC
+8150: D26081  	    JP NC, p4
+8153: CDA180  	    CALL inc_bc
+8156: DD7108  	    LD (IX+8), bc
+8159: DD7009  	
+815C: AF      	    xor a
+815D: 322583  	    ld (bomb_alive), a
+              	
+8160:         	p4
+8160: DD4E0C  	    ld bc, (IX+12)
+8163: DD460D  	
+8166: 3A2483  	    ld a, (bomb_y)
+8169: C607    	    add a, 7
+816B: B9      	    cp c
+816C: DA9881  	    jp C, p5
+816F: 3A2483  	    ld a, (bomb_y)
+8172: B9      	    cp c
+8173: D29881  	    jp NC, p5
+8176: 3A2383  	    ld a, (bomb_x)
+8179: C605    	    add a, 5
+817B: B8      	    cp B
+817C: DA9881  	    jp C, p5
+817F: 3A2383  	    ld a, (bomb_x)
+8182: C5      	    PUSH BC
+8183: CDA680  	    CALL inc_b
+8186: B8      	    cp b
+8187: C1      	    POP BC
+8188: D29881  	    JP NC, p5
+818B: CDA180  	    CALL inc_bc
+818E: DD710C  	    LD (IX+12), bc
+8191: DD700D  	
+8194: AF      	    xor a
+8195: 322583  	    ld (bomb_alive), a
+              	
+8198:         	p5
+8198: DD4E10  	    ld bc, (IX+16)
+819B: DD4611  	
+819E: 3A2483  	    ld a, (bomb_y)
+81A1: C607    	    add a, 7
+81A3: B9      	    cp c
+81A4: DAD081  	    jp C, p6
+81A7: 3A2483  	    ld a, (bomb_y)
+81AA: B9      	    cp c
+81AB: D2D081  	    jp NC, p6
+81AE: 3A2383  	    ld a, (bomb_x)
+81B1: C605    	    add a, 5
+81B3: B8      	    cp B
+81B4: DAD081  	    jp C, p6
+81B7: 3A2383  	    ld a, (bomb_x)
+81BA: C5      	    PUSH BC
+81BB: CDA680  	    CALL inc_b
+81BE: B8      	    cp b
+81BF: C1      	    POP BC
+81C0: D2D081  	    JP NC, p6
+81C3: CDA180  	    CALL inc_bc
+81C6: DD7110  	    LD (IX+16), bc
+81C9: DD7011  	
+81CC: AF      	    xor a
+81CD: 322583  	    ld (bomb_alive), a
+81D0:         	p6:
+81D0: C9      	    RET
+              	
+              	
+81D1:         	ler_gamepad:
+81D1: DB40    	    in A, (GAMEPAD)
+81D3: CB47    	    bit 0, A
+81D5: C2E982  	    jp nz, bomb_fire
+              	
+81D8: CB5F    	    bit 3, A
+81DA: C2DE81  	    JP NZ, quit
+              	
+              	    ;bit 7, A
+              	    ;jp nz, btnUp
+              	
+              	    ;bit 5, A
+              	    ;jp nz, btnDown
+              	
+              	    ;bit 6, A
+              	    ;jp nz, btnLeft
+              	
+              	    ;bit 4, A
+              	    ;jp nz, btnRight
+81DD: C9      	    RET
+              	
+81DE:         	quit:
+81DE: C30000  	    jp 0
+              	
+81E1:         	update_screen:
+81E1: CD0301  	    CALL CLEAR_GBUF
+              	
+              	; Draw predios
+81E4: DD212683	    LD IX, predios
+81E8: DD4E00  	    ld bc, (IX)
+81EB: DD4601  	
+81EE: DD5E02  	    ld de, (IX+2)
+81F1: DD5603  	
+81F4: CD1E01  	    call FILL_BOX
+              	
+81F7: DD4E04  	    ld bc, (IX+4)
+81FA: DD4605  	
+81FD: DD5E06  	    ld de, (IX+6)
+8200: DD5607  	
+8203: CD1E01  	    call FILL_BOX
+              	
+8206: DD4E08  	    ld bc, (IX+8)
+8209: DD4609  	
+820C: DD5E0A  	    ld de, (IX+10)
+820F: DD560B  	
+8212: CD1E01  	    call FILL_BOX
+              	
+8215: DD4E0C  	    ld bc, (IX+12)
+8218: DD460D  	
+821B: DD5E0E  	    ld de, (IX+14)
+821E: DD560F  	
+8221: CD1E01  	    call FILL_BOX
+              	
+8224: DD4E10  	    ld bc, (IX+16)
+8227: DD4611  	
+822A: DD5E12  	    ld de, (IX+18)
+822D: DD5613  	
+8230: CD1E01  	    call FILL_BOX
+              	
+              	
+              	; Draw airplane
+8233: 3A2183  	    LD A, (cursor_x)
+8236: 47      	    LD B, A
+8237: 3A2283  	    LD A, (cursor_y)
+823A: 4F      	    LD C, A
+823B: CD5D01  	    CALL SET_CURSOR
+823E: 3E00    	    LD A, 0
+8240: 01080F  	    LD BC, $0F08
+8243: 213A83  	    LD HL, airplane
+8246: CD4801  	    CALL DRAW_GRAPHIC
+              	
+              	
+              	    ; Draw bomb
+8249: 3A2583  	    ld A, (bomb_alive)
+824C: FE00    	    cp 0
+824E: CA6182  	    JP Z, fim_bomb
+8251: 3A2383  	    LD A, (bomb_x)
+8254: 47      	    LD B, A
+8255: 3A2483  	    LD A, (bomb_y)
+8258: 4F      	    LD C, A
+8259: CD5D01  	    CALL SET_CURSOR
+825C: 3E0E    	    LD A, 14 ; bomb
+825E: CD4801  	    CALL DRAW_GRAPHIC
+8261:         	fim_bomb:
+              	
+8261: CD2401  	    CALL PLOT_TO_LCD
+8264: C9      	    ret
+              	
+              	
+8265:         	btnUp:
+8265: 3A2283  	    ld a, (cursor_y)
+8268: 3D      	    dec A
+8269: 322283  	    ld (cursor_y), a
+826C: C9      	    RET
+              	
+826D:         	btnDown:
+826D: 3A2283  	    ld a, (cursor_y)
+8270: 3C      	    inc A
+8271: 322283  	    ld (cursor_y), a
+8274: C9      	    RET
+              	
+8275:         	btnLeft:
+8275: 3A2183  	    ld a, (cursor_x)
+8278: 3D      	    dec A
+8279: 322183  	    ld (cursor_x), a
+827C: C9      	    RET
+              	
+827D:         	btnRight:
+827D: 3A2183  	    ld a, (cursor_x)
+8280: 3C      	    inc A
+8281: 322183  	    ld (cursor_x), a
+8284: C9      	    RET
+              	
+              	
+              	
+              	
+8285:         	update_bomb:
+8285: 3A2583  	    ld a, (bomb_alive)
+8288: FE00    	    cp 0
+828A: C8      	    RET Z
+              	    ; x
+828B: 3A2383  	    ld a, (bomb_x)
+828E: C602    	    add a, 2
+8290: 322383  	    ld (bomb_x), A
+              	    ; y
+8293: 3A2483  	    ld a, (bomb_y)
+8296: C603    	    add a, 3
+8298: 322483  	    ld (bomb_y), A
+829B: FE40    	    cp 64
+829D: D2A982  	    JP NC, bomb_alive_zera
+              	
+82A0: 3A2383  	    ld a, (bomb_x)
+82A3: FE7C    	    cp 124
+82A5: D2A982  	    JP NC, bomb_alive_zera
+82A8: C9      	    ret
+              	
+82A9:         	bomb_alive_zera:
+82A9: AF      	    xor A
+82AA: 322583  	    ld (bomb_alive), A
+82AD: C9      	    ret
+              	
+              	
+              	
+              	
+82AE:         	update_airplane:
+82AE: 3A2183  	    ld a, (cursor_x)
+82B1: C602    	    add a, 2
+82B3: FE7E    	    cp 126
+82B5: D2C482  	    JP NC, update_airplane_zero
+82B8: 322183  	    ld (cursor_x), A
+82BB: 3A2283  	    ld a, (cursor_y)
+82BE: FE32    	    cp 50
+82C0: D2D182  	    JP NC, fim_de_jogo
+              	
+82C3: C9      	    RET
+82C4:         	update_airplane_zero:
+82C4: AF      	    xor a
+82C5: 322183  	    ld (cursor_x), A
+82C8: 3A2283  	    LD A, (cursor_y)
+82CB: C608    	    ADD A, 8
+82CD: 322283  	    LD (cursor_y), A
+82D0: C9      	    RET
+              	
+82D1:         	fim_de_jogo:
+82D1: 012B1E  	    LD BC, $1E2B
+82D4: CD5D01  	    CALL SET_CURSOR
+              	
+82D7: 3E00    	    LD A, 0
+82D9: 111783  	    LD DE, msg_gameover
+82DC: CD5401  	    CALL SEND_STRING_TO_GLCD
+82DF:         	fim_de_jogo_loop:
+82DF: DB40    	    in A, (GAMEPAD)
+82E1: CB57    	    bit 2, A
+82E3: CADF82  	    JP Z, fim_de_jogo_loop
+82E6: C30080  	    JP init
+              	
+              	
+82E9:         	bomb_fire:
+82E9: 3A2583  	    ld a, (bomb_alive)
+82EC: FE00    	    cp 0
+82EE: C0      	    RET NZ
+82EF: 3A2183  	    ld a, (cursor_x)
+82F2: FE78    	    cp 120
+82F4: D0      	    ret NC
+82F5: 3E01    	    ld a, 1
+82F7: 322583  	    ld (bomb_alive), A
+82FA: 3A2183  	    ld a, (cursor_x)
+82FD: C604    	    add a, 4
+82FF: 322383  	    ld (bomb_x), A
+8302: 3A2283  	    ld a, (cursor_y)
+8305: C602    	    add a, 2
+8307: 322483  	    ld (bomb_y), A
+830A: C9      	    RET
+              	
+830B: 50726573	msg_start      .db "Press START",0
+830F: 73205354	
+8313: 41525400	
+8317: 47414D45	msg_gameover   .db "GAMEOVER",0
+831B: 4F564552	
+831F: 00      	
+              	
+8320: 00      	gameover:   .db 0x00
+8321: 00      	cursor_x:   .db 0x00
+8322: 00      	cursor_y:   .db 0x00
+8323: 00      	bomb_x:     .db 0x00
+8324: 00      	bomb_y:     .db 0x00
+8325: 00      	bomb_alive  .db 0x00
+              	;predios XY
+8326: 2E133F19	predios     .dw 0x132E, 0x193F, 0x2e33, 0x343F, 0x4630, 0x4c3F, 0x582E, 0x5e3F, 0x6a33, 0x703F
+832A: 332E3F34	
+832E: 30463F4C	
+8332: 2E583F5E	
+8336: 336A3F70	
+              	
+833A: 010000C0	airplane: .db 0x01, 0x00, 0x00, 0xC0, 0xC0, 0xC0, 0x7F, 0xFE, 0x1F, 0xFF, 0x01, 0x80, 0x01, 0x80, 0x03, 0x00
+833E: C0C07FFE	
+8342: 1FFF0180	
+8346: 01800300	
+
+
+; +++ segments +++
+
+#CODE          = $8000 = 32768,  size = $034A =   842
+
+; +++ global symbols +++
+
+CLEAR_GBUF       = $0103 =   259          Main.asm:8
+CLEAR_GR_LCD     = $0106 =   262          Main.asm:9 (unused)
+CLEAR_PIXEL      = $0139 =   313          Main.asm:26 (unused)
+CLEAR_TXT_LCD    = $0109 =   265          Main.asm:10 (unused)
+DELAY_MS         = $0130 =   304          Main.asm:23 (unused)
+DELAY_US         = $012D =   301          Main.asm:22 (unused)
+DISPLAY_CURSOR   = $0163 =   355          Main.asm:40 (unused)
+DRAW_BOX         = $0112 =   274          Main.asm:13 (unused)
+DRAW_CIRCLE      = $0118 =   280          Main.asm:15 (unused)
+DRAW_GRAPHIC     = $0148 =   328          Main.asm:31
+DRAW_LINE        = $0115 =   277          Main.asm:14 (unused)
+DRAW_PIXEL       = $011B =   283          Main.asm:16 (unused)
+FILL_BOX         = $011E =   286          Main.asm:17
+FILL_CIRCLE      = $0121 =   289          Main.asm:18 (unused)
+FLIP_PIXEL       = $013C =   316          Main.asm:27 (unused)
+GAMEPAD          = $0040 =    64          Main.asm:62
+GET_CURSOR       = $0160 =   352          Main.asm:39 (unused)
+H_Delay          = $0166 =   358          Main.asm:44 (unused)
+INIT_LCD         = $0100 =   256          Main.asm:7 (unused)
+INIT_TERMINAL    = $014E =   334          Main.asm:33 (unused)
+INV_GRAPHIC      = $014B =   331          Main.asm:32 (unused)
+LCD_DATA         = $0142 =   322          Main.asm:29 (unused)
+LCD_INST         = $013F =   319          Main.asm:28 (unused)
+PLOT_TO_LCD      = $0124 =   292          Main.asm:19
+PRINT_CHARS      = $012A =   298          Main.asm:21 (unused)
+PRINT_STRING     = $0127 =   295          Main.asm:20 (unused)
+SEND_A_TO_GLCD   = $0157 =   343          Main.asm:36 (unused)
+SEND_CHAR_TO_GLCD = $0151 =   337          Main.asm:34 (unused)
+SEND_HL_TO_GLCD  = $015A =   346          Main.asm:37 (unused)
+SEND_STRING_TO_GLCD = $0154 =   340          Main.asm:35
+SER_SYNC         = $0145 =   325          Main.asm:30 (unused)
+SET_BUF_CLEAR    = $0133 =   307          Main.asm:24 (unused)
+SET_BUF_NO_CLEAR = $0136 =   310          Main.asm:25 (unused)
+SET_CURSOR       = $015D =   349          Main.asm:38
+SET_GR_MODE      = $010C =   268          Main.asm:11 (unused)
+SET_TXT_MODE     = $010F =   271          Main.asm:12 (unused)
+_end             = $834A = 33610          Main.asm:63 (unused)
+_size            = $034A =   842          Main.asm:63 (unused)
+_z80_            = $0001 =     1          Main.asm:1 (unused)
+airplane         = $833A = 33594          Main.asm:462
+bomb_alive       = $8325 = 33573          Main.asm:458
+bomb_alive_zera  = $82A9 = 33449          Main.asm:392
+bomb_fire        = $82E9 = 33513          Main.asm:433
+bomb_x           = $8323 = 33571          Main.asm:456
+bomb_y           = $8324 = 33572          Main.asm:457
+btnDown          = $826D = 33389          Main.asm:351 (unused)
+btnLeft          = $8275 = 33397          Main.asm:357 (unused)
+btnRight         = $827D = 33405          Main.asm:363 (unused)
+btnUp            = $8265 = 33381          Main.asm:345 (unused)
+cursor_x         = $8321 = 33569          Main.asm:454
+cursor_y         = $8322 = 33570          Main.asm:455
+fim_bomb         = $8261 = 33377          Main.asm:339
+fim_de_jogo      = $82D1 = 33489          Main.asm:419
+fim_de_jogo_loop = $82DF = 33503          Main.asm:426
+gameover         = $8320 = 33568          Main.asm:453
+inc_b            = $80A6 = 32934          Main.asm:128
+inc_bc           = $80A1 = 32929          Main.asm:121
+init             = $8000 = 32768          Main.asm:65
+ler_gamepad      = $81D1 = 33233          Main.asm:266
+loop             = $806D = 32877          Main.asm:95
+loop_enter       = $8092 = 32914          Main.asm:112
+msg_gameover     = $8317 = 33559          Main.asm:451
+msg_start        = $830B = 33547          Main.asm:450
+p1               = $80B8 = 32952          Main.asm:143 (unused)
+p2               = $80F0 = 33008          Main.asm:167
+p3               = $8128 = 33064          Main.asm:191
+p4               = $8160 = 33120          Main.asm:215
+p5               = $8198 = 33176          Main.asm:239
+p6               = $81D0 = 33232          Main.asm:262
+predios          = $8326 = 33574          Main.asm:460
+quit             = $81DE = 33246          Main.asm:287
+update_airplane  = $82AE = 33454          Main.asm:400
+update_airplane_zero = $82C4 = 33476          Main.asm:411
+update_bomb      = $8285 = 33413          Main.asm:372
+update_predios   = $80AE = 32942          Main.asm:138
+update_screen    = $81E1 = 33249          Main.asm:290
+
+
+total time: 0.0349 sec.
+no errors

@@ -69,7 +69,8 @@ CR:     EQU 0DH                 ; Carriage return
 SPACE:  EQU 20H                 ; Space
 CURSOR: EQU 8FH                 ; Cursor
 DEL     EQU    7FH              ; Delete
-
+BDEL:     DB    00H
+CTRLC       .EQU    03H             ; Control "C"
 
 ;-----------------
 ; LCD_PRINT_STRING
@@ -90,6 +91,63 @@ LCD_PRINT_STRING:
         POP AF
 	RET
 
+
+;-----------------
+; Claer screen - reset terminal
+;-----------------
+LCD_CLEAR:
+        LD A, CS
+        CALL LCD_PRINT_A
+        RET
+        
+;-----------------
+; NEW LINE
+;-----------------
+LCD_CR:
+	LD A, CR
+	CALL LCD_PRINT_A
+	RET
+
+;-----------------
+; LCD_PRINT_A
+; Destroy only AF
+;-----------------
+LCD_PRINT_A:
+        PUSH AF
+	PUSH BC
+        PUSH DE
+        PUSH HL
+        
+        ; check delete (MSBasic)
+        PUSH AF
+        LD A, (BDEL)
+        or a
+        CP $FF
+        call z, DELETE_CHAR
+        POP AF
+        or a
+        CP $0
+        jr nz, LCD_PRINT_A_OK
+        LD A, $FF ; delete proximo char
+        LD (BDEL), A
+        jp LCD_PRINT_A_FIM
+LCD_PRINT_A_OK:
+	CALL SEND_CHAR_TO_GLCD
+LCD_PRINT_A_FIM:
+        POP HL
+        POP DE
+        POP BC 
+        POP AF
+	RET
+
+DELETE_CHAR:
+        POP AF ; AF
+        POP HL ; CALL
+        XOR A
+        LD (BDEL), A
+        
+        LD A, DEL ; delete char
+        JP LCD_PRINT_A_OK
 
 ;-----------------
 ; LCD_IMAGE_128x64 - Print image 128x64, CURSOR 0,0

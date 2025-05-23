@@ -1,0 +1,60 @@
+
+
+; SIO/2 - 115200
+SIOA_D		.EQU	$00 ; Serial-USB onboard
+SIOA_C		.EQU	$02 ; Serial-USB onboard
+SIOB_D		.EQU	$01 ; Printer
+SIOB_C		.EQU	$03 ; Printer
+
+    .org $8000
+    
+    ;	Initialise SIO/2 B - Printer (P2 conector)
+	LD	A,$04
+	OUT	(SIOB_C),A
+	LD	A,$C4
+	OUT	(SIOB_C),A
+
+	LD	A,$03
+	OUT	(SIOB_C),A
+	LD	A,$E1
+	OUT	(SIOB_C),A
+
+	LD	A,$05
+	OUT	(SIOB_C),A
+	LD	A, $68
+	OUT	(SIOB_C),A
+	
+	LD HL, msg
+	CALL PRINT
+	
+	LD HL, diego
+	CALL PRINT
+	
+	LD HL, line
+	CALL PRINT
+	
+	
+    JP 0
+    
+PRINT:
+    LD A, (HL)
+    CP 0
+    RET Z
+    OUT (SIOB_D), A
+    CALL DELAY
+    INC HL
+    JP PRINT
+    
+DELAY:
+    LD DE, $0001
+    CALL $0166
+    RET
+	
+msg:  .db  "Z80 Mini + Mobile Print MTP-II", $0D, $0A,0
+diego: .db $1b, $61, $01, "Diego", $0D, $0A,0
+line:   .db "ABCDEFGHIJKLMNOPQUVXZ1234567890A",  $0D, $0A
+line0:  .db "8000: 78 fe 67 e4 45 92 ca fe 56",  $0D
+line1:  .db "8009: 70 0e 47 a4 89 c7 ca c3 76",  $0D, $0A, $0A, $0A,0
+
+
+

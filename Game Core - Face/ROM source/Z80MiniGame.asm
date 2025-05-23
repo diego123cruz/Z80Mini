@@ -77,6 +77,12 @@ kDelayCnt:  .EQU kDelayTB / kDelayLP  ;Loop counter for inner loop
 SYSTEM_SP:	.EQU 	$FFF0	;INITIAL STACK POINTER
 
 
+; -----------------------------------------------------------------------------
+; I2C SETTINGS
+; -----------------------------------------------------------------------------
+I2CA_BLOCK: .EQU $AE            ;I2C device addess: 24LC256 (Copy from/to Mem)
+TIMEOUT:    .EQU 10000          ;Timeout loop counter
+
 
 ; -----------------------------------------------------------------------------
 ; INIT SYSTEM 
@@ -146,9 +152,8 @@ RST38:
     JP SET_CURSOR           ;Set the graphics cursor
     JP GET_CURSOR           ;Get the current cursor
     JP DISPLAY_CURSOR       ;Set Cursor on or off
-; UTIL
     JP DELAY_DE             ;Delay in milliseconds (DE in millis)
-
+	JP LCD_PRINT_STRING		;Print string HL, end with 0 EX: "Test", $00
 
 
 
@@ -168,10 +173,36 @@ INIT:
     CALL SET_GR_MODE
     CALL SET_BUF_NO_CLEAR
 
-	LD BC, $0000
+	XOR A
+    LD (CURSOR_MENU), A
+
+start:
+	CALL CLEAR_GBUF
+
+    LD BC, $0000
     CALL SET_CURSOR
-	LD HL, WELLCOME_LCD
-	CALL LCD_PRINT_STRING
+
+	XOR A
+	LD DE, WELLCOME_LCD
+	CALL SEND_STRING_TO_GLCD
+
+	CALL NEW_LINE_LCD
+
+    LD A, (CURSOR_MENU)
+    CP 0
+    CALL MENU1 
+
+    LD A, (CURSOR_MENU)
+    CP 1
+    CALL MENU2
+
+    LD A, (CURSOR_MENU)
+    CP 2
+    CALL MENU3
+
+    LD A, (CURSOR_MENU)
+    CP 3
+    CALL MENU4
 
 	LD  HL, INT38
     LD  (INT_VEC), HL
@@ -212,6 +243,274 @@ monitor1:
 
     jp monitor0
 
+
+
+LOAD_GAME:
+READ_MEM_FILES:
+    LD DE, $0000 ; start "D"? File
+READ_MEM_NEXT:
+    CALL READ_IIC_DE
+    OR A
+    CP 'D'
+    JP Z, READ_FILE
+    LD HL, MSG_EOF
+    CALL LCD_CR
+    CALL LCD_PRINT_STRING
+    LD A, CR
+    RET
+
+READ_FILE:
+    CALL LCD_CR ; new line
+    CALL LCD_CR ; new line
+    LD B, 16
+READ_NAME:
+    INC DE
+    CALL READ_IIC_DE
+    OR A
+    CP 0
+    CALL NZ, LCD_PRINT_A
+    DEC B
+    JP NZ, READ_NAME
+
+READ_MEM_KEY:
+    ; Show commands
+    PUSH DE
+    INC DE
+    CALL READ_IIC_DE
+    OR A
+    CP 0
+    CALL Z, SHOW_MSG_EXE
+    CP 1
+    CALL Z, SHOW_MSG_IMG
+    CP 2
+    CALL Z, SHOW_MSG_TXT
+    POP DE
+    ; wait command
+read_loop:
+    IN A, (GAMEPAD)
+	cp 0
+	JP Z, read_loop
+    bit 1, A ; Next - B
+    JP    NZ, READ_MEM_STEP
+    bit 0, A  ; key Enter, execute - A
+    JP    Z, READ_MEM_KEY
+    ;read type
+    INC DE
+    CALL READ_IIC_DE
+    OR A
+    CP 0
+    JP Z, READ_FILE_EXE
+    CP 1
+    JP Z, READ_FILE_IMG
+    CP 2
+    JP Z, READ_FILE_TXT
+    RET
+
+READ_MEM_STEP:
+    INC DE ; type
+    INC DE ; size H
+    CALL READ_IIC_DE
+    LD H, A
+    INC DE ; size L
+    CALL READ_IIC_DE
+    LD L, A
+READ_MEM_STEP_L:
+    INC DE ; step file
+    DEC HL
+    LD A, H
+    OR L
+    JP NZ, READ_MEM_STEP_L
+    INC DE ; end
+    INC DE ; nex start
+    JP READ_MEM_NEXT
+
+
+READ_FILE_EXE:
+    ; read size H
+    INC DE
+    CALL READ_IIC_DE
+    LD B, A
+
+    ; read size L
+    INC DE
+    CALL READ_IIC_DE
+    LD C, A
+
+    INC DE ; first byte file
+    LD HL, $8000 ; memory user
+
+    CALL I2C_MemRd
+    POP HL ; return
+    JP $8000
+    RET
+
+READ_FILE_IMG:
+    ; read size H
+    INC DE
+    CALL READ_IIC_DE
+    LD B, A
+
+    ; read size L
+    INC DE
+    CALL READ_IIC_DE
+    LD C, A
+
+    INC DE ; first byte file
+    LD HL, $8000 ; memory user
+
+    CALL I2C_MemRd
+
+    LD H, $80
+    LD L, $00
+    CALL LCD_IMAGE_128x64
+
+READ_FILE_IMG_K:
+    IN A, (GAMEPAD)
+    bit 3, A
+    JP    Z, READ_FILE_IMG_K
+    LD A, CS
+    RET
+
+READ_FILE_TXT:
+    CALL LCD_CLEAR
+
+    ; read size H
+    INC DE
+    CALL READ_IIC_DE
+    LD B, A
+
+    ; read size L
+    INC DE
+    CALL READ_IIC_DE
+    LD C, A
+
+    INC DE ; first byte file
+READ_FILE_TXT_L:
+    CALL READ_IIC_DE
+    CALL LCD_PRINT_A
+    INC DE ; step file
+    DEC BC
+    LD A, B
+    OR C
+    JP NZ, READ_FILE_TXT_L
+    INC DE ; end
+    INC DE ; next start    
+    RET
+
+
+SHOW_MSG_EXE:
+    LD HL, MSG_READFILE_EXE
+    CALL LCD_PRINT_STRING
+    RET
+
+SHOW_MSG_IMG:
+    LD HL, MSG_READFILE_IMG
+    CALL LCD_PRINT_STRING
+    RET
+
+SHOW_MSG_TXT:
+    LD HL, MSG_READFILE_TXT
+    CALL LCD_PRINT_STRING
+    RET
+
+
+; Read byte in i2c, address in DE, return byte in A
+READ_IIC_DE:
+    PUSH BC
+    PUSH DE
+    PUSH HL
+    LD   A, I2CA_BLOCK   ;I2C address to write to
+    CALL I2C_Open
+    LD   A, D           ;Address (hi) in I2C memory
+    CALL I2C_Write      ;Write address
+    LD   A,E            ;Address (lo) in I2C memory
+    CALL I2C_Write      ;Write address
+    LD   A,I2CA_BLOCK+1 ;I2C device to be read from
+    CALL I2C_Open       ;Open for read
+    CALL I2C_Read
+    PUSH AF
+    CALL I2C_Stop       ;Generate I2C stop
+    POP AF
+    POP HL
+    POP DE
+    POP BC
+    RET
+
+
+KEYUP:
+    IN A, (GAMEPAD)
+    CP 0
+    JP NZ, KEYUP
+    LD A, (CURSOR_MENU)
+    CP 0
+    JP Z, KEYUP_RES
+    DEC A
+    LD (CURSOR_MENU), A
+    JP start
+KEYUP_RES:
+    LD A, 3
+    LD (CURSOR_MENU), A
+    JP start
+
+KEYDOWN:
+    IN A, (GAMEPAD)
+    CP 0
+    JP NZ, KEYDOWN
+    LD A, (CURSOR_MENU)
+    CP 3
+    JP Z, KEYDOWN_RES
+    INC A
+    LD (CURSOR_MENU), A
+    JP start
+KEYDOWN_RES:
+    XOR A
+    LD (CURSOR_MENU), A
+    JP start
+
+MENU1:
+    JP NZ, $+8
+    LD A, 6; >
+    CALL SEND_CHAR_TO_GLCD
+    LD DE, MENU_LCD_1
+    XOR A
+	CALL SEND_STRING_TO_GLCD
+    RET
+
+MENU2:
+    JP NZ, $+8
+    LD A, 6; >
+    CALL SEND_CHAR_TO_GLCD
+    LD DE, MENU_LCD_2
+    XOR A
+	CALL SEND_STRING_TO_GLCD
+    RET
+
+MENU3:
+    JP NZ, $+8
+    LD A, 6; >
+    CALL SEND_CHAR_TO_GLCD
+    LD DE, MENU_LCD_3
+    XOR A
+	CALL SEND_STRING_TO_GLCD
+    RET
+
+MENU4:
+    JP NZ, $+8
+    LD A, 6; >
+    CALL SEND_CHAR_TO_GLCD
+    LD DE, MENU_LCD_4
+    XOR A
+	CALL SEND_STRING_TO_GLCD
+    RET
+
+
+
+NEW_LINE_LCD:
+	LD A, CR
+	CALL SEND_CHAR_TO_GLCD
+	RET
+
+
 INT38:
 	DI
 	PUSH AF
@@ -226,9 +525,134 @@ INT38_END:
 
 check_keypad:
 	in A, (GAMEPAD)
-	bit 2, A
-	JP NZ, $8000
+    BIT 7, A ; up
+    JP NZ, KEYUP
+    BIT 5, A ; down
+    JP NZ, KEYDOWN
+	BIT 0, A ; A
+    JP NZ, KEY_A
 	RET
+
+KEY_A:
+    IN A, (GAMEPAD)
+    CP 0
+    JP NZ, KEY_A
+	LD A, (CURSOR_MENU)
+	CP 0
+	JP Z, $8000 ; Start game JP $8000
+	CP 1
+	JP Z, LOAD_GAME
+	CP 2
+	JP Z, TEST_KEYS
+	CP 3
+	JP Z, 0 ; reset
+	JP 0
+
+
+TEST_KEYS:
+    CALL CLEAR_GBUF
+
+    ; select
+    LD B, 56
+    LD C, 7
+    LD E, $06
+    IN A, ($40)
+    BIT 3, A
+    JP Z, $+9
+    CALL FILL_CIRCLE
+    JP $+6
+    CALL DRAW_CIRCLE
+    
+    ; Start
+    LD B, 73
+    LD C, 7
+    LD E, $06
+    IN A, ($40)
+    BIT 2, A
+    JP Z, $+9
+    CALL FILL_CIRCLE
+    JP $+6
+    CALL DRAW_CIRCLE
+    
+
+    ; A
+    LD B, 89
+    LD C, 40
+    LD E, $06
+    IN A, ($40)
+    BIT 0, A
+    JP Z, $+9
+    CALL FILL_CIRCLE
+    JP $+6
+    CALL DRAW_CIRCLE
+    
+    
+    ; B
+    LD B, 105
+    LD C, 24
+    LD E, $06
+    IN A, ($40)
+    BIT 1, A
+    JP Z, $+9
+    CALL FILL_CIRCLE
+    JP $+6
+    CALL DRAW_CIRCLE
+    
+    
+    ; Up
+    LD B, 24
+    LD C, 24
+    LD E, $06
+    IN A, ($40)
+    BIT 7, A
+    JP Z, $+9
+    CALL FILL_CIRCLE
+    JP $+6
+    CALL DRAW_CIRCLE
+    
+    ; Down
+    LD B, 24
+    LD C, 57
+    LD E, $06
+    IN A, ($40)
+    BIT 5, A
+    JP Z, $+9
+    CALL FILL_CIRCLE
+    JP $+6
+    CALL DRAW_CIRCLE
+    
+    ; Left
+    LD B, 7
+    LD C, 41
+    LD E, $06
+    IN A, ($40)
+    BIT 6, A
+    JP Z, $+9
+    CALL FILL_CIRCLE
+    JP $+6
+    CALL DRAW_CIRCLE
+    
+    ; Right
+    LD B, 40
+    LD C, 40
+    LD E, $06
+    IN A, ($40)
+    BIT 4, A
+    JP Z, $+9
+    CALL FILL_CIRCLE
+    JP $+6
+    CALL DRAW_CIRCLE
+    
+	CALL PLOT_TO_LCD
+
+	; check select+start to exit
+    IN A, (GAMEPAD)
+    BIT 2, A
+	JP Z, TEST_KEYS
+    BIT 3, A
+    JP Z, TEST_KEYS
+    jp INIT
+
 
 setup_serial:
     ;	Initialise SIO/2 A
@@ -489,6 +913,10 @@ LOAD00  	LD   HL,LDETXT	; Print load complete message
 
 
 #include "LCD.asm"
+#include "I2C.asm"
+
+
+
 
 
 msg_help:
@@ -510,9 +938,19 @@ LDETXT:
 		.BYTE	CR, LF, $00
 
 WELLCOME: .db CS, CR, CR, LF,"Z80Mini - Game core", CR, LF, 00H
-WELLCOME_LCD: .db "Z80Mini - Game core", CR, 00H
 
-MSG_MENU0  .db "RUN (JP $8000)",CR, 00H
+WELLCOME_LCD: .db "Z80Mini - Game core", CR, CR, 00H
+
+I2C_LIST_MSG:    .DB "I2C device found at:",CR,0
+MSG_EOF  .db " - - - FIM - - - ", 00H
+MSG_READFILE_EXE .db "_EXE", 00H
+MSG_READFILE_IMG .db "_IMG", 00H
+MSG_READFILE_TXT .db "_TXT", 00H
+
+MENU_LCD_1:         .db " Start game", CR, 00H
+MENU_LCD_2:         .db " Load from card", CR, 00H
+MENU_LCD_3:         .db " Test keys", CR, 00H
+MENU_LCD_4:         .db " Reset", CR, 00H
 
 
 ; RAM Locations - Move this section to RAM if necessary
@@ -542,5 +980,7 @@ INVERSE: DB 00H         ;Inverse Flag
 PIXEL_X: DB 00H         ;Pixel X length
 INT_VEC: DW 0000H       ;Vetor de interrupção
 GAMEPAD_KEY: DB 00H 	;Guarda tecla lida na interrupcao
+CURSOR_MENU:      .db $00	; Cursor menu
 
+I2C_RAMCPY:         .DB    $00   ; 1 byte - RAM copy of output port
 .end
