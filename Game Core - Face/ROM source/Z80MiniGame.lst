@@ -1,6 +1,6 @@
               	; --------------------------------------
               	; zasm: assemble "Z80MiniGame.asm"
-              	; date: 2025-05-24 20:34:46
+              	; date: 2025-05-24 20:54:02
               	; --------------------------------------
 
 
@@ -4616,11 +4616,11 @@ FFF0:         	SYSTEM_SP:	.EQU 	$FFF0	;INITIAL STACK POINTER
 136D: 494D202D	
 1371: 202D202D	
 1375: 2000    	
-1377: 5F455845	MSG_READFILE_EXE .db "_EXE", 00H
+1377: 2E62696E	MSG_READFILE_EXE .db ".bin", 00H
 137B: 00      	
-137C: 5F494D47	MSG_READFILE_IMG .db "_IMG", 00H
+137C: 2E696D67	MSG_READFILE_IMG .db ".img", 00H
 1380: 00      	
-1381: 5F545854	MSG_READFILE_TXT .db "_TXT", 00H
+1381: 2E747874	MSG_READFILE_TXT .db ".txt", 00H
 1385: 00      	
               	
 1386: 20537461	MENU_LCD_1:         .db " Start game", CR, 00H
@@ -4977,5 +4977,5 @@ start               = $019A =   410          Z80MiniGame.asm:184
 waitForChar         = $04D2 =  1234          Z80MiniGame.asm:726
 
 
-total time: 0.1206 sec.
+total time: 0.0870 sec.
 no errors

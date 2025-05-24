@@ -948,9 +948,9 @@ WELLCOME_LCD: .db "Z80Mini - Game core", CR, CR, 00H
 
 I2C_LIST_MSG:    .DB "I2C device found at:",CR,0
 MSG_EOF  .db " - - - FIM - - - ", 00H
-MSG_READFILE_EXE .db "_EXE", 00H
-MSG_READFILE_IMG .db "_IMG", 00H
-MSG_READFILE_TXT .db "_TXT", 00H
+MSG_READFILE_EXE .db ".bin", 00H
+MSG_READFILE_IMG .db ".img", 00H
+MSG_READFILE_TXT .db ".txt", 00H
 
 MENU_LCD_1:         .db " Start game", CR, 00H
 MENU_LCD_2:         .db " Load from card", CR, 00H

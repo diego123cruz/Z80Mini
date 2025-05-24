@@ -1,0 +1,4 @@
+Execute o arquivo index.html
+
+Esse programa serve para juntar arquivos,(texto, hex, image), em um arquivo .bin,
+ para ser gravado na memoria i2c (24C256). Com isso pode ser usado no menu "Load from card".

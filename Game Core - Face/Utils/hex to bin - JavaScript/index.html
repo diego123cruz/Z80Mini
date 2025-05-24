@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width" />
+  <title>intelHexToHex</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>Z80 Mini - Convert intelHex to Bin file (Protocol)</h1>
+  <h4>'D' + [name, max 16] + [type] + [size, 2 bytes] + [file code, n...] + 'O'</h4>
+  <h5>Types: 0x00 - Execute, 0x01 - Image, 0x02 - Text</h5>
+
+  <p>Nome:
+  <input style="text-transform:uppercase" type="text" id="inputText" maxlength="16">
+   (Max 16 caracteres)
+  </p>
+  <p>Selecione tipo:
+  <select id="selectType" onchange="onClangeSelect()">
+    <option value="0x00" selected>Executable</option>
+    <option value="0x01">Image (128x64)</option>
+    <option value="0x02">Text</option>
+  </select>
+</p>
+  <br>
+
+  <div id="divImage" style="display: none" >
+  <canvas id="canvas" width="256" height="128" style="border: 1px solid rgb(155, 155, 155);"></canvas>
+  <br>
+  <button type=button name="btnDecConvert"
+        onclick="renderImage()">
+        Colar (Image 128x64 HEX)
+      </button>
+  
+  <br>
+  </div>
+
+  <div id="divCode" style="display: block;">
+  <p>Selecione o arquivo ou Cole o código em intelHex:</p>
+  <input type="file" id="fileInput"/>
+  <br>
+  <textarea id="inputHex" name="hex" rows="8" cols="67" style="width: 550px;"></textarea>
+  <br>
+  </div>
+
+  <br>
+  <br>
+  <button onclick="convertTextToHex(false)">Converter</button>
+  <button onclick="convertTextToHex(true)">Converter + Append</button>
+
+  <form name="frmConvert" action="">
+    <p>SAÍDA - Hex string:</p>
+      <p>
+    <textarea id="outputHex" name="hex" rows="8" cols="67" style="width: 550px;"></textarea>
+    </p>
+    <!-- <p>Cleaned input:</p>
+      <p><input type="text" name="cleaned_hex" readonly="readonly" value="" style="width: 550px;"></p>				      
+    <p>Name of file to create:</p>
+      <p>
+      -->
+
+    <input type="text" name="filename" value="file.bin" style="width: 550px;">
+    </p>	  
+
+    <p>
+      <button type=button name="btnConvert"
+        onclick="Convert()">
+        Convert
+      </button>
+    </p>
+  </form>
+
+  <br>
+
+  <p>----------------------------------- Utils -----------------------------------</p>
+
+  <p>
+      <input type="text" id="decNum" value="0" style="width: 100px;">
+
+      <button type=button name="btnDecConvert"
+        onclick="ConvertToHex()">
+        Convert Dec To Hex
+      </button>
+      <input type="text" id="outHexConv" value="0x00, 0x00" style="width: 100px;">
+    </p>
+
+  <script src="script.js"></script>
+</body>
+</html>
+
