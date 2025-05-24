@@ -1,0 +1,453 @@
+              	; --------------------------------------
+              	; zasm: assemble "Main.asm"
+              	; date: 2025-05-24 20:39:50
+              	; --------------------------------------
+
+
+              	; **********************************************************************
+              	; **  API - Public functions                                          **
+              	; **********************************************************************
+              	
+              	;----------------------------------------------------------------------------------------------------------
+              	;	Display LCD
+              	;----------------------------------------------------------------------------------------------------------
+0100:         	INIT_LCD			        .EQU	$0100			;Initalise the LCD
+0103:         	CLEAR_GBUF			        .EQU	$0103			;Clear the Graphics Buffer
+0106:         	CLEAR_GR_LCD			    .EQU	$0106			;Clear the Graphics LCD Screen
+0109:         	CLEAR_TXT_LCD			    .EQU	$0109			;Clear the Text LCD Screen
+010C:         	SET_GR_MODE			        .EQU	$010C			;Set Graphics Mode
+010F:         	SET_TXT_MODE			    .EQU	$010F			;Set Text Mode
+0112:         	DRAW_BOX			        .EQU	$0112			;Draw a rectangle between two points
+0115:         	DRAW_LINE			        .EQU	$0115			;Draw a line between two points
+0118:         	DRAW_CIRCLE			        .EQU	$0118			;Draw a circle from Mid X,Y to Radius
+011B:         	DRAW_PIXEL			        .EQU	$011B			;Draw one pixel at X,Y
+011E:         	FILL_BOX			        .EQU	$011E			;Draw a filled rectangle between two points
+0121:         	FILL_CIRCLE			        .EQU	$0121			;Draw a filled circle from Mid X,Y to Radius
+0124:         	PLOT_TO_LCD			        .EQU	$0124			;Display the Graphics Buffer to the LCD Screen
+0127:         	PRINT_STRING			    .EQU	$0127			;Print Text on the screen in a given row
+012A:         	PRINT_CHARS			        .EQU	$012A			;Print Characters on the screen in a given row and column
+012D:         	DELAY_US			        .EQU	$012D			;Microsecond delay for LCD updates
+0130:         	DELAY_MS             		.EQU	$0130			;Millisecond delay for LCD updates
+0133:         	SET_BUF_CLEAR			    .EQU	$0133			;Clear the Graphics buffer on after Plotting to the screen
+0136:         	SET_BUF_NO_CLEAR     		.EQU	$0136			;Retain the Graphics buffer on after Plotting to the screen
+0139:         	CLEAR_PIXEL          		.EQU	$0139			;Remove a Pixel at X,Y
+013C:         	FLIP_PIXEL			        .EQU	$013C			;Flip a Pixel On/Off at X,Y
+013F:         	LCD_INST             		.EQU	$013F			;Send a parallel or serial instruction to LCD
+0142:         	LCD_DATA             		.EQU	$0142			;Send a parallel or serial datum to LCD
+0145:         	SER_SYNC             		.EQU	$0145			;Send serial synchronise byte to LCD
+0148:         	DRAW_GRAPHIC         		.EQU	$0148			;Draw an ASCII charcter or Sprite to the LCD
+014B:         	INV_GRAPHIC          		.EQU	$014B			;Inverse graphics printing
+014E:         	INIT_TERMINAL        		.EQU	$014E			;Initialize the LCD for terminal emulation
+0151:         	SEND_CHAR_TO_GLCD    		.EQU	$0151			;Send an ASCII Character to the LCD
+0154:         	SEND_STRING_TO_GLCD 		.EQU	$0154			;Send an ASCII String to the LCD
+0157:         	SEND_A_TO_GLCD       		.EQU	$0157			;Send register A to the LCD
+015A:         	SEND_HL_TO_GLCD      		.EQU	$015A			;Send register HL to the LCD
+015D:         	SET_CURSOR           		.EQU	$015D			;Set the graphics cursor
+0160:         	GET_CURSOR           		.EQU	$0160			;Get the current cursor
+0163:         	DISPLAY_CURSOR       		.EQU	$0163			;Set Cursor on or off
+              	;----------------------------------------------------------------------------------------------------------
+              	;	UTIL
+              	;----------------------------------------------------------------------------------------------------------
+0166:         	H_Delay              		.EQU	$0166			;Delay in milliseconds (DE in millis)
+0169:         	LCD_PRINT_STRING            .EQU    $0169           ;Print string HL, end with 0 EX: "Test", $00
+              	;----------------------------------------------------------------------------------------------------------
+              	;	I2C Board
+              	;----------------------------------------------------------------------------------------------------------
+016C:         	I2C_Open     			    .EQU	$016C			;Start i2c (Device address in A)
+016F:         	I2C_Close             		.EQU	$016F			;Close i2c 
+0172:         	I2C_Read              		.EQU	$0172			;I2C Read (data in A)
+0175:         	I2C_Write 			        .EQU	$0175			;I2C Write (data in A)
+0178:         	I2CLIST                     .EQU    $0178           ;I2C List devices on lcd
+              	
+              	; Display oled SSD1306 128x32 ou 128x64
+0078:         	oled    .equ    $78
+              	
+8000:         	    .org $8000
+              	    
+              	    
+              	
+8000:         	inicio:
+              	
+              	    ; display on
+8000: 3EAF    	    LD a, $AF
+8002: CDD680  	    CALL send_cmd
+              	    
+              	    ; set display normal
+8005: 3EA6    	    LD a, $A6
+8007: CDD680  	    CALL send_cmd
+              	    
+              	    ; Page mode
+800A: 3E02    	    LD a, $02
+800C: CDD680  	    CALL send_cmd
+              	    
+              	    ; Charge Pump
+800F: 3E8D    	    LD a, $8d
+8011: CDD680  	    CALL send_cmd
+8014: 3E14    	    LD a, $14
+8016: CDD680  	    CALL send_cmd
+              	    
+              	
+              	    ; 128x32 - Remover para 128x64
+8019: 3EA8    	    LD a, $a8
+801B: CDD680  	    CALL send_cmd
+801E: 3E1F    	    LD a, $1f
+8020: CDD680  	    CALL send_cmd
+              	    
+              	    ; 128x32 - Remover para 128x64
+8023: 3EDA    	    LD a, $da
+8025: CDD680  	    CALL send_cmd
+8028: 3E02    	    LD a, $02
+802A: CDD680  	    CALL send_cmd
+              	
+              	    ; horizontal
+802D: 3E20    	    LD a, $20
+802F: CDD680  	    CALL send_cmd
+8032: 3E00    	    LD a, $00
+8034: CDD680  	    CALL send_cmd
+              	    
+              	    ; col
+8037: 3E21    	    LD a, $21
+8039: CDD680  	    CALL send_cmd
+803C: 3E00    	    LD a, 0
+803E: CDD680  	    CALL send_cmd
+8041: 3E7F    	    LD a, 127
+8043: CDD680  	    CALL send_cmd
+              	    
+              	    ; row
+8046: 3E22    	    LD a, $22
+8048: CDD680  	    CALL send_cmd
+804B: 3E00    	    LD a, 0
+804D: CDD680  	    CALL send_cmd
+8050: 3E03    	    LD a, 3
+8052: CDD680  	    CALL send_cmd
+              	    
+              	    
+              	    
+8055: CDCF80  	    call delay
+              	    
+              	    ;==================
+              	
+              	    ; Teste carregamento de imagem por partes de 128x8
+              	
+8058: 0680    	    ld b, 128
+805A: 21FC80  	    ld hl, z1
+805D:         	img:
+805D: 7E      	    ld a, (hl)
+805E: C5      	    push bc
+805F: E5      	    push hl
+8060: CDE980  	    call send_data
+8063: E1      	    pop hl
+8064: C1      	    pop bc
+8065: 23      	    inc hl
+8066: 10F5    	    djnz img
+              	
+              	
+8068: 0680    	    ld b, 128
+806A: 217C81  	    ld hl, z2
+806D:         	img1:
+806D: 7E      	    ld a, (hl)
+806E: C5      	    push bc
+806F: E5      	    push hl
+8070: CDE980  	    call send_data
+8073: E1      	    pop hl
+8074: C1      	    pop bc
+8075: 23      	    inc hl
+8076: 10F5    	    djnz img1
+              	    
+              	    
+8078: 0680    	    ld b, 128
+807A: 21FC81  	    ld hl, z3
+807D:         	img2:
+807D: 7E      	    ld a, (hl)
+807E: C5      	    push bc
+807F: E5      	    push hl
+8080: CDE980  	    call send_data
+8083: E1      	    pop hl
+8084: C1      	    pop bc
+8085: 23      	    inc hl
+8086: 10F5    	    djnz img2
+              	    
+              	    
+8088: 0680    	    ld b, 128
+808A: 218C82  	    ld hl, z4
+808D:         	img3:
+808D: 7E      	    ld a, (hl)
+808E: C5      	    push bc
+808F: E5      	    push hl
+8090: CDE980  	    call send_data
+8093: E1      	    pop hl
+8094: C1      	    pop bc
+8095: 23      	    inc hl
+8096: 10F5    	    djnz img3
+              	    
+              	    
+              	
+8098:         	loop:
+8098: DB40    	    IN A, ($40)
+809A: CB7F    	    bit 7, a
+809C: C4C680  	    call nz, up
+809F: CB6F    	    bit 5, a
+80A1: C4BD80  	    call nz, down
+80A4: CB77    	    bit 6, a
+80A6: C4B780  	    call nz, left
+80A9: CB67    	    bit 4, a
+80AB: C4B180  	    call nz, right
+              	    
+              	
+80AE: C39880  	    JP loop
+              	
+              	
+              	
+80B1:         	right:
+80B1: 3EFF    	    ld a, $ff
+80B3: CDE980  	    call send_data
+              	    ;call delay
+80B6: C9      	    ret
+              	    
+80B7:         	left:
+80B7: 3E00    	    ld a, $00
+80B9: CDE980  	    call send_data
+              	    ;call delay
+80BC: C9      	    ret
+              	    
+80BD:         	down:
+80BD: 3EF0    	    ld a, $F0
+80BF: CDE980  	    call send_data
+80C2: CDCF80  	    call delay
+80C5: C9      	    ret
+              	    
+80C6:         	up:
+80C6: 3EAA    	    ld a, $aa
+80C8: CDE980  	    call send_data
+80CB: CDCF80  	    call delay
+80CE: C9      	    ret
+              	    
+              	
+80CF:         	delay:
+80CF: 113200  	    LD DE, $0032
+80D2: CD6601  	    CALL H_Delay
+80D5: C9      	    Ret
+              	
+              	
+              	
+80D6:         	send_cmd:
+80D6: F5      	    PUSH AF
+80D7: 3E78    	    LD A, oled
+80D9: CD6C01  	    CALL I2C_Open
+80DC: 3E00    	    LD A, $00 ; Commands
+80DE: CD7501  	    CALL I2C_Write
+80E1: F1      	    POP AF
+80E2: CD7501  	    CALL I2C_Write
+80E5: CD6F01  	    CALL I2C_Close
+80E8: C9      	    ret
+              	
+              	
+80E9:         	send_data:
+80E9: F5      	    PUSH AF
+80EA: 3E78    	    LD A, oled
+80EC: CD6C01  	    CALL I2C_Open
+80EF: 3E40    	    LD A, $40 ; Dados
+80F1: CD7501  	    CALL I2C_Write
+80F4: F1      	    POP AF
+80F5: CD7501  	    CALL I2C_Write
+80F8: CD6F01  	    CALL I2C_Close
+80FB: C9      	    ret
+              	    
+              	    
+              	
+80FC: 00000000	z1: .db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+8100: 00...   	
+810C: 00000000	.db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+8110: 00...   	
+811C: 00000000	.db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+8120: 00...   	
+812C: 00000000	.db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+8130: 00...   	
+813C: 00000000	.db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+8140: 00...   	
+814C: 00000000	.db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xC0, 0x20, 0x10, 0x10, 0x10
+8150: 00000000	
+8154: 000000C0	
+8158: 20101010	
+815C: 20000000	.db 0x20, 0x00, 0x00, 0x00, 0xC0, 0x30, 0xC0, 0x00, 0x00, 0x00, 0xF0, 0x30, 0xC0, 0x00, 0x00, 0x00
+8160: C030C000	
+8164: 0000F030	
+8168: C0000000	
+816C: C030F000	.db 0xC0, 0x30, 0xF0, 0x00, 0x00, 0xF0, 0x90, 0x90, 0x90, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+8170: 00F09090	
+8174: 90000000	
+8178: 00000000	
+              	
+817C: 00030303	z2: .db 0x00, 0x03, 0x03, 0x03, 0x83, 0xC3, 0xF3, 0x3B, 0x1F, 0x07, 0x00, 0x00, 0x00, 0x3C, 0x7E, 0xE7
+8180: 83C3F33B	
+8184: 1F070000	
+8188: 003C7EE7	
+818C: C3C3E73E	.db 0xC3, 0xC3, 0xE7, 0x3E, 0x1E, 0x00, 0x00, 0x00, 0xF0, 0xFC, 0x0E, 0x03, 0x03, 0x03, 0x03, 0x0E
+8190: 1E000000	
+8194: F0FC0E03	
+8198: 0303030E	
+819C: FEF80000	.db 0xFE, 0xF8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x07, 0x3E, 0xF8, 0xC0
+81A0: 00000000	
+81A4: 0000FFFF	
+81A8: 073EF8C0	
+81AC: 00000000	.db 0x00, 0x00, 0x00, 0x00, 0xC0, 0xF8, 0x1E, 0x07, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF3
+81B0: C0F81E07	
+81B4: FFFF0000	
+81B8: 000000F3	
+81BC: F3000000	.db 0xF3, 0x00, 0x00, 0x00, 0x00, 0xF0, 0xF0, 0x60, 0x30, 0x30, 0x30, 0x70, 0xE0, 0xC0, 0x00, 0x00
+81C0: 00F0F060	
+81C4: 30303070	
+81C8: E0C00000	
+81CC: 0000F3F3	.db 0x00, 0x00, 0xF3, 0xF3, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x04, 0x08, 0x09, 0x09
+81D0: 00000000	
+81D4: 00000003	
+81D8: 04080909	
+81DC: 07000C03	.db 0x07, 0x00, 0x0C, 0x03, 0x02, 0x02, 0x02, 0x03, 0x0C, 0x00, 0x0F, 0x00, 0x00, 0x03, 0x0C, 0x03
+81E0: 02020203	
+81E4: 0C000F00	
+81E8: 00030C03	
+81EC: 00000F00	.db 0x00, 0x00, 0x0F, 0x00, 0x00, 0x0F, 0x08, 0x08, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+81F0: 000F0808	
+81F4: 08000000	
+81F8: 00000000	
+              	
+81FC: 00707C6E	z3: .db 0x00, 0x70, 0x7C, 0x6E, 0x67, 0x61, 0x60, 0x60, 0x60, 0x60, 0x60, 0x00, 0x1C, 0x3E, 0x73, 0x61
+8200: 67616060	
+8204: 60606000	
+8208: 1C3E7361	
+820C: 60606173	.db 0x60, 0x60, 0x61, 0x73, 0x3F, 0x1E, 0x00, 0x00, 0x0F, 0x3F, 0x38, 0x60, 0x60, 0x60, 0x60, 0x38
+8210: 3F1E0000	
+8214: 0F3F3860	
+8218: 60606038	
+821C: 1F070000	.db 0x1F, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7F, 0x7F, 0x00, 0x00, 0x00, 0x07
+8220: 00000000	
+8224: 00007F7F	
+8228: 00000007	
+822C: 1F78781F	.db 0x1F, 0x78, 0x78, 0x1F, 0x07, 0x00, 0x00, 0x00, 0x7F, 0x7F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7F
+8230: 07000000	
+8234: 7F7F0000	
+8238: 0000007F	
+823C: 7F000000	.db 0x7F, 0x00, 0x00, 0x00, 0x00, 0x7F, 0x7F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x7F, 0x7F, 0x00, 0x00
+8240: 007F7F00	
+8244: 00000000	
+8248: 7F7F0000	
+824C: 00007F7F	.db 0x00, 0x00, 0x7F, 0x7F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xE0, 0x10, 0x08, 0x08, 0x08
+8250: 00000000	
+8254: 000000E0	
+8258: 10080808	
+825C: 1000E010	.db 0x10, 0x00, 0xE0, 0x10, 0x08, 0x08, 0x08, 0x10, 0xE0, 0x00, 0x00, 0xF8, 0x88, 0x88, 0x88, 0x70
+8260: 08080810	
+8264: E00000F8	
+8268: 88888870	
+826C: 0000F848	.db 0x00, 0x00, 0xF8, 0x48, 0x48, 0x48, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+8270: 48480000	
+8274: 00000000	
+8278: 00000000	
+827C: 00000000	.db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+8280: 00...   	
+              	
+828C: 00000000	z4: .db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+8290: 00...   	
+829C: 00000000	.db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+82A0: 00...   	
+82AC: 00000000	.db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+82B0: 00...   	
+82BC: 00000000	.db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+82C0: 00...   	
+82CC: 00000000	.db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+82D0: 00...   	
+82DC: 00000000	.db 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x04, 0x04, 0x04
+82E0: 00000000	
+82E4: 00000001	
+82E8: 02040404	
+82EC: 02000102	.db 0x02, 0x00, 0x01, 0x02, 0x04, 0x04, 0x04, 0x02, 0x01, 0x00, 0x00, 0x07, 0x00, 0x00, 0x01, 0x06
+82F0: 04040402	
+82F4: 01000007	
+82F8: 00000106	
+82FC: 00000704	.db 0x00, 0x00, 0x07, 0x04, 0x04, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+8300: 04040000	
+8304: 00000000	
+8308: 00000000	
+              	
+              	
+              	
+              	
+              	
+              	
+              	
+              	
+              	    
+
+
+; +++ segments +++
+
+#CODE          = $8000 = 32768,  size = $030C =   780
+
+; +++ global symbols +++
+
+CLEAR_GBUF          = $0103 =   259          Main.asm:9 (unused)
+CLEAR_GR_LCD        = $0106 =   262          Main.asm:10 (unused)
+CLEAR_PIXEL         = $0139 =   313          Main.asm:27 (unused)
+CLEAR_TXT_LCD       = $0109 =   265          Main.asm:11 (unused)
+DELAY_MS            = $0130 =   304          Main.asm:24 (unused)
+DELAY_US            = $012D =   301          Main.asm:23 (unused)
+DISPLAY_CURSOR      = $0163 =   355          Main.asm:41 (unused)
+DRAW_BOX            = $0112 =   274          Main.asm:14 (unused)
+DRAW_CIRCLE         = $0118 =   280          Main.asm:16 (unused)
+DRAW_GRAPHIC        = $0148 =   328          Main.asm:32 (unused)
+DRAW_LINE           = $0115 =   277          Main.asm:15 (unused)
+DRAW_PIXEL          = $011B =   283          Main.asm:17 (unused)
+FILL_BOX            = $011E =   286          Main.asm:18 (unused)
+FILL_CIRCLE         = $0121 =   289          Main.asm:19 (unused)
+FLIP_PIXEL          = $013C =   316          Main.asm:28 (unused)
+GET_CURSOR          = $0160 =   352          Main.asm:40 (unused)
+H_Delay             = $0166 =   358          Main.asm:45
+I2CLIST             = $0178 =   376          Main.asm:54 (unused)
+I2C_Close           = $016F =   367          Main.asm:51
+I2C_Open            = $016C =   364          Main.asm:50
+I2C_Read            = $0172 =   370          Main.asm:52 (unused)
+I2C_Write           = $0175 =   373          Main.asm:53
+INIT_LCD            = $0100 =   256          Main.asm:8 (unused)
+INIT_TERMINAL       = $014E =   334          Main.asm:34 (unused)
+INV_GRAPHIC         = $014B =   331          Main.asm:33 (unused)
+LCD_DATA            = $0142 =   322          Main.asm:30 (unused)
+LCD_INST            = $013F =   319          Main.asm:29 (unused)
+LCD_PRINT_STRING    = $0169 =   361          Main.asm:46 (unused)
+PLOT_TO_LCD         = $0124 =   292          Main.asm:20 (unused)
+PRINT_CHARS         = $012A =   298          Main.asm:22 (unused)
+PRINT_STRING        = $0127 =   295          Main.asm:21 (unused)
+SEND_A_TO_GLCD      = $0157 =   343          Main.asm:37 (unused)
+SEND_CHAR_TO_GLCD   = $0151 =   337          Main.asm:35 (unused)
+SEND_HL_TO_GLCD     = $015A =   346          Main.asm:38 (unused)
+SEND_STRING_TO_GLCD = $0154 =   340          Main.asm:36 (unused)
+SER_SYNC            = $0145 =   325          Main.asm:31 (unused)
+SET_BUF_CLEAR       = $0133 =   307          Main.asm:25 (unused)
+SET_BUF_NO_CLEAR    = $0136 =   310          Main.asm:26 (unused)
+SET_CURSOR          = $015D =   349          Main.asm:39 (unused)
+SET_GR_MODE         = $010C =   268          Main.asm:12 (unused)
+SET_TXT_MODE        = $010F =   271          Main.asm:13 (unused)
+_end                = $830C = 33548          Main.asm:59 (unused)
+_size               = $030C =   780          Main.asm:59 (unused)
+_z80_               = $0001 =     1          Main.asm:1 (unused)
+delay               = $80CF = 32975          Main.asm:220
+down                = $80BD = 32957          Main.asm:207
+img                 = $805D = 32861          Main.asm:128
+img1                = $806D = 32877          Main.asm:141
+img2                = $807D = 32893          Main.asm:154
+img3                = $808D = 32909          Main.asm:167
+inicio              = $8000 = 32768          Main.asm:63 (unused)
+left                = $80B7 = 32951          Main.asm:201
+loop                = $8098 = 32920          Main.asm:179
+oled                = $0078 =   120          Main.asm:57
+right               = $80B1 = 32945          Main.asm:195
+send_cmd            = $80D6 = 32982          Main.asm:227
+send_data           = $80E9 = 33001          Main.asm:239
+up                  = $80C6 = 32966          Main.asm:213
+z1                  = $80FC = 33020          Main.asm:252
+z2                  = $817C = 33148          Main.asm:261
+z3                  = $81FC = 33276          Main.asm:270
+z4                  = $828C = 33420          Main.asm:280
+
+
+total time: 0.0325 sec.
+no errors

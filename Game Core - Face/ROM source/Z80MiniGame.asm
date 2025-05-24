@@ -154,7 +154,12 @@ RST38:
     JP DISPLAY_CURSOR       ;Set Cursor on or off
     JP DELAY_DE             ;Delay in milliseconds (DE in millis)
 	JP LCD_PRINT_STRING		;Print string HL, end with 0 EX: "Test", $00
-
+	; I2C Board
+    JP I2C_Open              ;Start i2c (Device address in A)
+    JP I2C_Close             ;Close i2c 
+    JP I2C_Read              ;I2C Read
+    JP I2C_Write             ;I2C Write
+	JP I2CLIST				 ;I2C List devices on lcd
 
 
 

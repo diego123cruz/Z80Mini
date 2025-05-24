@@ -465,6 +465,6 @@ HexOutHex:       CP   $0A           ;Nibble > 10 ?
             JR   C,HexOutSkip        ;No, so skip
             ADD  A,7            ;Yes, so add 7
 HexOutSkip:      ADD  A,$30         ;Add ASCII '0'
-            CALL $0008       ;Write character
+            CALL LCD_PRINT_A       ;Write character
             RET
 
