@@ -181,6 +181,10 @@ comer:
     RET
 
 new_food:
+    ld a, (count)
+    adc a, 1
+    daa
+    ld (count), a
     CALL randomHL
     LD A, H
     LD (food_x), A
@@ -195,7 +199,7 @@ fim_de_jogo:
     LD A, 0
     LD DE, msg_gameover
     CALL SEND_STRING_TO_GLCD
-    LD A, (size)
+    LD A, (count)
     CALL SEND_A_TO_GLCD
 fim_de_jogo_loop:
     in A, (GAMEPAD)
@@ -491,6 +495,7 @@ prng16:
 
 msg_start      .db "Press START",0
 msg_gameover   .db "GAMEOVER ",0
+count       .db $00
 read_keys   .db $00
 gameover    .db $00
 seed1       .dw 1234

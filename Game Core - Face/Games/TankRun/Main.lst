@@ -1,6 +1,6 @@
               	; --------------------------------------
               	; zasm: assemble "Main.asm"
-              	; date: 2025-05-27 10:54:36
+              	; date: 2025-05-27 20:13:14
               	; --------------------------------------
 
 
@@ -76,28 +76,28 @@
 8003: E5      	    PUSH HL
               	    
 8004: AF      	    xor a
-8005: 32C681  	    ld (box_x), a
-8008: 32C781  	    ld (box_y), a
-800B: 32C881  	    ld (box2_x), a
-800E: 32C981  	    ld (box2_y), a
+8005: 32C881  	    ld (box_x), a
+8008: 32C981  	    ld (box_y), a
+800B: 32CA81  	    ld (box2_x), a
+800E: 32CB81  	    ld (box2_y), a
 8011: 3E30    	    ld a, $30
-8013: 32CA81  	    ld (player_x),a
-8016: 32CB81  	    ld (player_y),a
+8013: 32CC81  	    ld (player_x),a
+8016: 32CD81  	    ld (player_y),a
 8019: CD0301  	    call CLEAR_GBUF
 801C: CD8101  	    call INIT_GAME_WAIT_START
 801F: CDDF80  	    call new_fruit
 8022: AF      	    XOR A
-8023: 32C381  	    LD (count), A
+8023: 32C581  	    LD (count), A
 8026:         	loop:
               	    
-8026: CD4281  	    call ler_teclado
+8026: CD4481  	    call ler_teclado
 8029: CD0301  	    call CLEAR_GBUF
               	    
               	    
               	    ; print fruit
-802C: 3AC481  	    LD A, (fruit_x)
+802C: 3AC681  	    LD A, (fruit_x)
 802F: 47      	    ld b, a
-8030: 3AC581  	    ld a, (fruit_y)
+8030: 3AC781  	    ld a, (fruit_y)
 8033: 4F      	    ld c, a
 8034: 1E01    	    LD E, 1
 8036: CD2101  	    call FILL_CIRCLE
@@ -105,47 +105,47 @@
               	    
               	    ; DRAW BOX to RIGHT
               	    ; set cursor 
-8039: 3AC681  	    LD A, (box_x)
+8039: 3AC881  	    LD A, (box_x)
 803C: 47      	    ld b, a
-803D: 3AC781  	    ld a, (box_y)
+803D: 3AC981  	    ld a, (box_y)
 8040: 4F      	    ld c, a
 8041: CD5D01  	    call SET_CURSOR
               	    
               	    ; print imageR
 8044: 3E00    	    LD A, 0
 8046: 010808  	    LD BC, $0808
-8049: 21CC81  	    LD HL, imageR
+8049: 21CE81  	    LD HL, imageR
 804C: CD4801  	    call DRAW_GRAPHIC
               	    
               	    
               	    ; DRAW BOX to DOWN
               	    ; set cursor 
-804F: 3AC881  	    LD A, (box2_x)
+804F: 3ACA81  	    LD A, (box2_x)
 8052: 47      	    ld b, a
-8053: 3AC981  	    ld a, (box2_y)
+8053: 3ACB81  	    ld a, (box2_y)
 8056: 4F      	    ld c, a
 8057: CD5D01  	    call SET_CURSOR
               	    
               	    ; print imageD
 805A: 3E00    	    LD A, 0
 805C: 010808  	    LD BC, $0808
-805F: 21D481  	    LD HL, imageD
+805F: 21D681  	    LD HL, imageD
 8062: CD4801  	    call DRAW_GRAPHIC
               	    
               	
               	    ; DRAW PLAYER
 8065: CD7B01  	    call CLEAR_COLLISION
               	    ; set cursor
-8068: 3ACA81  	    LD A, (player_x)
+8068: 3ACC81  	    LD A, (player_x)
 806B: 47      	    ld b, a
-806C: 3ACB81  	    ld a, (player_y)
+806C: 3ACD81  	    ld a, (player_y)
 806F: 4F      	    ld c, a
 8070: CD5D01  	    call SET_CURSOR
               	    
               	    ; print player
 8073: 3E00    	    LD A, 0
 8075: 010808  	    LD BC, $0808
-8078: 21DC81  	    LD HL, player
+8078: 21DE81  	    LD HL, player
 807B: CD4801  	    call DRAW_GRAPHIC
               	    
 807E: CD7E01  	    CALL CHECK_COLLISION
@@ -155,7 +155,7 @@
               	    ;DRAW pontos
 8084: 010000  	    LD BC, $0000
 8087: CD5D01  	    call SET_CURSOR
-808A: 3AC381  	    LD A, (count)
+808A: 3AC581  	    LD A, (count)
 808D: CD5701  	    CALL SEND_A_TO_GLCD
               	    
               	    
@@ -164,43 +164,57 @@
 8093: CD2401  	    call PLOT_TO_LCD
               	
               	
-8096: CDF280  	    call update_box 
-8099: CD1A81  	    call update_box2
+8096: CDF480  	    call update_box 
+8099: CD1C81  	    call update_box2
               	
 809C: C32680  	    jp loop
               	    
-              	    
-              	    
+              	
+              	; # Algoritmo de Colisão AABB (Axis-Aligned Bounding Box)
+              	;*   **Retângulo A:** (Ax, Ay, Aw, Ah)
+              	;*   **Retângulo B:** (Bx, By, Bw, Bh)
+              	
+              	; Calculamos as coordenadas das bordas direita e inferior:
+              	;   ARight = Ax + Aw
+              	;   ABottom = Ay + Ah
+              	;   BRight = Bx + Bw
+              	;   BBottom = By + Bh
+              	
+              	; Os retângulos **NÃO** colidem se **QUALQUER** uma das seguintes condições for verdadeira:
+              	; 1.  A está totalmente à esquerda de B: `ARight <= Bx`
+              	; 2.  A está totalmente à direita de B: `Ax >= BRight`
+              	; 3.  A está totalmente acima de B: `ABottom <= By`
+              	; 4.  A está totalmente abaixo de B: `Ay >= BBottom`
 809F:         	check_collision_object:
-809F: 3AC481  	    ld a, (fruit_x)
+809F: 3AC681  	    ld a, (fruit_x)
 80A2: 3D      	    dec a
 80A3: 47      	    ld b, a
-80A4: 3ACA81  	    ld a, (player_x)
+80A4: 3ACC81  	    ld a, (player_x)
 80A7: C608    	    add a, 8
 80A9: B8      	    cp b
 80AA: DADB80  	    JP C, check_collision_object_end
               	    
-80AD: 3AC481  	    ld a, (fruit_x)
+80AD: 3AC681  	    ld a, (fruit_x)
 80B0: 3D      	    dec a
 80B1: C603    	    add a, 3
 80B3: 47      	    ld b, a
-80B4: 3ACA81  	    ld a, (player_x)
+80B4: 3ACC81  	    ld a, (player_x)
 80B7: B8      	    cp b
 80B8: D2DB80  	    JP NC, check_collision_object_end
               	    
-80BB: 3AC581  	    ld a, (fruit_y)
+80BB: 3AC781  	    ld a, (fruit_y)
 80BE: 3D      	    dec a
 80BF: 47      	    ld b, a
-80C0: 3ACB81  	    ld a, (player_y)
+80C0: 3ACD81  	    ld a, (player_y)
 80C3: C608    	    add a, 8
 80C5: B8      	    cp b
 80C6: DADB80  	    JP C, check_collision_object_end
               	    
-80C9: 3AC581  	    ld a, (fruit_y)
+80C9: 3AC781  	    ld a, (fruit_y)
 80CC: 3D      	    dec a
 80CD: C603    	    add a, 3
 80CF: 47      	    ld b,a
-80D0: 3ACB81  	    ld a, (player_y)
+80D0: 3ACD81  	    ld a, (player_y)
 80D3: B8      	    cp b
 80D4: D2DB80  	    JP NC, check_collision_object_end
               	    
@@ -213,125 +227,126 @@
               	    
               	    
 80DF:         	new_fruit:
-80DF: CD8F81  	    call randomHL
+80DF: CD9181  	    call randomHL
 80E2: 7C      	    LD A, H
-80E3: 32C481  	    LD (fruit_x), A
+80E3: 32C681  	    LD (fruit_x), A
 80E6: 7D      	    LD A, L
-80E7: 32C581  	    LD (fruit_y), A
+80E7: 32C781  	    LD (fruit_y), A
               	    
-80EA: 3AC381  	    LD A, (count)
-80ED: 3C      	    inc a
-80EE: 32C381  	    LD (count), A
-80F1: C9      	    ret
+80EA: 3AC581  	    LD A, (count)
+80ED: CE01    	    adc a, 1
+80EF: 27      	    daa
+80F0: 32C581  	    LD (count), A
+80F3: C9      	    ret
               	    
               	    
               	    
               	
-80F2:         	update_box:
-80F2: 3AC681  	    ld a, (box_x)
-80F5: C602    	    add a, 2
-80F7: FE80    	    cp $80
-80F9: D20081  	    JP NC, inc_y
-80FC: 32C681  	    ld (box_x), a
-80FF: C9      	    ret
+80F4:         	update_box:
+80F4: 3AC881  	    ld a, (box_x)
+80F7: C602    	    add a, 2
+80F9: FE80    	    cp $80
+80FB: D20281  	    JP NC, inc_y
+80FE: 32C881  	    ld (box_x), a
+8101: C9      	    ret
               	    
-8100:         	inc_y:
-8100: 3AC781  	    ld a, (box_y)
-8103: C608    	    add a, 8
-8105: FE40    	    cp $40
-8107: D21281  	    jp NC, res_box
-810A: 32C781  	    ld (box_y),a
-810D: AF      	    xor a
-810E: 32C681  	    ld (box_x), a
-8111: C9      	    ret
+8102:         	inc_y:
+8102: 3AC981  	    ld a, (box_y)
+8105: C608    	    add a, 8
+8107: FE40    	    cp $40
+8109: D21481  	    jp NC, res_box
+810C: 32C981  	    ld (box_y),a
+810F: AF      	    xor a
+8110: 32C881  	    ld (box_x), a
+8113: C9      	    ret
               	    
-8112:         	res_box:
-8112: AF      	    xor a
-8113: 32C681  	    ld (box_x),a
-8116: 32C781  	    ld (box_y), a
-8119: C9      	    ret
-              	    
-              	    
-811A:         	update_box2:
-811A: 3AC981  	    ld a, (box2_y)
-811D: C602    	    add a, 2
-811F: FE40    	    cp $40
-8121: D22881  	    JP NC, inc_x
-8124: 32C981  	    ld (box2_y), a
-8127: C9      	    ret
-              	    
-8128:         	inc_x:
-8128: 3AC881  	    ld a, (box2_x)
-812B: C60C    	    add a, 12
-812D: FE80    	    cp $80
-812F: D23A81  	    jp NC, res_box2
-8132: 32C881  	    ld (box2_x),a
-8135: AF      	    xor a
-8136: 32C981  	    ld (box2_y), a
-8139: C9      	    ret
-              	    
-813A:         	res_box2:
-813A: AF      	    xor a
-813B: 32C881  	    ld (box2_x),a
-813E: 32C981  	    ld (box2_y), a
-8141: C9      	    ret
+8114:         	res_box:
+8114: AF      	    xor a
+8115: 32C881  	    ld (box_x),a
+8118: 32C981  	    ld (box_y), a
+811B: C9      	    ret
               	    
               	    
+811C:         	update_box2:
+811C: 3ACB81  	    ld a, (box2_y)
+811F: C602    	    add a, 2
+8121: FE40    	    cp $40
+8123: D22A81  	    JP NC, inc_x
+8126: 32CB81  	    ld (box2_y), a
+8129: C9      	    ret
               	    
-8142:         	ler_teclado:
-8142: DB40    	    IN A, ($40)
+812A:         	inc_x:
+812A: 3ACA81  	    ld a, (box2_x)
+812D: C60C    	    add a, 12
+812F: FE80    	    cp $80
+8131: D23C81  	    jp NC, res_box2
+8134: 32CA81  	    ld (box2_x),a
+8137: AF      	    xor a
+8138: 32CB81  	    ld (box2_y), a
+813B: C9      	    ret
+              	    
+813C:         	res_box2:
+813C: AF      	    xor a
+813D: 32CA81  	    ld (box2_x),a
+8140: 32CB81  	    ld (box2_y), a
+8143: C9      	    ret
+              	    
+              	    
+              	    
+8144:         	ler_teclado:
+8144: DB40    	    IN A, ($40)
               	
-8144: CB7F    	    bit 7, A
-8146: C26381  	    JP NZ, TRY_UP
+8146: CB7F    	    bit 7, A
+8148: C26581  	    JP NZ, TRY_UP
               	
-8149: CB6F    	    bit 5, A
-814B: C26E81  	    JP NZ, TRY_DOWN
+814B: CB6F    	    bit 5, A
+814D: C27081  	    JP NZ, TRY_DOWN
               	
-814E: CB77    	    bit 6, A
-8150: C27981  	    JP NZ, TRY_LEFT
+8150: CB77    	    bit 6, A
+8152: C27B81  	    JP NZ, TRY_LEFT
               	
-8153: CB67    	    bit 4, A
-8155: C28481  	    JP NZ, TRY_RIGHT
+8155: CB67    	    bit 4, A
+8157: C28681  	    JP NZ, TRY_RIGHT
               	    
-8158: CB4F    	    bit 1, A
-815A: C2DF80  	    JP NZ, new_fruit
+815A: CB4F    	    bit 1, A
+815C: C2DF80  	    JP NZ, new_fruit
               	
-815D: CB5F    	    bit 3, A
-815F: C20000  	    JP NZ, 0 ; Back to Monitor
-8162: C9      	    RET
+815F: CB5F    	    bit 3, A
+8161: C20000  	    JP NZ, 0 ; Back to Monitor
+8164: C9      	    RET
               	    
               	    
-8163:         	TRY_UP:
-8163: 3ACB81  	    ld a, (player_y)
-8166: 3D      	    dec a
-8167: FE01    	    cp 1
-8169: D8      	    ret C
-816A: 32CB81  	    ld (player_y), a
-816D: C9      	    ret
+8165:         	TRY_UP:
+8165: 3ACD81  	    ld a, (player_y)
+8168: 3D      	    dec a
+8169: FE01    	    cp 1
+816B: D8      	    ret C
+816C: 32CD81  	    ld (player_y), a
+816F: C9      	    ret
               	    
-816E:         	TRY_DOWN:
-816E: 3ACB81  	    ld a, (player_y)
-8171: 3C      	    inc a
-8172: FE38    	    cp 56
-8174: D0      	    ret NC
-8175: 32CB81  	    ld (player_y), a
-8178: C9      	    ret
+8170:         	TRY_DOWN:
+8170: 3ACD81  	    ld a, (player_y)
+8173: 3C      	    inc a
+8174: FE38    	    cp 56
+8176: D0      	    ret NC
+8177: 32CD81  	    ld (player_y), a
+817A: C9      	    ret
               	    
-8179:         	TRY_LEFT:
-8179: 3ACA81  	    ld a, (player_x)
-817C: 3D      	    dec a
-817D: FE01    	    cp 1
-817F: D8      	    ret C
-8180: 32CA81  	    ld (player_x), a
-8183: C9      	    ret
+817B:         	TRY_LEFT:
+817B: 3ACC81  	    ld a, (player_x)
+817E: 3D      	    dec a
+817F: FE01    	    cp 1
+8181: D8      	    ret C
+8182: 32CC81  	    ld (player_x), a
+8185: C9      	    ret
               	    
-8184:         	TRY_RIGHT:
-8184: 3ACA81  	    ld a, (player_x)
-8187: 3C      	    inc a
-8188: FE78    	    cp 120
-818A: D0      	    ret NC
-818B: 32CA81  	    ld (player_x), a
-818E: C9      	    ret
+8186:         	TRY_RIGHT:
+8186: 3ACC81  	    ld a, (player_x)
+8189: 3C      	    inc a
+818A: FE78    	    cp 120
+818C: D0      	    ret NC
+818D: 32CC81  	    ld (player_x), a
+8190: C9      	    ret
               	    
               	    
               	
@@ -340,25 +355,25 @@
 007E:         	VTELA_X     .EQU    $7E ; Tela virtal 
 003E:         	VTELA_Y     .EQU    $3E ; Tela virtal
               	
-818F:         	randomHL:
+8191:         	randomHL:
               	    ; 3F = 126/2
               	    ; 1F = 62/2
-818F: CDA581  	    CALL prng16
-8192: 7C      	    LD A, H
-8193: E67D    	    AND VTELA_X-1
-8195: FE00    	    CP 0
-8197: CA8F81  	    JP Z, randomHL
-819A: 67      	    LD H, A
+8191: CDA781  	    CALL prng16
+8194: 7C      	    LD A, H
+8195: E67D    	    AND VTELA_X-1
+8197: FE00    	    CP 0
+8199: CA9181  	    JP Z, randomHL
+819C: 67      	    LD H, A
               	
-819B: 7D      	    LD A, L
-819C: E63D    	    AND VTELA_Y-1
-819E: FE00    	    CP 0
-81A0: CA8F81  	    JP Z, randomHL
-81A3: 6F      	    LD L, A
-81A4: C9      	    RET
+819D: 7D      	    LD A, L
+819E: E63D    	    AND VTELA_Y-1
+81A0: FE00    	    CP 0
+81A2: CA9181  	    JP Z, randomHL
+81A5: 6F      	    LD L, A
+81A6: C9      	    RET
               	
               	
-81A5:         	prng16:
+81A7:         	prng16:
               	; Site: https://wikiti.brandonw.net/index.php?title=Z80_Routines:Math:Random
               	;Inputs:
               	;   (seed1) contains a 16-bit seed value
@@ -372,53 +387,53 @@
               	;cycle: 4,294,901,760 (almost 4.3 billion)
               	;160cc
               	;26 bytes
-81A5: 2ABF81  	    ld hl,(seed1)
-81A8: 44      	    ld b,h
-81A9: 4D      	    ld c,l
-81AA: 29      	    add hl,hl
-81AB: 29      	    add hl,hl
-81AC: 2C      	    inc l
-81AD: 09      	    add hl,bc
-81AE: 22BF81  	    ld (seed1),hl
-81B1: 2AC181  	    ld hl,(seed2)
-81B4: 29      	    add hl,hl
-81B5: 9F      	    sbc a,a
-81B6: E62D    	    and %00101101
-81B8: AD      	    xor l
-81B9: 6F      	    ld l,a
-81BA: 22C181  	    ld (seed2),hl
-81BD: 09      	    add hl,bc
-81BE: C9      	    ret
+81A7: 2AC181  	    ld hl,(seed1)
+81AA: 44      	    ld b,h
+81AB: 4D      	    ld c,l
+81AC: 29      	    add hl,hl
+81AD: 29      	    add hl,hl
+81AE: 2C      	    inc l
+81AF: 09      	    add hl,bc
+81B0: 22C181  	    ld (seed1),hl
+81B3: 2AC381  	    ld hl,(seed2)
+81B6: 29      	    add hl,hl
+81B7: 9F      	    sbc a,a
+81B8: E62D    	    and %00101101
+81BA: AD      	    xor l
+81BB: 6F      	    ld l,a
+81BC: 22C381  	    ld (seed2),hl
+81BF: 09      	    add hl,bc
+81C0: C9      	    ret
               	
               	
-81BF: D204    	seed1       .dw 1234
-81C1: 3D22    	seed2       .dw 8765
+81C1: D204    	seed1       .dw 1234
+81C3: 3D22    	seed2       .dw 8765
               	
-81C3: 00      	count       .db 0x00    
+81C5: 00      	count       .db 0x00    
               	
-81C4: 00      	fruit_x     .db 0x00
-81C5: 00      	fruit_y     .db 0x00
+81C6: 00      	fruit_x     .db 0x00
+81C7: 00      	fruit_y     .db 0x00
               	
-81C6: 00      	box_x:    .db 0x00
-81C7: 00      	box_y:    .db 0x00
+81C8: 00      	box_x:    .db 0x00
+81C9: 00      	box_y:    .db 0x00
               	
-81C8: 00      	box2_x:    .db 0x00
-81C9: 00      	box2_y:    .db 0x00
+81CA: 00      	box2_x:    .db 0x00
+81CB: 00      	box2_y:    .db 0x00
               	    
-81CA: 0A      	player_x: .db 0x0A
-81CB: 0A      	player_y: .db 0x0A
+81CC: 0A      	player_x: .db 0x0A
+81CD: 0A      	player_y: .db 0x0A
               	
-81CC: FFFE7C7F	imageR: .db 0xFF, 0xFE, 0x7C, 0x7F, 0x7F, 0x7C, 0xFE, 0xFF
-81D0: 7F7CFEFF	
-81D4: C3FFFFFF	imageD: .db 0xC3, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xDB, 0x99
-81D8: FFFFDB99	
-81DC: 1C1C1408	player: .db 0x1C, 0x1C, 0x14, 0x08, 0x3E, 0x08, 0x08, 0x36
-81E0: 3E080836	
+81CE: FFFE7C7F	imageR: .db 0xFF, 0xFE, 0x7C, 0x7F, 0x7F, 0x7C, 0xFE, 0xFF
+81D2: 7F7CFEFF	
+81D6: C3FFFFFF	imageD: .db 0xC3, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xDB, 0x99
+81DA: FFFFDB99	
+81DE: 1C1C1408	player: .db 0x1C, 0x1C, 0x14, 0x08, 0x3E, 0x08, 0x08, 0x36
+81E2: 3E080836	
 
 
 ; +++ segments +++
 
-#CODE          = $8000 = 32768,  size = $01E4 =   484
+#CODE          = $8000 = 32768,  size = $01E6 =   486
 
 ; +++ global symbols +++
 
@@ -468,44 +483,44 @@ SET_CURSOR          = $015D =   349          Main.asm:39
 SET_GAMEOVER        = $0187 =   391          Main.asm:61
 SET_GR_MODE         = $010C =   268          Main.asm:12 (unused)
 SET_TXT_MODE        = $010F =   271          Main.asm:13 (unused)
-TRY_DOWN            = $816E = 33134          Main.asm:306
-TRY_LEFT            = $8179 = 33145          Main.asm:314
-TRY_RIGHT           = $8184 = 33156          Main.asm:322
-TRY_UP              = $8163 = 33123          Main.asm:298
-VTELA_X             = $007E =   126          Main.asm:334
-VTELA_Y             = $003E =    62          Main.asm:335
-_end                = $81E4 = 33252          Main.asm:64 (unused)
-_size               = $01E4 =   484          Main.asm:64 (unused)
+TRY_DOWN            = $8170 = 33136          Main.asm:321
+TRY_LEFT            = $817B = 33147          Main.asm:329
+TRY_RIGHT           = $8186 = 33158          Main.asm:337
+TRY_UP              = $8165 = 33125          Main.asm:313
+VTELA_X             = $007E =   126          Main.asm:349
+VTELA_Y             = $003E =    62          Main.asm:350
+_end                = $81E6 = 33254          Main.asm:64 (unused)
+_size               = $01E6 =   486          Main.asm:64 (unused)
 _z80_               = $0001 =     1          Main.asm:1 (unused)
-box2_x              = $81C8 = 33224          Main.asm:399
-box2_y              = $81C9 = 33225          Main.asm:400
-box_x               = $81C6 = 33222          Main.asm:396
-box_y               = $81C7 = 33223          Main.asm:397
-check_collision_object = $809F = 32927          Main.asm:168
-check_collision_object_end = $80DB = 32987          Main.asm:203
-count               = $81C3 = 33219          Main.asm:391
-fruit_x             = $81C4 = 33220          Main.asm:393
-fruit_y             = $81C5 = 33221          Main.asm:394
-imageD              = $81D4 = 33236          Main.asm:406
-imageR              = $81CC = 33228          Main.asm:405
-inc_x               = $8128 = 33064          Main.asm:257
-inc_y               = $8100 = 33024          Main.asm:232
+box2_x              = $81CA = 33226          Main.asm:414
+box2_y              = $81CB = 33227          Main.asm:415
+box_x               = $81C8 = 33224          Main.asm:411
+box_y               = $81C9 = 33225          Main.asm:412
+check_collision_object = $809F = 32927          Main.asm:182
+check_collision_object_end = $80DB = 32987          Main.asm:217
+count               = $81C5 = 33221          Main.asm:406
+fruit_x             = $81C6 = 33222          Main.asm:408
+fruit_y             = $81C7 = 33223          Main.asm:409
+imageD              = $81D6 = 33238          Main.asm:421
+imageR              = $81CE = 33230          Main.asm:420
+inc_x               = $812A = 33066          Main.asm:272
+inc_y               = $8102 = 33026          Main.asm:247
 inicio              = $8000 = 32768          Main.asm:68
-ler_teclado         = $8142 = 33090          Main.asm:275
+ler_teclado         = $8144 = 33092          Main.asm:290
 loop                = $8026 = 32806          Main.asm:85
-new_fruit           = $80DF = 32991          Main.asm:209
-player              = $81DC = 33244          Main.asm:407
-player_x            = $81CA = 33226          Main.asm:402
-player_y            = $81CB = 33227          Main.asm:403
-prng16              = $81A5 = 33189          Main.asm:355
-randomHL            = $818F = 33167          Main.asm:337
-res_box             = $8112 = 33042          Main.asm:242
-res_box2            = $813A = 33082          Main.asm:267
-seed1               = $81BF = 33215          Main.asm:388
-seed2               = $81C1 = 33217          Main.asm:389
-update_box          = $80F2 = 33010          Main.asm:224
-update_box2         = $811A = 33050          Main.asm:249
+new_fruit           = $80DF = 32991          Main.asm:223
+player              = $81DE = 33246          Main.asm:422
+player_x            = $81CC = 33228          Main.asm:417
+player_y            = $81CD = 33229          Main.asm:418
+prng16              = $81A7 = 33191          Main.asm:370
+randomHL            = $8191 = 33169          Main.asm:352
+res_box             = $8114 = 33044          Main.asm:257
+res_box2            = $813C = 33084          Main.asm:282
+seed1               = $81C1 = 33217          Main.asm:403
+seed2               = $81C3 = 33219          Main.asm:404
+update_box          = $80F4 = 33012          Main.asm:239
+update_box2         = $811C = 33052          Main.asm:264
 
 
-total time: 0.0288 sec.
+total time: 0.0287 sec.
 no errors

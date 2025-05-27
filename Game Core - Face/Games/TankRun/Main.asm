@@ -228,7 +228,8 @@ new_fruit:
     LD (fruit_y), A
     
     LD A, (count)
-    inc a
+    adc a, 1
+    daa
     LD (count), A
     ret
     
