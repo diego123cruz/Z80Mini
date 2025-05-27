@@ -50,7 +50,7 @@
 LCD_IR:	EQU 70H         ;Instruction Register
 LCD_DR:	EQU 71H         ;Data Register (A7)
 LCD_SER: EQU 00H        ;Serial Port if used
-V_DELAY_US: EQU $0010   ;Delay for 76us on your system $0004
+V_DELAY_US: EQU $0007   ;Delay for 76us on your system $0004
 
 ;Serial or Parallel communications to the LCD Screen.  Comment one of 
 ;the labels below based on the LCD connections. 00H = FALSE, 01H = TRUE
@@ -635,9 +635,22 @@ DRAW_PIXEL:
 
         LD A, D
         OR (HL)
+        CP (HL)
+        call z, set_collision
+
+        LD A, D
+        XOR (HL) ; OR ou XOR ???? Ou deixou configuravel???
         LD (HL), A
         POP DE
         RET
+
+; Quando tenta ligar um pixel que ja esta ligado...
+set_collision:
+        LD A, 1
+        LD (DRAW_PIXEL_COLLISION), A
+        ret
+
+
 
 ;Clear Pixel in position X Y
 ;Input B = column/X (0-127), C = row/Y (0-63)
@@ -1177,7 +1190,10 @@ PLOT_BIT:
         CALL DRAW_PIXEL
         JR $+5
 REMOVE_PIXEL:
-        CALL CLEAR_PIXEL
+        ;CALL CLEAR_PIXEL
+        NOP 
+        NOP 
+        NOP 
         POP HL
         INC B               ;move X to the right by one
         DEC D

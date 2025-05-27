@@ -56,10 +56,10 @@ LCDCTRL	    .EQU    $70
 LCDDATA     .EQU    $71
 GAMEPAD     .EQU    $40
 ; SIO/2 - 115200
-SIOA_D		.EQU	$00
-SIOA_C		.EQU	$02
-SIOB_D		.EQU	$01 ; Não usado
-SIOB_C		.EQU	$03 ; Não usado
+SIOA_D		.EQU	$00 ; USB - SERIAL
+SIOA_C		.EQU	$02 ; USB - SERIAL
+SIOB_D		.EQU	$01 ; SERIAL - P2
+SIOB_C		.EQU	$03 ; SERIAL - P2
 
 ; -----------------------------------------------------------------------------
 ; H_Delay CONFIG
@@ -160,7 +160,11 @@ RST38:
     JP I2C_Read              ;I2C Read
     JP I2C_Write             ;I2C Write
 	JP I2CLIST				 ;I2C List devices on lcd
-
+    JP CLEAR_COLLISION       ; Limpa flag de colisao
+    JP CHECK_COLLISION       ; JP Z, SEM_COLISAO. JP NZ, COLISAO.
+    JP INIT_GAME_WAIT_START         ; Chamar no setup, aguarda press start e returna, dar um (LD HL, setup) e (PUSH HL).
+    JP CHECK_GAMEOVER_WAIT_START    ; Chamar no loop para verificar gameover e depois aguarda press start e ret para o inicio
+    JP SET_GAMEOVER                 ; Seta a flag de gameover....
 
 
 INIT:
@@ -180,6 +184,7 @@ INIT:
 
 	XOR A
     LD (CURSOR_MENU), A
+    LD (VAR_GAMEOVER), A
 
 start:
 	CALL CLEAR_GBUF
@@ -248,6 +253,118 @@ monitor1:
 
     jp monitor0
 
+
+VTELA_X     .EQU    $7E ; Tela virtal 
+VTELA_Y     .EQU    $3E ; Tela virtal
+
+randomHL:
+    ; 3F = 126/2
+    ; 1F = 62/2
+    CALL prng16
+    LD A, H
+    AND VTELA_X-1
+    CP 0
+    JP Z, randomHL
+    LD H, A
+
+    LD A, L
+    AND VTELA_Y-1
+    CP 0
+    JP Z, randomHL
+    LD L, A
+    RET
+
+
+prng16:
+; Site: https://wikiti.brandonw.net/index.php?title=Z80_Routines:Math:Random
+;Inputs:
+;   (seed1) contains a 16-bit seed value
+;   (seed2) contains a NON-ZERO 16-bit seed value
+;Outputs:
+;   HL is the result
+;   BC is the result of the LCG, so not that great of quality
+;   DE is preserved
+;Destroys:
+;   AF
+;cycle: 4,294,901,760 (almost 4.3 billion)
+;160cc
+;26 bytes
+    ld hl,(seed1)
+    ld b,h
+    ld c,l
+    add hl,hl
+    add hl,hl
+    inc l
+    add hl,bc
+    ld (seed1),hl
+    ld hl,(seed2)
+    add hl,hl
+    sbc a,a
+    and %00101101
+    xor l
+    ld l,a
+    ld (seed2),hl
+    add hl,bc
+    ret
+
+
+; Seta flag de gameover...
+SET_GAMEOVER:
+    LD A, 1
+    LD (VAR_GAMEOVER), A
+    RET
+
+
+; Check flag gameover or return
+CHECK_GAMEOVER_WAIT_START:
+    LD A, (VAR_GAMEOVER)
+    OR A
+    RET Z
+INIT_GAME_WAIT_START:
+    LD BC, $201A
+    CALL SET_CURSOR
+    
+    LD HL, MSG_START_GAME
+    CALL LCD_PRINT_STRING
+    LD A, (VAR_GAMEOVER)
+    OR A
+    JP Z, start_loop
+    LD BC, $2422
+    CALL SET_CURSOR
+    
+    LD HL, MSG_END_GAME
+    CALL LCD_PRINT_STRING
+gameover_loop:
+    IN A, (GAMEPAD)
+    bit 3, A
+    JP NZ, INIT
+    bit 2, A
+    JP Z, gameover_loop
+    XOR A
+    LD (VAR_GAMEOVER), A
+    POP HL
+    ret
+start_loop:
+    IN A, (GAMEPAD)
+    bit 3, A
+    JP NZ, INIT
+    bit 2, A
+    JP Z, start_loop
+    ret
+
+
+CLEAR_COLLISION:
+    XOR A
+    LD (DRAW_PIXEL_COLLISION), A
+    RET
+
+; FLAG ZERO, 
+; JP Z, SEM_COLISAO. 
+; JP NZ, COLISAO.
+CHECK_COLLISION:
+    LD A, (DRAW_PIXEL_COLLISION)
+    OR A
+    RET
 
 
 LOAD_GAME:
@@ -957,6 +1074,11 @@ MENU_LCD_2:         .db " Load from card", CR, 00H
 MENU_LCD_3:         .db " Test keys", CR, 00H
 MENU_LCD_4:         .db " Reset", CR, 00H
 
+MSG_START_GAME:     .db "PRESS START",0
+MSG_END_GAME:       .db "GAMEOVER",0
+
+seed1       .dw 1234
+seed2       .dw 8765
 
 ; RAM Locations - Move this section to RAM if necessary
 ;---------------
@@ -986,6 +1108,7 @@ PIXEL_X: DB 00H         ;Pixel X length
 INT_VEC: DW 0000H       ;Vetor de interrupção
 GAMEPAD_KEY: DB 00H 	;Guarda tecla lida na interrupcao
 CURSOR_MENU:      .db $00	; Cursor menu
-
+DRAW_PIXEL_COLLISION .db $00 ; 0 - reset, 1 - set
+VAR_GAMEOVER    .db $00 ; Flag de gameover
 I2C_RAMCPY:         .DB    $00   ; 1 byte - RAM copy of output port
 .end
