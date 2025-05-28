@@ -1,0 +1,262 @@
+              	; --------------------------------------
+              	; zasm: assemble "Main.asm"
+              	; date: 2025-05-27 21:22:06
+              	; --------------------------------------
+
+
+              	; **********************************************************************
+              	; **  Z80 Mini GameCore - API - Public functions                      **
+              	; **********************************************************************
+              	;----------------------------------------------------------------------------------------------------------
+              	;	Display LCD
+              	;----------------------------------------------------------------------------------------------------------
+0100:         	INIT_LCD			        .EQU	$0100			;Initalise the LCD
+0103:         	CLEAR_GBUF			        .EQU	$0103			;Clear the Graphics Buffer
+0106:         	CLEAR_GR_LCD			    .EQU	$0106			;Clear the Graphics LCD Screen
+0109:         	CLEAR_TXT_LCD			    .EQU	$0109			;Clear the Text LCD Screen
+010C:         	SET_GR_MODE			        .EQU	$010C			;Set Graphics Mode
+010F:         	SET_TXT_MODE			    .EQU	$010F			;Set Text Mode
+0112:         	DRAW_BOX			        .EQU	$0112			;Draw a rectangle between two points
+0115:         	DRAW_LINE			        .EQU	$0115			;Draw a line between two points
+0118:         	DRAW_CIRCLE			        .EQU	$0118			;Draw a circle from Mid X,Y to Radius
+011B:         	DRAW_PIXEL			        .EQU	$011B			;Draw one pixel at X,Y
+011E:         	FILL_BOX			        .EQU	$011E			;Draw a filled rectangle between two points
+0121:         	FILL_CIRCLE			        .EQU	$0121			;Draw a filled circle from Mid X,Y to Radius
+0124:         	PLOT_TO_LCD			        .EQU	$0124			;Display the Graphics Buffer to the LCD Screen
+0127:         	PRINT_STRING			    .EQU	$0127			;Print Text on the screen in a given row
+012A:         	PRINT_CHARS			        .EQU	$012A			;Print Characters on the screen in a given row and column
+012D:         	DELAY_US			        .EQU	$012D			;Microsecond delay for LCD updates
+0130:         	DELAY_MS             		.EQU	$0130			;Millisecond delay for LCD updates
+0133:         	SET_BUF_CLEAR			    .EQU	$0133			;Clear the Graphics buffer on after Plotting to the screen
+0136:         	SET_BUF_NO_CLEAR     		.EQU	$0136			;Retain the Graphics buffer on after Plotting to the screen
+0139:         	CLEAR_PIXEL          		.EQU	$0139			;Remove a Pixel at X,Y
+013C:         	FLIP_PIXEL			        .EQU	$013C			;Flip a Pixel On/Off at X,Y
+013F:         	LCD_INST             		.EQU	$013F			;Send a parallel or serial instruction to LCD
+0142:         	LCD_DATA             		.EQU	$0142			;Send a parallel or serial datum to LCD
+0145:         	SER_SYNC             		.EQU	$0145			;Send serial synchronise byte to LCD
+0148:         	DRAW_GRAPHIC         		.EQU	$0148			;Draw an ASCII charcter or Sprite to the LCD
+014B:         	INV_GRAPHIC          		.EQU	$014B			;Inverse graphics printing
+014E:         	INIT_TERMINAL        		.EQU	$014E			;Initialize the LCD for terminal emulation
+0151:         	SEND_CHAR_TO_GLCD    		.EQU	$0151			;Send an ASCII Character to the LCD
+0154:         	SEND_STRING_TO_GLCD 		.EQU	$0154			;Send an ASCII String to the LCD
+0157:         	SEND_A_TO_GLCD       		.EQU	$0157			;Send register A to the LCD
+015A:         	SEND_HL_TO_GLCD      		.EQU	$015A			;Send register HL to the LCD
+015D:         	SET_CURSOR           		.EQU	$015D			;Set the graphics cursor
+0160:         	GET_CURSOR           		.EQU	$0160			;Get the current cursor
+0163:         	DISPLAY_CURSOR       		.EQU	$0163			;Set Cursor on or off
+              	;----------------------------------------------------------------------------------------------------------
+              	;	UTIL
+              	;----------------------------------------------------------------------------------------------------------
+0166:         	H_Delay              		.EQU	$0166			;Delay in milliseconds (DE in millis)
+0169:         	LCD_PRINT_STRING            .EQU    $0169           ;Print string HL, end with 0 EX: "Test", $00
+              	;----------------------------------------------------------------------------------------------------------
+              	;	I2C Board
+              	;----------------------------------------------------------------------------------------------------------
+016C:         	I2C_Open     			    .EQU	$016C			;Start i2c (Device address in A)
+016F:         	I2C_Close             		.EQU	$016F			;Close i2c 
+0172:         	I2C_Read              		.EQU	$0172			;I2C Read (data in A)
+0175:         	I2C_Write 			        .EQU	$0175			;I2C Write (data in A)
+0178:         	I2CLIST                     .EQU    $0178           ;I2C List devices on lcd
+              	
+017B:         	CLEAR_COLLISION             .EQU    $017B           ; lampa a flag de colisao
+017E:         	CHECK_COLLISION             .EQU    $017E           ; JP Z, SEM_COLISAO. JP NZ, COLISAO.
+              	
+0181:         	INIT_GAME_WAIT_START        .EQU   $0181        ; Chamar no setup, aguarda press start e returna, dar um (LD HL, setup) e (PUSH HL).
+0184:         	CHECK_GAMEOVER_WAIT_START   .EQU    $0184   ; Chamar no loop para verificar gameover e depois aguarda press start e ret para o inicio
+0187:         	SET_GAMEOVER                .EQU    $0187                 ; Seta a flag de gameover....
+              	
+              	
+              	;----------------------------------------------------------------------------------------------------------
+              	;	FIM
+              	;----------------------------------------------------------------------------------------------------------
+              	
+              	
+              	;         - Ports:
+              	;               - Onboard IN/OUT: 40H
+              	;					- Controle - pullDown (Input)
+              	;						- bit0 - A
+              	;						- bit1 - B
+              	;						- bit2 - Start
+              	;						- bit3 - Select
+              	;						- bit4 - Right
+              	;						- bit5 - Down
+              	;						- bit6 - Left
+              	;						- bit7 - Up
+              	
+              	
+8000:         	.org $8000
+              	
+8000:         	init:
+8000: 210080  	    LD hl, init
+8003: E5      	    PUSH HL ; back to here on gameover
+              	
+8004: AF      	    XOR A
+8005: 328780  	    LD (cursor_x), A
+8008: 328880  	    LD (cursor_y), A
+              	
+800B: CD0301  	    CALL CLEAR_GBUF
+800E: CD8101  	    CALL INIT_GAME_WAIT_START
+              	
+8011:         	loop:
+8011: CD0301  	    CALL CLEAR_GBUF
+              	
+              	; Draw p2 16x16
+8014: 010010  	    LD BC, $1000
+8017: CD5D01  	    CALL SET_CURSOR
+              	
+801A: 3E00    	    LD A, 0
+801C: 010F0F  	    LD BC, $0F0F
+801F: 219180  	    LD HL, img_p2_16x16
+8022: CD4801  	    CALL DRAW_GRAPHIC
+              	
+              	; Draw p1
+8025: 3A8780  	    LD A, (cursor_x)
+8028: 47      	    LD B, A
+8029: 3A8880  	    LD A, (cursor_y)
+802C: 4F      	    LD C, A
+802D: CD5D01  	    CALL SET_CURSOR
+              	
+8030: CD7B01  	    CALL CLEAR_COLLISION
+              	
+8033: 3E00    	    LD A, 0
+8035: 010808  	    LD BC, $0808
+8038: 218980  	    LD HL, img_p1
+803B: CD4801  	    CALL DRAW_GRAPHIC
+              	
+803E: CD7E01  	    CALL CHECK_COLLISION
+8041: C48701  	    CALL NZ, SET_GAMEOVER
+              	
+8044: CD2401  	    CALL PLOT_TO_LCD
+              	
+8047: CD5080  	    CALL read_keys
+              	
+804A: CD8401  	    CALL CHECK_GAMEOVER_WAIT_START
+              	
+804D: C31180  	    jp loop
+              	
+8050:         	read_keys:
+8050: DB40    	    in A, ($40)
+              	
+8052: CB7F    	    bit 7, A
+8054: C26780  	    jp nz, btnUp
+              	
+8057: CB6F    	    bit 5, A
+8059: C26F80  	    jp nz, btnDown
+              	
+805C: CB77    	    bit 6, A
+805E: C27780  	    jp nz, btnLeft
+              	
+8061: CB67    	    bit 4, A
+8063: C27F80  	    jp nz, btnRight
+8066: C9      	    ret
+              	
+8067:         	btnUp:
+8067: 3A8880  	    ld a, (cursor_y)
+806A: 3D      	    dec A
+806B: 328880  	    ld (cursor_y), a
+806E: C9      	    ret
+              	
+806F:         	btnDown:
+806F: 3A8880  	    ld a, (cursor_y)
+8072: 3C      	    inc A
+8073: 328880  	    ld (cursor_y), a
+8076: C9      	    ret
+              	
+8077:         	btnLeft:
+8077: 3A8780  	    ld a, (cursor_x)
+807A: 3D      	    dec A
+807B: 328780  	    ld (cursor_x), a
+807E: C9      	    ret
+              	
+807F:         	btnRight:
+807F: 3A8780  	    ld a, (cursor_x)
+8082: 3C      	    inc A
+8083: 328780  	    ld (cursor_x), a
+8086: C9      	    ret
+              	
+8087: 00      	cursor_x:   .db 0x00
+8088: 00      	cursor_y:   .db 0x00
+              	
+8089: AB810124	img_p1: .db 0xAB, 0x81, 0x01, 0x24, 0x00, 0x10, 0x44, 0x78
+808D: 00104478	
+              	
+8091: 7FFE8001	img_p2_16x16: .db 0x7F, 0xFE, 0x80, 0x01, 0x80, 0x01, 0x80, 0x01, 0x00, 0x00, 0x18, 0x60, 0x18, 0x60, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x03, 0x00, 0x00, 0x00, 0x20, 0x10, 0x10, 0x20, 0x0F, 0xC0, 0x00, 0x00
+8095: 80018001	
+8099: 00001860	
+809D: 18600000	
+80A1: 01000100	
+80A5: 03000000	
+80A9: 20101020	
+80AD: 0FC00000	
+
+
+; +++ segments +++
+
+#CODE          = $8000 = 32768,  size = $00B1 =   177
+
+; +++ global symbols +++
+
+CHECK_COLLISION   = $017E =   382          Main.asm:56
+CHECK_GAMEOVER_WAIT_START = $0184 =   388          Main.asm:59
+CLEAR_COLLISION   = $017B =   379          Main.asm:55
+CLEAR_GBUF        = $0103 =   259          Main.asm:8
+CLEAR_GR_LCD      = $0106 =   262          Main.asm:9 (unused)
+CLEAR_PIXEL       = $0139 =   313          Main.asm:26 (unused)
+CLEAR_TXT_LCD     = $0109 =   265          Main.asm:10 (unused)
+DELAY_MS          = $0130 =   304          Main.asm:23 (unused)
+DELAY_US          = $012D =   301          Main.asm:22 (unused)
+DISPLAY_CURSOR    = $0163 =   355          Main.asm:40 (unused)
+DRAW_BOX          = $0112 =   274          Main.asm:13 (unused)
+DRAW_CIRCLE       = $0118 =   280          Main.asm:15 (unused)
+DRAW_GRAPHIC      = $0148 =   328          Main.asm:31
+DRAW_LINE         = $0115 =   277          Main.asm:14 (unused)
+DRAW_PIXEL        = $011B =   283          Main.asm:16 (unused)
+FILL_BOX          = $011E =   286          Main.asm:17 (unused)
+FILL_CIRCLE       = $0121 =   289          Main.asm:18 (unused)
+FLIP_PIXEL        = $013C =   316          Main.asm:27 (unused)
+GET_CURSOR        = $0160 =   352          Main.asm:39 (unused)
+H_Delay           = $0166 =   358          Main.asm:44 (unused)
+I2CLIST           = $0178 =   376          Main.asm:53 (unused)
+I2C_Close         = $016F =   367          Main.asm:50 (unused)
+I2C_Open          = $016C =   364          Main.asm:49 (unused)
+I2C_Read          = $0172 =   370          Main.asm:51 (unused)
+I2C_Write         = $0175 =   373          Main.asm:52 (unused)
+INIT_GAME_WAIT_START = $0181 =   385          Main.asm:58
+INIT_LCD          = $0100 =   256          Main.asm:7 (unused)
+INIT_TERMINAL     = $014E =   334          Main.asm:33 (unused)
+INV_GRAPHIC       = $014B =   331          Main.asm:32 (unused)
+LCD_DATA          = $0142 =   322          Main.asm:29 (unused)
+LCD_INST          = $013F =   319          Main.asm:28 (unused)
+LCD_PRINT_STRING  = $0169 =   361          Main.asm:45 (unused)
+PLOT_TO_LCD       = $0124 =   292          Main.asm:19
+PRINT_CHARS       = $012A =   298          Main.asm:21 (unused)
+PRINT_STRING      = $0127 =   295          Main.asm:20 (unused)
+SEND_A_TO_GLCD    = $0157 =   343          Main.asm:36 (unused)
+SEND_CHAR_TO_GLCD = $0151 =   337          Main.asm:34 (unused)
+SEND_HL_TO_GLCD   = $015A =   346          Main.asm:37 (unused)
+SEND_STRING_TO_GLCD = $0154 =   340          Main.asm:35 (unused)
+SER_SYNC          = $0145 =   325          Main.asm:30 (unused)
+SET_BUF_CLEAR     = $0133 =   307          Main.asm:24 (unused)
+SET_BUF_NO_CLEAR  = $0136 =   310          Main.asm:25 (unused)
+SET_CURSOR        = $015D =   349          Main.asm:38
+SET_GAMEOVER      = $0187 =   391          Main.asm:60
+SET_GR_MODE       = $010C =   268          Main.asm:11 (unused)
+SET_TXT_MODE      = $010F =   271          Main.asm:12 (unused)
+_end              = $80B1 = 32945          Main.asm:81 (unused)
+_size             = $00B1 =   177          Main.asm:81 (unused)
+_z80_             = $0001 =     1          Main.asm:1 (unused)
+btnDown           = $806F = 32879          Main.asm:153
+btnLeft           = $8077 = 32887          Main.asm:159
+btnRight          = $807F = 32895          Main.asm:165
+btnUp             = $8067 = 32871          Main.asm:147
+cursor_x          = $8087 = 32903          Main.asm:171
+cursor_y          = $8088 = 32904          Main.asm:172
+img_p1            = $8089 = 32905          Main.asm:174
+img_p2_16x16      = $8091 = 32913          Main.asm:176
+init              = $8000 = 32768          Main.asm:83
+loop              = $8011 = 32785          Main.asm:94
+read_keys         = $8050 = 32848          Main.asm:131
+
+
+total time: 0.0566 sec.
+no errors
