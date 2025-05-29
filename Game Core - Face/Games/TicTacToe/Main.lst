@@ -1,0 +1,660 @@
+              	; --------------------------------------
+              	; zasm: assemble "Main.asm"
+              	; date: 2025-05-28 23:24:39
+              	; --------------------------------------
+
+
+              	; **********************************************************************
+              	; **  Z80 Mini GameCore - API - Public functions                      **
+              	; **********************************************************************
+              	;----------------------------------------------------------------------------------------------------------
+              	;	Display LCD
+              	;----------------------------------------------------------------------------------------------------------
+0100:         	INIT_LCD			        .EQU	$0100			;Initalise the LCD
+0103:         	CLEAR_GBUF			        .EQU	$0103			;Clear the Graphics Buffer
+0106:         	CLEAR_GR_LCD			    .EQU	$0106			;Clear the Graphics LCD Screen
+0109:         	CLEAR_TXT_LCD			    .EQU	$0109			;Clear the Text LCD Screen
+010C:         	SET_GR_MODE			        .EQU	$010C			;Set Graphics Mode
+010F:         	SET_TXT_MODE			    .EQU	$010F			;Set Text Mode
+0112:         	DRAW_BOX			        .EQU	$0112			;Draw a rectangle between two points
+0115:         	DRAW_LINE			        .EQU	$0115			;Draw a line between two points
+0118:         	DRAW_CIRCLE			        .EQU	$0118			;Draw a circle from Mid X,Y to Radius
+011B:         	DRAW_PIXEL			        .EQU	$011B			;Draw one pixel at X,Y
+011E:         	FILL_BOX			        .EQU	$011E			;Draw a filled rectangle between two points
+0121:         	FILL_CIRCLE			        .EQU	$0121			;Draw a filled circle from Mid X,Y to Radius
+0124:         	PLOT_TO_LCD			        .EQU	$0124			;Display the Graphics Buffer to the LCD Screen
+0127:         	PRINT_STRING			    .EQU	$0127			;Print Text on the screen in a given row
+012A:         	PRINT_CHARS			        .EQU	$012A			;Print Characters on the screen in a given row and column
+012D:         	DELAY_US			        .EQU	$012D			;Microsecond delay for LCD updates
+0130:         	DELAY_MS             		.EQU	$0130			;Millisecond delay for LCD updates
+0133:         	SET_BUF_CLEAR			    .EQU	$0133			;Clear the Graphics buffer on after Plotting to the screen
+0136:         	SET_BUF_NO_CLEAR     		.EQU	$0136			;Retain the Graphics buffer on after Plotting to the screen
+0139:         	CLEAR_PIXEL          		.EQU	$0139			;Remove a Pixel at X,Y
+013C:         	FLIP_PIXEL			        .EQU	$013C			;Flip a Pixel On/Off at X,Y
+013F:         	LCD_INST             		.EQU	$013F			;Send a parallel or serial instruction to LCD
+0142:         	LCD_DATA             		.EQU	$0142			;Send a parallel or serial datum to LCD
+0145:         	SER_SYNC             		.EQU	$0145			;Send serial synchronise byte to LCD
+0148:         	DRAW_GRAPHIC         		.EQU	$0148			;Draw an ASCII charcter or Sprite to the LCD
+014B:         	INV_GRAPHIC          		.EQU	$014B			;Inverse graphics printing
+014E:         	INIT_TERMINAL        		.EQU	$014E			;Initialize the LCD for terminal emulation
+0151:         	SEND_CHAR_TO_GLCD    		.EQU	$0151			;Send an ASCII Character to the LCD
+0154:         	SEND_STRING_TO_GLCD 		.EQU	$0154			;Send an ASCII String to the LCD
+0157:         	SEND_A_TO_GLCD       		.EQU	$0157			;Send register A to the LCD
+015A:         	SEND_HL_TO_GLCD      		.EQU	$015A			;Send register HL to the LCD
+015D:         	SET_CURSOR           		.EQU	$015D			;Set the graphics cursor
+0160:         	GET_CURSOR           		.EQU	$0160			;Get the current cursor
+0163:         	DISPLAY_CURSOR       		.EQU	$0163			;Set Cursor on or off
+              	;----------------------------------------------------------------------------------------------------------
+              	;	UTIL
+              	;----------------------------------------------------------------------------------------------------------
+0166:         	H_Delay              		.EQU	$0166			;Delay in milliseconds (DE in millis)
+0169:         	LCD_PRINT_STRING            .EQU    $0169           ;Print string HL, end with 0 EX: "Test", $00
+              	;----------------------------------------------------------------------------------------------------------
+              	;	I2C Board
+              	;----------------------------------------------------------------------------------------------------------
+016C:         	I2C_Open     			    .EQU	$016C			;Start i2c (Device address in A)
+016F:         	I2C_Close             		.EQU	$016F			;Close i2c 
+0172:         	I2C_Read              		.EQU	$0172			;I2C Read (data in A)
+0175:         	I2C_Write 			        .EQU	$0175			;I2C Write (data in A)
+0178:         	I2CLIST                     .EQU    $0178           ;I2C List devices on lcd
+              	
+017B:         	CLEAR_COLLISION             .EQU    $017B           ; lampa a flag de colisao
+017E:         	CHECK_COLLISION             .EQU    $017E           ; JP Z, SEM_COLISAO. JP NZ, COLISAO.
+              	
+0181:         	INIT_GAME_WAIT_START        .EQU   $0181        ; Chamar no setup, aguarda press start e returna, dar um (LD HL, setup) e (PUSH HL).
+0184:         	CHECK_GAMEOVER_WAIT_START   .EQU    $0184   ; Chamar no loop para verificar gameover e depois aguarda press start e ret para o inicio
+0187:         	SET_GAMEOVER                .EQU    $0187                 ; Seta a flag de gameover....
+              	
+              	
+              	
+              	
+8000:         	    .org $8000
+              	
+8000:         	setup:
+8000: 210080  	    ld hl, setup
+8003: E5      	    push hl
+              	    
+8004: CD0301  	    call CLEAR_GBUF
+8007: CD8101  	    call INIT_GAME_WAIT_START
+              	    
+800A: 3E01    	    ld a, 1
+800C: 32E882  	    ld (jogador), a
+              	    
+800F: AF      	    xor a
+8010: 32E682  	    ld (cursor_x), a
+8013: 32E782  	    ld (cursor_y), a
+              	
+              	    ; zera tabuleiro
+8016: 0609    	    ld b, 9
+8018: 21E982  	    ld hl, tabuleiro
+801B:         	zera_tab:
+801B: 3E0A    	    ld a, $0A
+801D: 77      	    ld (hl), a
+801E: 23      	    inc hl
+801F: 10FA    	    DJNZ zera_tab
+              	
+8021:         	loop:
+8021: CD0301  	    call CLEAR_GBUF
+              	    
+8024: CD2F81  	    call ler_controle
+8027: CD8882  	    call desenha_tabuleiro
+802A: CD0B82  	    call desenha_cursor
+802D: CD2782  	    call desenha_jogadas
+8030: CDE181  	    call desenha_jogador_atual
+8033: CD4F80  	    call verifica_vencedor
+8036: CD8401  	    call CHECK_GAMEOVER_WAIT_START
+              	    
+              	    
+8039: CD2401  	    call PLOT_TO_LCD
+803C: C32180  	    jp loop
+              	    
+              	    
+803F:         	verifica_velha:
+803F: 0609    	    ld b, 9
+8041: 21E982  	    ld hl, tabuleiro
+8044:         	verifica_velha_loop:
+8044: 7E      	    ld a, (hl)
+8045: FE0A    	    cp $0A
+8047: C8      	    RET Z
+8048: 23      	    inc hl
+8049: 10F9    	    DJNZ verifica_velha_loop
+804B: C31F81  	    JP deu_velha
+804E: C9      	    ret
+              	    
+804F:         	verifica_vencedor:
+804F: DD21E982	    ld ix, tabuleiro
+              	    
+              	    ; ---
+              	    ; ...
+              	    ; ...
+8053: DD7E00  	    ld a, (ix)
+8056: DD4601  	    ld b, (ix+1)
+8059: DD4E02  	    ld c, (ix+2)
+805C: 80      	    add a, b
+805D: 81      	    add a, c
+805E: FE03    	    cp 3
+8060: CAFF80  	    jp z, ganhouX
+8063: FE06    	    cp 6
+8065: CA0F81  	    jp z, ganhouO
+              	    
+              	    ; ...
+              	    ; ---
+              	    ; ...
+8068: DD7E03  	    ld a, (ix+3)
+806B: DD4604  	    ld b, (ix+4)
+806E: DD4E05  	    ld c, (ix+5)
+8071: 80      	    add a, b
+8072: 81      	    add a, c
+8073: FE03    	    cp 3
+8075: CAFF80  	    jp z, ganhouX
+8078: FE06    	    cp 6
+807A: CA0F81  	    jp z, ganhouO
+              	    
+              	    ; ...
+              	    ; ...
+              	    ; ---
+807D: DD7E06  	    ld a, (ix+6)
+8080: DD4607  	    ld b, (ix+7)
+8083: DD4E08  	    ld c, (ix+8)
+8086: 80      	    add a, b
+8087: 81      	    add a, c
+8088: FE03    	    cp 3
+808A: CAFF80  	    jp z, ganhouX
+808D: FE06    	    cp 6
+808F: CA0F81  	    jp z, ganhouO
+              	    
+              	    ; -..
+              	    ; -..
+              	    ; -..
+8092: DD7E00  	    ld a, (ix)
+8095: DD4603  	    ld b, (ix+3)
+8098: DD4E06  	    ld c, (ix+6)
+809B: 80      	    add a, b
+809C: 81      	    add a, c
+809D: FE03    	    cp 3
+809F: CAFF80  	    jp z, ganhouX
+80A2: FE06    	    cp 6
+80A4: CA0F81  	    jp z, ganhouO
+              	    
+              	    ; .-.
+              	    ; .-.
+              	    ; .-.
+80A7: DD7E01  	    ld a, (ix+1)
+80AA: DD4604  	    ld b, (ix+4)
+80AD: DD4E07  	    ld c, (ix+7)
+80B0: 80      	    add a, b
+80B1: 81      	    add a, c
+80B2: FE03    	    cp 3
+80B4: CAFF80  	    jp z, ganhouX
+80B7: FE06    	    cp 6
+80B9: CA0F81  	    jp z, ganhouO
+              	    
+              	    ; ..-
+              	    ; ..-
+              	    ; ..-
+80BC: DD7E02  	    ld a, (ix+2)
+80BF: DD4605  	    ld b, (ix+5)
+80C2: DD4E08  	    ld c, (ix+8)
+80C5: 80      	    add a, b
+80C6: 81      	    add a, c
+80C7: FE03    	    cp 3
+80C9: CAFF80  	    jp z, ganhouX
+80CC: FE06    	    cp 6
+80CE: CA0F81  	    jp z, ganhouO
+              	    
+              	    ; -..
+              	    ; .-.
+              	    ; ..-
+80D1: DD7E00  	    ld a, (ix)
+80D4: DD4604  	    ld b, (ix+4)
+80D7: DD4E08  	    ld c, (ix+8)
+80DA: 80      	    add a, b
+80DB: 81      	    add a, c
+80DC: FE03    	    cp 3
+80DE: CAFF80  	    jp z, ganhouX
+80E1: FE06    	    cp 6
+80E3: CA0F81  	    jp z, ganhouO
+              	    
+              	    ; ..-
+              	    ; .-.
+              	    ; -..
+80E6: DD7E02  	    ld a, (ix+2)
+80E9: DD4604  	    ld b, (ix+4)
+80EC: DD4E06  	    ld c, (ix+6)
+80EF: 80      	    add a, b
+80F0: 81      	    add a, c
+80F1: FE03    	    cp 3
+80F3: CAFF80  	    jp z, ganhouX
+80F6: FE06    	    cp 6
+80F8: CA0F81  	    jp z, ganhouO
+              	    
+80FB: CD3F80  	    call verifica_velha
+80FE: C9      	    ret
+              	
+80FF:         	ganhouX:
+80FF: 010028  	    LD BC, $2800
+8102: CD5D01  	    CALL SET_CURSOR
+              	    
+8105: 21AD82  	    ld hl, msg_winX
+8108: CD6901  	    call LCD_PRINT_STRING
+810B: CD8701  	    call SET_GAMEOVER
+810E: C9      	    ret
+              	   
+810F:         	ganhouO:
+810F: 010028  	    LD BC, $2800
+8112: CD5D01  	    CALL SET_CURSOR
+              	    
+8115: 21BB82  	    ld hl, msg_winO
+8118: CD6901  	    call LCD_PRINT_STRING
+811B: CD8701  	    call SET_GAMEOVER
+811E: C9      	    ret 
+              	    
+811F:         	deu_velha:
+811F: 010028  	    LD BC, $2800
+8122: CD5D01  	    CALL SET_CURSOR
+              	    
+8125: 21C982  	    ld hl, msg_velha
+8128: CD6901  	    call LCD_PRINT_STRING
+812B: CD8701  	    call SET_GAMEOVER
+812E: C9      	    ret 
+              	    
+              	    
+812F:         	ler_controle:
+812F: DB40    	    in a, ($40)
+8131: CB7F    	    bit 7,a
+8133: C24B81  	    JP NZ, KUP
+              	    
+8136: CB6F    	    bit 5,a
+8138: C25981  	    JP NZ, KDOWN
+              	    
+813B: CB77    	    bit 6,a
+813D: C26781  	    JP NZ, KLEFT
+              	    
+8140: CB67    	    bit 4,a
+8142: C27581  	    JP NZ, KRIGHT
+              	    
+8145: CB47    	    bit 0,a
+8147: C28F81  	    JP NZ, KA
+              	
+814A: C9      	    RET
+              	    
+              	
+814B:         	KUP:
+814B: CDC981  	    call delay
+814E: 3AE782  	    ld a, (cursor_y)
+8151: FE00    	    cp 0
+8153: C8      	    RET Z
+8154: 3D      	    dec a
+8155: 32E782  	    ld (cursor_y), a
+8158: C9      	    RET
+              	    
+8159:         	KDOWN:
+8159: CDC981  	    call delay
+815C: 3AE782  	    ld a, (cursor_y)
+815F: FE02    	    cp 2
+8161: C8      	    ret z
+8162: 3C      	    inc a
+8163: 32E782  	    ld (cursor_y), a
+8166: C9      	    RET
+              	    
+8167:         	KLEFT:
+8167: CDC981  	    call delay
+816A: 3AE682  	    ld a, (cursor_x)
+816D: FE00    	    cp 0
+816F: C8      	    ret z
+8170: 3D      	    dec a
+8171: 32E682  	    ld (cursor_x), a
+8174: C9      	    RET
+              	    
+8175:         	KRIGHT:
+8175: CDC981  	    call delay
+8178: 3AE682  	    ld a, (cursor_x)
+817B: FE02    	    cp 2
+817D: C8      	    ret z
+817E: 3C      	    inc a
+817F: 32E682  	    ld (cursor_x), a
+8182: C9      	    RET
+              	    
+              	    
+8183:         	getline0:
+8183: 21E982  	    ld hl, tabuleiro
+8186: C9      	    ret
+              	    
+8187:         	getline1:
+8187: 21EC82  	    ld hl, tabuleiro+3
+818A: C9      	    ret
+              	    
+818B:         	getline2:
+818B: 21EF82  	    ld hl, tabuleiro+6
+818E: C9      	    ret
+              	    
+              	    
+818F:         	KA:
+818F: 3AE782  	    ld a, (cursor_y)
+8192: FE00    	    cp 0
+8194: CC8381  	    call z, getline0
+8197: FE01    	    cp 1
+8199: CC8781  	    call z, getline1
+819C: FE02    	    cp 2
+819E: CC8B81  	    call z, getline2
+81A1: 3AE682  	    ld a, (cursor_x)
+81A4: 010000  	    ld bc, $0000
+81A7: 4F      	    ld c, a
+81A8: 09      	    add hl, bc
+81A9: 7E      	    ld a, (hl)
+81AA: FE0A    	    cp $0A
+81AC: C0      	    ret nz
+81AD: 3AE882  	    ld a, (jogador)
+81B0: 77      	    ld (hl), a
+81B1: CDB581  	    call proximo_jogador
+81B4: C9      	    ret
+              	    
+              	
+81B5:         	proximo_jogador:
+81B5: 3AE882  	    ld a, (jogador)
+81B8: FE01    	    cp 1
+81BA: CAC381  	    jp z, proximo_jogador2
+81BD: 3E01    	    ld a, 1
+81BF: 32E882  	    ld (jogador), a
+81C2: C9      	    ret
+81C3:         	proximo_jogador2:
+81C3: 3E02    	    ld a,2
+81C5: 32E882  	    ld (jogador),a
+81C8: C9      	    ret
+              	    
+              	    
+              	    
+81C9:         	delay:
+81C9: 119600  	    LD DE, $0096
+81CC: CD6601  	    call H_Delay
+81CF: C9      	    ret
+              	    
+81D0:         	ajuste_cursor:   
+81D0: FE01    	    cp 1
+81D2: CADB81  	    jp z, add10
+81D5: FE02    	    cp 2
+81D7: CADE81  	    jp z, add19
+81DA: C9      	    ret
+              	    
+81DB:         	add10:
+81DB: C60A    	    add a, 10
+81DD: C9      	    ret
+              	
+81DE:         	add19:
+81DE: C613    	    add a, 19
+81E0: C9      	    ret
+              	    
+              	    
+81E1:         	desenha_jogador_atual:
+81E1: 012800  	    ld bc, $0028
+81E4: CD5D01  	    call SET_CURSOR
+              	    
+81E7: 3AE882  	    ld a, (jogador)
+81EA: FE01    	    cp 1
+81EC: CAF581  	    jp z, mostra_jogador1
+81EF: FE02    	    cp 2
+81F1: CA0082  	    jp z, mostra_jogador2
+81F4: C9      	    ret
+              	
+81F5:         	mostra_jogador1:
+81F5: AF      	    xor a
+81F6: 010808  	    ld bc, $0808
+81F9: 21D682  	    ld hl, dx
+81FC: CD4801  	    call DRAW_GRAPHIC
+81FF: C9      	    ret
+              	
+              	
+8200:         	mostra_jogador2:
+8200: AF      	    xor a
+8201: 010808  	    ld bc, $0808
+8204: 21DE82  	    ld hl, do
+8207: CD4801  	    call DRAW_GRAPHIC
+820A: C9      	    ret
+              	
+820B:         	desenha_cursor:
+820B: 3AE682  	    LD a, (cursor_x)
+820E: FE00    	    cp 0
+8210: C4D081  	    call nz, ajuste_cursor
+8213: 47      	    LD B, A
+8214: C608    	    add a, 8
+8216: 57      	    ld d, a
+              	    
+8217: 3AE782  	    ld a, (cursor_y)
+821A: FE00    	    cp 0
+821C: C4D081  	    call nz, ajuste_cursor
+821F: 4F      	    ld c, a
+8220: C608    	    add a, 8
+8222: 5F      	    ld e, a
+8223: CD1E01  	    call FILL_BOX
+8226: C9      	    RET
+              	    
+              	    
+              	    
+8227:         	desenha_jogadas:
+8227: 0609    	    LD B, 9
+8229: 21E982  	    LD HL, tabuleiro 
+822C: 110000  	    LD DE, $0000 ; cursor
+822F:         	desenha_jogadas_loop:
+822F: 7E      	    ld a, (hl)
+8230: FE01    	    cp 1
+8232: CC5882  	    call z, draw_X
+8235: FE02    	    cp 2 
+8237: CC7082  	    call z, draw_O
+823A: 23      	    inc HL
+823B: 7A      	    ld a, d
+823C: C60B    	    add a,11
+823E: 57      	    ld d, a
+              	    
+823F: 78      	    ld a, b
+8240: FE07    	    cp 7
+8242: C24A82  	    jp nz, $+8
+8245: AF      	    xor a
+8246: 57      	    ld d, a
+8247: C60B    	    add a, 11
+8249: 5F      	    ld e, a
+              	    
+824A: 78      	    ld a, b
+824B: FE04    	    cp 4
+824D: C25582  	    jp nz, $+8
+8250: AF      	    xor a
+8251: 57      	    ld d, a
+8252: C616    	    add a, 22
+8254: 5F      	    ld e, a
+              	    
+              	
+8255: 10D8    	    DJNZ desenha_jogadas_loop
+8257: C9      	    ret
+              	    
+8258:         	draw_X:
+8258: F5      	    push af
+8259: C5      	    push bc
+825A: D5      	    push de
+825B: E5      	    push hl
+              	    
+825C: D5      	    push de
+825D: C1      	    pop bc
+825E: CD5D01  	    call SET_CURSOR
+              	    
+8261: 010808  	    LD BC, $0808
+8264: 21D682  	    LD HL, dx
+8267: AF      	    xor a
+8268: CD4801  	    call DRAW_GRAPHIC
+              	    
+826B: E1      	    pop hl
+826C: D1      	    pop de
+826D: C1      	    pop bc
+826E: F1      	    pop af
+826F: C9      	    ret
+              	    
+8270:         	draw_O:
+8270: F5      	    push af
+8271: C5      	    push bc
+8272: D5      	    push de
+8273: E5      	    push hl
+              	    
+8274: D5      	    push de
+8275: C1      	    pop bc
+8276: CD5D01  	    call SET_CURSOR
+              	    
+8279: 010808  	    LD BC, $0808
+827C: 21DE82  	    LD HL, do
+827F: AF      	    xor a
+8280: CD4801  	    call DRAW_GRAPHIC
+              	    
+8283: E1      	    pop hl
+8284: D1      	    pop de
+8285: C1      	    pop bc
+8286: F1      	    pop af
+8287: C9      	    ret
+              	    
+8288:         	desenha_tabuleiro:
+8288: 01000A  	    LD BC, $0A00
+828B: 111E0A  	    ld DE, $0A1E
+828E: CD1501  	    call DRAW_LINE
+              	    
+8291: 010014  	    LD BC, $1400
+8294: 111E14  	    ld DE, $141E
+8297: CD1501  	    call DRAW_LINE
+              	    
+829A: 010A00  	    LD BC, $000A
+829D: 110A1E  	    ld DE, $1E0A
+82A0: CD1501  	    call DRAW_LINE
+              	    
+82A3: 011400  	    LD BC, $0014
+82A6: 11141E  	    ld DE, $1E14
+82A9: CD1501  	    call DRAW_LINE
+82AC: C9      	    RET
+              	    
+              	    
+              	
+82AD: 58202D20	msg_winX:    .db "X - GANHOU!!!",0
+82B1: 47414E48	
+82B5: 4F552121	
+82B9: 2100    	
+82BB: 4F202D20	msg_winO:    .db "O - GANHOU!!!",0
+82BF: 47414E48	
+82C3: 4F552121	
+82C7: 2100    	
+82C9: 44455520	msg_velha:   .db "DEU VELHA!!!",0
+82CD: 56454C48	
+82D1: 41212121	
+82D5: 00      	
+              	
+82D6: C3C32418	dx: .db     0xC3, 0xC3, 0x24, 0x18, 0x18, 0x24, 0xC3, 0xC3
+82DA: 1824C3C3	
+82DE: 3C428181	do: .db     0x3C, 0x42, 0x81, 0x81, 0x81, 0x81, 0x42, 0x3C
+82E2: 8181423C	
+              	
+82E6: 00      	cursor_x:   .db 0x00
+82E7: 00      	cursor_y:   .db 0x00
+82E8: 01      	jogador:    .db 0x01
+              	
+              	; 0x01 = X
+              	; 0x02 = O
+82E9: 0A0A0A  	tabuleiro:  .db 0x0A, 0x0A, 0x0A
+82EC: 0A0A0A  	            .db 0x0A, 0x0A, 0x0A 
+82EF: 0A0A0A  	            .db 0x0A, 0x0A, 0x0A
+              	    
+
+
+; +++ segments +++
+
+#CODE          = $8000 = 32768,  size = $02F2 =   754
+
+; +++ global symbols +++
+
+CHECK_COLLISION     = $017E =   382          Main.asm:56 (unused)
+CHECK_GAMEOVER_WAIT_START = $0184 =   388          Main.asm:59
+CLEAR_COLLISION     = $017B =   379          Main.asm:55 (unused)
+CLEAR_GBUF          = $0103 =   259          Main.asm:8
+CLEAR_GR_LCD        = $0106 =   262          Main.asm:9 (unused)
+CLEAR_PIXEL         = $0139 =   313          Main.asm:26 (unused)
+CLEAR_TXT_LCD       = $0109 =   265          Main.asm:10 (unused)
+DELAY_MS            = $0130 =   304          Main.asm:23 (unused)
+DELAY_US            = $012D =   301          Main.asm:22 (unused)
+DISPLAY_CURSOR      = $0163 =   355          Main.asm:40 (unused)
+DRAW_BOX            = $0112 =   274          Main.asm:13 (unused)
+DRAW_CIRCLE         = $0118 =   280          Main.asm:15 (unused)
+DRAW_GRAPHIC        = $0148 =   328          Main.asm:31
+DRAW_LINE           = $0115 =   277          Main.asm:14
+DRAW_PIXEL          = $011B =   283          Main.asm:16 (unused)
+FILL_BOX            = $011E =   286          Main.asm:17
+FILL_CIRCLE         = $0121 =   289          Main.asm:18 (unused)
+FLIP_PIXEL          = $013C =   316          Main.asm:27 (unused)
+GET_CURSOR          = $0160 =   352          Main.asm:39 (unused)
+H_Delay             = $0166 =   358          Main.asm:44
+I2CLIST             = $0178 =   376          Main.asm:53 (unused)
+I2C_Close           = $016F =   367          Main.asm:50 (unused)
+I2C_Open            = $016C =   364          Main.asm:49 (unused)
+I2C_Read            = $0172 =   370          Main.asm:51 (unused)
+I2C_Write           = $0175 =   373          Main.asm:52 (unused)
+INIT_GAME_WAIT_START = $0181 =   385          Main.asm:58
+INIT_LCD            = $0100 =   256          Main.asm:7 (unused)
+INIT_TERMINAL       = $014E =   334          Main.asm:33 (unused)
+INV_GRAPHIC         = $014B =   331          Main.asm:32 (unused)
+KA                  = $818F = 33167          Main.asm:326
+KDOWN               = $8159 = 33113          Main.asm:285
+KLEFT               = $8167 = 33127          Main.asm:294
+KRIGHT              = $8175 = 33141          Main.asm:303
+KUP                 = $814B = 33099          Main.asm:276
+LCD_DATA            = $0142 =   322          Main.asm:29 (unused)
+LCD_INST            = $013F =   319          Main.asm:28 (unused)
+LCD_PRINT_STRING    = $0169 =   361          Main.asm:45
+PLOT_TO_LCD         = $0124 =   292          Main.asm:19
+PRINT_CHARS         = $012A =   298          Main.asm:21 (unused)
+PRINT_STRING        = $0127 =   295          Main.asm:20 (unused)
+SEND_A_TO_GLCD      = $0157 =   343          Main.asm:36 (unused)
+SEND_CHAR_TO_GLCD   = $0151 =   337          Main.asm:34 (unused)
+SEND_HL_TO_GLCD     = $015A =   346          Main.asm:37 (unused)
+SEND_STRING_TO_GLCD = $0154 =   340          Main.asm:35 (unused)
+SER_SYNC            = $0145 =   325          Main.asm:30 (unused)
+SET_BUF_CLEAR       = $0133 =   307          Main.asm:24 (unused)
+SET_BUF_NO_CLEAR    = $0136 =   310          Main.asm:25 (unused)
+SET_CURSOR          = $015D =   349          Main.asm:38
+SET_GAMEOVER        = $0187 =   391          Main.asm:60
+SET_GR_MODE         = $010C =   268          Main.asm:11 (unused)
+SET_TXT_MODE        = $010F =   271          Main.asm:12 (unused)
+_end                = $82F2 = 33522          Main.asm:65 (unused)
+_size               = $02F2 =   754          Main.asm:65 (unused)
+_z80_               = $0001 =     1          Main.asm:1 (unused)
+add10               = $81DB = 33243          Main.asm:373
+add19               = $81DE = 33246          Main.asm:377
+ajuste_cursor       = $81D0 = 33232          Main.asm:366
+cursor_x            = $82E6 = 33510          Main.asm:531
+cursor_y            = $82E7 = 33511          Main.asm:532
+delay               = $81C9 = 33225          Main.asm:361
+desenha_cursor      = $820B = 33291          Main.asm:408
+desenha_jogadas     = $8227 = 33319          Main.asm:427
+desenha_jogadas_loop = $822F = 33327          Main.asm:431
+desenha_jogador_atual = $81E1 = 33249          Main.asm:382
+desenha_tabuleiro   = $8288 = 33416          Main.asm:504
+deu_velha           = $811F = 33055          Main.asm:246
+do                  = $82DE = 33502          Main.asm:529
+draw_O              = $8270 = 33392          Main.asm:483
+draw_X              = $8258 = 33368          Main.asm:462
+dx                  = $82D6 = 33494          Main.asm:528
+ganhouO             = $810F = 33039          Main.asm:237
+ganhouX             = $80FF = 33023          Main.asm:228
+getline0            = $8183 = 33155          Main.asm:313
+getline1            = $8187 = 33159          Main.asm:317
+getline2            = $818B = 33163          Main.asm:321
+jogador             = $82E8 = 33512          Main.asm:533
+ler_controle        = $812F = 33071          Main.asm:256
+loop                = $8021 = 32801          Main.asm:90
+mostra_jogador1     = $81F5 = 33269          Main.asm:393
+mostra_jogador2     = $8200 = 33280          Main.asm:401
+msg_velha           = $82C9 = 33481          Main.asm:526
+msg_winO            = $82BB = 33467          Main.asm:525
+msg_winX            = $82AD = 33453          Main.asm:524
+proximo_jogador     = $81B5 = 33205          Main.asm:347
+proximo_jogador2    = $81C3 = 33219          Main.asm:354
+setup               = $8000 = 32768          Main.asm:67
+tabuleiro           = $82E9 = 33513          Main.asm:537
+verifica_velha      = $803F = 32831          Main.asm:106
+verifica_velha_loop = $8044 = 32836          Main.asm:109
+verifica_vencedor   = $804F = 32847          Main.asm:118
+zera_tab            = $801B = 32795          Main.asm:84
+
+
+total time: 0.0350 sec.
+no errors

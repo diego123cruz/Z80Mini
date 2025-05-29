@@ -415,7 +415,9 @@ read_loop:
     bit 1, A ; Next - B
     JP    NZ, READ_MEM_STEP
     bit 0, A  ; key Enter, execute - A
-    JP    Z, READ_MEM_KEY
+    JP    NZ, READ_MEM_KEY_C
+    jp read_loop
+READ_MEM_KEY_C:
     ;read type
     INC DE
     CALL READ_IIC_DE
@@ -482,6 +484,7 @@ READ_FILE_IMG:
 
     CALL I2C_MemRd
 
+    CALL CLEAR_GBUF
     LD H, $80
     LD L, $00
     CALL LCD_IMAGE_128x64

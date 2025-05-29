@@ -124,19 +124,23 @@ var saidaCodName = "";
 function convertTextToHex(append) {
   const inputText = document.getElementById("inputText").value;
   const hexadecimalResult = textToHexadecimal(inputText);
+
+  if (inputText == "") {
+    alert ("Error: Digite um nome."); 
+    return; 
+  }
+
+
   saidaCodName = hexadecimalResult;
 
-
-
-
-
-
-
-
-
-
-
   const content = document.getElementById("inputHex").value;
+
+  var typeFile = document.getElementById('selectType').value;
+  if (content == "" && typeFile == 0x00) {
+    alert ("Error: intelHex vazio...");   
+    return;
+  }
+
   const lines = content.split('\n');
   const hexOutput = [];
 
@@ -182,6 +186,8 @@ function convertTextToHex(append) {
     document.getElementById("outputHex").value = "0x44,"+saidaCodName+","+typeFile+","+saidaCodSize+","+saidaCodHex+",0x4F";
   }
   
+  document.getElementById("inputText").value = "";
+  document.getElementById("inputHex").value = "";
 }
 
 
