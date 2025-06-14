@@ -1,0 +1,128 @@
+ASxxxx Linker V03.00/V05.40 + sdld,  page 1.
+Hexadecimal  [32-Bits]
+
+Area                                    Addr        Size        Decimal Bytes (Attributes)
+--------------------------------        ----        ----        ------- ----- ------------
+.  .ABS.                            00000000    00000000 =           0. bytes (ABS,CON)
+
+      Value  Global                              Global Defined In Module
+      -----  --------------------------------   ------------------------
+     00000000  .__.ABS.                           
+     00000000  l__BSEG                         
+     00000000  l__BSS                          
+     00000000  l__CABS                         
+     00000000  l__DABS                         
+     00000000  l__DATA                         
+     00000000  l__GSFINAL                      
+     00000000  l__GSINIT                       
+     00000000  l__HEAP                         
+     00000000  l__HOME                         
+     00000000  s__CABS                         
+     00000000  s__DABS                         
+     00000005  l__INITIALIZED                  
+     00000005  l__INITIALIZER                  
+     00000018  l__MAIN                         
+     000002E6  l__CODE                         
+     00008000  s__CODE                         
+     00008000  s__DATA                         
+     00008000  s__INITIALIZED                  
+     00008005  s__BSEG                         
+     00008005  s__BSS                          
+     00008005  s__HEAP                         
+     000082E6  s__MAIN                         
+     000082FE  s__HOME                         
+     000082FE  s__INITIALIZER                  
+     00008303  s__GSFINAL                      
+     00008303  s__GSINIT                       
+ASxxxx Linker V03.00/V05.40 + sdld,  page 2.
+Hexadecimal  [32-Bits]
+
+Area                                    Addr        Size        Decimal Bytes (Attributes)
+--------------------------------        ----        ----        ------- ----- ------------
+_CODE                               00008000    000002E6 =         742. bytes (REL,CON)
+
+      Value  Global                              Global Defined In Module
+      -----  --------------------------------   ------------------------
+     00008000  _main                              main
+     0000817F  _new_ball                          main
+     0000818C  _incPontos                         main
+     00008196  _showPontos                        main
+     000081AA  _showVidas                         main
+     000081BE  _lcd_clear_buffer                  Z80Mini
+     000081C2  _lcd_show_buffer                   Z80Mini
+     000081C6  _lcd_set_xy                        Z80Mini
+     000081CC  _lcd_drawpixel                     Z80Mini
+     000081D2  _lcd_print_char                    Z80Mini
+     000081D6  _lcd_print_string                  Z80Mini
+     000081DE  _lcd_cursor_on                     Z80Mini
+     000081E4  _lcd_cursor_off                    Z80Mini
+     000081EA  _lcd_print_byte_to_ascii           Z80Mini
+     000081EE  _lcd_print_int_to_ascii            Z80Mini
+     000081F2  _lcd_draw_line                     Z80Mini
+     0000820C  _lcd_draw_circle                   Z80Mini
+     0000821D  _lcd_draw_placar                   Z80Mini
+     0000822A  _i2c_open                          Z80Mini
+     0000822E  _i2c_close                         Z80Mini
+     00008232  _i2c_read                          Z80Mini
+     00008236  _i2c_write                         Z80Mini
+     0000823A  _delay_ms                          Z80Mini
+     0000823F  _pinOut                            Z80Mini
+     00008244  _portOut                           Z80Mini
+     00008249  _pinIn                             Z80Mini
+     0000824D  _rand                              rand
+     000082CF  _srand                             rand
+     000082DC  ___sdcc_enter_ix                   
+
+ASxxxx Linker V03.00/V05.40 + sdld,  page 3.
+Hexadecimal  [32-Bits]
+
+Area                                    Addr        Size        Decimal Bytes (Attributes)
+--------------------------------        ----        ----        ------- ----- ------------
+_MAIN                               000082E6    00000018 =          24. bytes (REL,CON)
+
+      Value  Global                              Global Defined In Module
+      -----  --------------------------------   ------------------------
+ASxxxx Linker V03.00/V05.40 + sdld,  page 4.
+Hexadecimal  [32-Bits]
+
+Area                                    Addr        Size        Decimal Bytes (Attributes)
+--------------------------------        ----        ----        ------- ----- ------------
+_INITIALIZER                        000082FE    00000005 =           5. bytes (REL,CON)
+
+      Value  Global                              Global Defined In Module
+      -----  --------------------------------   ------------------------
+ASxxxx Linker V03.00/V05.40 + sdld,  page 5.
+Hexadecimal  [32-Bits]
+
+Area                                    Addr        Size        Decimal Bytes (Attributes)
+--------------------------------        ----        ----        ------- ----- ------------
+_INITIALIZED                        00008000    00000005 =           5. bytes (REL,CON)
+
+      Value  Global                              Global Defined In Module
+      -----  --------------------------------   ------------------------
+     00008000  _pontos                            main
+
+ASxxxx Linker V03.00/V05.40 + sdld,  page 6.
+
+Files Linked                              [ module(s) ]
+
+crt0-z80mini-loadable.rel                 [ crt0 ]
+main.rel                                  [ main ]
+Z80Mini.rel                               [ Z80Mini ]
+
+
+Libraries Linked                          [ object file ]
+
+C:\Program Files\SDCC\bin\..\lib\z80/z80.lib
+                                          [ rand.rel ]
+C:\Program Files\SDCC\bin\..\lib\z80/z80.lib
+                                          [ crtenter.rel ]
+
+ASxxxx Linker V03.00/V05.40 + sdld,  page 7.
+
+User Base Address Definitions
+
+_CODE = 0x8000
+_DATA = 0x8000
+
+

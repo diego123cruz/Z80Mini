@@ -1,0 +1,367 @@
+                                      1 ;--------------------------------------------------------
+                                      2 ; File Created by SDCC : free open source ISO C Compiler 
+                                      3 ; Version 4.4.1 #14901 (MINGW64)
+                                      4 ;--------------------------------------------------------
+                                      5 	.module main
+                                      6 	.optsdcc -mz80
+                                      7 	
+                                      8 ;--------------------------------------------------------
+                                      9 ; Public variables in this module
+                                     10 ;--------------------------------------------------------
+                                     11 	.globl _main
+                                     12 	.globl _pinIn
+                                     13 	.globl _delay_ms
+                                     14 	.globl _i2c_write
+                                     15 	.globl _i2c_close
+                                     16 	.globl _i2c_open
+                                     17 	.globl _lcd_draw_circle
+                                     18 	.globl _lcd_draw_line
+                                     19 	.globl _lcd_cursor_off
+                                     20 	.globl _lcd_show_buffer
+                                     21 	.globl _lcd_clear_buffer
+                                     22 	.globl _pontos
+                                     23 	.globl _new_ball
+                                     24 	.globl _incPontos
+                                     25 	.globl _showPontos
+                                     26 	.globl _showVidas
+                                     27 ;--------------------------------------------------------
+                                     28 ; special function registers
+                                     29 ;--------------------------------------------------------
+                                     30 ;--------------------------------------------------------
+                                     31 ; ram data
+                                     32 ;--------------------------------------------------------
+                                     33 	.area _DATA
+                                     34 ;--------------------------------------------------------
+                                     35 ; ram data
+                                     36 ;--------------------------------------------------------
+                                     37 	.area _INITIALIZED
+    00000000                         38 _pontos::
+    00000000                         39 	.ds 1
+                                     40 ;--------------------------------------------------------
+                                     41 ; absolute external ram data
+                                     42 ;--------------------------------------------------------
+                                     43 	.area _DABS (ABS)
+                                     44 ;--------------------------------------------------------
+                                     45 ; global & static initialisations
+                                     46 ;--------------------------------------------------------
+                                     47 	.area _HOME
+                                     48 	.area _GSINIT
+                                     49 	.area _GSFINAL
+                                     50 	.area _GSINIT
+                                     51 ;--------------------------------------------------------
+                                     52 ; Home
+                                     53 ;--------------------------------------------------------
+                                     54 	.area _HOME
+                                     55 	.area _HOME
+                                     56 ;--------------------------------------------------------
+                                     57 ; code
+                                     58 ;--------------------------------------------------------
+                                     59 	.area _CODE
+                                     60 ;main.c:12: int main(void) {
+                                     61 ;	---------------------------------
+                                     62 ; Function main
+                                     63 ; ---------------------------------
+    00000000                         64 _main::
+    00000000 CDr00r00         [17]   65 	call	___sdcc_enter_ix
+    00000003 21 FA FF         [10]   66 	ld	hl, #-6
+    00000006 39               [11]   67 	add	hl, sp
+    00000007 F9               [ 6]   68 	ld	sp, hl
+                                     69 ;main.c:13: byte px=60;
+    00000008 DD 36 FA 3C      [19]   70 	ld	-6 (ix), #0x3c
+                                     71 ;main.c:15: byte count=0;
+    0000000C DD 36 FB 00      [19]   72 	ld	-5 (ix), #0x00
+                                     73 ;main.c:16: pontos=0;
+    00000010 AF               [ 4]   74 	xor	a, a
+    00000011 32r00r00         [13]   75 	ld	(_pontos+0), a
+                                     76 ;main.c:17: byte erros=3;
+    00000014 DD 36 FC 03      [19]   77 	ld	-4 (ix), #0x03
+                                     78 ;main.c:19: byte bx=60;
+    00000018 DD 36 FD 3C      [19]   79 	ld	-3 (ix), #0x3c
+                                     80 ;main.c:20: byte by=3;
+    0000001C DD 36 FE 03      [19]   81 	ld	-2 (ix), #0x03
+                                     82 ;main.c:22: lcd_cursor_off();
+    00000020 CDr00r00         [17]   83 	call	_lcd_cursor_off
+                                     84 ;main.c:24: lcd_clear_buffer();
+    00000023 CDr00r00         [17]   85 	call	_lcd_clear_buffer
+                                     86 ;main.c:27: i2c_open(0x0E);
+    00000026 3E 0E            [ 7]   87 	ld	a, #0x0e
+    00000028 CDr00r00         [17]   88 	call	_i2c_open
+                                     89 ;main.c:28: i2c_write(0x00);
+    0000002B AF               [ 4]   90 	xor	a, a
+    0000002C CDr00r00         [17]   91 	call	_i2c_write
+                                     92 ;main.c:29: i2c_write(0x01); // Liga somente o display LOW (3 e 4)
+    0000002F 3E 01            [ 7]   93 	ld	a, #0x01
+    00000031 CDr00r00         [17]   94 	call	_i2c_write
+                                     95 ;main.c:30: i2c_close();
+    00000034 CDr00r00         [17]   96 	call	_i2c_close
+                                     97 ;main.c:32: showPontos(pontos);
+    00000037 3Ar00r00         [13]   98 	ld	a, (_pontos)
+    0000003A CDr96r01         [17]   99 	call	_showPontos
+                                    100 ;main.c:33: showVidas(erros);
+    0000003D 3E 03            [ 7]  101 	ld	a, #0x03
+    0000003F CDrAAr01         [17]  102 	call	_showVidas
+                                    103 ;main.c:35: while(TRUE) {
+    00000042                        104 00123$:
+                                    105 ;main.c:37: byte read = pinIn(#0x40);
+    00000042 3E 40            [ 7]  106 	ld	a, #0x40
+    00000044 CDr00r00         [17]  107 	call	_pinIn
+    00000047 5F               [ 4]  108 	ld	e, a
+                                    109 ;main.c:39: byte input = 0;
+    00000048 DD 36 FF 00      [19]  110 	ld	-1 (ix), #0x00
+                                    111 ;main.c:40: if (read != 0) {
+    0000004C 7B               [ 4]  112 	ld	a, e
+    0000004D B7               [ 4]  113 	or	a, a
+    0000004E 28 03            [12]  114 	jr	Z, 00102$
+                                    115 ;main.c:41: input = read;
+    00000050 DD 73 FF         [19]  116 	ld	-1 (ix), e
+    00000053                        117 00102$:
+                                    118 ;main.c:45: if (count >= 10) {
+    00000053 DD 7E FB         [19]  119 	ld	a, -5 (ix)
+    00000056 D6 0A            [ 7]  120 	sub	a, #0x0a
+    00000058 DAr73r01         [10]  121 	jp	C, 00121$
+                                    122 ;main.c:51: if (input == 0x40) {
+    0000005B DD 7E FF         [19]  123 	ld	a, -1 (ix)
+    0000005E D6 40            [ 7]  124 	sub	a, #0x40
+    00000060 20 0F            [12]  125 	jr	NZ, 00106$
+                                    126 ;main.c:52: if (px > 2) {
+    00000062 3E 02            [ 7]  127 	ld	a, #0x02
+    00000064 DD 96 FA         [19]  128 	sub	a, -6 (ix)
+    00000067 30 08            [12]  129 	jr	NC, 00106$
+                                    130 ;main.c:53: px = px - 3;
+    00000069 DD 7E FA         [19]  131 	ld	a, -6 (ix)
+    0000006C C6 FD            [ 7]  132 	add	a, #0xfd
+    0000006E DD 77 FA         [19]  133 	ld	-6 (ix), a
+    00000071                        134 00106$:
+                                    135 ;main.c:57: if (input == 0x10) {
+    00000071 DD 7E FF         [19]  136 	ld	a, -1 (ix)
+    00000074 D6 10            [ 7]  137 	sub	a, #0x10
+    00000076 20 0F            [12]  138 	jr	NZ, 00110$
+                                    139 ;main.c:58: if (px < 116) {
+    00000078 DD 7E FA         [19]  140 	ld	a, -6 (ix)
+    0000007B D6 74            [ 7]  141 	sub	a, #0x74
+    0000007D 30 08            [12]  142 	jr	NC, 00110$
+                                    143 ;main.c:59: px = px + 3;
+    0000007F DD 7E FA         [19]  144 	ld	a, -6 (ix)
+    00000082 C6 03            [ 7]  145 	add	a, #0x03
+    00000084 DD 77 FA         [19]  146 	ld	-6 (ix), a
+    00000087                        147 00110$:
+                                    148 ;main.c:64: lcd_clear_buffer();
+    00000087 CDr00r00         [17]  149 	call	_lcd_clear_buffer
+                                    150 ;main.c:65: lcd_draw_line(px, py, px+10, py);
+    0000008A DD 7E FA         [19]  151 	ld	a, -6 (ix)
+    0000008D DD 77 FF         [19]  152 	ld	-1 (ix), a
+    00000090 C6 0A            [ 7]  153 	add	a, #0x0a
+    00000092 26 3C            [ 7]  154 	ld	h, #0x3c
+    00000094 E5               [11]  155 	push	hl
+    00000095 33               [ 6]  156 	inc	sp
+    00000096 F5               [11]  157 	push	af
+    00000097 33               [ 6]  158 	inc	sp
+    00000098 2E 3C            [ 7]  159 	ld	l, #0x3c
+    0000009A DD 7E FA         [19]  160 	ld	a, -6 (ix)
+    0000009D CDr00r00         [17]  161 	call	_lcd_draw_line
+                                    162 ;main.c:66: lcd_draw_circle(bx, by, 1);
+    000000A0 3E 01            [ 7]  163 	ld	a, #0x01
+    000000A2 F5               [11]  164 	push	af
+    000000A3 33               [ 6]  165 	inc	sp
+    000000A4 DD 6E FE         [19]  166 	ld	l, -2 (ix)
+    000000A7 DD 7E FD         [19]  167 	ld	a, -3 (ix)
+    000000AA CDr00r00         [17]  168 	call	_lcd_draw_circle
+                                    169 ;main.c:67: lcd_show_buffer();
+    000000AD CDr00r00         [17]  170 	call	_lcd_show_buffer
+                                    171 ;main.c:71: if (py == by) {
+    000000B0 DD 7E FE         [19]  172 	ld	a, -2 (ix)
+    000000B3 D6 3C            [ 7]  173 	sub	a, #0x3c
+    000000B5 20 46            [12]  174 	jr	NZ, 00115$
+                                    175 ;main.c:72: if (bx+1 >= px && bx <= px+10) {
+    000000B7 DD 4E FD         [19]  176 	ld	c, -3 (ix)
+    000000BA 06 00            [ 7]  177 	ld	b, #0x00
+    000000BC 69               [ 4]  178 	ld	l, c
+    000000BD 60               [ 4]  179 	ld	h, b
+    000000BE 23               [ 6]  180 	inc	hl
+    000000BF DD 5E FA         [19]  181 	ld	e, -6 (ix)
+    000000C2 AF               [ 4]  182 	xor	a, a
+    000000C3 57               [ 4]  183 	ld	d, a
+    000000C4 ED 52            [15]  184 	sbc	hl, de
+    000000C6 38 35            [12]  185 	jr	C, 00115$
+    000000C8 21 0A 00         [10]  186 	ld	hl, #0x000a
+    000000CB 19               [11]  187 	add	hl, de
+    000000CC 7D               [ 4]  188 	ld	a, l
+    000000CD 91               [ 4]  189 	sub	a, c
+    000000CE 7C               [ 4]  190 	ld	a, h
+    000000CF 98               [ 4]  191 	sbc	a, b
+    000000D0 E2rD5r00         [10]  192 	jp	PO, 00217$
+    000000D3 EE 80            [ 7]  193 	xor	a, #0x80
+    000000D5                        194 00217$:
+    000000D5 FArFDr00         [10]  195 	jp	M, 00115$
+                                    196 ;main.c:73: incPontos();
+    000000D8 CDr8Cr01         [17]  197 	call	_incPontos
+                                    198 ;main.c:74: showPontos(pontos);
+    000000DB 3Ar00r00         [13]  199 	ld	a, (_pontos)
+    000000DE CDr96r01         [17]  200 	call	_showPontos
+                                    201 ;main.c:75: bx = new_ball();
+    000000E1 CDr7Fr01         [17]  202 	call	_new_ball
+    000000E4 DD 77 FD         [19]  203 	ld	-3 (ix), a
+                                    204 ;main.c:76: by = 1;
+    000000E7 DD 36 FE 01      [19]  205 	ld	-2 (ix), #0x01
+                                    206 ;main.c:78: i2c_open(0x0E);
+    000000EB 3E 0E            [ 7]  207 	ld	a, #0x0e
+    000000ED CDr00r00         [17]  208 	call	_i2c_open
+                                    209 ;main.c:79: i2c_write(0x05);
+    000000F0 3E 05            [ 7]  210 	ld	a, #0x05
+    000000F2 CDr00r00         [17]  211 	call	_i2c_write
+                                    212 ;main.c:80: i2c_write(0x12);
+    000000F5 3E 12            [ 7]  213 	ld	a, #0x12
+    000000F7 CDr00r00         [17]  214 	call	_i2c_write
+                                    215 ;main.c:81: i2c_close();
+    000000FA CDr00r00         [17]  216 	call	_i2c_close
+    000000FD                        217 00115$:
+                                    218 ;main.c:85: if (by > 65) {
+    000000FD 3E 41            [ 7]  219 	ld	a, #0x41
+    000000FF DD 96 FE         [19]  220 	sub	a, -2 (ix)
+    00000102 30 2B            [12]  221 	jr	NC, 00117$
+                                    222 ;main.c:86: bx = new_ball();
+    00000104 CDr7Fr01         [17]  223 	call	_new_ball
+    00000107 DD 77 FD         [19]  224 	ld	-3 (ix), a
+                                    225 ;main.c:87: by = 1;
+    0000010A DD 36 FE 01      [19]  226 	ld	-2 (ix), #0x01
+                                    227 ;main.c:88: erros = erros - 1;
+                                    228 ;main.c:89: showVidas(erros);
+    0000010E DD 35 FC         [23]  229 	dec	-4 (ix)
+    00000111 DD 7E FC         [19]  230 	ld	a, -4 (ix)
+    00000114 CDrAAr01         [17]  231 	call	_showVidas
+                                    232 ;main.c:90: delay_ms(200);
+    00000117 21 C8 00         [10]  233 	ld	hl, #0x00c8
+    0000011A CDr00r00         [17]  234 	call	_delay_ms
+                                    235 ;main.c:92: i2c_open(0x0E);
+    0000011D 3E 0E            [ 7]  236 	ld	a, #0x0e
+    0000011F CDr00r00         [17]  237 	call	_i2c_open
+                                    238 ;main.c:93: i2c_write(0x05);
+    00000122 3E 05            [ 7]  239 	ld	a, #0x05
+    00000124 CDr00r00         [17]  240 	call	_i2c_write
+                                    241 ;main.c:94: i2c_write(0x01);
+    00000127 3E 01            [ 7]  242 	ld	a, #0x01
+    00000129 CDr00r00         [17]  243 	call	_i2c_write
+                                    244 ;main.c:95: i2c_close();
+    0000012C CDr00r00         [17]  245 	call	_i2c_close
+    0000012F                        246 00117$:
+                                    247 ;main.c:98: if (erros == 0) {
+    0000012F DD 7E FC         [19]  248 	ld	a, -4 (ix)
+    00000132 B7               [ 4]  249 	or	a, a
+    00000133 20 37            [12]  250 	jr	NZ, 00119$
+                                    251 ;main.c:99: erros = 3;
+    00000135 DD 36 FC 03      [19]  252 	ld	-4 (ix), #0x03
+                                    253 ;main.c:100: pontos = 0;
+    00000139 AF               [ 4]  254 	xor	a, a
+    0000013A 32r00r00         [13]  255 	ld	(_pontos+0), a
+                                    256 ;main.c:101: delay_ms(1000);
+    0000013D 21 E8 03         [10]  257 	ld	hl, #0x03e8
+    00000140 CDr00r00         [17]  258 	call	_delay_ms
+                                    259 ;main.c:103: showPontos(pontos);
+    00000143 3Ar00r00         [13]  260 	ld	a, (_pontos)
+    00000146 CDr96r01         [17]  261 	call	_showPontos
+                                    262 ;main.c:104: delay_ms(100);
+    00000149 21 64 00         [10]  263 	ld	hl, #0x0064
+    0000014C CDr00r00         [17]  264 	call	_delay_ms
+                                    265 ;main.c:105: showVidas(erros);
+    0000014F 3E 03            [ 7]  266 	ld	a, #0x03
+    00000151 CDrAAr01         [17]  267 	call	_showVidas
+                                    268 ;main.c:106: delay_ms(100);
+    00000154 21 64 00         [10]  269 	ld	hl, #0x0064
+    00000157 CDr00r00         [17]  270 	call	_delay_ms
+                                    271 ;main.c:108: i2c_open(0x0E);
+    0000015A 3E 0E            [ 7]  272 	ld	a, #0x0e
+    0000015C CDr00r00         [17]  273 	call	_i2c_open
+                                    274 ;main.c:109: i2c_write(0x05);
+    0000015F 3E 05            [ 7]  275 	ld	a, #0x05
+    00000161 CDr00r00         [17]  276 	call	_i2c_write
+                                    277 ;main.c:110: i2c_write(0x10);
+    00000164 3E 10            [ 7]  278 	ld	a, #0x10
+    00000166 CDr00r00         [17]  279 	call	_i2c_write
+                                    280 ;main.c:111: i2c_close();
+    00000169 CDr00r00         [17]  281 	call	_i2c_close
+    0000016C                        282 00119$:
+                                    283 ;main.c:113: by=by+1;
+    0000016C DD 34 FE         [23]  284 	inc	-2 (ix)
+                                    285 ;main.c:114: count=0;
+    0000016F DD 36 FB 00      [19]  286 	ld	-5 (ix), #0x00
+    00000173                        287 00121$:
+                                    288 ;main.c:116: count = count + 1;
+    00000173 DD 34 FB         [23]  289 	inc	-5 (ix)
+                                    290 ;main.c:117: delay_ms(1);
+    00000176 21 01 00         [10]  291 	ld	hl, #0x0001
+    00000179 CDr00r00         [17]  292 	call	_delay_ms
+                                    293 ;main.c:119: }
+    0000017C C3r42r00         [10]  294 	jp	00123$
+                                    295 ;main.c:121: byte new_ball() {
+                                    296 ;	---------------------------------
+                                    297 ; Function new_ball
+                                    298 ; ---------------------------------
+    0000017F                        299 _new_ball::
+                                    300 ;main.c:122: while(1) {
+    0000017F                        301 00105$:
+                                    302 ;main.c:123: byte x = rand();
+    0000017F CDr00r00         [17]  303 	call	_rand
+    00000182 7B               [ 4]  304 	ld	a, e
+                                    305 ;main.c:124: if (x > 3 && x < 124) {
+    00000183 FE 04            [ 7]  306 	cp	a, #0x04
+    00000185 38 F8            [12]  307 	jr	C, 00105$
+    00000187 FE 7C            [ 7]  308 	cp	a, #0x7c
+    00000189 30 F4            [12]  309 	jr	NC, 00105$
+                                    310 ;main.c:125: return x;
+                                    311 ;main.c:128: }
+    0000018B C9               [10]  312 	ret
+                                    313 ;main.c:130: void incPontos(void) __naked {
+                                    314 ;	---------------------------------
+                                    315 ; Function incPontos
+                                    316 ; ---------------------------------
+    0000018C                        317 _incPontos::
+                                    318 ;main.c:137: __endasm;
+    0000018C 3Ar00r00         [13]  319 	ld	a, (_pontos) ; carrega o valor atual em A
+    0000018F C6 01            [ 7]  320 	add	a, #1 ; incrementa 1
+    00000191 27               [ 4]  321 	daa	; ajusta para BCD
+    00000192 32r00r00         [13]  322 	ld	(_pontos), a ; salva de volta
+    00000195 C9               [10]  323 	ret
+                                    324 ;main.c:138: }
+                                    325 ;main.c:140: void showPontos(byte p) {
+                                    326 ;	---------------------------------
+                                    327 ; Function showPontos
+                                    328 ; ---------------------------------
+    00000196                        329 _showPontos::
+    00000196 4F               [ 4]  330 	ld	c, a
+                                    331 ;main.c:141: i2c_open(0x0E);
+    00000197 C5               [11]  332 	push	bc
+    00000198 3E 0E            [ 7]  333 	ld	a, #0x0e
+    0000019A CDr00r00         [17]  334 	call	_i2c_open
+    0000019D 3E 01            [ 7]  335 	ld	a, #0x01
+    0000019F CDr00r00         [17]  336 	call	_i2c_write
+    000001A2 C1               [10]  337 	pop	bc
+                                    338 ;main.c:143: i2c_write(p);
+    000001A3 79               [ 4]  339 	ld	a, c
+    000001A4 CDr00r00         [17]  340 	call	_i2c_write
+                                    341 ;main.c:144: i2c_close();
+                                    342 ;main.c:145: }
+    000001A7 C3r00r00         [10]  343 	jp	_i2c_close
+                                    344 ;main.c:147: void showVidas(byte v) {
+                                    345 ;	---------------------------------
+                                    346 ; Function showVidas
+                                    347 ; ---------------------------------
+    000001AA                        348 _showVidas::
+    000001AA 4F               [ 4]  349 	ld	c, a
+                                    350 ;main.c:148: i2c_open(0x0E);
+    000001AB C5               [11]  351 	push	bc
+    000001AC 3E 0E            [ 7]  352 	ld	a, #0x0e
+    000001AE CDr00r00         [17]  353 	call	_i2c_open
+    000001B1 3E 03            [ 7]  354 	ld	a, #0x03
+    000001B3 CDr00r00         [17]  355 	call	_i2c_write
+    000001B6 C1               [10]  356 	pop	bc
+                                    357 ;main.c:150: i2c_write(v);
+    000001B7 79               [ 4]  358 	ld	a, c
+    000001B8 CDr00r00         [17]  359 	call	_i2c_write
+                                    360 ;main.c:151: i2c_close();
+                                    361 ;main.c:152: }
+    000001BB C3r00r00         [10]  362 	jp	_i2c_close
+                                    363 	.area _CODE
+                                    364 	.area _INITIALIZER
+    00000000                        365 __xinit__pontos:
+    00000000 00                     366 	.db #0x00	; 0
+                                    367 	.area _CABS (ABS)

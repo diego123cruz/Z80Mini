@@ -1,0 +1,291 @@
+                                      1 ;--------------------------------------------------------
+                                      2 ; File Created by SDCC : free open source ISO C Compiler 
+                                      3 ; Version 4.4.1 #14901 (MINGW64)
+                                      4 ;--------------------------------------------------------
+                                      5 	.module Z80Mini
+                                      6 	.optsdcc -mz80
+                                      7 	
+                                      8 ;--------------------------------------------------------
+                                      9 ; Public variables in this module
+                                     10 ;--------------------------------------------------------
+                                     11 	.globl _lcd_clear_buffer
+                                     12 	.globl _lcd_show_buffer
+                                     13 	.globl _lcd_set_xy
+                                     14 	.globl _lcd_drawpixel
+                                     15 	.globl _lcd_print_char
+                                     16 	.globl _lcd_print_string
+                                     17 	.globl _lcd_cursor_on
+                                     18 	.globl _lcd_cursor_off
+                                     19 	.globl _lcd_print_byte_to_ascii
+                                     20 	.globl _lcd_print_int_to_ascii
+                                     21 	.globl _lcd_draw_line
+                                     22 	.globl _lcd_draw_circle
+                                     23 	.globl _lcd_draw_placar
+                                     24 	.globl _i2c_open
+                                     25 	.globl _i2c_close
+                                     26 	.globl _i2c_read
+                                     27 	.globl _i2c_write
+                                     28 	.globl _delay_ms
+                                     29 	.globl _pinOut
+                                     30 	.globl _portOut
+                                     31 	.globl _pinIn
+                                     32 ;--------------------------------------------------------
+                                     33 ; special function registers
+                                     34 ;--------------------------------------------------------
+                                     35 ;--------------------------------------------------------
+                                     36 ; ram data
+                                     37 ;--------------------------------------------------------
+                                     38 	.area _DATA
+                                     39 ;--------------------------------------------------------
+                                     40 ; ram data
+                                     41 ;--------------------------------------------------------
+                                     42 	.area _INITIALIZED
+                                     43 ;--------------------------------------------------------
+                                     44 ; absolute external ram data
+                                     45 ;--------------------------------------------------------
+                                     46 	.area _DABS (ABS)
+                                     47 ;--------------------------------------------------------
+                                     48 ; global & static initialisations
+                                     49 ;--------------------------------------------------------
+                                     50 	.area _HOME
+                                     51 	.area _GSINIT
+                                     52 	.area _GSFINAL
+                                     53 	.area _GSINIT
+                                     54 ;--------------------------------------------------------
+                                     55 ; Home
+                                     56 ;--------------------------------------------------------
+                                     57 	.area _HOME
+                                     58 	.area _HOME
+                                     59 ;--------------------------------------------------------
+                                     60 ; code
+                                     61 ;--------------------------------------------------------
+                                     62 	.area _CODE
+                                     63 ;../Z80Mini.c:3: void lcd_clear_buffer(void) {
+                                     64 ;	---------------------------------
+                                     65 ; Function lcd_clear_buffer
+                                     66 ; ---------------------------------
+    00000000                         67 _lcd_clear_buffer::
+                                     68 ;../Z80Mini.c:8: __endasm;
+    00000000 CD 03 01         [17]   69 	call	#0x0103 ; delay_ms in DE
+                                     70 ;../Z80Mini.c:9: }
+    00000003 C9               [10]   71 	ret
+                                     72 ;../Z80Mini.c:11: void lcd_show_buffer(void) {
+                                     73 ;	---------------------------------
+                                     74 ; Function lcd_show_buffer
+                                     75 ; ---------------------------------
+    00000004                         76 _lcd_show_buffer::
+                                     77 ;../Z80Mini.c:16: __endasm;
+    00000004 CD 24 01         [17]   78 	call	#0x0124 ; delay_ms in DE
+                                     79 ;../Z80Mini.c:17: }
+    00000007 C9               [10]   80 	ret
+                                     81 ;../Z80Mini.c:19: void lcd_set_xy(byte x, byte y) {
+                                     82 ;	---------------------------------
+                                     83 ; Function lcd_set_xy
+                                     84 ; ---------------------------------
+    00000008                         85 _lcd_set_xy::
+                                     86 ;../Z80Mini.c:26: __endasm;
+    00000008 47               [ 4]   87 	LD	B, A
+    00000009 4D               [ 4]   88 	LD	C, L
+    0000000A CD 5D 01         [17]   89 	CALL	#0x015D
+                                     90 ;../Z80Mini.c:27: }
+    0000000D C9               [10]   91 	ret
+                                     92 ;../Z80Mini.c:29: void lcd_drawpixel(byte x, byte y) {
+                                     93 ;	---------------------------------
+                                     94 ; Function lcd_drawpixel
+                                     95 ; ---------------------------------
+    0000000E                         96 _lcd_drawpixel::
+                                     97 ;../Z80Mini.c:36: __endasm;
+    0000000E 47               [ 4]   98 	LD	B, A
+    0000000F 4D               [ 4]   99 	LD	C, L
+    00000010 CD 1B 01         [17]  100 	CALL	#0X011B
+                                    101 ;../Z80Mini.c:37: }
+    00000013 C9               [10]  102 	ret
+                                    103 ;../Z80Mini.c:39: void lcd_print_char(byte a) {
+                                    104 ;	---------------------------------
+                                    105 ; Function lcd_print_char
+                                    106 ; ---------------------------------
+    00000014                        107 _lcd_print_char::
+                                    108 ;../Z80Mini.c:42: __endasm;
+    00000014 CD 51 01         [17]  109 	call	#0x0151
+                                    110 ;../Z80Mini.c:43: }
+    00000017 C9               [10]  111 	ret
+                                    112 ;../Z80Mini.c:45: void lcd_print_string(const char* s) {
+                                    113 ;	---------------------------------
+                                    114 ; Function lcd_print_string
+                                    115 ; ---------------------------------
+    00000018                        116 _lcd_print_string::
+                                    117 ;../Z80Mini.c:53: __endasm;
+    00000018 3E 00            [ 7]  118 	LD	A, #0
+    0000001A 54               [ 4]  119 	LD	D, H
+    0000001B 5D               [ 4]  120 	LD	E, L
+    0000001C CD 54 01         [17]  121 	CALL	#0x0154
+                                    122 ;../Z80Mini.c:54: }
+    0000001F C9               [10]  123 	ret
+                                    124 ;../Z80Mini.c:56: void lcd_cursor_on(void) {
+                                    125 ;	---------------------------------
+                                    126 ; Function lcd_cursor_on
+                                    127 ; ---------------------------------
+    00000020                        128 _lcd_cursor_on::
+                                    129 ;../Z80Mini.c:60: __endasm;
+    00000020 3E 00            [ 7]  130 	LD	A, #0
+    00000022 CD 63 01         [17]  131 	CALL	#0x0163
+                                    132 ;../Z80Mini.c:61: }
+    00000025 C9               [10]  133 	ret
+                                    134 ;../Z80Mini.c:64: void lcd_cursor_off(void) {
+                                    135 ;	---------------------------------
+                                    136 ; Function lcd_cursor_off
+                                    137 ; ---------------------------------
+    00000026                        138 _lcd_cursor_off::
+                                    139 ;../Z80Mini.c:68: __endasm;
+    00000026 3E 01            [ 7]  140 	LD	A, #1
+    00000028 CD 63 01         [17]  141 	CALL	#0x0163
+                                    142 ;../Z80Mini.c:69: }
+    0000002B C9               [10]  143 	ret
+                                    144 ;../Z80Mini.c:71: void lcd_print_byte_to_ascii(byte a) {
+                                    145 ;	---------------------------------
+                                    146 ; Function lcd_print_byte_to_ascii
+                                    147 ; ---------------------------------
+    0000002C                        148 _lcd_print_byte_to_ascii::
+                                    149 ;../Z80Mini.c:76: __endasm;
+    0000002C CD 57 01         [17]  150 	call	#0x0157
+                                    151 ;../Z80Mini.c:77: }
+    0000002F C9               [10]  152 	ret
+                                    153 ;../Z80Mini.c:80: void lcd_print_int_to_ascii(int hl) {
+                                    154 ;	---------------------------------
+                                    155 ; Function lcd_print_int_to_ascii
+                                    156 ; ---------------------------------
+    00000030                        157 _lcd_print_int_to_ascii::
+                                    158 ;../Z80Mini.c:85: __endasm;
+    00000030 CD 5A 01         [17]  159 	call	#0x015A
+                                    160 ;../Z80Mini.c:86: }
+    00000033 C9               [10]  161 	ret
+                                    162 ;../Z80Mini.c:90: void lcd_draw_line(byte x0, byte y0, byte x1, byte y1) {
+                                    163 ;	---------------------------------
+                                    164 ; Function lcd_draw_line
+                                    165 ; ---------------------------------
+    00000034                        166 _lcd_draw_line::
+                                    167 ;../Z80Mini.c:106: __endasm;
+    00000034 47               [ 4]  168 	LD	B, A
+    00000035 4D               [ 4]  169 	LD	C, L
+    00000036 FD 21 02 00      [14]  170 	ld	iy, #2
+    0000003A FD 39            [15]  171 	add	iy, sp
+    0000003C FD 56 00         [19]  172 	ld	d, (iy)
+    0000003F FD 21 03 00      [14]  173 	ld	iy, #3
+    00000043 FD 39            [15]  174 	add	iy, sp
+    00000045 FD 5E 00         [19]  175 	ld	e, (iy)
+    00000048 CD 15 01         [17]  176 	CALL	#0x0115
+                                    177 ;../Z80Mini.c:107: }
+    0000004B E1               [10]  178 	pop	hl
+    0000004C F1               [10]  179 	pop	af
+    0000004D E9               [ 4]  180 	jp	(hl)
+                                    181 ;../Z80Mini.c:110: void lcd_draw_circle(byte x, byte y, byte r) {
+                                    182 ;	---------------------------------
+                                    183 ; Function lcd_draw_circle
+                                    184 ; ---------------------------------
+    0000004E                        185 _lcd_draw_circle::
+                                    186 ;../Z80Mini.c:122: __endasm;
+    0000004E 47               [ 4]  187 	LD	B, A
+    0000004F 4D               [ 4]  188 	LD	C, L
+    00000050 FD 21 02 00      [14]  189 	ld	iy, #2
+    00000054 FD 39            [15]  190 	add	iy, sp
+    00000056 FD 5E 00         [19]  191 	ld	e, (iy)
+    00000059 CD 18 01         [17]  192 	CALL	#0x0118
+                                    193 ;../Z80Mini.c:123: }
+    0000005C E1               [10]  194 	pop	hl
+    0000005D 33               [ 6]  195 	inc	sp
+    0000005E E9               [ 4]  196 	jp	(hl)
+                                    197 ;../Z80Mini.c:126: void lcd_draw_placar(byte p) {
+                                    198 ;	---------------------------------
+                                    199 ; Function lcd_draw_placar
+                                    200 ; ---------------------------------
+    0000005F                        201 _lcd_draw_placar::
+                                    202 ;../Z80Mini.c:134: __endasm;
+    0000005F F5               [11]  203 	PUSH	AF
+    00000060 01 00 00         [10]  204 	LD	BC, #0x0000
+    00000063 CD 5D 01         [17]  205 	call	0x015D
+    00000066 F1               [10]  206 	POP	AF
+    00000067 27               [ 4]  207 	daa
+    00000068 CD 57 01         [17]  208 	CALL	0x0157
+                                    209 ;../Z80Mini.c:135: }
+    0000006B C9               [10]  210 	ret
+                                    211 ;../Z80Mini.c:138: void i2c_open(byte device) {
+                                    212 ;	---------------------------------
+                                    213 ; Function i2c_open
+                                    214 ; ---------------------------------
+    0000006C                        215 _i2c_open::
+                                    216 ;../Z80Mini.c:143: __endasm;
+    0000006C CD 6C 01         [17]  217 	call	#0x016C
+                                    218 ;../Z80Mini.c:144: }
+    0000006F C9               [10]  219 	ret
+                                    220 ;../Z80Mini.c:146: void i2c_close(void) {
+                                    221 ;	---------------------------------
+                                    222 ; Function i2c_close
+                                    223 ; ---------------------------------
+    00000070                        224 _i2c_close::
+                                    225 ;../Z80Mini.c:151: __endasm;
+    00000070 CD 6F 01         [17]  226 	call	#0x016F
+                                    227 ;../Z80Mini.c:152: }
+    00000073 C9               [10]  228 	ret
+                                    229 ;../Z80Mini.c:154: byte i2c_read(void) {
+                                    230 ;	---------------------------------
+                                    231 ; Function i2c_read
+                                    232 ; ---------------------------------
+    00000074                        233 _i2c_read::
+                                    234 ;../Z80Mini.c:159: __endasm;
+    00000074 CD 72 01         [17]  235 	call	#0x0172
+                                    236 ;../Z80Mini.c:160: }
+    00000077 C9               [10]  237 	ret
+                                    238 ;../Z80Mini.c:162: void i2c_write(byte b) {
+                                    239 ;	---------------------------------
+                                    240 ; Function i2c_write
+                                    241 ; ---------------------------------
+    00000078                        242 _i2c_write::
+                                    243 ;../Z80Mini.c:167: __endasm;
+    00000078 CD 75 01         [17]  244 	call	#0x0175
+                                    245 ;../Z80Mini.c:168: }
+    0000007B C9               [10]  246 	ret
+                                    247 ;../Z80Mini.c:170: void delay_ms(int time)  {
+                                    248 ;	---------------------------------
+                                    249 ; Function delay_ms
+                                    250 ; ---------------------------------
+    0000007C                        251 _delay_ms::
+                                    252 ;../Z80Mini.c:176: __endasm;
+    0000007C EB               [ 4]  253 	ex	de, hl
+    0000007D CD 66 01         [17]  254 	call	#0x0166 ; delay_ms in DE
+                                    255 ;../Z80Mini.c:177: }
+    00000080 C9               [10]  256 	ret
+                                    257 ;../Z80Mini.c:179: void pinOut(byte pin, byte state)  {
+                                    258 ;	---------------------------------
+                                    259 ; Function pinOut
+                                    260 ; ---------------------------------
+    00000081                        261 _pinOut::
+                                    262 ;../Z80Mini.c:187: __endasm;
+    00000081 4F               [ 4]  263 	ld	c, a
+    00000082 7D               [ 4]  264 	ld	a, l
+    00000083 ED 79            [12]  265 	out(c),	a
+                                    266 ;../Z80Mini.c:188: }
+    00000085 C9               [10]  267 	ret
+                                    268 ;../Z80Mini.c:190: void portOut(byte port, byte outByte) {
+                                    269 ;	---------------------------------
+                                    270 ; Function portOut
+                                    271 ; ---------------------------------
+    00000086                        272 _portOut::
+                                    273 ;../Z80Mini.c:199: __endasm;
+    00000086 4F               [ 4]  274 	ld	c, a
+    00000087 7D               [ 4]  275 	ld	a, l
+    00000088 ED 79            [12]  276 	out(c),	a
+                                    277 ;../Z80Mini.c:200: }
+    0000008A C9               [10]  278 	ret
+                                    279 ;../Z80Mini.c:202: byte pinIn(byte pin) {
+                                    280 ;	---------------------------------
+                                    281 ; Function pinIn
+                                    282 ; ---------------------------------
+    0000008B                        283 _pinIn::
+                                    284 ;../Z80Mini.c:210: __endasm;
+    0000008B 4F               [ 4]  285 	ld	c, a
+    0000008C ED 78            [12]  286 	in	a, (c)
+                                    287 ;../Z80Mini.c:211: }
+    0000008E C9               [10]  288 	ret
+                                    289 	.area _CODE
+                                    290 	.area _INITIALIZER
+                                    291 	.area _CABS (ABS)

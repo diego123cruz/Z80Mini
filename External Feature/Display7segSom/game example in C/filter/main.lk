@@ -1,0 +1,11 @@
+-mjwx
+-i main.ihx
+-b _CODE = 0x8000
+-b _DATA = 0x8000
+crt0-z80mini-loadable.rel
+-k C:\Program Files\SDCC\bin\..\lib\z80
+-l z80
+main.rel
+Z80Mini.rel
+
+-e
