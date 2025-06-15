@@ -10,22 +10,25 @@ Symbol Table
     ___sdcc_enter_ix                                                ******** GX
   7 __xinit__pontos                                                 00000000 R
     _delay_ms                                                       ******** GX
+  0 _fireInvSound                                                   0000019A GR
+  0 _gameoverSound                                                  00000188 GR
+  0 _hitSound                                                       00000176 GR
     _i2c_close                                                      ******** GX
     _i2c_open                                                       ******** GX
     _i2c_write                                                      ******** GX
-  0 _incPontos                                                      0000018C GR
+  0 _incPontos                                                      00000144 GR
     _lcd_clear_buffer                                               ******** GX
     _lcd_cursor_off                                                 ******** GX
     _lcd_draw_circle                                                ******** GX
     _lcd_draw_line                                                  ******** GX
     _lcd_show_buffer                                                ******** GX
   0 _main                                                           00000000 GR
-  0 _new_ball                                                       0000017F GR
+  0 _new_ball                                                       00000137 GR
     _pinIn                                                          ******** GX
   2 _pontos                                                         00000000 GR
     _rand                                                           ******** GX
-  0 _showPontos                                                     00000196 GR
-  0 _showVidas                                                      000001AA GR
+  0 _showPontos                                                     0000014E GR
+  0 _showVidas                                                      00000162 GR
 
 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80 / R800)                          Page 2
@@ -33,7 +36,7 @@ Hexadecimal [32-Bits]
 
 Area Table
 
-   0 _CODE                                      size      1BE   flags    0
+   0 _CODE                                      size      1AC   flags    0
    1 _DATA                                      size        0   flags    0
    2 _INITIALIZED                               size        1   flags    0
    3 _DABS                                      size        0   flags    8

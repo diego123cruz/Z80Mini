@@ -14,11 +14,20 @@
 
 char reg;
 char cmd;
+char cmd1;
 
 char dispL = 0;
 char dispH = 0;
 char dispS = 0;
 char leds = 0;
+boolean runTest = false;
+
+char sound = 0;
+boolean canPlay = false;
+
+char freq=0;
+char temp=0;
+boolean canTone = false;
 
 char codes[] = {0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7C, 0x07, 0x7F, 0x6F, 0x77, 0x7C, 0x39, 0x5E, 0x79, 0x71};
 
@@ -36,7 +45,7 @@ void playSound(char s);
 void setVidas(char v);
 
 void setup() {
-  Wire.begin(7);                // join i2c bus with address
+  Wire.begin(7);                // Z80Mini address is 0x0E
   Wire.onReceive(receiveEvent);
 
   DDRB = 0xFF;  // Todos os bits de DDRB em 1 => todos os pinos de PORTB como saída
@@ -52,14 +61,27 @@ void setup() {
   // Som
   pinMode(3, OUTPUT);
 
-  // AutoTest
-  autoTest();
-
   // Limpa digitos.
   limpaDigitos();
 }
 
 void loop() {
+  if (canPlay) {
+    canPlay = false;
+    playSound(sound);
+  }
+
+  if (canTone) {
+    canTone = false;
+    myTone(3, freq*10, temp*10);
+  }
+
+  if (runTest) {
+    autoTest();
+    autoTest();
+    runTest = false;
+  }
+
   // Leds
   PORTB = leds;
   digitalWrite(_dig1, LOW);
@@ -146,6 +168,14 @@ void autoTest() {
   delay(100);
   digitalWrite(_digLeds, LOW);
   PORTB = 0;
+  delay(100);
+  digitalWrite(_digLeds, HIGH);
+  PORTB = 0b00101111;
+  delay(100);
+  digitalWrite(_digLeds, LOW);
+  PORTB = 0;
+  delay(100);
+  limpaDigitos();
 }
 
 void limpaDigitos() {
@@ -187,6 +217,11 @@ void receiveEvent(int howMany) {
   if(howMany == 1) {
     reg = Wire.read();
     cmd = 0xff;
+
+    // AutoTest
+    if(reg == 0x0f) {
+      runTest = true;
+    }
   } else if(howMany == 2) {
     reg = Wire.read();
     cmd = Wire.read();
@@ -221,7 +256,29 @@ void receiveEvent(int howMany) {
 
     // Sounds
     if(reg == 0x05) {
-      playSound(cmd);
+      sound = cmd;
+      canPlay = true;
+    }
+  } else if(howMany == 3) {
+    reg = Wire.read();
+    cmd = Wire.read();
+    cmd1 = Wire.read();
+
+    // Wrte in display HIGH and LOW
+    // 0x06+dispH+dispL
+    // Ex: Display(1234) = 0x06+0x12+0x34
+    if (reg == 0x06) {
+      dispH = cmd;
+      dispL = cmd1;
+    }
+
+    // Generate tone x10
+    // 0x07+freq+temp
+    // Ex: tone(330, 200) = 0x07+33+20
+    if (reg == 0x07) {
+      freq = cmd;
+      temp = cmd1;
+      canTone = true;
     }
   }
 }

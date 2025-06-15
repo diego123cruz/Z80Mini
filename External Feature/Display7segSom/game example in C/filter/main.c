@@ -6,6 +6,9 @@ byte new_ball();
 void incPontos(void);
 void showPontos(byte p);
 void showVidas(byte v);
+void fireInvSound();
+void gameoverSound();
+void hitSound();
 
 byte pontos=0;
 
@@ -74,11 +77,7 @@ int main(void) {
                     showPontos(pontos);
                     bx = new_ball();
                     by = 1;
-
-                    i2c_open(0x0E);
-                    i2c_write(0x05);
-                    i2c_write(0x12);
-                    i2c_close();
+                    hitSound();
                 }
             }
 
@@ -87,28 +86,16 @@ int main(void) {
                 by = 1;
                 erros = erros - 1;
                 showVidas(erros);
-                delay_ms(200);
-
-                i2c_open(0x0E);
-                i2c_write(0x05);
-                i2c_write(0x01);
-                i2c_close();
+                fireInvSound();
             }
 
             if (erros == 0) {
                 erros = 3;
                 pontos = 0;
-                delay_ms(1000);
 
                 showPontos(pontos);
-                delay_ms(100);
                 showVidas(erros);
-                delay_ms(100);
-                
-                i2c_open(0x0E);
-                i2c_write(0x05);
-                i2c_write(0x10);
-                i2c_close();
+                gameoverSound();
             }
             by=by+1;
             count=0;
@@ -148,5 +135,26 @@ void showVidas(byte v) {
     i2c_open(0x0E);
     i2c_write(0x03);
     i2c_write(v);
+    i2c_close();
+}
+
+void hitSound() {
+    i2c_open(0x0E);
+    i2c_write(0x05);
+    i2c_write(0x12);
+    i2c_close();
+}
+
+void gameoverSound() {
+    i2c_open(0x0E);
+    i2c_write(0x05);
+    i2c_write(0x10);
+    i2c_close();
+}
+
+void fireInvSound() {
+    i2c_open(0x0E);
+    i2c_write(0x05);
+    i2c_write(0x01);
     i2c_close();
 }
