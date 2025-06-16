@@ -149,6 +149,18 @@ void loop() {
     limpaDigitos();
   }
 
+  // Pontos XX:XX
+  if (bitRead(dispS, 2)) {
+    PORTB = 0b10000000;
+    digitalWrite(_dig1, LOW);
+    digitalWrite(_dig2, LOW);
+    digitalWrite(_dig3, HIGH);
+    digitalWrite(_dig4, LOW);
+    digitalWrite(_digLeds, LOW);
+    delay(_delay);
+    limpaDigitos();
+  }
+
 }
 
 void autoTest() {
