@@ -1,6 +1,6 @@
               	; --------------------------------------
               	; zasm: assemble "Main.asm"
-              	; date: 2025-06-15 23:21:23
+              	; date: 2026-05-01 21:26:26
               	; --------------------------------------
 
 
@@ -166,6 +166,8 @@
 809C: 119603  	    ld de, $0396
 809F: CD6601  	    call H_Delay
               	
+              	    ; pisca ponto :
+              	    ; (XX:XX) > (XX XX) > (XX:XX) > (XX XX)
 80A2: 3E0E    	    ld a, 0x0e
 80A4: CD6C01  	    call I2C_Open
 80A7: 3E00    	    ld a, 0x00
@@ -240,13 +242,13 @@ SET_TXT_MODE        = $010F =   271          Main.asm:12 (unused)
 _end                = $80C1 = 32961          Main.asm:81 (unused)
 _size               = $00C1 =   193          Main.asm:81 (unused)
 _z80_               = $0001 =     1          Main.asm:1 (unused)
-horas               = $80BE = 32958          Main.asm:176
+horas               = $80BE = 32958          Main.asm:178
 inicio              = $8000 = 32768          Main.asm:82 (unused)
 loop                = $8012 = 32786          Main.asm:93
-minutos             = $80BF = 32959          Main.asm:177
-segundos            = $80C0 = 32960          Main.asm:178
-status              = $80BD = 32957          Main.asm:175
+minutos             = $80BF = 32959          Main.asm:179
+segundos            = $80C0 = 32960          Main.asm:180
+status              = $80BD = 32957          Main.asm:177
 
 
-total time: 0.0243 sec.
+total time: 0.4531 sec.
 no errors

@@ -145,6 +145,10 @@ k_read_loop:
 k_read_fim:
     inc c
     djnz k_read_loop
+
+    LD DE, $0032
+    CALL H_Delay
+
     LD A, (KEY_READ)
     OR A
     CALL CHECK_CAPS
@@ -254,7 +258,7 @@ load_a:
     LD (KEY_READ), A
     LD B, $32
 debaunce_key:
-    LD DE, $0001
+    LD DE, $0005
     PUSH BC
     CALL H_Delay
     POP BC
