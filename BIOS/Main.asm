@@ -1,6 +1,6 @@
 ; Z80Mini   -   Maio de 2026
 
-; Sistema Monitor basico
+; Sistema Monitor basico v1
 ;
 ; Z80 @7.372800Mhz
 ; ROM 32Kb @28C256      0000-7FFF
