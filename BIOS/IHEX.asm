@@ -139,14 +139,14 @@ LOAD00:
         CALL sendStringToLCD
 
         LD   DE, msg_load_start
-        LD   C, 0
+        LD   A, 0
 		CALL sendStringToLCD
 		LD   HL, (LOAD_START_ADDR)
 		CALL sendHLToLCD
 		CALL CRLF
 
 		LD   DE, msg_load_end
-        LD   C, 0
+        LD   A, 0
 		CALL sendStringToLCD
 		LD   HL, (LOAD_END_ADDR)
 		DEC  HL                     ; aponta para o ultimo byte gravado
@@ -154,7 +154,7 @@ LOAD00:
 		CALL CRLF
 
 		LD   DE, msg_load_total
-        LD   C, 0
+        LD   A, 0
 		CALL sendStringToLCD
 		LD   DE, (LOAD_START_ADDR)
 		LD   HL, (LOAD_END_ADDR)

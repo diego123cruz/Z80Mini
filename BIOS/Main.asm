@@ -76,8 +76,8 @@
 ;       plotToLCD           equ     0x015D  ;   Rotina principal de desenho. Move GBUF para o LCD e limpa o buffer ou não (setBufClear, setBufNoClear).  Destroys: ALL
 ;       printString         equ     0x0160  ;   Imprimir texto ASCII em uma determinada linha. Entradas: A = 0 a 3 Número da linha. .db "String" na próxima linha, terminar com 0
 ;       printChars          equ     0x0163  ;   (Ver detalhes) Imprimir caracteres na posição X,Y. Entrada B = coluna/X (0-7), C = linha/Y (0-3). HL = Endereço inicial do texto a ser exibido, termina com 0
-;       delayUS             equ     0x0166  ;   Delay lcd...
-;       delayMS             equ     0x0169  ;   Delay lcd...
+;       NADA                equ     0x0166  ;   Vazio...
+;       NADA                equ     0x0169  ;   Vazio...
 ;       setBufClear         equ     0x016C  ;   Configura limpeza do buffer após a saída para o LCD e vai para clearGBUF.
 ;       setBufNoClear       equ     0x016F  ;   Configura para não limpar o buffer após a saída para o LCD.
 ;       clearPixel          equ     0x0172  ;   Limpa um pixel X Y.  Input B = column/X (0-127), C = row/Y (0-63)    Destroy HL
@@ -204,8 +204,8 @@ RST18   JP CHKKEY
     JP plotToLCD
     JP printString
     JP printChars
-    JP delayUS
-    JP delayMS
+    JP NADA
+    JP NADA
     JP setBufClear
     JP setBufNoClear
     JP clearPixel
@@ -224,7 +224,8 @@ RST18   JP CHKKEY
     JP underline
     JP plotAlways
 
-
+NADA:
+    RET
 
 
 

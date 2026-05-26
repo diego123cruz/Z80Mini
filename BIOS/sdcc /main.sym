@@ -1,0 +1,92 @@
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80 / R800)                          Page 1
+Hexadecimal [32-Bits]
+
+Symbol Table
+
+    .__.$$$.                                                    =   00002710 L
+    .__.ABS.                                                    =   00000000 G
+    .__.CPU.                                                    =   00000000 L
+    .__.H$L.                                                    =   00000000 L
+  0 _I2C_Close                                                      00000096 GR
+  0 _I2C_Open                                                       00000092 GR
+  0 _I2C_Read                                                       0000009A GR
+  0 _I2C_Write                                                      0000009E GR
+  0 ___str_0                                                        00000081 R
+  7 __xinit__vx                                                     00000002 R
+  7 __xinit__vy                                                     00000003 R
+  7 __xinit__x                                                      00000000 R
+  7 __xinit__y                                                      00000001 R
+  0 _autoLF                                                         00000186 GR
+  0 _clearGBUF                                                      000000DA GR
+  0 _clearGrLCD                                                     000000DE GR
+  0 _clearPixel                                                     00000134 GR
+  0 _clearTxtLCD                                                    000000E2 GR
+  0 _delay                                                          0000008D GR
+  0 _delay500ms                                                     00000089 GR
+  0 _displayCursor                                                  00000182 GR
+  0 _drawBox                                                        000000EE GR
+  0 _drawCircle                                                     00000118 GR
+  0 _drawGraphic                                                    00000157 GR
+  0 _drawLine                                                       000000FE GR
+  0 _drawPixel                                                      0000012E GR
+  0 _fillBox                                                        0000010B GR
+  0 _fillCircle                                                     00000123 GR
+  0 _flipPixel                                                      0000013A GR
+  0 _getCursor                                                      0000017C GR
+  0 _initLCD                                                        000000D6 GR
+  0 _initTerminal                                                   0000015F GR
+  0 _invGraphic                                                     0000015B GR
+  0 _keyboardA                                                      000000AA GR
+  0 _keyboardIsEsc                                                  000000A2 GR
+  0 _keyboardWaitA                                                  000000A6 GR
+  0 _main                                                           00000000 GR
+  0 _plotAlways                                                     0000018E GR
+  0 _plotToLCD                                                      00000140 GR
+  0 _printChars                                                     00000148 GR
+  0 _printString                                                    00000144 GR
+  0 _sendCharToLCD                                                  00000163 GR
+  0 _sendHLToLCD                                                    00000172 GR
+  0 _sendRegToLCD                                                   0000016E GR
+  0 _sendStringToLCD                                                00000167 GR
+  0 _serialCRLF                                                     000000C2 GR
+  0 _serialHexA                                                     000000C6 GR
+  0 _serialHexHL                                                    000000CA GR
+  0 _serialInHexA                                                   000000CE GR
+  0 _serialInHexHL                                                  000000D2 GR
+  0 _serialInputA                                                   000000BA GR
+  0 _serialPrintA                                                   000000B6 GR
+  0 _serialPrintStr                                                 000000BE GR
+  0 _setBufClear                                                    0000014F GR
+  0 _setBufNoClear                                                  00000153 GR
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80 / R800)                          Page 2
+Hexadecimal [32-Bits]
+
+Symbol Table
+
+  0 _setCursor                                                      00000176 GR
+  0 _setDefaultSerialA                                              000000AE GR
+  0 _setDefaultSerialB                                              000000B2 GR
+  0 _setGrMode                                                      000000E6 GR
+  0 _setTxtMode                                                     000000EA GR
+  0 _underline                                                      0000018A GR
+  2 _vx                                                             00000002 GR
+  2 _vy                                                             00000003 GR
+  2 _x                                                              00000000 GR
+  2 _y                                                              00000001 GR
+
+
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80 / R800)                          Page 3
+Hexadecimal [32-Bits]
+
+Area Table
+
+   0 _CODE                                      size      192   flags    0
+   1 _DATA                                      size        0   flags    0
+   2 _INITIALIZED                               size        4   flags    0
+   3 _DABS                                      size        0   flags    8
+   4 _HOME                                      size        0   flags    0
+   5 _GSINIT                                    size        0   flags    0
+   6 _GSFINAL                                   size        0   flags    0
+   7 _INITIALIZER                               size        4   flags    0
+   8 _CABS                                      size        0   flags    8
+
