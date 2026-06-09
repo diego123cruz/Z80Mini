@@ -101,7 +101,7 @@ CMD_TABLE:
             DW   I2CLIST
             DB   "DIR",    NUL
             DW   FS_DIR
-            DB   "EXEC",    NUL
+            DB   "RUN",    NUL
             DW   FS_EXEC
             DB   "SAVE",    NUL
             DW   FS_SAVE
@@ -484,6 +484,8 @@ GETLINE_LOOP:
             JR   Z, LCD_SCROLL
             CP   LF
             JR   Z, GETLINE_LOOP    ; Ignora LF
+            CP   ESC
+            JR   Z, GETLINE_LOOP    ; Ignora
             CP   BkS
             JR   Z, GETLINE_BS
             CP   DEL
@@ -743,7 +745,7 @@ MSG_HELP_L10:   DB   " . (no EDIT)", CR
 MSG_HELP_L11:   DB   " IHEX - Load Serial", CR
 MSG_HELP_L12:   DB   " I2CLIST - List Devs", CR
 MSG_HELP_L13:   DB   " DIR - List files", CR
-MSG_HELP_L14:   DB   " EXEC - Exec file", CR
+MSG_HELP_L14:   DB   " RUN - Exec file", CR
 MSG_HELP_L15:   DB   " SAVE - Save file", CR
 MSG_HELP_L16:   DB   " DEL - Delete file", CR
 MSG_HELP_L17:   DB   " FORMAT - Format eeprom", CR

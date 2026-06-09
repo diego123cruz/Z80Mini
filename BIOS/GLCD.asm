@@ -864,8 +864,7 @@ JUST_PLOT:
 
 
 ;Send a string of characters to the GLCD.  Prints a string pointed 
-;by DE.  It stops printing and returns when either a CR is printed or
-;when the next byte is the same as what is in register C
+;by DE.  It stops printing when the next byte is the same as what is in register A
 ;Inputs: DE = address of string to print
 ;        A = character to stop printing.
 ;Destroy: All

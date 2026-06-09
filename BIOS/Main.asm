@@ -76,8 +76,8 @@
 ;       plotToLCD           equ     0x015D  ;   Rotina principal de desenho. Move GBUF para o LCD e limpa o buffer ou não (setBufClear, setBufNoClear).  Destroys: ALL
 ;       printString         equ     0x0160  ;   Imprimir texto ASCII em uma determinada linha. Entradas: A = 0 a 3 Número da linha. .db "String" na próxima linha, terminar com 0
 ;       printChars          equ     0x0163  ;   (Ver detalhes) Imprimir caracteres na posição X,Y. Entrada B = coluna/X (0-7), C = linha/Y (0-3). HL = Endereço inicial do texto a ser exibido, termina com 0
-;       NADA                equ     0x0166  ;   Vazio...
-;       NADA                equ     0x0169  ;   Vazio...
+;       setInt38            equ     0x0166  ;   Seta vetor de interrupcao int38. Entradas HL = RST38_ADDR
+;       setint66            equ     0x0169  ;   Seta vetor de interrupcao int66. Entradas HL = RST66_ADDR
 ;       setBufClear         equ     0x016C  ;   Configura limpeza do buffer após a saída para o LCD e vai para clearGBUF.
 ;       setBufNoClear       equ     0x016F  ;   Configura para não limpar o buffer após a saída para o LCD.
 ;       clearPixel          equ     0x0172  ;   Limpa um pixel X Y.  Input B = column/X (0-127), C = row/Y (0-63)    Destroy HL
@@ -95,7 +95,6 @@
 ;       autoLF              equ     0x0196  ;   Avanço de linha automático quando o cursor atinge o final da linha (Terminal). Entrada: A = 0, Avanço de linha automático; A = diferente de zero, Sem avanço de linha automático. Padrao LIGADO.
 ;       underline           equ     0x0199  ;   Exibir sublinhado no caractere (Terminal). O estado inicial é sem sublinhado. Chamar esta rotina irá ALTERAR/DESLIGAR o sinalizador de sublinhado.
 ;       plotAlways          equ     0x019C  ;   Quando sendCharToLCD é chamado, Atualiza GLCD ou não. Se Desativado plotToLCD deve ser chamado atualizar o GLCD. Entrada: A=0, Plotar sempre; A>0, Não plotar. O padrão é Plotar sempre.
-
 
 
 
@@ -164,6 +163,22 @@ RST10:	JP	CONIN
     .ORG 0018H ; check break - BASIC
 RST18   JP CHKKEY
 
+
+	.ORG	0038H
+	PUSH	HL
+	LD	HL,(RST38)
+	JP	(HL)
+
+;
+; RESTART 66H NMI VECTOR
+; SAME AS ABOVE BUT NMI CANNOT BE DISABLED.
+;
+	.ORG	0066H
+	PUSH	HL
+	LD	HL,(RST66)
+	JP	(HL)
+
+
     .ORG $0100
     ;   Delay
     JP DELAY_500MS
@@ -204,8 +219,8 @@ RST18   JP CHKKEY
     JP plotToLCD
     JP printString
     JP printChars
-    JP NADA
-    JP NADA
+    JP SET_INT38
+    JP SET_INT66
     JP setBufClear
     JP setBufNoClear
     JP clearPixel
@@ -224,11 +239,24 @@ RST18   JP CHKKEY
     JP underline
     JP plotAlways
 
-NADA:
+
+SET_INT38:
+    LD (RST38), HL
     RET
 
+SET_INT66:
+    LD (RST66), HL
+    RET
 
-
+; exemplo de uso de interrupcao
+; IM 1
+; EI
+; RETI
+INT_DEFAULT:
+    POP HL ; sempre usar o POP HL
+    ; faz alguma coisa
+    ; EI
+    RETI
 
 
 
@@ -275,6 +303,10 @@ KEYMAP_SHIFT:
 
 
 INICIO:
+    LD HL, INT_DEFAULT
+    LD (RST38), HL
+    LD (RST66), HL
+
     ; Set defult I2C device addess: 24LC256 (Copy from/to Mem)
     LD A, EEDRIVE_A
     LD (I2CA_BLOCK), A        
@@ -421,6 +453,8 @@ WELLCOME_LCD: .db "Z80 Mini - Monitor v1", CR, 00H
 
 ; RAM AREA
 .ORG $F000              ;Start location
+RST38:	DW 0000H 	    ;INT INTERRUPT JUMP
+RST66:	DW 0000H 	    ;NMI INTERRUPT JUMP
 
 ; DISPLAY GRAFICO
 SBUF:   EQU 16 * $78     ;Scroll Buffer size  16 * 60 = 960 byte (10 lines), change to 20 lines (16 * 120($78))
