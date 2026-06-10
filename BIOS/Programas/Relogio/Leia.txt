@@ -1,0 +1,1 @@
+Teste do chip rtc, placa i2c

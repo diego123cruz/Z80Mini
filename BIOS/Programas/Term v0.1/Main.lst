@@ -1,0 +1,458 @@
+              	; --------------------------------------
+              	; zasm: assemble "Main.asm"
+              	; date: 2026-06-09 21:37:22
+              	; --------------------------------------
+
+
+              	;   API Z80Mini:
+0100:         	delay500ms          equ     0x0100  ;   Delay 500ms
+0103:         	delay               equ     0x0103  ;   On entry: DE = Delay time in milliseconds
+0106:         	I2C_Open            equ     0x0106  ;   On entry: A = Device address (bit zero is read flag)
+0109:         	I2C_Close           equ     0x0109  ;   Close
+010C:         	I2C_Read            equ     0x010C  ;   On exit: If successful A = data byte and Z flagged
+010F:         	I2C_Write           equ     0x010F  ;   On entry: A = Data byte, or Address byte (bit zero is read flag)
+0112:         	keyboardIsEsc       equ     0x0112  ;   Verifica se ESC foi precionada. On exit: If press A = CTRLC and NZ flagged
+0115:         	keyboardWaitA       equ     0x0115  ;   Aguarda tecla, letra em A. (BC DE HL preserved)
+0118:         	keyboardA           equ     0x0118  ;   Lê teclado, Se tecla Carry=1. Letra em A. (BC DE HL preserved)
+011B:         	setDefaultSerialA   equ     0x011B  ;   Seta terminal padrao porta A, Quando reinicia volta para A.
+011E:         	setDefaultSerialB   equ     0x011E  ;   Seta terminal padrao porta B (P2), Quando reinicia volta para A.
+0121:         	serialPrintA        equ     0x0121  ;   Imprime char in A no terminal setado.
+0124:         	serialInputA        equ     0x0124  ;   Aguarda receber char no terminal setado. Retorno em A.
+0127:         	serialPrintStr      equ     0x0127  ;   Imprime string (HL) terminado em 0 no terminal setado. MAX 128 chars. MODIFIES : A,B,C
+012A:         	serialCRLF          equ     0x012A  ;   Imprime CR e LF no terminal setado.
+012D:         	serialHexA          equ     0x012D  ;   Imprime byte em A no formato HEX, no terminal setado. Ex: 'D' = 44
+0130:         	serialHexHL         equ     0x0130  ;   Imprime HL como 4 digitos hexadecimais, no terminal setado. Ex: HL=$80FF -> imprime "80FF"
+0133:         	serialInHexA        equ     0x0133  ;   Pegar 2 caracteres ASCII (0-9 A-F), do terminal setado e converte em um byte em A. SEM ECHO
+0136:         	serialInHexHL       equ     0x0136  ;   Pegar 4 caracteres ASCII (0-9 A-F), do terminal setado e converte em HL. SEM ECHO
+              	
+0139:         	initLCD             equ     0x0139  ;   Inicializa GLCD
+013C:         	clearGBUF           equ     0x013C  ;   Limpa buffer da memoria de grafico. Precisa do plotToLCD para refletir no lcd.
+013F:         	clearGrLCD          equ     0x013F  ;   Limpa memoria grafico do GLCD. Sem o plotToLCD.
+0142:         	clearTxtLCD         equ     0x0142  ;   Limpar caracteres do LCD
+0145:         	setGrMode           equ     0x0145  ;   Seta modo Grafico. 128x64
+0148:         	setTxtMode          equ     0x0148  ;   Seta mode Text. 16x4 equivalente
+014B:         	drawBox             equ     0x014B  ;   Desenha caixa. Entradas: BC = X0,Y0 - DE = X1,Y1    Destroys: HL
+014E:         	drawLine            equ     0x014E  ;   Desenha linha.  Entradas: BC = X0,Y0 - DE = X1,Y1
+0151:         	drawCircle          equ     0x0151  ;   Desenha circulo. Entradas BC = xm,ym (Ponro do Meio) - E = radius
+0154:         	drawPixel           equ     0x0154  ;   Desenha um pixel em X Y.  Entrada B = column/X (0-127), C = row/Y (0-63)   Destroys: HL
+0157:         	fillBox             equ     0x0157  ;   Desenha caixa preenchida. Entradas: BC = X0,Y0 - DE = X1,Y1    Destroys: HL
+015A:         	fillCircle          equ     0x015A  ;   Desenha circulo preenchido. Entradas BC = xm,ym (Ponro do Meio) - E = radius
+015D:         	plotToLCD           equ     0x015D  ;   Rotina principal de desenho. Move GBUF para o LCD e limpa o buffer ou não (setBufClear, setBufNoClear).  Destroys: ALL
+0160:         	printString         equ     0x0160  ;   Imprimir texto ASCII em uma determinada linha. Entradas: A = 0 a 3 Número da linha. .db "String" na próxima linha, terminar com 0
+0163:         	printChars          equ     0x0163  ;   (Ver detalhes) Imprimir caracteres na posição X,Y. Entrada B = coluna/X (0-7), C = linha/Y (0-3). HL = Endereço inicial do texto a ser exibido, termina com 0
+0166:         	setInt38            equ     0x0166  ;   Seta vetor de interrupcao int38. Entradas HL = RST38_ADDR
+0169:         	setint66            equ     0x0169  ;   Seta vetor de interrupcao int66. Entradas HL = RST66_ADDR
+016C:         	setBufClear         equ     0x016C  ;   Configura limpeza do buffer após a saída para o LCD e vai para clearGBUF.
+016F:         	setBufNoClear       equ     0x016F  ;   Configura para não limpar o buffer após a saída para o LCD.
+0172:         	clearPixel          equ     0x0172  ;   Limpa um pixel X Y.  Input B = column/X (0-127), C = row/Y (0-63)    Destroy HL
+0175:         	flipPixel           equ     0x0175  ;   Inverte um pixel X Y.  Input B = column/X (0-127), C = row/Y (0-63)    Destroy HL
+0178:         	drawGraphic         equ     0x0178  ;   Desenha no buffer. Entrada: A = número ASCII ou se A=0 Então  HL = Endereço dos dados gráficos. B = largura do gráfico em pixels (1-128). C = altura do gráfico em pixels (1-64). Destroy: ALL
+017B:         	invGraphic          equ     0x017B  ;   Altera a flag de desenho inverso. (não inverte grafico atual) Destroy A
+017E:         	initTerminal        equ     0x017E  ;   Inicializa o Terminal GLCD. Cursor 0,0 e limpa buffer.
+0181:         	sendCharToLCD       equ     0x0181  ;   Envia ou manipula caracteres ASCII para a tela GLCD (Terminal). Entrada: A = caractere ASCII a ser enviado para a tela GLCD. A = somente cursor desenhado.
+0184:         	sendStringToLCD     equ     0x0184  ;   Imprime string no terminal GLCD. DE = inicio da string. A = caractere para parar a impressão. A impressão para e retorna quando um CR é impresso. Destroy ALL
+0187:         	sendRegToLCD        equ     0x0187  ;   Imprime byte em A no formato HEX, no GLCD. Ex: 'D' = 44
+018A:         	sendHLToLCD         equ     0x018A  ;   Imprime HL como 4 digitos hexadecimais, no GLCD. Ex: HL=$80FF -> imprime "80FF"
+018D:         	setCursor           equ     0x018D  ;   Define a posição do cursor gráfico. Entradas: BC = X,Y onde X = 0..127, Y = 0..63   Destroy A
+0190:         	getCursor           equ     0x0190  ;   Obter a posição do cursor. Saídas: BC = X,Y onde X = 0..127, Y = 0..63
+0193:         	displayCursor       equ     0x0193  ;   Exibir Cursor. Entrada: A = 0, Ativar cursor, A = diferente de zero, Desativar cursor.
+0196:         	autoLF              equ     0x0196  ;   Avanço de linha automático quando o cursor atinge o final da linha (Terminal). Entrada: A = 0, Avanço de linha automático; A = diferente de zero, Sem avanço de linha automático. Padrao LIGADO.
+0199:         	underline           equ     0x0199  ;   Exibir sublinhado no caractere (Terminal). O estado inicial é sem sublinhado. Chamar esta rotina irá ALTERAR/DESLIGAR o sinalizador de sublinhado.
+019C:         	plotAlways          equ     0x019C  ;   Quando sendCharToLCD é chamado, Atualiza GLCD ou não. Se Desativado plotToLCD deve ser chamado atualizar o GLCD. Entrada: A=0, Plotar sempre; A>0, Não plotar. O padrão é Plotar sempre.
+              	
+              	; -------- Constantes gerais --------
+000D:         	CR:       EQU   0DH
+000A:         	LF:       EQU   0AH
+0008:         	BKS:      EQU   08H
+007F:         	DEL:      EQU   7FH
+001B:         	ESC:      EQU   1BH
+0020:         	SPACE:    EQU   20H
+0000:         	NUL:      EQU   00H
+000C:         	FF:       EQU   0CH                 ; Form Feed -> Limpa lcd
+              	
+              	; -----------------------------------------------------------------------------
+              	; SIO/2 - SERIAL
+              	; -----------------------------------------------------------------------------
+0000:         	SIOA_D:   EQU   $00
+0002:         	SIOA_C:   EQU   $02
+0001:         	SIOB_D:   EQU   $01   ; Conector P2
+0003:         	SIOB_C:   EQU   $03   ; Conector P2
+              	
+0200:         	SER_BUFSIZE     .EQU  $200    ; 512 bytes
+0080:         	SER_FULLSIZE    .EQU  $80
+0005:         	SER_EMPTYSIZE   .EQU  5
+              	
+0003:         	PLOT_EVERY  EQU  3      ; plota a cada N chars recebidos
+8000:         	        org $8000
+              	
+              	;------------------------------------------------------------------------------
+              	; Inicializacao
+              	;------------------------------------------------------------------------------
+8000:         	inicio:
+              	        ; Initialise SIO/2 B - Printer (P2 conector)
+8000: 3E04    	        LD      A,$04
+8002: D303    	        OUT     (SIOB_C),A
+8004: 3EC4    	        LD      A,$C4
+8006: D303    	        OUT     (SIOB_C),A
+              	
+8008: 3E03    	        LD      A,$03
+800A: D303    	        OUT     (SIOB_C),A
+800C: 3EE1    	        LD      A,$E1
+800E: D303    	        OUT     (SIOB_C),A
+              	
+8010: 3E05    	        LD      A,$05
+8012: D303    	        OUT     (SIOB_C),A
+8014: 3E68    	        LD      A,$68
+8016: D303    	        OUT     (SIOB_C),A
+              	
+              	        ; WR1 = interrupção em todos os caracteres recebidos
+8018: 3E01    	        LD      A,1
+801A: D303    	        OUT     (SIOB_C),A
+801C: 3E18    	        LD      A,%00011000
+801E: D303    	        OUT     (SIOB_C),A
+              	
+              	        ; Inicializa buffer serial B
+8020: 210000  	        LD      HL,$0000
+8023: 223084  	        LD      (serBBufUsed),HL
+8026: 212C82  	        LD      HL,serBBuf
+8029: 222C84  	        LD      (serBInPtr),HL
+802C: 222E84  	        LD      (serBRdPtr),HL
+              	
+              	
+802F: AF      	        XOR     A
+8030: 323284  	        LD      (plotCounter), A
+              	
+              	
+              	        ; Configura serial B como padrao
+8033: CD1E01  	        CALL    setDefaultSerialB
+              	
+              	        ; Configura ISR serial B via INT38
+8036: 215380  	        LD      HL,serialInt
+8039: CD6601  	        CALL    setInt38
+803C: ED56    	        IM      1
+803E: FB      	        EI
+              	
+803F: 3E0C    	        LD      A,FF
+8041: CD8101  	        CALL    sendCharToLCD
+              	
+8044: 112281  	        LD      DE,msg
+8047: CD8401  	        CALL    sendStringToLCD
+              	
+              	;------------------------------------------------------------------------------
+              	; Loop principal — le byte do buffer e exibe no LCD
+              	;------------------------------------------------------------------------------
+804A:         	LOOP:
+804A: CD7C80  	        CALL    coninB
+804D: CDAF80  	        CALL    PUTCHAR
+8050: C34A80  	        JP      LOOP
+              	
+              	;------------------------------------------------------------------------------
+              	; ISR Serial B
+              	; O trampolim em $0038 faz PUSH HL antes de saltar aqui,
+              	; por isso o primeiro POP HL é obrigatório para desfazer esse push.
+              	;------------------------------------------------------------------------------
+8053:         	serialInt:
+8053: E1      	        POP     HL              ; desfaz PUSH HL do trampolim em $0038
+              	
+8054: F5      	        PUSH    AF
+8055: E5      	        PUSH    HL
+8056: C5      	        PUSH    BC
+              	
+8057:         	serialIntB:
+              	        ; Grava na posição atual, incrementa depois
+8057: 2A2C84  	        LD      HL,(serBInPtr)
+805A: DB01    	        IN      A,(SIOB_D)      ; lê byte UMA vez
+805C: 77      	        LD      (HL),A          ; grava no buffer
+              	
+              	        ; Avança serBInPtr com wrap por comparação de endereço
+805D: 23      	        INC     HL
+805E: 012C84  	        LD      BC,serBBuf + SER_BUFSIZE
+8061: 7C      	        LD      A,H
+8062: B8      	        CP      B
+8063: 2007    	        JR      NZ,notBWrap
+8065: 7D      	        LD      A,L
+8066: B9      	        CP      C
+8067: 2003    	        JR      NZ,notBWrap
+8069: 212C82  	        LD      HL,serBBuf      ; wrap: volta ao início
+806C:         	notBWrap:
+806C: 222C84  	        LD      (serBInPtr),HL
+              	
+              	        ; Incrementa contador (16 bits)
+806F: 2A3084  	        LD      HL,(serBBufUsed)
+8072: 23      	        INC     HL
+8073: 223084  	        LD      (serBBufUsed),HL
+              	
+8076: C1      	        POP     BC
+8077: E1      	        POP     HL
+8078: F1      	        POP     AF
+8079: FB      	        EI
+807A: ED4D    	        RETI
+              	
+              	;------------------------------------------------------------------------------
+              	; coninB — aguarda e retorna um byte do buffer serial B em A
+              	; Também verifica teclado: se tecla pressionada, chama getLine
+              	;------------------------------------------------------------------------------
+807C:         	coninB:
+807C:         	waitForCharB:
+807C: CD1801  	        CALL    keyboardA
+807F: DCAB80  	        CALL    C,getLine       ; tecla pressionada: envia linha via serial
+              	
+              	        ; Verifica se buffer tem dados (16 bits)
+8082: 2A3084  	        LD      HL,(serBBufUsed)
+8085: 7C      	        LD      A,H
+8086: B5      	        OR      L
+8087: 28F3    	        JR      Z,waitForCharB  ; vazio, aguarda
+              	
+              	        ; Lê byte na posição atual de leitura
+8089: 2A2E84  	        LD      HL,(serBRdPtr)
+808C: 7E      	        LD      A,(HL)          ; lê o byte
+808D: F5      	        PUSH    AF              ; preserva byte lido
+              	
+              	        ; Avança serBRdPtr com wrap
+808E: 23      	        INC     HL
+808F: 012C84  	        LD      BC,serBBuf + SER_BUFSIZE
+8092: 7C      	        LD      A,H
+8093: B8      	        CP      B
+8094: 2007    	        JR      NZ,notRdWrapB
+8096: 7D      	        LD      A,L
+8097: B9      	        CP      C
+8098: 2003    	        JR      NZ,notRdWrapB
+809A: 212C82  	        LD      HL,serBBuf      ; wrap: volta ao início
+809D:         	notRdWrapB:
+809D: F3      	        DI
+809E: 222E84  	        LD      (serBRdPtr),HL
+              	
+              	        ; Decrementa contador (16 bits)
+80A1: 2A3084  	        LD      HL,(serBBufUsed)
+80A4: 2B      	        DEC     HL
+80A5: 223084  	        LD      (serBBufUsed),HL
+80A8: FB      	        EI
+              	
+80A9: F1      	        POP     AF              ; byte lido de volta em A
+80AA: C9      	        RET
+              	
+              	;------------------------------------------------------------------------------
+              	; getLine — captura linha do teclado e envia pela serial
+              	;------------------------------------------------------------------------------
+80AB:         	getLine:
+80AB: CDE780  	        CALL    GETLINE_KEY
+80AE: C9      	        RET
+              	
+              	;------------------------------------------------------------------------------
+              	; PUTCHAR — exibe o caractere em A no LCD e atualiza display
+              	;------------------------------------------------------------------------------
+80AF:         	PUTCHAR:
+80AF: C5      	        PUSH    BC
+80B0: D5      	        PUSH    DE
+80B1: E5      	        PUSH    HL
+              	
+80B2: F5      	        PUSH    AF
+80B3: 3E01    	        LD      A, 1
+80B5: CD9C01  	        CALL    plotAlways      ; desativa plot automático
+80B8: F1      	        POP     AF
+              	
+80B9: CD8101  	        CALL    sendCharToLCD   ; só grava no buffer, não plota
+              	
+              	        ; Força plot se for CR
+80BC: FE0D    	        CP      CR
+80BE: 280F    	        JR      Z, PUTCHARdoPlot
+80C0: FE0A    	        CP      LF
+80C2: 280B    	        JR      Z, PUTCHARdoPlot
+              	
+              	        ; Incrementa contador
+80C4: 3A3284  	        LD      A, (plotCounter)
+80C7: 3C      	        INC     A
+80C8: 323284  	        LD      (plotCounter), A
+80CB: FE03    	        CP      PLOT_EVERY
+80CD: 3807    	        JR      C, PUTCHARskip        ; ainda não chegou em N
+              	
+80CF:         	PUTCHARdoPlot:
+80CF: AF      	        XOR     A
+80D0: 323284  	        LD      (plotCounter), A
+80D3: CD5D01  	        CALL    plotToLCD
+              	
+80D6:         	PUTCHARskip:
+80D6: E1      	        POP     HL
+80D7: D1      	        POP     DE
+80D8: C1      	        POP     BC
+80D9: C9      	        RET
+              	
+              	
+80DA:         	PUTCHAR_NOW:
+80DA: C5      	        PUSH    BC
+80DB: D5      	        PUSH    DE
+80DC: E5      	        PUSH    HL
+80DD: CD8101  	        CALL    sendCharToLCD
+80E0: CD5D01  	        CALL    plotToLCD
+80E3: E1      	        POP     HL
+80E4: D1      	        POP     DE
+80E5: C1      	        POP     BC
+80E6: C9      	        RET
+              	
+              	;------------------------------------------------------------------------------
+              	; GETLINE_KEY — lê linha do teclado com eco no LCD, envia pela serial ao Enter
+              	;------------------------------------------------------------------------------
+80E7:         	GETLINE_KEY:
+80E7: 212D81  	        LD      HL,LINEBUF
+80EA: 06FF    	        LD      B,255           ; máx 255 chars + NUL
+80EC:         	GETLINE_LOOP_KEY:
+80EC: CD1501  	        CALL    keyboardWaitA
+80EF: FE0D    	        CP      CR
+80F1: 2813    	        JR      Z,GETLINE_DONE_KEY
+80F3: FE08    	        CP      BKS
+80F5: 281B    	        JR      Z,GETLINE_KEY_DEL
+80F7: 4F      	        LD      C,A
+80F8: 78      	        LD      A,B
+80F9: FE00    	        CP      0
+80FB: 28EF    	        JR      Z,GETLINE_LOOP_KEY  ; buffer cheio, ignora
+80FD: 79      	        LD      A,C
+80FE: 77      	        LD      (HL),A
+80FF: 23      	        INC     HL
+8100: 05      	        DEC     B
+8101: CDDA80  	        CALL    PUTCHAR_NOW             ; eco no LCD
+8104: 18E6    	        JR      GETLINE_LOOP_KEY
+8106:         	GETLINE_DONE_KEY:
+8106: 360D    	        LD      (HL),CR
+8108: 23      	        INC     HL
+8109: 3600    	        LD      (HL),NUL            ; termina string
+810B: 212D81  	        LD      HL,LINEBUF
+810E: CD2701  	        CALL    serialPrintStr      ; envia pela serial
+8111: C9      	        RET
+8112:         	GETLINE_KEY_DEL:
+8112: 57      	        LD      D,A             ; salva A
+8113: 78      	        LD      A,B
+8114: FEFF    	        CP      255             ; buffer vazio? (nenhum char digitado)
+8116: 28D4    	        JR      Z,GETLINE_LOOP_KEY  ; sim, ignora backspace
+8118: 2B      	        DEC     HL
+8119: 3608    	        LD      (HL),BKS
+811B: 04      	        INC     B
+811C: 7A      	        LD      A,D             ; restaura A
+811D: CDDA80  	        CALL    PUTCHAR_NOW
+8120: 18CA    	        JR      GETLINE_LOOP_KEY
+              	
+              	;------------------------------------------------------------------------------
+              	; Dados
+              	;------------------------------------------------------------------------------
+8122: 5465726D	msg:    db      "Term v0.1", CR, 0
+8126: 2076302E	
+812A: 310D00  	
+              	
+              	;------------------------------------------------------------------------------
+              	; RAM
+              	;------------------------------------------------------------------------------
+812D: FFFFFFFF	LINEBUF:        DS      255
+8131: FF...   	
+822C: FFFFFFFF	serBBuf:        .ds     SER_BUFSIZE
+8230: FF...   	
+842C: FFFF    	serBInPtr:      .ds     2
+842E: FFFF    	serBRdPtr:      .ds     2
+8430: FFFF    	serBBufUsed:    .ds     2
+8432: FF      	plotCounter:    .ds     1
+
+
+; +++ segments +++
+
+#CODE          = $8000 = 32768,  size = $0433 =  1075
+
+; +++ global symbols +++
+
+BKS               = $0008 =     8          Main.asm:60
+CR                = $000D =    13          Main.asm:58
+DEL               = $007F =   127          Main.asm:61 (unused)
+ESC               = $001B =    27          Main.asm:62 (unused)
+FF                = $000C =    12          Main.asm:65
+GETLINE_DONE_KEY  = $8106 = 33030          Main.asm:308
+GETLINE_KEY       = $80E7 = 32999          Main.asm:289
+GETLINE_KEY_DEL   = $8112 = 33042          Main.asm:315
+GETLINE_LOOP_KEY  = $80EC = 33004          Main.asm:292
+I2C_Close         = $0109 =   265          Main.asm:5 (unused)
+I2C_Open          = $0106 =   262          Main.asm:4 (unused)
+I2C_Read          = $010C =   268          Main.asm:6 (unused)
+I2C_Write         = $010F =   271          Main.asm:7 (unused)
+LF                = $000A =    10          Main.asm:59
+LINEBUF           = $812D = 33069          Main.asm:335
+LOOP              = $804A = 32842          Main.asm:138
+NUL               = $0000 =     0          Main.asm:64
+PLOT_EVERY        = $0003 =     3          Main.asm:79
+PUTCHAR           = $80AF = 32943          Main.asm:238
+PUTCHAR_NOW       = $80DA = 32986          Main.asm:275
+PUTCHARdoPlot     = $80CF = 32975          Main.asm:263
+PUTCHARskip       = $80D6 = 32982          Main.asm:268
+SER_BUFSIZE       = $0200 =   512          Main.asm:75
+SER_EMPTYSIZE     = $0005 =     5          Main.asm:77 (unused)
+SER_FULLSIZE      = $0080 =   128          Main.asm:76 (unused)
+SIOA_C            = $0002 =     2          Main.asm:71 (unused)
+SIOA_D            = $0000 =     0          Main.asm:70 (unused)
+SIOB_C            = $0003 =     3          Main.asm:73
+SIOB_D            = $0001 =     1          Main.asm:72
+SPACE             = $0020 =    32          Main.asm:63 (unused)
+_end              = $8433 = 33843          Main.asm:80 (unused)
+_size             = $0433 =  1075          Main.asm:80 (unused)
+_z80_             = $0001 =     1          Main.asm:1 (unused)
+autoLF            = $0196 =   406          Main.asm:53 (unused)
+clearGBUF         = $013C =   316          Main.asm:23 (unused)
+clearGrLCD        = $013F =   319          Main.asm:24 (unused)
+clearPixel        = $0172 =   370          Main.asm:41 (unused)
+clearTxtLCD       = $0142 =   322          Main.asm:25 (unused)
+coninB            = $807C = 32892          Main.asm:189
+delay             = $0103 =   259          Main.asm:3 (unused)
+delay500ms        = $0100 =   256          Main.asm:2 (unused)
+displayCursor     = $0193 =   403          Main.asm:52 (unused)
+drawBox           = $014B =   331          Main.asm:28 (unused)
+drawCircle        = $0151 =   337          Main.asm:30 (unused)
+drawGraphic       = $0178 =   376          Main.asm:43 (unused)
+drawLine          = $014E =   334          Main.asm:29 (unused)
+drawPixel         = $0154 =   340          Main.asm:31 (unused)
+fillBox           = $0157 =   343          Main.asm:32 (unused)
+fillCircle        = $015A =   346          Main.asm:33 (unused)
+flipPixel         = $0175 =   373          Main.asm:42 (unused)
+getCursor         = $0190 =   400          Main.asm:51 (unused)
+getLine           = $80AB = 32939          Main.asm:231
+inicio            = $8000 = 32768          Main.asm:85 (unused)
+initLCD           = $0139 =   313          Main.asm:22 (unused)
+initTerminal      = $017E =   382          Main.asm:45 (unused)
+invGraphic        = $017B =   379          Main.asm:44 (unused)
+keyboardA         = $0118 =   280          Main.asm:10
+keyboardIsEsc     = $0112 =   274          Main.asm:8 (unused)
+keyboardWaitA     = $0115 =   277          Main.asm:9
+msg               = $8122 = 33058          Main.asm:330
+notBWrap          = $806C = 32876          Main.asm:171
+notRdWrapB        = $809D = 32925          Main.asm:215
+plotAlways        = $019C =   412          Main.asm:55
+plotCounter       = $8432 = 33842          Main.asm:340
+plotToLCD         = $015D =   349          Main.asm:34
+printChars        = $0163 =   355          Main.asm:36 (unused)
+printString       = $0160 =   352          Main.asm:35 (unused)
+sendCharToLCD     = $0181 =   385          Main.asm:46
+sendHLToLCD       = $018A =   394          Main.asm:49 (unused)
+sendRegToLCD      = $0187 =   391          Main.asm:48 (unused)
+sendStringToLCD   = $0184 =   388          Main.asm:47
+serBBuf           = $822C = 33324          Main.asm:336
+serBBufUsed       = $8430 = 33840          Main.asm:339
+serBInPtr         = $842C = 33836          Main.asm:337
+serBRdPtr         = $842E = 33838          Main.asm:338
+serialCRLF        = $012A =   298          Main.asm:16 (unused)
+serialHexA        = $012D =   301          Main.asm:17 (unused)
+serialHexHL       = $0130 =   304          Main.asm:18 (unused)
+serialInHexA      = $0133 =   307          Main.asm:19 (unused)
+serialInHexHL     = $0136 =   310          Main.asm:20 (unused)
+serialInputA      = $0124 =   292          Main.asm:14 (unused)
+serialInt         = $8053 = 32851          Main.asm:148
+serialIntB        = $8057 = 32855          Main.asm:155 (unused)
+serialPrintA      = $0121 =   289          Main.asm:13 (unused)
+serialPrintStr    = $0127 =   295          Main.asm:15
+setBufClear       = $016C =   364          Main.asm:39 (unused)
+setBufNoClear     = $016F =   367          Main.asm:40 (unused)
+setCursor         = $018D =   397          Main.asm:50 (unused)
+setDefaultSerialA = $011B =   283          Main.asm:11 (unused)
+setDefaultSerialB = $011E =   286          Main.asm:12
+setGrMode         = $0145 =   325          Main.asm:26 (unused)
+setInt38          = $0166 =   358          Main.asm:37
+setTxtMode        = $0148 =   328          Main.asm:27 (unused)
+setint66          = $0169 =   361          Main.asm:38 (unused)
+underline         = $0199 =   409          Main.asm:54 (unused)
+waitForCharB      = $807C = 32892          Main.asm:190
+
+
+total time: 0.0263 sec.
+no errors

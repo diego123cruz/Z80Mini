@@ -1,0 +1,3 @@
+o Term utiliza a porta serial B junto com um esp8266 com zimodem (https://github.com/bozimmerman/Zimodem)
+
+entao conect seu "modem" e teste com o comando "AT" e enter, se estiver funcionando vc deve receber um "OK"

@@ -1,0 +1,12 @@
+1 - Para testar inicie o servidor ou vc pode usar um outro ex: "bbs.retrocampos.com":
+
+python3 jogo1.py
+	
+2 - inicie o Term no Z80Mini e conect no wifi (zimodem):
+	atw "NomeDaRede,SenhaDaRede"
+	
+3 - Conecte no servidor, local python ou bbs.retrocampos...
+	atd "192.168.0.10:2323"
+	
+	
+
