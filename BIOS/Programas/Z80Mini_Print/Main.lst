@@ -1,0 +1,74 @@
+              	; --------------------------------------
+              	; zasm: assemble "Main.asm"
+              	; date: 2026-05-04 21:17:53
+              	; --------------------------------------
+
+
+              	
+              	; SIO/2 - 115200
+0001:         	SIOB_D		.EQU	$01 ; Printer
+0003:         	SIOB_C		.EQU	$03 ; Printer
+              	
+8000:         	    .org $8000
+              	    
+              	    ;	Initialise SIO/2 B - Printer (P2 conector)
+8000: 3E04    		LD	A,$04
+8002: D303    		OUT	(SIOB_C),A
+8004: 3EC4    		LD	A,$C4
+8006: D303    		OUT	(SIOB_C),A
+              	
+8008: 3E03    		LD	A,$03
+800A: D303    		OUT	(SIOB_C),A
+800C: 3EE1    		LD	A,$E1
+800E: D303    		OUT	(SIOB_C),A
+              	
+8010: 3E05    		LD	A,$05
+8012: D303    		OUT	(SIOB_C),A
+8014: 3E68    		LD	A, $68
+8016: D303    		OUT	(SIOB_C),A
+              		
+8018: 00      	    NOP
+8019: 00      	    NOP
+801A: 00      	    NOP
+801B: 00      	    NOP
+801C: 00      	    NOP
+              	    
+801D: CD2380  	    call test_feed
+              	    
+              	
+              		
+              		
+8020: C30000  	    JP 0
+              	
+8023:         	test_feed:
+8023: 3E1B    	    LD   A, $1B             ; ESC d n
+8025: D301    	    OUT (SIOB_D), A
+              	
+8027: 3E64    	    LD   A, $64
+8029: D301    	    OUT (SIOB_D), A
+              	
+802B: 3E01    	    LD  A, $01
+802D: D301    	    OUT (SIOB_D), A ; lines
+              	
+802F: 3E0A    	    LD A, $0a
+8031: D301    	    OUT (SIOB_D), A
+              	
+8033: C9      	    ret
+
+
+; +++ segments +++
+
+#CODE          = $8000 = 32768,  size = $0034 =    52
+
+; +++ global symbols +++
+
+SIOB_C    = $0003 =     3          Main.asm:4
+SIOB_D    = $0001 =     1          Main.asm:3
+_end      = $8034 = 32820          Main.asm:6 (unused)
+_size     = $0034 =    52          Main.asm:6 (unused)
+_z80_     = $0001 =     1          Main.asm:1 (unused)
+test_feed = $8023 = 32803          Main.asm:37
+
+
+total time: 0.0040 sec.
+no errors
