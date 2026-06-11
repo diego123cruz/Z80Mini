@@ -1,5 +1,5 @@
 build:
-	zasm --z80 -w -u --hex --target=RAM  Main.asm
+	zasm --z80 -w -u --hex --target=ram Main.asm
 
 clean:
-	del *.lst *.rom
+	rm *.lst *.hex

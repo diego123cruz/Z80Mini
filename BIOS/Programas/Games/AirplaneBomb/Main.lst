@@ -1,0 +1,607 @@
+              	; --------------------------------------
+              	; zasm: assemble "Main.asm"
+              	; date: 2026-06-10 21:51:06
+              	; --------------------------------------
+
+
+              	;   API Z80Mini:
+0100:         	delay500ms          equ     0x0100  ;   Delay 500ms
+0103:         	delay               equ     0x0103  ;   On entry: DE = Delay time in milliseconds
+0106:         	I2C_Open            equ     0x0106  ;   On entry: A = Device address (bit zero is read flag)
+0109:         	I2C_Close           equ     0x0109  ;   Close
+010C:         	I2C_Read            equ     0x010C  ;   On exit: If successful A = data byte and Z flagged
+010F:         	I2C_Write           equ     0x010F  ;   On entry: A = Data byte, or Address byte (bit zero is read flag)
+0112:         	keyboardIsEsc       equ     0x0112  ;   Verifica se ESC foi precionada. On exit: If press A = CTRLC and NZ flagged
+0115:         	keyboardWaitA       equ     0x0115  ;   Aguarda tecla, letra em A. (BC DE HL preserved)
+0118:         	keyboardA           equ     0x0118  ;   Lê teclado, Se tecla Carry=1. Letra em A. (BC DE HL preserved)
+011B:         	setDefaultSerialA   equ     0x011B  ;   Seta terminal padrao porta A, Quando reinicia volta para A.
+011E:         	setDefaultSerialB   equ     0x011E  ;   Seta terminal padrao porta B (P2), Quando reinicia volta para A.
+0121:         	serialPrintA        equ     0x0121  ;   Imprime char in A no terminal setado.
+0124:         	serialInputA        equ     0x0124  ;   Aguarda receber char no terminal setado. Retorno em A.
+0127:         	serialPrintStr      equ     0x0127  ;   Imprime string (HL) terminado em 0 no terminal setado. MAX 128 chars. MODIFIES : A,B,C
+012A:         	serialCRLF          equ     0x012A  ;   Imprime CR e LF no terminal setado.
+012D:         	serialHexA          equ     0x012D  ;   Imprime byte em A no formato HEX, no terminal setado. Ex: 'D' = 44
+0130:         	serialHexHL         equ     0x0130  ;   Imprime HL como 4 digitos hexadecimais, no terminal setado. Ex: HL=$80FF -> imprime "80FF"
+0133:         	serialInHexA        equ     0x0133  ;   Pegar 2 caracteres ASCII (0-9 A-F), do terminal setado e converte em um byte em A. SEM ECHO
+0136:         	serialInHexHL       equ     0x0136  ;   Pegar 4 caracteres ASCII (0-9 A-F), do terminal setado e converte em HL. SEM ECHO
+              	
+0139:         	initLCD             equ     0x0139  ;   Inicializa GLCD
+013C:         	clearGBUF           equ     0x013C  ;   Limpa buffer da memoria de grafico. Precisa do plotToLCD para refletir no lcd.
+013F:         	clearGrLCD          equ     0x013F  ;   Limpa memoria grafico do GLCD. Sem o plotToLCD.
+0142:         	clearTxtLCD         equ     0x0142  ;   Limpar caracteres do LCD
+0145:         	setGrMode           equ     0x0145  ;   Seta modo Grafico. 128x64
+0148:         	setTxtMode          equ     0x0148  ;   Seta mode Text. 16x4 equivalente
+014B:         	drawBox             equ     0x014B  ;   Desenha caixa. Entradas: BC = X0,Y0 - DE = X1,Y1    Destroys: HL
+014E:         	drawLine            equ     0x014E  ;   Desenha linha.  Entradas: BC = X0,Y0 - DE = X1,Y1
+0151:         	drawCircle          equ     0x0151  ;   Desenha circulo. Entradas BC = xm,ym (Ponro do Meio) - E = radius
+0154:         	drawPixel           equ     0x0154  ;   Desenha um pixel em X Y.  Entrada B = column/X (0-127), C = row/Y (0-63)   Destroys: HL
+0157:         	fillBox             equ     0x0157  ;   Desenha caixa preenchida. Entradas: BC = X0,Y0 - DE = X1,Y1    Destroys: HL
+015A:         	fillCircle          equ     0x015A  ;   Desenha circulo preenchido. Entradas BC = xm,ym (Ponro do Meio) - E = radius
+015D:         	plotToLCD           equ     0x015D  ;   Rotina principal de desenho. Move GBUF para o LCD e limpa o buffer ou não (setBufClear, setBufNoClear).  Destroys: ALL
+0160:         	printString         equ     0x0160  ;   Imprimir texto ASCII em uma determinada linha. Entradas: A = 0 a 3 Número da linha. .db "String" na próxima linha, terminar com 0
+0163:         	printChars          equ     0x0163  ;   (Ver detalhes) Imprimir caracteres na posição X,Y. Entrada B = coluna/X (0-7), C = linha/Y (0-3). HL = Endereço inicial do texto a ser exibido, termina com 0
+0166:         	setInt38            equ     0x0166  ;   Seta vetor de interrupcao int38. Entradas HL = RST38_ADDR
+0169:         	setint66            equ     0x0169  ;   Seta vetor de interrupcao int66. Entradas HL = RST66_ADDR
+016C:         	setBufClear         equ     0x016C  ;   Configura limpeza do buffer após a saída para o LCD e vai para clearGBUF.
+016F:         	setBufNoClear       equ     0x016F  ;   Configura para não limpar o buffer após a saída para o LCD.
+0172:         	clearPixel          equ     0x0172  ;   Limpa um pixel X Y.  Input B = column/X (0-127), C = row/Y (0-63)    Destroy HL
+0175:         	flipPixel           equ     0x0175  ;   Inverte um pixel X Y.  Input B = column/X (0-127), C = row/Y (0-63)    Destroy HL
+0178:         	drawGraphic         equ     0x0178  ;   Desenha no buffer. Entrada: A = número ASCII ou se A=0 Então  HL = Endereço dos dados gráficos. B = largura do gráfico em pixels (1-128). C = altura do gráfico em pixels (1-64). Destroy: ALL
+017B:         	invGraphic          equ     0x017B  ;   Altera a flag de desenho inverso. (não inverte grafico atual) Destroy A
+017E:         	initTerminal        equ     0x017E  ;   Inicializa o Terminal GLCD. Cursor 0,0 e limpa buffer.
+0181:         	sendCharToLCD       equ     0x0181  ;   Envia ou manipula caracteres ASCII para a tela GLCD (Terminal). Entrada: A = caractere ASCII a ser enviado para a tela GLCD. A = somente cursor desenhado.
+0184:         	sendStringToLCD     equ     0x0184  ;   Imprime string no terminal GLCD. DE = inicio da string. A = caractere para parar a impressão. A impressão para e retorna quando um CR é impresso. Destroy ALL
+0187:         	sendRegToLCD        equ     0x0187  ;   Imprime byte em A no formato HEX, no GLCD. Ex: 'D' = 44
+018A:         	sendHLToLCD         equ     0x018A  ;   Imprime HL como 4 digitos hexadecimais, no GLCD. Ex: HL=$80FF -> imprime "80FF"
+018D:         	setCursor           equ     0x018D  ;   Define a posição do cursor gráfico. Entradas: BC = X,Y onde X = 0..127, Y = 0..63   Destroy A
+0190:         	getCursor           equ     0x0190  ;   Obter a posição do cursor. Saídas: BC = X,Y onde X = 0..127, Y = 0..63
+0193:         	displayCursor       equ     0x0193  ;   Exibir Cursor. Entrada: A = 0, Ativar cursor, A = diferente de zero, Desativar cursor.
+0196:         	autoLF              equ     0x0196  ;   Avanço de linha automático quando o cursor atinge o final da linha (Terminal). Entrada: A = 0, Avanço de linha automático; A = diferente de zero, Sem avanço de linha automático. Padrao LIGADO.
+0199:         	underline           equ     0x0199  ;   Exibir sublinhado no caractere (Terminal). O estado inicial é sem sublinhado. Chamar esta rotina irá ALTERAR/DESLIGAR o sinalizador de sublinhado.
+019C:         	plotAlways          equ     0x019C  ;   Quando sendCharToLCD é chamado, Atualiza GLCD ou não. Se Desativado plotToLCD deve ser chamado atualizar o GLCD. Entrada: A=0, Plotar sempre; A>0, Não plotar. O padrão é Plotar sempre.
+              	
+000D:         	CR:     EQU 0DH                 ; Carriage return
+0020:         	SPACE:  EQU 20H                 ; Space
+001B:         	ESC:	EQU 1BH			; Esc
+              	
+8000:         	.org $8000
+              	
+8000:         	init:
+8000: 3E01    	    LD A, 1
+8002: 322683  	    LD (gameover), A ; Gameover
+              	
+8005: AF      	    XOR A
+8006: 322783  	    LD (cursor_x), A
+8009: 322883  	    LD (cursor_y), A
+800C: 322B83  	    ld (bomb_alive), A
+800F: DD212C83	    LD IX, predios
+8013: 012E13  	    LD BC, 0x132E
+8016: DD7100  	    LD (IX), BC
+8019: DD7001  	
+801C: 013F19  	    LD BC, 0x193F
+801F: DD7102  	    LD (IX+2), BC
+8022: DD7003  	
+8025: 01332E  	    LD BC, 0x2e33
+8028: DD7104  	    LD (IX+4), BC
+802B: DD7005  	
+802E: 013F34  	    LD BC, 0x343F
+8031: DD7106  	    LD (IX+6), BC
+8034: DD7007  	
+8037: 013046  	    LD BC, 0x4630
+803A: DD7108  	    LD (IX+8), BC
+803D: DD7009  	
+8040: 013F4C  	    LD BC, 0x4c3F
+8043: DD710A  	    LD (IX+10), BC
+8046: DD700B  	
+8049: 012E58  	    LD BC, 0x582E
+804C: DD710C  	    LD (IX+12), BC
+804F: DD700D  	
+8052: 013F5E  	    LD BC, 0x5e3F
+8055: DD710E  	    LD (IX+14), BC
+8058: DD700F  	
+805B: 01336A  	    LD BC, 0x6a33
+805E: DD7110  	    LD (IX+16), BC
+8061: DD7011  	
+8064: 013F70  	    LD BC, 0x703F
+8067: DD7112  	    LD (IX+18), BC
+806A: DD7013  	
+              	
+806D:         	loop:
+806D: CDD181  	    CALL ler_gamepad
+8070: CD8682  	    call update_bomb
+8073: CDAF82  	    call update_airplane
+8076: CDAE80  	    call update_predios
+8079: CDE281  	    call update_screen
+              	
+              	    ; Check GameOver
+807C: 3A2683  	    LD A, (gameover)
+807F: FE00    	    CP 0
+8081: CA6D80  	    JP Z, loop
+              	
+8084: 012B1E  	    LD BC, $1E2B
+8087: CD8D01  	    CALL setCursor
+808A: 3E00    	    LD A, 0
+808C: 111183  	    LD DE, msg_start
+808F: CD8401  	    CALL sendStringToLCD
+8092:         	loop_enter:
+8092: CD1801  	    call keyboardA
+8095: FE0D    	    cp CR
+8097: 20F9    	    Jr NZ, loop_enter
+8099: 3E00    	    LD A, 0
+809B: 322683  	    LD (gameover), A
+809E: C36D80  	    jp loop
+              	
+              	
+80A1:         	inc_bc:
+80A1: 03      	    INC BC
+80A2: 03      	    INC BC
+80A3: 03      	    INC BC
+80A4: 03      	    INC BC
+80A5: C9      	    ret
+              	
+80A6:         	inc_b:
+80A6: 04      	    inc B
+80A7: 04      	    inc B
+80A8: 04      	    inc B
+80A9: 04      	    inc B
+80AA: 04      	    inc B
+80AB: 04      	    inc B
+80AC: 04      	    inc B
+80AD: C9      	    ret
+              	
+80AE:         	update_predios:
+80AE: 3A2B83  	    LD A, (bomb_alive)
+80B1: FE00    	    cp 0
+80B3: C8      	    RET Z
+80B4: DD212C83	    LD IX, predios
+80B8:         	p1:
+80B8: DD4E00  	    ld bc, (IX)
+80BB: DD4601  	
+80BE: 3A2A83  	    ld a, (bomb_y)
+80C1: C607    	    add a, 7
+80C3: B9      	    cp c
+80C4: DAF080  	    jp C, p2
+80C7: 3A2A83  	    ld a, (bomb_y)
+80CA: B9      	    cp c
+80CB: D2F080  	    jp NC, p2
+80CE: 3A2983  	    ld a, (bomb_x)
+80D1: C605    	    add a, 5
+80D3: B8      	    cp B
+80D4: DAF080  	    jp C, p2
+80D7: 3A2983  	    ld a, (bomb_x)
+80DA: C5      	    PUSH BC
+80DB: CDA680  	    CALL inc_b
+80DE: B8      	    cp b
+80DF: C1      	    POP BC
+80E0: D2F080  	    JP NC, p2
+80E3: CDA180  	    CALL inc_bc
+80E6: DD7100  	    LD (IX), bc
+80E9: DD7001  	
+80EC: AF      	    xor a
+80ED: 322B83  	    ld (bomb_alive), a
+              	
+80F0:         	p2:
+80F0: DD4E04  	    ld bc, (IX+4)
+80F3: DD4605  	
+80F6: 3A2A83  	    ld a, (bomb_y)
+80F9: C607    	    add a, 7
+80FB: B9      	    cp c
+80FC: DA2881  	    jp C, p3
+80FF: 3A2A83  	    ld a, (bomb_y)
+8102: B9      	    cp c
+8103: D22881  	    jp NC, p3
+8106: 3A2983  	    ld a, (bomb_x)
+8109: C605    	    add a, 5
+810B: B8      	    cp B
+810C: DA2881  	    jp C, p3
+810F: 3A2983  	    ld a, (bomb_x)
+8112: C5      	    PUSH BC
+8113: CDA680  	    CALL inc_b
+8116: B8      	    cp b
+8117: C1      	    POP BC
+8118: D22881  	    JP NC, p3
+811B: CDA180  	    CALL inc_bc
+811E: DD7104  	    LD (IX+4), bc
+8121: DD7005  	
+8124: AF      	    xor a
+8125: 322B83  	    ld (bomb_alive), a
+              	
+8128:         	p3:
+8128: DD4E08  	    ld bc, (IX+8)
+812B: DD4609  	
+812E: 3A2A83  	    ld a, (bomb_y)
+8131: C607    	    add a, 7
+8133: B9      	    cp c
+8134: DA6081  	    jp C, p4
+8137: 3A2A83  	    ld a, (bomb_y)
+813A: B9      	    cp c
+813B: D26081  	    jp NC, p4
+813E: 3A2983  	    ld a, (bomb_x)
+8141: C605    	    add a, 5
+8143: B8      	    cp B
+8144: DA6081  	    jp C, p4
+8147: 3A2983  	    ld a, (bomb_x)
+814A: C5      	    PUSH BC
+814B: CDA680  	    CALL inc_b
+814E: B8      	    cp b
+814F: C1      	    POP BC
+8150: D26081  	    JP NC, p4
+8153: CDA180  	    CALL inc_bc
+8156: DD7108  	    LD (IX+8), bc
+8159: DD7009  	
+815C: AF      	    xor a
+815D: 322B83  	    ld (bomb_alive), a
+              	
+8160:         	p4
+8160: DD4E0C  	    ld bc, (IX+12)
+8163: DD460D  	
+8166: 3A2A83  	    ld a, (bomb_y)
+8169: C607    	    add a, 7
+816B: B9      	    cp c
+816C: DA9881  	    jp C, p5
+816F: 3A2A83  	    ld a, (bomb_y)
+8172: B9      	    cp c
+8173: D29881  	    jp NC, p5
+8176: 3A2983  	    ld a, (bomb_x)
+8179: C605    	    add a, 5
+817B: B8      	    cp B
+817C: DA9881  	    jp C, p5
+817F: 3A2983  	    ld a, (bomb_x)
+8182: C5      	    PUSH BC
+8183: CDA680  	    CALL inc_b
+8186: B8      	    cp b
+8187: C1      	    POP BC
+8188: D29881  	    JP NC, p5
+818B: CDA180  	    CALL inc_bc
+818E: DD710C  	    LD (IX+12), bc
+8191: DD700D  	
+8194: AF      	    xor a
+8195: 322B83  	    ld (bomb_alive), a
+              	
+8198:         	p5
+8198: DD4E10  	    ld bc, (IX+16)
+819B: DD4611  	
+819E: 3A2A83  	    ld a, (bomb_y)
+81A1: C607    	    add a, 7
+81A3: B9      	    cp c
+81A4: DAD081  	    jp C, p6
+81A7: 3A2A83  	    ld a, (bomb_y)
+81AA: B9      	    cp c
+81AB: D2D081  	    jp NC, p6
+81AE: 3A2983  	    ld a, (bomb_x)
+81B1: C605    	    add a, 5
+81B3: B8      	    cp B
+81B4: DAD081  	    jp C, p6
+81B7: 3A2983  	    ld a, (bomb_x)
+81BA: C5      	    PUSH BC
+81BB: CDA680  	    CALL inc_b
+81BE: B8      	    cp b
+81BF: C1      	    POP BC
+81C0: D2D081  	    JP NC, p6
+81C3: CDA180  	    CALL inc_bc
+81C6: DD7110  	    LD (IX+16), bc
+81C9: DD7011  	
+81CC: AF      	    xor a
+81CD: 322B83  	    ld (bomb_alive), a
+81D0:         	p6:
+81D0: C9      	    RET
+              	
+              	
+81D1:         	ler_gamepad:
+81D1: CD1801  	    call keyboardA
+              	    
+81D4: FE20    	    cp SPACE
+81D6: CAEF82  	    jp z, bomb_fire
+              	
+81D9: FE1B    	    CP ESC
+81DB: CADF81  	    JP Z, quit
+              	
+81DE: C9      	    RET
+              	
+81DF:         	quit:
+81DF: C30000  	    jp 0
+              	
+81E2:         	update_screen:
+81E2: CD3C01  	    CALL clearGBUF
+              	
+              	; Draw predios
+81E5: DD212C83	    LD IX, predios
+81E9: DD4E00  	    ld bc, (IX)
+81EC: DD4601  	
+81EF: DD5E02  	    ld de, (IX+2)
+81F2: DD5603  	
+81F5: CD5701  	    call fillBox
+              	
+81F8: DD4E04  	    ld bc, (IX+4)
+81FB: DD4605  	
+81FE: DD5E06  	    ld de, (IX+6)
+8201: DD5607  	
+8204: CD5701  	    call fillBox
+              	
+8207: DD4E08  	    ld bc, (IX+8)
+820A: DD4609  	
+820D: DD5E0A  	    ld de, (IX+10)
+8210: DD560B  	
+8213: CD5701  	    call fillBox
+              	
+8216: DD4E0C  	    ld bc, (IX+12)
+8219: DD460D  	
+821C: DD5E0E  	    ld de, (IX+14)
+821F: DD560F  	
+8222: CD5701  	    call fillBox
+              	
+8225: DD4E10  	    ld bc, (IX+16)
+8228: DD4611  	
+822B: DD5E12  	    ld de, (IX+18)
+822E: DD5613  	
+8231: CD5701  	    call fillBox
+              	
+              	
+              	; Draw airplane
+8234: 3A2783  	    LD A, (cursor_x)
+8237: 47      	    LD B, A
+8238: 3A2883  	    LD A, (cursor_y)
+823B: 4F      	    LD C, A
+823C: CD8D01  	    CALL setCursor
+823F: 3E00    	    LD A, 0
+8241: 01080F  	    LD BC, $0F08
+8244: 214083  	    LD HL, airplane
+8247: CD7801  	    CALL drawGraphic
+              	
+              	
+              	    ; Draw bomb
+824A: 3A2B83  	    ld A, (bomb_alive)
+824D: FE00    	    cp 0
+824F: CA6282  	    JP Z, fim_bomb
+8252: 3A2983  	    LD A, (bomb_x)
+8255: 47      	    LD B, A
+8256: 3A2A83  	    LD A, (bomb_y)
+8259: 4F      	    LD C, A
+825A: CD8D01  	    CALL setCursor
+825D: 3E0E    	    LD A, 14 ; bomb
+825F: CD7801  	    CALL drawGraphic
+8262:         	fim_bomb:
+              	
+8262: CD5D01  	    CALL plotToLCD
+8265: C9      	    ret
+              	
+              	
+8266:         	btnUp:
+8266: 3A2883  	    ld a, (cursor_y)
+8269: 3D      	    dec A
+826A: 322883  	    ld (cursor_y), a
+826D: C9      	    RET
+              	
+826E:         	btnDown:
+826E: 3A2883  	    ld a, (cursor_y)
+8271: 3C      	    inc A
+8272: 322883  	    ld (cursor_y), a
+8275: C9      	    RET
+              	
+8276:         	btnLeft:
+8276: 3A2783  	    ld a, (cursor_x)
+8279: 3D      	    dec A
+827A: 322783  	    ld (cursor_x), a
+827D: C9      	    RET
+              	
+827E:         	btnRight:
+827E: 3A2783  	    ld a, (cursor_x)
+8281: 3C      	    inc A
+8282: 322783  	    ld (cursor_x), a
+8285: C9      	    RET
+              	
+              	
+              	
+              	
+8286:         	update_bomb:
+8286: 3A2B83  	    ld a, (bomb_alive)
+8289: FE00    	    cp 0
+828B: C8      	    RET Z
+              	    ; x
+828C: 3A2983  	    ld a, (bomb_x)
+828F: C602    	    add a, 2
+8291: 322983  	    ld (bomb_x), A
+              	    ; y
+8294: 3A2A83  	    ld a, (bomb_y)
+8297: C603    	    add a, 3
+8299: 322A83  	    ld (bomb_y), A
+829C: FE40    	    cp 64
+829E: D2AA82  	    JP NC, bomb_alive_zera
+              	
+82A1: 3A2983  	    ld a, (bomb_x)
+82A4: FE7C    	    cp 124
+82A6: D2AA82  	    JP NC, bomb_alive_zera
+82A9: C9      	    ret
+              	
+82AA:         	bomb_alive_zera:
+82AA: AF      	    xor A
+82AB: 322B83  	    ld (bomb_alive), A
+82AE: C9      	    ret
+              	
+              	
+              	
+              	
+82AF:         	update_airplane:
+82AF: 3A2783  	    ld a, (cursor_x)
+82B2: C602    	    add a, 2
+82B4: FE7E    	    cp 126
+82B6: D2C582  	    JP NC, update_airplane_zero
+82B9: 322783  	    ld (cursor_x), A
+82BC: 3A2883  	    ld a, (cursor_y)
+82BF: FE32    	    cp 50
+82C1: D2D282  	    JP NC, fim_de_jogo
+              	
+82C4: C9      	    RET
+82C5:         	update_airplane_zero:
+82C5: AF      	    xor a
+82C6: 322783  	    ld (cursor_x), A
+82C9: 3A2883  	    LD A, (cursor_y)
+82CC: C608    	    ADD A, 8
+82CE: 322883  	    LD (cursor_y), A
+82D1: C9      	    RET
+              	
+82D2:         	fim_de_jogo:
+82D2: 012B1E  	    LD BC, $1E2B
+82D5: CD8D01  	    CALL setCursor
+              	
+82D8: 3E00    	    LD A, 0
+82DA: 111D83  	    LD DE, msg_gameover
+82DD: CD8401  	    CALL sendStringToLCD
+82E0:         	fim_de_jogo_loop:
+82E0: CD1801  	    call keyboardA
+82E3: FE0D    	    cp CR
+82E5: 20F9    	    jr nz, fim_de_jogo_loop
+82E7: CB57    	    bit 2, A
+82E9: CAE082  	    JP Z, fim_de_jogo_loop
+82EC: C30080  	    JP init
+              	
+              	
+82EF:         	bomb_fire:
+82EF: 3A2B83  	    ld a, (bomb_alive)
+82F2: FE00    	    cp 0
+82F4: C0      	    RET NZ
+82F5: 3A2783  	    ld a, (cursor_x)
+82F8: FE78    	    cp 120
+82FA: D0      	    ret NC
+82FB: 3E01    	    ld a, 1
+82FD: 322B83  	    ld (bomb_alive), A
+8300: 3A2783  	    ld a, (cursor_x)
+8303: C604    	    add a, 4
+8305: 322983  	    ld (bomb_x), A
+8308: 3A2883  	    ld a, (cursor_y)
+830B: C602    	    add a, 2
+830D: 322A83  	    ld (bomb_y), A
+8310: C9      	    RET
+              	
+8311: 50726573	msg_start      .db "Press START",0
+8315: 73205354	
+8319: 41525400	
+831D: 47414D45	msg_gameover   .db "GAMEOVER",0
+8321: 4F564552	
+8325: 00      	
+              	
+8326: 00      	gameover:   .db 0x00
+8327: 00      	cursor_x:   .db 0x00
+8328: 00      	cursor_y:   .db 0x00
+8329: 00      	bomb_x:     .db 0x00
+832A: 00      	bomb_y:     .db 0x00
+832B: 00      	bomb_alive  .db 0x00
+              	;predios XY
+832C: 2E133F19	predios     .dw 0x132E, 0x193F, 0x2e33, 0x343F, 0x4630, 0x4c3F, 0x582E, 0x5e3F, 0x6a33, 0x703F
+8330: 332E3F34	
+8334: 30463F4C	
+8338: 2E583F5E	
+833C: 336A3F70	
+              	
+8340: 010000C0	airplane: .db 0x01, 0x00, 0x00, 0xC0, 0xC0, 0xC0, 0x7F, 0xFE, 0x1F, 0xFF, 0x01, 0x80, 0x01, 0x80, 0x03, 0x00
+8344: C0C07FFE	
+8348: 1FFF0180	
+834C: 01800300	
+
+
+; +++ segments +++
+
+#CODE          = $8000 = 32768,  size = $0350 =   848
+
+; +++ global symbols +++
+
+CR              = $000D =    13          Main.asm:57
+ESC             = $001B =    27          Main.asm:59
+I2C_Close       = $0109 =   265          Main.asm:5 (unused)
+I2C_Open        = $0106 =   262          Main.asm:4 (unused)
+I2C_Read        = $010C =   268          Main.asm:6 (unused)
+I2C_Write       = $010F =   271          Main.asm:7 (unused)
+SPACE           = $0020 =    32          Main.asm:58
+_end            = $8350 = 33616          Main.asm:61 (unused)
+_size           = $0350 =   848          Main.asm:61 (unused)
+_z80_           = $0001 =     1          Main.asm:1 (unused)
+airplane        = $8340 = 33600          Main.asm:452
+autoLF          = $0196 =   406          Main.asm:53 (unused)
+bomb_alive      = $832B = 33579          Main.asm:448
+bomb_alive_zera = $82AA = 33450          Main.asm:380
+bomb_fire       = $82EF = 33519          Main.asm:423
+bomb_x          = $8329 = 33577          Main.asm:446
+bomb_y          = $832A = 33578          Main.asm:447
+btnDown         = $826E = 33390          Main.asm:339 (unused)
+btnLeft         = $8276 = 33398          Main.asm:345 (unused)
+btnRight        = $827E = 33406          Main.asm:351 (unused)
+btnUp           = $8266 = 33382          Main.asm:333 (unused)
+clearGBUF       = $013C =   316          Main.asm:23
+clearGrLCD      = $013F =   319          Main.asm:24 (unused)
+clearPixel      = $0172 =   370          Main.asm:41 (unused)
+clearTxtLCD     = $0142 =   322          Main.asm:25 (unused)
+cursor_x        = $8327 = 33575          Main.asm:444
+cursor_y        = $8328 = 33576          Main.asm:445
+delay           = $0103 =   259          Main.asm:3 (unused)
+delay500ms      = $0100 =   256          Main.asm:2 (unused)
+displayCursor   = $0193 =   403          Main.asm:52 (unused)
+drawBox         = $014B =   331          Main.asm:28 (unused)
+drawCircle      = $0151 =   337          Main.asm:30 (unused)
+drawGraphic     = $0178 =   376          Main.asm:43
+drawLine        = $014E =   334          Main.asm:29 (unused)
+drawPixel       = $0154 =   340          Main.asm:31 (unused)
+fillBox         = $0157 =   343          Main.asm:32
+fillCircle      = $015A =   346          Main.asm:33 (unused)
+fim_bomb        = $8262 = 33378          Main.asm:327
+fim_de_jogo     = $82D2 = 33490          Main.asm:407
+fim_de_jogo_loop = $82E0 = 33504          Main.asm:414
+flipPixel       = $0175 =   373          Main.asm:42 (unused)
+gameover        = $8326 = 33574          Main.asm:443
+getCursor       = $0190 =   400          Main.asm:51 (unused)
+inc_b           = $80A6 = 32934          Main.asm:126
+inc_bc          = $80A1 = 32929          Main.asm:119
+init            = $8000 = 32768          Main.asm:63
+initLCD         = $0139 =   313          Main.asm:22 (unused)
+initTerminal    = $017E =   382          Main.asm:45 (unused)
+invGraphic      = $017B =   379          Main.asm:44 (unused)
+keyboardA       = $0118 =   280          Main.asm:10
+keyboardIsEsc   = $0112 =   274          Main.asm:8 (unused)
+keyboardWaitA   = $0115 =   277          Main.asm:9 (unused)
+ler_gamepad     = $81D1 = 33233          Main.asm:264
+loop            = $806D = 32877          Main.asm:93
+loop_enter      = $8092 = 32914          Main.asm:110
+msg_gameover    = $831D = 33565          Main.asm:441
+msg_start       = $8311 = 33553          Main.asm:440
+p1              = $80B8 = 32952          Main.asm:141 (unused)
+p2              = $80F0 = 33008          Main.asm:165
+p3              = $8128 = 33064          Main.asm:189
+p4              = $8160 = 33120          Main.asm:213
+p5              = $8198 = 33176          Main.asm:237
+p6              = $81D0 = 33232          Main.asm:260
+plotAlways      = $019C =   412          Main.asm:55 (unused)
+plotToLCD       = $015D =   349          Main.asm:34
+predios         = $832C = 33580          Main.asm:450
+printChars      = $0163 =   355          Main.asm:36 (unused)
+printString     = $0160 =   352          Main.asm:35 (unused)
+quit            = $81DF = 33247          Main.asm:275
+sendCharToLCD   = $0181 =   385          Main.asm:46 (unused)
+sendHLToLCD     = $018A =   394          Main.asm:49 (unused)
+sendRegToLCD    = $0187 =   391          Main.asm:48 (unused)
+sendStringToLCD = $0184 =   388          Main.asm:47
+serialCRLF      = $012A =   298          Main.asm:16 (unused)
+serialHexA      = $012D =   301          Main.asm:17 (unused)
+serialHexHL     = $0130 =   304          Main.asm:18 (unused)
+serialInHexA    = $0133 =   307          Main.asm:19 (unused)
+serialInHexHL   = $0136 =   310          Main.asm:20 (unused)
+serialInputA    = $0124 =   292          Main.asm:14 (unused)
+serialPrintA    = $0121 =   289          Main.asm:13 (unused)
+serialPrintStr  = $0127 =   295          Main.asm:15 (unused)
+setBufClear     = $016C =   364          Main.asm:39 (unused)
+setBufNoClear   = $016F =   367          Main.asm:40 (unused)
+setCursor       = $018D =   397          Main.asm:50
+setDefaultSerialA = $011B =   283          Main.asm:11 (unused)
+setDefaultSerialB = $011E =   286          Main.asm:12 (unused)
+setGrMode       = $0145 =   325          Main.asm:26 (unused)
+setInt38        = $0166 =   358          Main.asm:37 (unused)
+setTxtMode      = $0148 =   328          Main.asm:27 (unused)
+setint66        = $0169 =   361          Main.asm:38 (unused)
+underline       = $0199 =   409          Main.asm:54 (unused)
+update_airplane = $82AF = 33455          Main.asm:388
+update_airplane_zero = $82C5 = 33477          Main.asm:399
+update_bomb     = $8286 = 33414          Main.asm:360
+update_predios  = $80AE = 32942          Main.asm:136
+update_screen   = $81E2 = 33250          Main.asm:278
+
+
+total time: 0.0794 sec.
+no errors

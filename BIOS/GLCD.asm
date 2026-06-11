@@ -569,9 +569,23 @@ drawPixel:
 
         LD A, D
         OR (HL)
+        CP (HL)
+        call z, set_collision
+
+        LD A, D
+        OR (HL)
         LD (HL), A
         POP DE
         RET
+
+
+; Quando tenta ligar um pixel que ja esta ligado...
+set_collision:
+        LD A, 1
+        LD (DRAW_PIXEL_COLLISION), A
+        ret
+
+
 
 ;Clear Pixel in position X Y
 ;Input B = column/X (0-127), C = row/Y (0-63)

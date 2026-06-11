@@ -1,0 +1,588 @@
+              	; --------------------------------------
+              	; zasm: assemble "Main.asm"
+              	; date: 2026-06-11 00:24:20
+              	; --------------------------------------
+
+
+              	;   API Z80Mini:
+0100:         	delay500ms          equ     0x0100  ;   Delay 500ms
+0103:         	delay               equ     0x0103  ;   On entry: DE = Delay time in milliseconds
+0106:         	I2C_Open            equ     0x0106  ;   On entry: A = Device address (bit zero is read flag)
+0109:         	I2C_Close           equ     0x0109  ;   Close
+010C:         	I2C_Read            equ     0x010C  ;   On exit: If successful A = data byte and Z flagged
+010F:         	I2C_Write           equ     0x010F  ;   On entry: A = Data byte, or Address byte (bit zero is read flag)
+0112:         	keyboardIsEsc       equ     0x0112  ;   Verifica se ESC foi precionada. On exit: If press A = CTRLC and NZ flagged
+0115:         	keyboardWaitA       equ     0x0115  ;   Aguarda tecla, letra em A. (BC DE HL preserved)
+0118:         	keyboardA           equ     0x0118  ;   Lê teclado, Se tecla Carry=1. Letra em A. (BC DE HL preserved)
+011B:         	setDefaultSerialA   equ     0x011B  ;   Seta terminal padrao porta A, Quando reinicia volta para A.
+011E:         	setDefaultSerialB   equ     0x011E  ;   Seta terminal padrao porta B (P2), Quando reinicia volta para A.
+0121:         	serialPrintA        equ     0x0121  ;   Imprime char in A no terminal setado.
+0124:         	serialInputA        equ     0x0124  ;   Aguarda receber char no terminal setado. Retorno em A.
+0127:         	serialPrintStr      equ     0x0127  ;   Imprime string (HL) terminado em 0 no terminal setado. MAX 128 chars. MODIFIES : A,B,C
+012A:         	serialCRLF          equ     0x012A  ;   Imprime CR e LF no terminal setado.
+012D:         	serialHexA          equ     0x012D  ;   Imprime byte em A no formato HEX, no terminal setado. Ex: 'D' = 44
+0130:         	serialHexHL         equ     0x0130  ;   Imprime HL como 4 digitos hexadecimais, no terminal setado. Ex: HL=$80FF -> imprime "80FF"
+0133:         	serialInHexA        equ     0x0133  ;   Pegar 2 caracteres ASCII (0-9 A-F), do terminal setado e converte em um byte em A. SEM ECHO
+0136:         	serialInHexHL       equ     0x0136  ;   Pegar 4 caracteres ASCII (0-9 A-F), do terminal setado e converte em HL. SEM ECHO
+              	
+0139:         	initLCD             equ     0x0139  ;   Inicializa GLCD
+013C:         	clearGBUF           equ     0x013C  ;   Limpa buffer da memoria de grafico. Precisa do plotToLCD para refletir no lcd.
+013F:         	clearGrLCD          equ     0x013F  ;   Limpa memoria grafico do GLCD. Sem o plotToLCD.
+0142:         	clearTxtLCD         equ     0x0142  ;   Limpar caracteres do LCD
+0145:         	setGrMode           equ     0x0145  ;   Seta modo Grafico. 128x64
+0148:         	setTxtMode          equ     0x0148  ;   Seta mode Text. 16x4 equivalente
+014B:         	drawBox             equ     0x014B  ;   Desenha caixa. Entradas: BC = X0,Y0 - DE = X1,Y1    Destroys: HL
+014E:         	drawLine            equ     0x014E  ;   Desenha linha.  Entradas: BC = X0,Y0 - DE = X1,Y1
+0151:         	drawCircle          equ     0x0151  ;   Desenha circulo. Entradas BC = xm,ym (Ponro do Meio) - E = radius
+0154:         	drawPixel           equ     0x0154  ;   Desenha um pixel em X Y.  Entrada B = column/X (0-127), C = row/Y (0-63)   Destroys: HL
+0157:         	fillBox             equ     0x0157  ;   Desenha caixa preenchida. Entradas: BC = X0,Y0 - DE = X1,Y1    Destroys: HL
+015A:         	fillCircle          equ     0x015A  ;   Desenha circulo preenchido. Entradas BC = xm,ym (Ponro do Meio) - E = radius
+015D:         	plotToLCD           equ     0x015D  ;   Rotina principal de desenho. Move GBUF para o LCD e limpa o buffer ou não (setBufClear, setBufNoClear).  Destroys: ALL
+0160:         	printString         equ     0x0160  ;   Imprimir texto ASCII em uma determinada linha. Entradas: A = 0 a 3 Número da linha. .db "String" na próxima linha, terminar com 0
+0163:         	printChars          equ     0x0163  ;   (Ver detalhes) Imprimir caracteres na posição X,Y. Entrada B = coluna/X (0-7), C = linha/Y (0-3). HL = Endereço inicial do texto a ser exibido, termina com 0
+0166:         	setInt38            equ     0x0166  ;   Seta vetor de interrupcao int38. Entradas HL = RST38_ADDR
+0169:         	setint66            equ     0x0169  ;   Seta vetor de interrupcao int66. Entradas HL = RST66_ADDR
+016C:         	setBufClear         equ     0x016C  ;   Configura limpeza do buffer após a saída para o LCD e vai para clearGBUF.
+016F:         	setBufNoClear       equ     0x016F  ;   Configura para não limpar o buffer após a saída para o LCD.
+0172:         	clearPixel          equ     0x0172  ;   Limpa um pixel X Y.  Input B = column/X (0-127), C = row/Y (0-63)    Destroy HL
+0175:         	flipPixel           equ     0x0175  ;   Inverte um pixel X Y.  Input B = column/X (0-127), C = row/Y (0-63)    Destroy HL
+0178:         	drawGraphic         equ     0x0178  ;   Desenha no buffer. Entrada: A = número ASCII ou se A=0 Então  HL = Endereço dos dados gráficos. B = largura do gráfico em pixels (1-128). C = altura do gráfico em pixels (1-64). Destroy: ALL
+017B:         	invGraphic          equ     0x017B  ;   Altera a flag de desenho inverso. (não inverte grafico atual) Destroy A
+017E:         	initTerminal        equ     0x017E  ;   Inicializa o Terminal GLCD. Cursor 0,0 e limpa buffer.
+0181:         	sendCharToLCD       equ     0x0181  ;   Envia ou manipula caracteres ASCII para a tela GLCD (Terminal). Entrada: A = caractere ASCII a ser enviado para a tela GLCD. A = somente cursor desenhado.
+0184:         	sendStringToLCD     equ     0x0184  ;   Imprime string no terminal GLCD. DE = inicio da string. A = caractere para parar a impressão. A impressão para e retorna quando um CR é impresso. Destroy ALL
+0187:         	sendRegToLCD        equ     0x0187  ;   Imprime byte em A no formato HEX, no GLCD. Ex: 'D' = 44
+018A:         	sendHLToLCD         equ     0x018A  ;   Imprime HL como 4 digitos hexadecimais, no GLCD. Ex: HL=$80FF -> imprime "80FF"
+018D:         	setCursor           equ     0x018D  ;   Define a posição do cursor gráfico. Entradas: BC = X,Y onde X = 0..127, Y = 0..63   Destroy A
+0190:         	getCursor           equ     0x0190  ;   Obter a posição do cursor. Saídas: BC = X,Y onde X = 0..127, Y = 0..63
+0193:         	displayCursor       equ     0x0193  ;   Exibir Cursor. Entrada: A = 0, Ativar cursor, A = diferente de zero, Desativar cursor.
+0196:         	autoLF              equ     0x0196  ;   Avanço de linha automático quando o cursor atinge o final da linha (Terminal). Entrada: A = 0, Avanço de linha automático; A = diferente de zero, Sem avanço de linha automático. Padrao LIGADO.
+0199:         	underline           equ     0x0199  ;   Exibir sublinhado no caractere (Terminal). O estado inicial é sem sublinhado. Chamar esta rotina irá ALTERAR/DESLIGAR o sinalizador de sublinhado.
+019C:         	plotAlways          equ     0x019C  ;   Quando sendCharToLCD é chamado, Atualiza GLCD ou não. Se Desativado plotToLCD deve ser chamado atualizar o GLCD. Entrada: A=0, Plotar sempre; A>0, Não plotar. O padrão é Plotar sempre.
+0294:         	resetCollisionPixel equ     0x0294  ;   Limpa flag de colisao
+0299:         	checkCollisionPixel equ     0x0299  ;   Check se um pixel ja estava ligado quando tenta ligar. JP Z, SEM_COLISAO. JP NZ, COLISAO.
+              	
+              	; -------- Constantes gerais --------
+000D:         	CR:       EQU   0DH
+0008:         	BKS:      EQU   08H
+001B:         	ESC:      EQU   1BH
+0020:         	SPACE:    EQU   20H
+              	
+              	
+8000:         	    .org $8000
+              	    
+              	    ; Setup ram
+8000: 3E01    	    LD A, 1
+8002: 322182  	    LD (gameover), A ; Gameover
+              	
+8005:         	inicio:
+8005: 210580  	    LD HL, inicio
+8008: E5      	    PUSH HL
+              	    
+8009: AF      	    xor a
+800A: 320582  	    ld (box_x), a
+800D: 320682  	    ld (box_y), a
+8010: 320782  	    ld (box2_x), a
+8013: 320882  	    ld (box2_y), a
+8016: 3E30    	    ld a, $30
+8018: 320982  	    ld (player_x),a
+801B: 320A82  	    ld (player_y),a
+801E: CD3C01  	    call clearGBUF
+              	    
+8021: CD1B81  	    call new_fruit
+8024: AF      	    XOR A
+8025: 320282  	    LD (count), A
+8028:         	loop:
+              	    
+8028: CD8081  	    call ler_teclado
+802B: CD3C01  	    call clearGBUF
+              	    
+              	    
+              	    ; print fruit
+802E: 3A0382  	    LD A, (fruit_x)
+8031: 47      	    ld b, a
+8032: 3A0482  	    ld a, (fruit_y)
+8035: 4F      	    ld c, a
+8036: 1E01    	    LD E, 1
+8038: CD5A01  	    call fillCircle
+              	    
+              	    
+              	    ; DRAW BOX to RIGHT
+              	    ; set cursor 
+803B: 3A0582  	    LD A, (box_x)
+803E: 47      	    ld b, a
+803F: 3A0682  	    ld a, (box_y)
+8042: 4F      	    ld c, a
+8043: CD8D01  	    call setCursor
+              	    
+              	    ; print imageR
+8046: 3E00    	    LD A, 0
+8048: 010808  	    LD BC, $0808
+804B: 212282  	    LD HL, imageR
+804E: CD7801  	    call drawGraphic
+              	    
+              	    
+              	    ; DRAW BOX to DOWN
+              	    ; set cursor 
+8051: 3A0782  	    LD A, (box2_x)
+8054: 47      	    ld b, a
+8055: 3A0882  	    ld a, (box2_y)
+8058: 4F      	    ld c, a
+8059: CD8D01  	    call setCursor
+              	    
+              	    ; print imageD
+805C: 3E00    	    LD A, 0
+805E: 010808  	    LD BC, $0808
+8061: 212A82  	    LD HL, imageD
+8064: CD7801  	    call drawGraphic
+              	    
+              	
+              	    ; DRAW PLAYER
+8067: CD9402  	    call resetCollisionPixel
+              	    ; set cursor
+806A: 3A0982  	    LD A, (player_x)
+806D: 47      	    ld b, a
+806E: 3A0A82  	    ld a, (player_y)
+8071: 4F      	    ld c, a
+8072: CD8D01  	    call setCursor
+              	    
+              	    ; print player
+8075: 3E00    	    LD A, 0
+8077: 010808  	    LD BC, $0808
+807A: 213282  	    LD HL, player
+807D: CD7801  	    call drawGraphic
+              	    
+8080: CD9902  	    CALL checkCollisionPixel
+8083: C4C680  	    CALL NZ, check_collision_object
+              	
+              	
+              	    ;DRAW pontos
+8086: 010000  	    LD BC, $0000
+8089: CD8D01  	    call setCursor
+808C: 3A0282  	    LD A, (count)
+808F: CD8701  	    CALL sendRegToLCD
+              	    
+              	
+8092: CD5D01  	    call plotToLCD
+              	
+              	
+8095: CD3081  	    call update_box 
+8098: CD5881  	    call update_box2
+              	
+              	    ; Check GameOver
+809B: 3A2182  	    LD A, (gameover)
+809E: FE00    	    CP 0
+80A0: CA2880  	    JP Z, loop
+              	
+              	    ; Cursor OFF
+80A3: 3E01    	    LD A, 1
+80A5: CD9301  	    CALL displayCursor
+              	
+              	    ; Set cursor XY
+              	    ;Inputs: BC = X,Y where X = 0..127, Y = 0..63
+80A8: 012B1E  	    LD BC, $1E2B
+80AB: CD8D01  	    CALL setCursor
+              	
+80AE: 3E00    	    LD A, 0
+80B0: 110B82  	    LD DE, msg_start
+80B3: CD8401  	    CALL sendStringToLCD
+80B6:         	loop_enter:
+80B6: CD1801  	    call keyboardA
+80B9: FE0D    	    cp CR
+80BB: C2B680  	    JP NZ, loop_enter
+80BE: 3E00    	    LD A, 0
+80C0: 322182  	    LD (gameover), A
+80C3: C32880  	    jp loop
+              	    
+              	   
+              	
+              	; # Algoritmo de Colisão AABB (Axis-Aligned Bounding Box)
+              	;*   **Retângulo A:** (Ax, Ay, Aw, Ah)
+              	;*   **Retângulo B:** (Bx, By, Bw, Bh)
+              	
+              	; Calculamos as coordenadas das bordas direita e inferior:
+              	;   ARight = Ax + Aw
+              	;   ABottom = Ay + Ah
+              	;   BRight = Bx + Bw
+              	;   BBottom = By + Bh
+              	
+              	; Os retângulos **NÃO** colidem se **QUALQUER** uma das seguintes condições for verdadeira:
+              	; 1.  A está totalmente à esquerda de B: `ARight <= Bx`
+              	; 2.  A está totalmente à direita de B: `Ax >= BRight`
+              	; 3.  A está totalmente acima de B: `ABottom <= By`
+              	; 4.  A está totalmente abaixo de B: `Ay >= BBottom`
+80C6:         	check_collision_object:
+80C6: 3A0382  	    ld a, (fruit_x)
+80C9: 3D      	    dec a
+80CA: 47      	    ld b, a
+80CB: 3A0982  	    ld a, (player_x)
+80CE: C608    	    add a, 8
+80D0: B8      	    cp b
+80D1: DA0281  	    JP C, check_collision_object_end
+              	    
+80D4: 3A0382  	    ld a, (fruit_x)
+80D7: 3D      	    dec a
+80D8: C603    	    add a, 3
+80DA: 47      	    ld b, a
+80DB: 3A0982  	    ld a, (player_x)
+80DE: B8      	    cp b
+80DF: D20281  	    JP NC, check_collision_object_end
+              	    
+80E2: 3A0482  	    ld a, (fruit_y)
+80E5: 3D      	    dec a
+80E6: 47      	    ld b, a
+80E7: 3A0A82  	    ld a, (player_y)
+80EA: C608    	    add a, 8
+80EC: B8      	    cp b
+80ED: DA0281  	    JP C, check_collision_object_end
+              	    
+80F0: 3A0482  	    ld a, (fruit_y)
+80F3: 3D      	    dec a
+80F4: C603    	    add a, 3
+80F6: 47      	    ld b,a
+80F7: 3A0A82  	    ld a, (player_y)
+80FA: B8      	    cp b
+80FB: D20281  	    JP NC, check_collision_object_end
+              	    
+80FE: CD1B81  	    call new_fruit
+8101: C9      	    ret
+              	    
+8102:         	check_collision_object_end:
+8102: 012B1E  	    LD BC, $1E2B
+8105: CD8D01  	    CALL setCursor
+              	
+8108: 3E00    	    LD A, 0
+810A: 111782  	    LD DE, msg_gameover
+810D: CD8401  	    CALL sendStringToLCD
+8110:         	fim_de_jogo_loop:
+8110: CD1801  	    call keyboardA
+8113: FE0D    	    CP CR
+8115: C21081  	    JP NZ, fim_de_jogo_loop
+8118: C30580  	    JP inicio
+              	
+              	    
+              	    
+811B:         	new_fruit:
+811B: CDCE81  	    call randomHL
+811E: 7C      	    LD A, H
+811F: 320382  	    LD (fruit_x), A
+8122: 7D      	    LD A, L
+8123: 320482  	    LD (fruit_y), A
+              	    
+8126: 3A0282  	    LD A, (count)
+8129: CE01    	    adc a, 1
+812B: 27      	    daa
+812C: 320282  	    LD (count), A
+812F: C9      	    ret
+              	    
+              	    
+              	    
+              	
+8130:         	update_box:
+8130: 3A0582  	    ld a, (box_x)
+8133: C602    	    add a, 2
+8135: FE80    	    cp $80
+8137: D23E81  	    JP NC, inc_y
+813A: 320582  	    ld (box_x), a
+813D: C9      	    ret
+              	    
+813E:         	inc_y:
+813E: 3A0682  	    ld a, (box_y)
+8141: C608    	    add a, 8
+8143: FE40    	    cp $40
+8145: D25081  	    jp NC, res_box
+8148: 320682  	    ld (box_y),a
+814B: AF      	    xor a
+814C: 320582  	    ld (box_x), a
+814F: C9      	    ret
+              	    
+8150:         	res_box:
+8150: AF      	    xor a
+8151: 320582  	    ld (box_x),a
+8154: 320682  	    ld (box_y), a
+8157: C9      	    ret
+              	    
+              	    
+8158:         	update_box2:
+8158: 3A0882  	    ld a, (box2_y)
+815B: C602    	    add a, 2
+815D: FE40    	    cp $40
+815F: D26681  	    JP NC, inc_x
+8162: 320882  	    ld (box2_y), a
+8165: C9      	    ret
+              	    
+8166:         	inc_x:
+8166: 3A0782  	    ld a, (box2_x)
+8169: C60C    	    add a, 12
+816B: FE80    	    cp $80
+816D: D27881  	    jp NC, res_box2
+8170: 320782  	    ld (box2_x),a
+8173: AF      	    xor a
+8174: 320882  	    ld (box2_y), a
+8177: C9      	    ret
+              	    
+8178:         	res_box2:
+8178: AF      	    xor a
+8179: 320782  	    ld (box2_x),a
+817C: 320882  	    ld (box2_y), a
+817F: C9      	    ret
+              	    
+              	    
+              	    
+8180:         	ler_teclado:
+8180: CD1801  	    call keyboardA
+              	
+8183: FE77    	    cp 'w'
+8185: CAA281  	    JP Z, TRY_UP
+              	
+8188: FE73    	    cp 's'
+818A: CAAD81  	    JP Z, TRY_DOWN
+              	
+818D: FE61    	    cp 'a'
+818F: CAB881  	    JP Z, TRY_LEFT
+              	
+8192: FE64    	    cp 'd'
+8194: CAC381  	    JP Z, TRY_RIGHT
+              	    
+8197: FE20    	    cp SPACE
+8199: CA1B81  	    JP Z, new_fruit
+              	
+819C: FE1B    	    cp ESC
+819E: CA0000  	    JP Z, 0 ; Back to Monitor
+81A1: C9      	    RET
+              	    
+              	    
+81A2:         	TRY_UP:
+81A2: 3A0A82  	    ld a, (player_y)
+81A5: 3D      	    dec a
+81A6: FE01    	    cp 1
+81A8: D8      	    ret C
+81A9: 320A82  	    ld (player_y), a
+81AC: C9      	    ret
+              	    
+81AD:         	TRY_DOWN:
+81AD: 3A0A82  	    ld a, (player_y)
+81B0: 3C      	    inc a
+81B1: FE38    	    cp 56
+81B3: D0      	    ret NC
+81B4: 320A82  	    ld (player_y), a
+81B7: C9      	    ret
+              	    
+81B8:         	TRY_LEFT:
+81B8: 3A0982  	    ld a, (player_x)
+81BB: 3D      	    dec a
+81BC: FE01    	    cp 1
+81BE: D8      	    ret C
+81BF: 320982  	    ld (player_x), a
+81C2: C9      	    ret
+              	    
+81C3:         	TRY_RIGHT:
+81C3: 3A0982  	    ld a, (player_x)
+81C6: 3C      	    inc a
+81C7: FE78    	    cp 120
+81C9: D0      	    ret NC
+81CA: 320982  	    ld (player_x), a
+81CD: C9      	    ret
+              	    
+              	    
+              	
+              	    
+              	
+007E:         	VTELA_X     .EQU    $7E ; Tela virtal 
+003E:         	VTELA_Y     .EQU    $3E ; Tela virtal
+              	
+81CE:         	randomHL:
+              	    ; 3F = 126/2
+              	    ; 1F = 62/2
+81CE: CDE481  	    CALL prng16
+81D1: 7C      	    LD A, H
+81D2: E67D    	    AND VTELA_X-1
+81D4: FE00    	    CP 0
+81D6: CACE81  	    JP Z, randomHL
+81D9: 67      	    LD H, A
+              	
+81DA: 7D      	    LD A, L
+81DB: E63D    	    AND VTELA_Y-1
+81DD: FE00    	    CP 0
+81DF: CACE81  	    JP Z, randomHL
+81E2: 6F      	    LD L, A
+81E3: C9      	    RET
+              	
+              	
+81E4:         	prng16:
+              	; Site: https://wikiti.brandonw.net/index.php?title=Z80_Routines:Math:Random
+              	;Inputs:
+              	;   (seed1) contains a 16-bit seed value
+              	;   (seed2) contains a NON-ZERO 16-bit seed value
+              	;Outputs:
+              	;   HL is the result
+              	;   BC is the result of the LCG, so not that great of quality
+              	;   DE is preserved
+              	;Destroys:
+              	;   AF
+              	;cycle: 4,294,901,760 (almost 4.3 billion)
+              	;160cc
+              	;26 bytes
+81E4: 2AFE81  	    ld hl,(seed1)
+81E7: 44      	    ld b,h
+81E8: 4D      	    ld c,l
+81E9: 29      	    add hl,hl
+81EA: 29      	    add hl,hl
+81EB: 2C      	    inc l
+81EC: 09      	    add hl,bc
+81ED: 22FE81  	    ld (seed1),hl
+81F0: 2A0082  	    ld hl,(seed2)
+81F3: 29      	    add hl,hl
+81F4: 9F      	    sbc a,a
+81F5: E62D    	    and %00101101
+81F7: AD      	    xor l
+81F8: 6F      	    ld l,a
+81F9: 220082  	    ld (seed2),hl
+81FC: 09      	    add hl,bc
+81FD: C9      	    ret
+              	
+              	
+81FE: D204    	seed1       .dw 1234
+8200: 3D22    	seed2       .dw 8765
+              	
+8202: 00      	count       .db 0x00    
+              	
+8203: 00      	fruit_x     .db 0x00
+8204: 00      	fruit_y     .db 0x00
+              	
+8205: 00      	box_x:    .db 0x00
+8206: 00      	box_y:    .db 0x00
+              	
+8207: 00      	box2_x:    .db 0x00
+8208: 00      	box2_y:    .db 0x00
+              	    
+8209: 0A      	player_x: .db 0x0A
+820A: 0A      	player_y: .db 0x0A
+              	
+820B: 50726573	msg_start      .db "Press START",0
+820F: 73205354	
+8213: 41525400	
+8217: 47414D45	msg_gameover   .db "GAMEOVER ",0
+821B: 4F564552	
+821F: 2000    	
+8221: 00      	gameover    .db $00
+              	
+8222: FFFE7C7F	imageR: .db 0xFF, 0xFE, 0x7C, 0x7F, 0x7F, 0x7C, 0xFE, 0xFF
+8226: 7F7CFEFF	
+822A: C3FFFFFF	imageD: .db 0xC3, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xDB, 0x99
+822E: FFFFDB99	
+8232: 1C1C1408	player: .db 0x1C, 0x1C, 0x14, 0x08, 0x3E, 0x08, 0x08, 0x36
+8236: 3E080836	
+
+
+; +++ segments +++
+
+#CODE          = $8000 = 32768,  size = $023A =   570
+
+; +++ global symbols +++
+
+BKS               = $0008 =     8          Main.asm:61 (unused)
+CR                = $000D =    13          Main.asm:60
+ESC               = $001B =    27          Main.asm:62
+I2C_Close         = $0109 =   265          Main.asm:5 (unused)
+I2C_Open          = $0106 =   262          Main.asm:4 (unused)
+I2C_Read          = $010C =   268          Main.asm:6 (unused)
+I2C_Write         = $010F =   271          Main.asm:7 (unused)
+SPACE             = $0020 =    32          Main.asm:63
+TRY_DOWN          = $81AD = 33197          Main.asm:357
+TRY_LEFT          = $81B8 = 33208          Main.asm:365
+TRY_RIGHT         = $81C3 = 33219          Main.asm:373
+TRY_UP            = $81A2 = 33186          Main.asm:349
+VTELA_X           = $007E =   126          Main.asm:385
+VTELA_Y           = $003E =    62          Main.asm:386
+_end              = $823A = 33338          Main.asm:66 (unused)
+_size             = $023A =   570          Main.asm:66 (unused)
+_z80_             = $0001 =     1          Main.asm:1 (unused)
+autoLF            = $0196 =   406          Main.asm:53 (unused)
+box2_x            = $8207 = 33287          Main.asm:450
+box2_y            = $8208 = 33288          Main.asm:451
+box_x             = $8205 = 33285          Main.asm:447
+box_y             = $8206 = 33286          Main.asm:448
+checkCollisionPixel = $0299 =   665          Main.asm:57
+check_collision_object = $80C6 = 32966          Main.asm:208
+check_collision_object_end = $8102 = 33026          Main.asm:244
+clearGBUF         = $013C =   316          Main.asm:23
+clearGrLCD        = $013F =   319          Main.asm:24 (unused)
+clearPixel        = $0172 =   370          Main.asm:41 (unused)
+clearTxtLCD       = $0142 =   322          Main.asm:25 (unused)
+count             = $8202 = 33282          Main.asm:442
+delay             = $0103 =   259          Main.asm:3 (unused)
+delay500ms        = $0100 =   256          Main.asm:2 (unused)
+displayCursor     = $0193 =   403          Main.asm:52
+drawBox           = $014B =   331          Main.asm:28 (unused)
+drawCircle        = $0151 =   337          Main.asm:30 (unused)
+drawGraphic       = $0178 =   376          Main.asm:43
+drawLine          = $014E =   334          Main.asm:29 (unused)
+drawPixel         = $0154 =   340          Main.asm:31 (unused)
+fillBox           = $0157 =   343          Main.asm:32 (unused)
+fillCircle        = $015A =   346          Main.asm:33
+fim_de_jogo_loop  = $8110 = 33040          Main.asm:251
+flipPixel         = $0175 =   373          Main.asm:42 (unused)
+fruit_x           = $8203 = 33283          Main.asm:444
+fruit_y           = $8204 = 33284          Main.asm:445
+gameover          = $8221 = 33313          Main.asm:458
+getCursor         = $0190 =   400          Main.asm:51 (unused)
+imageD            = $822A = 33322          Main.asm:461
+imageR            = $8222 = 33314          Main.asm:460
+inc_x             = $8166 = 33126          Main.asm:308
+inc_y             = $813E = 33086          Main.asm:283
+inicio            = $8005 = 32773          Main.asm:72
+initLCD           = $0139 =   313          Main.asm:22 (unused)
+initTerminal      = $017E =   382          Main.asm:45 (unused)
+invGraphic        = $017B =   379          Main.asm:44 (unused)
+keyboardA         = $0118 =   280          Main.asm:10
+keyboardIsEsc     = $0112 =   274          Main.asm:8 (unused)
+keyboardWaitA     = $0115 =   277          Main.asm:9 (unused)
+ler_teclado       = $8180 = 33152          Main.asm:326
+loop              = $8028 = 32808          Main.asm:89
+loop_enter        = $80B6 = 32950          Main.asm:183
+msg_gameover      = $8217 = 33303          Main.asm:457
+msg_start         = $820B = 33291          Main.asm:456
+new_fruit         = $811B = 33051          Main.asm:259
+player            = $8232 = 33330          Main.asm:462
+player_x          = $8209 = 33289          Main.asm:453
+player_y          = $820A = 33290          Main.asm:454
+plotAlways        = $019C =   412          Main.asm:55 (unused)
+plotToLCD         = $015D =   349          Main.asm:34
+printChars        = $0163 =   355          Main.asm:36 (unused)
+printString       = $0160 =   352          Main.asm:35 (unused)
+prng16            = $81E4 = 33252          Main.asm:406
+randomHL          = $81CE = 33230          Main.asm:388
+res_box           = $8150 = 33104          Main.asm:293
+res_box2          = $8178 = 33144          Main.asm:318
+resetCollisionPixel = $0294 =   660          Main.asm:56
+seed1             = $81FE = 33278          Main.asm:439
+seed2             = $8200 = 33280          Main.asm:440
+sendCharToLCD     = $0181 =   385          Main.asm:46 (unused)
+sendHLToLCD       = $018A =   394          Main.asm:49 (unused)
+sendRegToLCD      = $0187 =   391          Main.asm:48
+sendStringToLCD   = $0184 =   388          Main.asm:47
+serialCRLF        = $012A =   298          Main.asm:16 (unused)
+serialHexA        = $012D =   301          Main.asm:17 (unused)
+serialHexHL       = $0130 =   304          Main.asm:18 (unused)
+serialInHexA      = $0133 =   307          Main.asm:19 (unused)
+serialInHexHL     = $0136 =   310          Main.asm:20 (unused)
+serialInputA      = $0124 =   292          Main.asm:14 (unused)
+serialPrintA      = $0121 =   289          Main.asm:13 (unused)
+serialPrintStr    = $0127 =   295          Main.asm:15 (unused)
+setBufClear       = $016C =   364          Main.asm:39 (unused)
+setBufNoClear     = $016F =   367          Main.asm:40 (unused)
+setCursor         = $018D =   397          Main.asm:50
+setDefaultSerialA = $011B =   283          Main.asm:11 (unused)
+setDefaultSerialB = $011E =   286          Main.asm:12 (unused)
+setGrMode         = $0145 =   325          Main.asm:26 (unused)
+setInt38          = $0166 =   358          Main.asm:37 (unused)
+setTxtMode        = $0148 =   328          Main.asm:27 (unused)
+setint66          = $0169 =   361          Main.asm:38 (unused)
+underline         = $0199 =   409          Main.asm:54 (unused)
+update_box        = $8130 = 33072          Main.asm:275
+update_box2       = $8158 = 33112          Main.asm:300
+
+
+total time: 0.1806 sec.
+no errors

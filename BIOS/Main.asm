@@ -95,7 +95,8 @@
 ;       autoLF              equ     0x0196  ;   Avanço de linha automático quando o cursor atinge o final da linha (Terminal). Entrada: A = 0, Avanço de linha automático; A = diferente de zero, Sem avanço de linha automático. Padrao LIGADO.
 ;       underline           equ     0x0199  ;   Exibir sublinhado no caractere (Terminal). O estado inicial é sem sublinhado. Chamar esta rotina irá ALTERAR/DESLIGAR o sinalizador de sublinhado.
 ;       plotAlways          equ     0x019C  ;   Quando sendCharToLCD é chamado, Atualiza GLCD ou não. Se Desativado plotToLCD deve ser chamado atualizar o GLCD. Entrada: A=0, Plotar sempre; A>0, Não plotar. O padrão é Plotar sempre.
-
+;       resetCollisionPixel equ     0x0294  ;   Limpa flag de colisao
+;       checkCollisionPixel equ     0x0299  ;   Check se um pixel ja estava ligado quando tenta ligar. JP Z, SEM_COLISAO. JP NZ, COLISAO.
 
 
 ; -----------------------------------------------------------------------------
@@ -238,6 +239,8 @@ RST18   JP CHKKEY
     JP autoLF
     JP underline
     JP plotAlways
+    JP resetCollisionPixel
+    JP checkCollisionPixel
 
 
 SET_INT38:
@@ -375,6 +378,20 @@ showCursor:
     CALL sendCharToLCD
     RET
 
+
+
+resetCollisionPixel:
+    XOR A
+    LD (DRAW_PIXEL_COLLISION), A
+    RET
+
+; FLAG ZERO, 
+; JP Z, SEM_COLISAO. 
+; JP NZ, COLISAO.
+checkCollisionPixel:
+    LD A, (DRAW_PIXEL_COLLISION)
+    OR A
+    RET
 
 
 
@@ -520,3 +537,6 @@ FS_BMPADDR: .DB $00         ; 1b: endereco EEPROM do byte do bitmap
 FS_INFOTMP: .DB $00         ; 1b: temp para FS_INFO (paginas livres)
 ; Buffer de pagina em RAM (256 bytes) - longe do codigo
 PG_BUF:     .DS $FF
+
+; pixel collision
+DRAW_PIXEL_COLLISION .db $00 ; 0 - reset, 1 - set
