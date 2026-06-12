@@ -88,7 +88,7 @@ _by::
 _main::
 ;main.c:24: pontos=0;
 	xor	a, a
-	ld	(_pontos+0), a
+	ld	(#_pontos),a
 ;main.c:25: px=60;
 	ld	hl, #_px
 	ld	(hl), #0x3c
@@ -97,7 +97,7 @@ _main::
 	ld	(hl), #0x3c
 ;main.c:27: count=0;
 	xor	a, a
-	ld	(_count+0), a
+	ld	(#_count),a
 ;main.c:28: erros=3;
 	ld	hl, #_erros
 	ld	(hl), #0x03
@@ -133,13 +133,13 @@ _main::
 00121$:
 ;main.c:47: input = keyboardA();
 	call	_keyboardA
-	ld	(_input+0), a
+	ld	(#_input),a
 ;main.c:49: if (count >= 10) {
-	ld	a, (_count+0)
+	ld	a, (#_count)
 	sub	a, #0x0a
 	jp	C, 00119$
 ;main.c:52: if (input == 'a') {
-	ld	a, (_input+0)
+	ld	a, (#_input)
 	sub	a, #0x61
 	jr	NZ, 00104$
 ;main.c:53: if (px > 2) {
@@ -148,34 +148,33 @@ _main::
 	sub	a, (hl)
 	jr	NC, 00104$
 ;main.c:54: px = px - 3;
-	ld	a, (_px+0)
-	ld	hl, #_px
+	ld	a, (hl)
 	add	a, #0xfd
 	ld	(hl), a
 00104$:
 ;main.c:58: if (input == 'd') {
-	ld	a, (_input+0)
+	ld	a, (#_input)
 	sub	a, #0x64
 	jr	NZ, 00108$
 ;main.c:59: if (px < 116) {
-	ld	a, (_px+0)
-	sub	a, #0x74
-	jr	NC, 00108$
+	ld	hl, #_px
 ;main.c:60: px = px + 3;
-	ld	a, (_px)
+	ld	a,(hl)
+	cp	a,#0x74
+	jr	NC, 00108$
 	add	a, #0x03
-	ld	(_px+0), a
+	ld	(hl), a
 00108$:
 ;main.c:65: clearGBUF();
 	call	_clearGBUF
 ;main.c:67: drawLine(px, py, px+10, py);
 	ld	a, (_px)
 	add	a, #0x0a
-	ld	b, a
-	ld	a, (_py)
-	push	af
+	ld	hl, #_py
+	ld	h, (hl)
+	push	hl
 	inc	sp
-	push	bc
+	push	af
 	inc	sp
 	ld	a, (_py)
 	ld	l, a
@@ -192,7 +191,7 @@ _main::
 ;main.c:71: plotToLCD();
 	call	_plotToLCD
 ;main.c:73: if (py == by) {
-	ld	a, (_py+0)
+	ld	a, (#_py)
 	ld	hl, #_by
 	sub	a, (hl)
 	jr	NZ, 00113$
@@ -221,7 +220,7 @@ _main::
 	call	_showPontos
 ;main.c:77: bx = new_ball();
 	call	_new_ball
-	ld	(_bx+0), a
+	ld	(#_bx),a
 ;main.c:78: by = 1;
 	ld	hl, #_by
 	ld	(hl), #0x01
@@ -235,32 +234,30 @@ _main::
 	jr	NC, 00115$
 ;main.c:84: bx = new_ball();
 	call	_new_ball
-	ld	(_bx+0), a
+	ld	(#_bx),a
 ;main.c:85: by = 1;
 	ld	hl, #_by
 	ld	(hl), #0x01
 ;main.c:86: erros = erros - 1;
 	ld	a, (_erros)
-	ld	hl, #_erros
 	dec	a
-	ld	(hl), a
 ;main.c:87: showVidas(erros);
-	ld	a, (_erros)
+	ld	(#_erros),a
 	call	_showVidas
 ;main.c:88: fireInvSound();
 	call	_fireInvSound
 00115$:
 ;main.c:91: if (erros == 0) {
-	ld	a, (_erros+0)
+	ld	hl, #_erros
+	ld	a, (hl)
 	or	a, a
 	jr	NZ, 00117$
 ;main.c:92: erros = 3;
-	ld	hl, #_erros
 	ld	(hl), #0x03
 ;main.c:93: pontos = 0;
 ;main.c:95: showPontos(pontos);
 	xor	a, a
-	ld	(_pontos+0), a
+	ld	(#_pontos), a
 	call	_showPontos
 ;main.c:96: showVidas(erros);
 	ld	a, (_erros)
@@ -271,15 +268,15 @@ _main::
 ;main.c:99: by=by+1;
 	ld	a, (_by)
 	inc	a
-	ld	(_by+0), a
+	ld	(#_by),a
 ;main.c:100: count=0;
 	xor	a, a
-	ld	(_count+0), a
+	ld	(#_count),a
 00119$:
 ;main.c:102: count = count + 1;
 	ld	a, (_count)
 	inc	a
-	ld	(_count+0), a
+	ld	(#_count),a
 ;main.c:103: delay(1);
 	ld	hl, #0x0001
 	call	_delay
@@ -320,41 +317,47 @@ _incPontos::
 ; Function showPontos
 ; ---------------------------------
 _showPontos::
-	ld	c, a
+	call	___sdcc_enter_ix
+	dec	sp
+	ld	-1 (ix), a
 ;main.c:127: I2C_Open(0x0E);
-	push	bc
 	ld	a, #0x0e
 	call	_I2C_Open
 ;main.c:128: I2C_Write(0x01);
 	ld	a, #0x01
 	call	_I2C_Write
-	pop	bc
 ;main.c:129: I2C_Write(p);
-	ld	a, c
+	ld	a, -1 (ix)
 	call	_I2C_Write
 ;main.c:130: I2C_Close();
+	call	_I2C_Close
 ;main.c:131: }
-	jp	_I2C_Close
+	inc	sp
+	pop	ix
+	ret
 ;main.c:133: void showVidas(byte v) {
 ;	---------------------------------
 ; Function showVidas
 ; ---------------------------------
 _showVidas::
-	ld	c, a
+	call	___sdcc_enter_ix
+	dec	sp
+	ld	-1 (ix), a
 ;main.c:134: I2C_Open(0x0E);
-	push	bc
 	ld	a, #0x0e
 	call	_I2C_Open
 ;main.c:135: I2C_Write(0x03);
 	ld	a, #0x03
 	call	_I2C_Write
-	pop	bc
 ;main.c:136: I2C_Write(v);
-	ld	a, c
+	ld	a, -1 (ix)
 	call	_I2C_Write
 ;main.c:137: I2C_Close();
+	call	_I2C_Close
 ;main.c:138: }
-	jp	_I2C_Close
+	inc	sp
+	pop	ix
+	ret
 ;main.c:140: void hitSound() {
 ;	---------------------------------
 ; Function hitSound

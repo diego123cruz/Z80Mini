@@ -1,0 +1,121 @@
+ASxxxx Linker V03.00/V05.40 + sdld,  page 1.
+Hexadecimal  [32-Bits]
+
+Area                                    Addr        Size        Decimal Bytes (Attributes)
+--------------------------------        ----        ----        ------- ----- ------------
+.  .ABS.                            00000000    00000000 =           0. bytes (ABS,CON)
+
+      Value  Global                              Global Defined In Module
+      -----  --------------------------------   ------------------------
+     00000000  .__.ABS.                           
+     00000000  l__CABS                         
+     00000000  l__DABS                         
+     00000000  l__DATA                         
+     00000000  l__GSFINAL                      
+     00000000  l__GSINIT                       
+     00000000  l__HOME                         
+     00000000  l__INITIALIZED                  
+     00000000  l__INITIALIZER                  
+     00000000  s__CABS                         
+     00000000  s__DABS                         
+     00000178  l__CODE                         
+     00008000  s__CODE                         
+     00008178  s__DATA                         
+     00008178  s__GSFINAL                      
+     00008178  s__GSINIT                       
+     00008178  s__HOME                         
+     00008178  s__INITIALIZED                  
+     00008178  s__INITIALIZER                  
+
+ASxxxx Linker V03.00/V05.40 + sdld,  page 2.
+Hexadecimal  [32-Bits]
+
+Area                                    Addr        Size        Decimal Bytes (Attributes)
+--------------------------------        ----        ----        ------- ----- ------------
+_CODE                               00008000    00000178 =         376. bytes (REL,CON)
+
+      Value  Global                              Global Defined In Module
+      -----  --------------------------------   ------------------------
+     00008000  _main                              main
+     00008071  _delay500ms                        Z80Mini
+     00008075  _delay                             Z80Mini
+     0000807A  _I2C_Open                          Z80Mini
+     0000807E  _I2C_Close                         Z80Mini
+     00008082  _I2C_Read                          Z80Mini
+     00008086  _I2C_Write                         Z80Mini
+     0000808A  _keyboardIsEsc                     Z80Mini
+     0000808E  _keyboardWaitA                     Z80Mini
+     00008092  _keyboardA                         Z80Mini
+     00008096  _setDefaultSerialA                 Z80Mini
+     0000809A  _setDefaultSerialB                 Z80Mini
+     0000809E  _serialPrintA                      Z80Mini
+     000080A2  _serialInputA                      Z80Mini
+     000080A6  _serialPrintStr                    Z80Mini
+     000080AA  _serialCRLF                        Z80Mini
+     000080AE  _serialHexA                        Z80Mini
+     000080B2  _serialHexHL                       Z80Mini
+     000080B6  _serialInHexA                      Z80Mini
+     000080BA  _serialInHexHL                     Z80Mini
+     000080BE  _initLCD                           Z80Mini
+     000080C2  _clearGBUF                         Z80Mini
+     000080C6  _clearGrLCD                        Z80Mini
+     000080CA  _clearTxtLCD                       Z80Mini
+     000080CE  _setGrMode                         Z80Mini
+     000080D2  _setTxtMode                        Z80Mini
+     000080D6  _drawBox                           Z80Mini
+     000080E0  _drawLine                          Z80Mini
+     000080EA  _fillBox                           Z80Mini
+     000080F4  _drawCircle                        Z80Mini
+     000080FF  _fillCircle                        Z80Mini
+     0000810A  _drawPixel                         Z80Mini
+     00008110  _clearPixel                        Z80Mini
+     00008116  _flipPixel                         Z80Mini
+     0000811C  _plotToLCD                         Z80Mini
+     00008120  _printString                       Z80Mini
+     00008124  _printChars                        Z80Mini
+     0000812B  _setBufClear                       Z80Mini
+     0000812F  _setBufNoClear                     Z80Mini
+     00008133  _drawGraphic                       Z80Mini
+     00008137  _invGraphic                        Z80Mini
+     0000813B  _initTerminal                      Z80Mini
+     0000813F  _sendCharToLCD                     Z80Mini
+     00008143  _sendStringToLCD                   Z80Mini
+     0000814A  _sendRegToLCD                      Z80Mini
+     0000814E  _sendHLToLCD                       Z80Mini
+     00008152  _setCursor                         Z80Mini
+     00008158  _getCursor                         Z80Mini
+     0000815E  _displayCursor                     Z80Mini
+     00008162  _autoLF                            Z80Mini
+ASxxxx Linker V03.00/V05.40 + sdld,  page 3.
+Hexadecimal  [32-Bits]
+
+Area                                    Addr        Size        Decimal Bytes (Attributes)
+--------------------------------        ----        ----        ------- ----- ------------
+_CODE                               00008000    00000178 =         376. bytes (REL,CON)
+
+      Value  Global                              Global Defined In Module
+      -----  --------------------------------   ------------------------
+     00008166  _underline                         Z80Mini
+     0000816A  _plotAlways                        Z80Mini
+     0000816E  ___sdcc_enter_ix                   
+
+ASxxxx Linker V03.00/V05.40 + sdld,  page 4.
+
+Files Linked                              [ module(s) ]
+
+build/main.rel                            [ main ]
+build/Z80Mini.rel                         [ Z80Mini ]
+
+
+Libraries Linked                          [ object file ]
+
+/usr/bin/../share/sdcc/lib/z80/z80.lib    [ crtenter.rel ]
+
+ASxxxx Linker V03.00/V05.40 + sdld,  page 5.
+
+User Base Address Definitions
+
+_CODE = 0x8000
+_DATA = 0x0000
+
+

@@ -1,16 +1,13 @@
 #include "../Z80Mini.h"
 
-    byte x = 1;
-    byte y = 1;
-    sbyte vx=1;
-    sbyte vy=1;
+    
 
 void main(void) {
 
-    x = 3;
-    y = 3;
-    vx=2;
-    vy=2;
+    byte x = 3;
+    byte y = 3;
+    sbyte vx=2;
+    sbyte vy=2;
     
 
     while(TRUE) {
@@ -43,4 +40,3 @@ void main(void) {
 
 }
 
-#include "../Z80Mini.c"

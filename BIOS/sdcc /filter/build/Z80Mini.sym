@@ -1,0 +1,82 @@
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80 / R800)                          Page 1
+Hexadecimal [32-Bits]
+
+Symbol Table
+
+    .__.$$$.                                                    =   00002710 L
+    .__.ABS.                                                    =   00000000 G
+    .__.CPU.                                                    =   00000000 L
+    .__.H$L.                                                    =   00000000 L
+  0 _I2C_Close                                                      0000000D GR
+  0 _I2C_Open                                                       00000009 GR
+  0 _I2C_Read                                                       00000011 GR
+  0 _I2C_Write                                                      00000015 GR
+  0 _autoLF                                                         000000F1 GR
+  0 _clearGBUF                                                      00000051 GR
+  0 _clearGrLCD                                                     00000055 GR
+  0 _clearPixel                                                     0000009F GR
+  0 _clearTxtLCD                                                    00000059 GR
+  0 _delay                                                          00000004 GR
+  0 _delay500ms                                                     00000000 GR
+  0 _displayCursor                                                  000000ED GR
+  0 _drawBox                                                        00000065 GR
+  0 _drawCircle                                                     00000083 GR
+  0 _drawGraphic                                                    000000C2 GR
+  0 _drawLine                                                       0000006F GR
+  0 _drawPixel                                                      00000099 GR
+  0 _fillBox                                                        00000079 GR
+  0 _fillCircle                                                     0000008E GR
+  0 _flipPixel                                                      000000A5 GR
+  0 _getCursor                                                      000000E7 GR
+  0 _initLCD                                                        0000004D GR
+  0 _initTerminal                                                   000000CA GR
+  0 _invGraphic                                                     000000C6 GR
+  0 _keyboardA                                                      00000021 GR
+  0 _keyboardIsEsc                                                  00000019 GR
+  0 _keyboardWaitA                                                  0000001D GR
+  0 _plotAlways                                                     000000F9 GR
+  0 _plotToLCD                                                      000000AB GR
+  0 _printChars                                                     000000B3 GR
+  0 _printString                                                    000000AF GR
+  0 _sendCharToLCD                                                  000000CE GR
+  0 _sendHLToLCD                                                    000000DD GR
+  0 _sendRegToLCD                                                   000000D9 GR
+  0 _sendStringToLCD                                                000000D2 GR
+  0 _serialCRLF                                                     00000039 GR
+  0 _serialHexA                                                     0000003D GR
+  0 _serialHexHL                                                    00000041 GR
+  0 _serialInHexA                                                   00000045 GR
+  0 _serialInHexHL                                                  00000049 GR
+  0 _serialInputA                                                   00000031 GR
+  0 _serialPrintA                                                   0000002D GR
+  0 _serialPrintStr                                                 00000035 GR
+  0 _setBufClear                                                    000000BA GR
+  0 _setBufNoClear                                                  000000BE GR
+  0 _setCursor                                                      000000E1 GR
+  0 _setDefaultSerialA                                              00000025 GR
+  0 _setDefaultSerialB                                              00000029 GR
+  0 _setGrMode                                                      0000005D GR
+  0 _setTxtMode                                                     00000061 GR
+  0 _underline                                                      000000F5 GR
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80 / R800)                          Page 2
+Hexadecimal [32-Bits]
+
+Symbol Table
+
+
+
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80 / R800)                          Page 3
+Hexadecimal [32-Bits]
+
+Area Table
+
+   0 _CODE                                      size       FD   flags    0
+   1 _DATA                                      size        0   flags    0
+   2 _INITIALIZED                               size        0   flags    0
+   3 _DABS                                      size        0   flags    8
+   4 _HOME                                      size        0   flags    0
+   5 _GSINIT                                    size        0   flags    0
+   6 _GSFINAL                                   size        0   flags    0
+   7 _INITIALIZER                               size        0   flags    0
+   8 _CABS                                      size        0   flags    8
+

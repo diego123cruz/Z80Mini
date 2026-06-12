@@ -1,12 +1,11 @@
 -mjwx
--i main.ihx
+-i build/main.ihx
 -b _CODE = 0x8000
--b _DATA = 0x8000
-crt0-z80mini-loadable.rel
+-b _DATA = 0x0000
 -k /usr/bin/../share/sdcc/lib/z80
 -k /usr/share/sdcc/lib/z80
 -l z80
-main.rel
-Z80Mini.rel
+build/main.rel
+build/Z80Mini.rel
 
 -e
