@@ -1,7 +1,4 @@
-
-; SIO/2 - 115200
-SIOB_D		.EQU	$01 ; Printer
-SIOB_C		.EQU	$03 ; Printer
+#include "../Z80MiniAPI.asm"
 
     .org $8000
     

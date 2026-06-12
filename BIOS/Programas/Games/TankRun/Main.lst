@@ -1,9 +1,10 @@
               	; --------------------------------------
               	; zasm: assemble "Main.asm"
-              	; date: 2026-06-11 00:24:20
+              	; date: 2026-06-11 23:24:48
               	; --------------------------------------
 
 
+              	#include "../../Z80MiniAPI.asm"
               	;   API Z80Mini:
 0100:         	delay500ms          equ     0x0100  ;   Delay 500ms
 0103:         	delay               equ     0x0103  ;   On entry: DE = Delay time in milliseconds
@@ -62,36 +63,52 @@
 0294:         	resetCollisionPixel equ     0x0294  ;   Limpa flag de colisao
 0299:         	checkCollisionPixel equ     0x0299  ;   Check se um pixel ja estava ligado quando tenta ligar. JP Z, SEM_COLISAO. JP NZ, COLISAO.
               	
+              	
+              	
               	; -------- Constantes gerais --------
 000D:         	CR:       EQU   0DH
+000A:         	LF:       EQU   0AH
 0008:         	BKS:      EQU   08H
+007F:         	DEL:      EQU   7FH
 001B:         	ESC:      EQU   1BH
 0020:         	SPACE:    EQU   20H
+0000:         	NUL:      EQU   00H
+000C:         	FF:       EQU   0CH                 ; Form Feed -> Limpa lcd
+              	
+              	; -----------------------------------------------------------------------------
+              	; SIO/2 - SERIAL
+              	; -----------------------------------------------------------------------------
+0000:         	SIOA_D:   EQU   $00
+0002:         	SIOA_C:   EQU   $02
+0001:         	SIOB_D:   EQU   $01   ; Conector P2
+0003:         	SIOB_C:   EQU   $03   ; Conector P2
+              	
+              	
               	
               	
 8000:         	    .org $8000
               	    
               	    ; Setup ram
 8000: 3E01    	    LD A, 1
-8002: 322182  	    LD (gameover), A ; Gameover
+8002: 321C82  	    LD (gameover), A ; Gameover
               	
 8005:         	inicio:
 8005: 210580  	    LD HL, inicio
 8008: E5      	    PUSH HL
               	    
 8009: AF      	    xor a
-800A: 320582  	    ld (box_x), a
-800D: 320682  	    ld (box_y), a
-8010: 320782  	    ld (box2_x), a
-8013: 320882  	    ld (box2_y), a
+800A: 320082  	    ld (box_x), a
+800D: 320182  	    ld (box_y), a
+8010: 320282  	    ld (box2_x), a
+8013: 320382  	    ld (box2_y), a
 8016: 3E30    	    ld a, $30
-8018: 320982  	    ld (player_x),a
-801B: 320A82  	    ld (player_y),a
+8018: 320482  	    ld (player_x),a
+801B: 320582  	    ld (player_y),a
 801E: CD3C01  	    call clearGBUF
               	    
 8021: CD1B81  	    call new_fruit
 8024: AF      	    XOR A
-8025: 320282  	    LD (count), A
+8025: 32FD81  	    LD (count), A
 8028:         	loop:
               	    
 8028: CD8081  	    call ler_teclado
@@ -99,9 +116,9 @@
               	    
               	    
               	    ; print fruit
-802E: 3A0382  	    LD A, (fruit_x)
+802E: 3AFE81  	    LD A, (fruit_x)
 8031: 47      	    ld b, a
-8032: 3A0482  	    ld a, (fruit_y)
+8032: 3AFF81  	    ld a, (fruit_y)
 8035: 4F      	    ld c, a
 8036: 1E01    	    LD E, 1
 8038: CD5A01  	    call fillCircle
@@ -109,47 +126,47 @@
               	    
               	    ; DRAW BOX to RIGHT
               	    ; set cursor 
-803B: 3A0582  	    LD A, (box_x)
+803B: 3A0082  	    LD A, (box_x)
 803E: 47      	    ld b, a
-803F: 3A0682  	    ld a, (box_y)
+803F: 3A0182  	    ld a, (box_y)
 8042: 4F      	    ld c, a
 8043: CD8D01  	    call setCursor
               	    
               	    ; print imageR
 8046: 3E00    	    LD A, 0
 8048: 010808  	    LD BC, $0808
-804B: 212282  	    LD HL, imageR
+804B: 211D82  	    LD HL, imageR
 804E: CD7801  	    call drawGraphic
               	    
               	    
               	    ; DRAW BOX to DOWN
               	    ; set cursor 
-8051: 3A0782  	    LD A, (box2_x)
+8051: 3A0282  	    LD A, (box2_x)
 8054: 47      	    ld b, a
-8055: 3A0882  	    ld a, (box2_y)
+8055: 3A0382  	    ld a, (box2_y)
 8058: 4F      	    ld c, a
 8059: CD8D01  	    call setCursor
               	    
               	    ; print imageD
 805C: 3E00    	    LD A, 0
 805E: 010808  	    LD BC, $0808
-8061: 212A82  	    LD HL, imageD
+8061: 212582  	    LD HL, imageD
 8064: CD7801  	    call drawGraphic
               	    
               	
               	    ; DRAW PLAYER
 8067: CD9402  	    call resetCollisionPixel
               	    ; set cursor
-806A: 3A0982  	    LD A, (player_x)
+806A: 3A0482  	    LD A, (player_x)
 806D: 47      	    ld b, a
-806E: 3A0A82  	    ld a, (player_y)
+806E: 3A0582  	    ld a, (player_y)
 8071: 4F      	    ld c, a
 8072: CD8D01  	    call setCursor
               	    
               	    ; print player
 8075: 3E00    	    LD A, 0
 8077: 010808  	    LD BC, $0808
-807A: 213282  	    LD HL, player
+807A: 212D82  	    LD HL, player
 807D: CD7801  	    call drawGraphic
               	    
 8080: CD9902  	    CALL checkCollisionPixel
@@ -159,7 +176,7 @@
               	    ;DRAW pontos
 8086: 010000  	    LD BC, $0000
 8089: CD8D01  	    call setCursor
-808C: 3A0282  	    LD A, (count)
+808C: 3AFD81  	    LD A, (count)
 808F: CD8701  	    CALL sendRegToLCD
               	    
               	
@@ -170,7 +187,7 @@
 8098: CD5881  	    call update_box2
               	
               	    ; Check GameOver
-809B: 3A2182  	    LD A, (gameover)
+809B: 3A1C82  	    LD A, (gameover)
 809E: FE00    	    CP 0
 80A0: CA2880  	    JP Z, loop
               	
@@ -184,14 +201,14 @@
 80AB: CD8D01  	    CALL setCursor
               	
 80AE: 3E00    	    LD A, 0
-80B0: 110B82  	    LD DE, msg_start
+80B0: 110682  	    LD DE, msg_start
 80B3: CD8401  	    CALL sendStringToLCD
 80B6:         	loop_enter:
 80B6: CD1801  	    call keyboardA
 80B9: FE0D    	    cp CR
 80BB: C2B680  	    JP NZ, loop_enter
 80BE: 3E00    	    LD A, 0
-80C0: 322182  	    LD (gameover), A
+80C0: 321C82  	    LD (gameover), A
 80C3: C32880  	    jp loop
               	    
               	   
@@ -212,35 +229,35 @@
               	; 3.  A está totalmente acima de B: `ABottom <= By`
               	; 4.  A está totalmente abaixo de B: `Ay >= BBottom`
 80C6:         	check_collision_object:
-80C6: 3A0382  	    ld a, (fruit_x)
+80C6: 3AFE81  	    ld a, (fruit_x)
 80C9: 3D      	    dec a
 80CA: 47      	    ld b, a
-80CB: 3A0982  	    ld a, (player_x)
+80CB: 3A0482  	    ld a, (player_x)
 80CE: C608    	    add a, 8
 80D0: B8      	    cp b
 80D1: DA0281  	    JP C, check_collision_object_end
               	    
-80D4: 3A0382  	    ld a, (fruit_x)
+80D4: 3AFE81  	    ld a, (fruit_x)
 80D7: 3D      	    dec a
 80D8: C603    	    add a, 3
 80DA: 47      	    ld b, a
-80DB: 3A0982  	    ld a, (player_x)
+80DB: 3A0482  	    ld a, (player_x)
 80DE: B8      	    cp b
 80DF: D20281  	    JP NC, check_collision_object_end
               	    
-80E2: 3A0482  	    ld a, (fruit_y)
+80E2: 3AFF81  	    ld a, (fruit_y)
 80E5: 3D      	    dec a
 80E6: 47      	    ld b, a
-80E7: 3A0A82  	    ld a, (player_y)
+80E7: 3A0582  	    ld a, (player_y)
 80EA: C608    	    add a, 8
 80EC: B8      	    cp b
 80ED: DA0281  	    JP C, check_collision_object_end
               	    
-80F0: 3A0482  	    ld a, (fruit_y)
+80F0: 3AFF81  	    ld a, (fruit_y)
 80F3: 3D      	    dec a
 80F4: C603    	    add a, 3
 80F6: 47      	    ld b,a
-80F7: 3A0A82  	    ld a, (player_y)
+80F7: 3A0582  	    ld a, (player_y)
 80FA: B8      	    cp b
 80FB: D20281  	    JP NC, check_collision_object_end
               	    
@@ -252,7 +269,7 @@
 8105: CD8D01  	    CALL setCursor
               	
 8108: 3E00    	    LD A, 0
-810A: 111782  	    LD DE, msg_gameover
+810A: 111282  	    LD DE, msg_gameover
 810D: CD8401  	    CALL sendStringToLCD
 8110:         	fim_de_jogo_loop:
 8110: CD1801  	    call keyboardA
@@ -263,68 +280,68 @@
               	    
               	    
 811B:         	new_fruit:
-811B: CDCE81  	    call randomHL
+811B: CDC981  	    call randomHL
 811E: 7C      	    LD A, H
-811F: 320382  	    LD (fruit_x), A
+811F: 32FE81  	    LD (fruit_x), A
 8122: 7D      	    LD A, L
-8123: 320482  	    LD (fruit_y), A
+8123: 32FF81  	    LD (fruit_y), A
               	    
-8126: 3A0282  	    LD A, (count)
+8126: 3AFD81  	    LD A, (count)
 8129: CE01    	    adc a, 1
 812B: 27      	    daa
-812C: 320282  	    LD (count), A
+812C: 32FD81  	    LD (count), A
 812F: C9      	    ret
               	    
               	    
               	    
               	
 8130:         	update_box:
-8130: 3A0582  	    ld a, (box_x)
+8130: 3A0082  	    ld a, (box_x)
 8133: C602    	    add a, 2
 8135: FE80    	    cp $80
 8137: D23E81  	    JP NC, inc_y
-813A: 320582  	    ld (box_x), a
+813A: 320082  	    ld (box_x), a
 813D: C9      	    ret
               	    
 813E:         	inc_y:
-813E: 3A0682  	    ld a, (box_y)
+813E: 3A0182  	    ld a, (box_y)
 8141: C608    	    add a, 8
 8143: FE40    	    cp $40
 8145: D25081  	    jp NC, res_box
-8148: 320682  	    ld (box_y),a
+8148: 320182  	    ld (box_y),a
 814B: AF      	    xor a
-814C: 320582  	    ld (box_x), a
+814C: 320082  	    ld (box_x), a
 814F: C9      	    ret
               	    
 8150:         	res_box:
 8150: AF      	    xor a
-8151: 320582  	    ld (box_x),a
-8154: 320682  	    ld (box_y), a
+8151: 320082  	    ld (box_x),a
+8154: 320182  	    ld (box_y), a
 8157: C9      	    ret
               	    
               	    
 8158:         	update_box2:
-8158: 3A0882  	    ld a, (box2_y)
+8158: 3A0382  	    ld a, (box2_y)
 815B: C602    	    add a, 2
 815D: FE40    	    cp $40
 815F: D26681  	    JP NC, inc_x
-8162: 320882  	    ld (box2_y), a
+8162: 320382  	    ld (box2_y), a
 8165: C9      	    ret
               	    
 8166:         	inc_x:
-8166: 3A0782  	    ld a, (box2_x)
+8166: 3A0282  	    ld a, (box2_x)
 8169: C60C    	    add a, 12
 816B: FE80    	    cp $80
 816D: D27881  	    jp NC, res_box2
-8170: 320782  	    ld (box2_x),a
+8170: 320282  	    ld (box2_x),a
 8173: AF      	    xor a
-8174: 320882  	    ld (box2_y), a
+8174: 320382  	    ld (box2_y), a
 8177: C9      	    ret
               	    
 8178:         	res_box2:
 8178: AF      	    xor a
-8179: 320782  	    ld (box2_x),a
-817C: 320882  	    ld (box2_y), a
+8179: 320282  	    ld (box2_x),a
+817C: 320382  	    ld (box2_y), a
 817F: C9      	    ret
               	    
               	    
@@ -333,56 +350,53 @@
 8180: CD1801  	    call keyboardA
               	
 8183: FE77    	    cp 'w'
-8185: CAA281  	    JP Z, TRY_UP
+8185: CA9D81  	    JP Z, TRY_UP
               	
 8188: FE73    	    cp 's'
-818A: CAAD81  	    JP Z, TRY_DOWN
+818A: CAA881  	    JP Z, TRY_DOWN
               	
 818D: FE61    	    cp 'a'
-818F: CAB881  	    JP Z, TRY_LEFT
+818F: CAB381  	    JP Z, TRY_LEFT
               	
 8192: FE64    	    cp 'd'
-8194: CAC381  	    JP Z, TRY_RIGHT
-              	    
-8197: FE20    	    cp SPACE
-8199: CA1B81  	    JP Z, new_fruit
+8194: CABE81  	    JP Z, TRY_RIGHT
               	
-819C: FE1B    	    cp ESC
-819E: CA0000  	    JP Z, 0 ; Back to Monitor
-81A1: C9      	    RET
+8197: FE1B    	    cp ESC
+8199: CA0000  	    JP Z, 0 ; Back to Monitor
+819C: C9      	    RET
               	    
               	    
-81A2:         	TRY_UP:
-81A2: 3A0A82  	    ld a, (player_y)
-81A5: 3D      	    dec a
-81A6: FE01    	    cp 1
-81A8: D8      	    ret C
-81A9: 320A82  	    ld (player_y), a
-81AC: C9      	    ret
+819D:         	TRY_UP:
+819D: 3A0582  	    ld a, (player_y)
+81A0: 3D      	    dec a
+81A1: FE01    	    cp 1
+81A3: D8      	    ret C
+81A4: 320582  	    ld (player_y), a
+81A7: C9      	    ret
               	    
-81AD:         	TRY_DOWN:
-81AD: 3A0A82  	    ld a, (player_y)
-81B0: 3C      	    inc a
-81B1: FE38    	    cp 56
-81B3: D0      	    ret NC
-81B4: 320A82  	    ld (player_y), a
-81B7: C9      	    ret
+81A8:         	TRY_DOWN:
+81A8: 3A0582  	    ld a, (player_y)
+81AB: 3C      	    inc a
+81AC: FE38    	    cp 56
+81AE: D0      	    ret NC
+81AF: 320582  	    ld (player_y), a
+81B2: C9      	    ret
               	    
-81B8:         	TRY_LEFT:
-81B8: 3A0982  	    ld a, (player_x)
-81BB: 3D      	    dec a
-81BC: FE01    	    cp 1
-81BE: D8      	    ret C
-81BF: 320982  	    ld (player_x), a
-81C2: C9      	    ret
+81B3:         	TRY_LEFT:
+81B3: 3A0482  	    ld a, (player_x)
+81B6: 3D      	    dec a
+81B7: FE01    	    cp 1
+81B9: D8      	    ret C
+81BA: 320482  	    ld (player_x), a
+81BD: C9      	    ret
               	    
-81C3:         	TRY_RIGHT:
-81C3: 3A0982  	    ld a, (player_x)
-81C6: 3C      	    inc a
-81C7: FE78    	    cp 120
-81C9: D0      	    ret NC
-81CA: 320982  	    ld (player_x), a
-81CD: C9      	    ret
+81BE:         	TRY_RIGHT:
+81BE: 3A0482  	    ld a, (player_x)
+81C1: 3C      	    inc a
+81C2: FE78    	    cp 120
+81C4: D0      	    ret NC
+81C5: 320482  	    ld (player_x), a
+81C8: C9      	    ret
               	    
               	    
               	
@@ -391,25 +405,25 @@
 007E:         	VTELA_X     .EQU    $7E ; Tela virtal 
 003E:         	VTELA_Y     .EQU    $3E ; Tela virtal
               	
-81CE:         	randomHL:
+81C9:         	randomHL:
               	    ; 3F = 126/2
               	    ; 1F = 62/2
-81CE: CDE481  	    CALL prng16
-81D1: 7C      	    LD A, H
-81D2: E67D    	    AND VTELA_X-1
-81D4: FE00    	    CP 0
-81D6: CACE81  	    JP Z, randomHL
-81D9: 67      	    LD H, A
+81C9: CDDF81  	    CALL prng16
+81CC: 7C      	    LD A, H
+81CD: E67D    	    AND VTELA_X-1
+81CF: FE00    	    CP 0
+81D1: CAC981  	    JP Z, randomHL
+81D4: 67      	    LD H, A
               	
-81DA: 7D      	    LD A, L
-81DB: E63D    	    AND VTELA_Y-1
-81DD: FE00    	    CP 0
-81DF: CACE81  	    JP Z, randomHL
-81E2: 6F      	    LD L, A
-81E3: C9      	    RET
+81D5: 7D      	    LD A, L
+81D6: E63D    	    AND VTELA_Y-1
+81D8: FE00    	    CP 0
+81DA: CAC981  	    JP Z, randomHL
+81DD: 6F      	    LD L, A
+81DE: C9      	    RET
               	
               	
-81E4:         	prng16:
+81DF:         	prng16:
               	; Site: https://wikiti.brandonw.net/index.php?title=Z80_Routines:Math:Random
               	;Inputs:
               	;   (seed1) contains a 16-bit seed value
@@ -423,166 +437,174 @@
               	;cycle: 4,294,901,760 (almost 4.3 billion)
               	;160cc
               	;26 bytes
-81E4: 2AFE81  	    ld hl,(seed1)
-81E7: 44      	    ld b,h
-81E8: 4D      	    ld c,l
-81E9: 29      	    add hl,hl
-81EA: 29      	    add hl,hl
-81EB: 2C      	    inc l
-81EC: 09      	    add hl,bc
-81ED: 22FE81  	    ld (seed1),hl
-81F0: 2A0082  	    ld hl,(seed2)
-81F3: 29      	    add hl,hl
-81F4: 9F      	    sbc a,a
-81F5: E62D    	    and %00101101
-81F7: AD      	    xor l
-81F8: 6F      	    ld l,a
-81F9: 220082  	    ld (seed2),hl
-81FC: 09      	    add hl,bc
-81FD: C9      	    ret
+81DF: 2AF981  	    ld hl,(seed1)
+81E2: 44      	    ld b,h
+81E3: 4D      	    ld c,l
+81E4: 29      	    add hl,hl
+81E5: 29      	    add hl,hl
+81E6: 2C      	    inc l
+81E7: 09      	    add hl,bc
+81E8: 22F981  	    ld (seed1),hl
+81EB: 2AFB81  	    ld hl,(seed2)
+81EE: 29      	    add hl,hl
+81EF: 9F      	    sbc a,a
+81F0: E62D    	    and %00101101
+81F2: AD      	    xor l
+81F3: 6F      	    ld l,a
+81F4: 22FB81  	    ld (seed2),hl
+81F7: 09      	    add hl,bc
+81F8: C9      	    ret
               	
               	
-81FE: D204    	seed1       .dw 1234
-8200: 3D22    	seed2       .dw 8765
+81F9: D204    	seed1       .dw 1234
+81FB: 3D22    	seed2       .dw 8765
               	
-8202: 00      	count       .db 0x00    
+81FD: 00      	count       .db 0x00    
               	
-8203: 00      	fruit_x     .db 0x00
-8204: 00      	fruit_y     .db 0x00
+81FE: 00      	fruit_x     .db 0x00
+81FF: 00      	fruit_y     .db 0x00
               	
-8205: 00      	box_x:    .db 0x00
-8206: 00      	box_y:    .db 0x00
+8200: 00      	box_x:    .db 0x00
+8201: 00      	box_y:    .db 0x00
               	
-8207: 00      	box2_x:    .db 0x00
-8208: 00      	box2_y:    .db 0x00
+8202: 00      	box2_x:    .db 0x00
+8203: 00      	box2_y:    .db 0x00
               	    
-8209: 0A      	player_x: .db 0x0A
-820A: 0A      	player_y: .db 0x0A
+8204: 0A      	player_x: .db 0x0A
+8205: 0A      	player_y: .db 0x0A
               	
-820B: 50726573	msg_start      .db "Press START",0
-820F: 73205354	
-8213: 41525400	
-8217: 47414D45	msg_gameover   .db "GAMEOVER ",0
-821B: 4F564552	
-821F: 2000    	
-8221: 00      	gameover    .db $00
+8206: 50726573	msg_start      .db "Press START",0
+820A: 73205354	
+820E: 41525400	
+8212: 47414D45	msg_gameover   .db "GAMEOVER ",0
+8216: 4F564552	
+821A: 2000    	
+821C: 00      	gameover    .db $00
               	
-8222: FFFE7C7F	imageR: .db 0xFF, 0xFE, 0x7C, 0x7F, 0x7F, 0x7C, 0xFE, 0xFF
-8226: 7F7CFEFF	
-822A: C3FFFFFF	imageD: .db 0xC3, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xDB, 0x99
-822E: FFFFDB99	
-8232: 1C1C1408	player: .db 0x1C, 0x1C, 0x14, 0x08, 0x3E, 0x08, 0x08, 0x36
-8236: 3E080836	
+821D: FFFE7C7F	imageR: .db 0xFF, 0xFE, 0x7C, 0x7F, 0x7F, 0x7C, 0xFE, 0xFF
+8221: 7F7CFEFF	
+8225: C3FFFFFF	imageD: .db 0xC3, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xDB, 0x99
+8229: FFFFDB99	
+822D: 1C1C1408	player: .db 0x1C, 0x1C, 0x14, 0x08, 0x3E, 0x08, 0x08, 0x36
+8231: 3E080836	
 
 
 ; +++ segments +++
 
-#CODE          = $8000 = 32768,  size = $023A =   570
+#CODE          = $8000 = 32768,  size = $0235 =   565
 
 ; +++ global symbols +++
 
-BKS               = $0008 =     8          Main.asm:61 (unused)
-CR                = $000D =    13          Main.asm:60
-ESC               = $001B =    27          Main.asm:62
-I2C_Close         = $0109 =   265          Main.asm:5 (unused)
-I2C_Open          = $0106 =   262          Main.asm:4 (unused)
-I2C_Read          = $010C =   268          Main.asm:6 (unused)
-I2C_Write         = $010F =   271          Main.asm:7 (unused)
-SPACE             = $0020 =    32          Main.asm:63
-TRY_DOWN          = $81AD = 33197          Main.asm:357
-TRY_LEFT          = $81B8 = 33208          Main.asm:365
-TRY_RIGHT         = $81C3 = 33219          Main.asm:373
-TRY_UP            = $81A2 = 33186          Main.asm:349
-VTELA_X           = $007E =   126          Main.asm:385
-VTELA_Y           = $003E =    62          Main.asm:386
-_end              = $823A = 33338          Main.asm:66 (unused)
-_size             = $023A =   570          Main.asm:66 (unused)
+BKS               = $0008 =     8          Z80MiniAPI.asm:64 (unused)
+CR                = $000D =    13          Z80MiniAPI.asm:62
+DEL               = $007F =   127          Z80MiniAPI.asm:65 (unused)
+ESC               = $001B =    27          Z80MiniAPI.asm:66
+FF                = $000C =    12          Z80MiniAPI.asm:69 (unused)
+I2C_Close         = $0109 =   265          Z80MiniAPI.asm:5 (unused)
+I2C_Open          = $0106 =   262          Z80MiniAPI.asm:4 (unused)
+I2C_Read          = $010C =   268          Z80MiniAPI.asm:6 (unused)
+I2C_Write         = $010F =   271          Z80MiniAPI.asm:7 (unused)
+LF                = $000A =    10          Z80MiniAPI.asm:63 (unused)
+NUL               = $0000 =     0          Z80MiniAPI.asm:68 (unused)
+SIOA_C            = $0002 =     2          Z80MiniAPI.asm:75 (unused)
+SIOA_D            = $0000 =     0          Z80MiniAPI.asm:74 (unused)
+SIOB_C            = $0003 =     3          Z80MiniAPI.asm:77 (unused)
+SIOB_D            = $0001 =     1          Z80MiniAPI.asm:76 (unused)
+SPACE             = $0020 =    32          Z80MiniAPI.asm:67 (unused)
+TRY_DOWN          = $81A8 = 33192          Main.asm:292
+TRY_LEFT          = $81B3 = 33203          Main.asm:300
+TRY_RIGHT         = $81BE = 33214          Main.asm:308
+TRY_UP            = $819D = 33181          Main.asm:284
+VTELA_X           = $007E =   126          Main.asm:320
+VTELA_Y           = $003E =    62          Main.asm:321
+_end              = $8235 = 33333          Z80MiniAPI.asm:3 (unused)
+_size             = $0235 =   565          Z80MiniAPI.asm:3 (unused)
 _z80_             = $0001 =     1          Main.asm:1 (unused)
-autoLF            = $0196 =   406          Main.asm:53 (unused)
-box2_x            = $8207 = 33287          Main.asm:450
-box2_y            = $8208 = 33288          Main.asm:451
-box_x             = $8205 = 33285          Main.asm:447
-box_y             = $8206 = 33286          Main.asm:448
-checkCollisionPixel = $0299 =   665          Main.asm:57
-check_collision_object = $80C6 = 32966          Main.asm:208
-check_collision_object_end = $8102 = 33026          Main.asm:244
-clearGBUF         = $013C =   316          Main.asm:23
-clearGrLCD        = $013F =   319          Main.asm:24 (unused)
-clearPixel        = $0172 =   370          Main.asm:41 (unused)
-clearTxtLCD       = $0142 =   322          Main.asm:25 (unused)
-count             = $8202 = 33282          Main.asm:442
-delay             = $0103 =   259          Main.asm:3 (unused)
-delay500ms        = $0100 =   256          Main.asm:2 (unused)
-displayCursor     = $0193 =   403          Main.asm:52
-drawBox           = $014B =   331          Main.asm:28 (unused)
-drawCircle        = $0151 =   337          Main.asm:30 (unused)
-drawGraphic       = $0178 =   376          Main.asm:43
-drawLine          = $014E =   334          Main.asm:29 (unused)
-drawPixel         = $0154 =   340          Main.asm:31 (unused)
-fillBox           = $0157 =   343          Main.asm:32 (unused)
-fillCircle        = $015A =   346          Main.asm:33
-fim_de_jogo_loop  = $8110 = 33040          Main.asm:251
-flipPixel         = $0175 =   373          Main.asm:42 (unused)
-fruit_x           = $8203 = 33283          Main.asm:444
-fruit_y           = $8204 = 33284          Main.asm:445
-gameover          = $8221 = 33313          Main.asm:458
-getCursor         = $0190 =   400          Main.asm:51 (unused)
-imageD            = $822A = 33322          Main.asm:461
-imageR            = $8222 = 33314          Main.asm:460
-inc_x             = $8166 = 33126          Main.asm:308
-inc_y             = $813E = 33086          Main.asm:283
-inicio            = $8005 = 32773          Main.asm:72
-initLCD           = $0139 =   313          Main.asm:22 (unused)
-initTerminal      = $017E =   382          Main.asm:45 (unused)
-invGraphic        = $017B =   379          Main.asm:44 (unused)
-keyboardA         = $0118 =   280          Main.asm:10
-keyboardIsEsc     = $0112 =   274          Main.asm:8 (unused)
-keyboardWaitA     = $0115 =   277          Main.asm:9 (unused)
-ler_teclado       = $8180 = 33152          Main.asm:326
-loop              = $8028 = 32808          Main.asm:89
-loop_enter        = $80B6 = 32950          Main.asm:183
-msg_gameover      = $8217 = 33303          Main.asm:457
-msg_start         = $820B = 33291          Main.asm:456
-new_fruit         = $811B = 33051          Main.asm:259
-player            = $8232 = 33330          Main.asm:462
-player_x          = $8209 = 33289          Main.asm:453
-player_y          = $820A = 33290          Main.asm:454
-plotAlways        = $019C =   412          Main.asm:55 (unused)
-plotToLCD         = $015D =   349          Main.asm:34
-printChars        = $0163 =   355          Main.asm:36 (unused)
-printString       = $0160 =   352          Main.asm:35 (unused)
-prng16            = $81E4 = 33252          Main.asm:406
-randomHL          = $81CE = 33230          Main.asm:388
-res_box           = $8150 = 33104          Main.asm:293
-res_box2          = $8178 = 33144          Main.asm:318
-resetCollisionPixel = $0294 =   660          Main.asm:56
-seed1             = $81FE = 33278          Main.asm:439
-seed2             = $8200 = 33280          Main.asm:440
-sendCharToLCD     = $0181 =   385          Main.asm:46 (unused)
-sendHLToLCD       = $018A =   394          Main.asm:49 (unused)
-sendRegToLCD      = $0187 =   391          Main.asm:48
-sendStringToLCD   = $0184 =   388          Main.asm:47
-serialCRLF        = $012A =   298          Main.asm:16 (unused)
-serialHexA        = $012D =   301          Main.asm:17 (unused)
-serialHexHL       = $0130 =   304          Main.asm:18 (unused)
-serialInHexA      = $0133 =   307          Main.asm:19 (unused)
-serialInHexHL     = $0136 =   310          Main.asm:20 (unused)
-serialInputA      = $0124 =   292          Main.asm:14 (unused)
-serialPrintA      = $0121 =   289          Main.asm:13 (unused)
-serialPrintStr    = $0127 =   295          Main.asm:15 (unused)
-setBufClear       = $016C =   364          Main.asm:39 (unused)
-setBufNoClear     = $016F =   367          Main.asm:40 (unused)
-setCursor         = $018D =   397          Main.asm:50
-setDefaultSerialA = $011B =   283          Main.asm:11 (unused)
-setDefaultSerialB = $011E =   286          Main.asm:12 (unused)
-setGrMode         = $0145 =   325          Main.asm:26 (unused)
-setInt38          = $0166 =   358          Main.asm:37 (unused)
-setTxtMode        = $0148 =   328          Main.asm:27 (unused)
-setint66          = $0169 =   361          Main.asm:38 (unused)
-underline         = $0199 =   409          Main.asm:54 (unused)
-update_box        = $8130 = 33072          Main.asm:275
-update_box2       = $8158 = 33112          Main.asm:300
+autoLF            = $0196 =   406          Z80MiniAPI.asm:53 (unused)
+box2_x            = $8202 = 33282          Main.asm:385
+box2_y            = $8203 = 33283          Main.asm:386
+box_x             = $8200 = 33280          Main.asm:382
+box_y             = $8201 = 33281          Main.asm:383
+checkCollisionPixel = $0299 =   665          Z80MiniAPI.asm:57
+check_collision_object = $80C6 = 32966          Main.asm:146
+check_collision_object_end = $8102 = 33026          Main.asm:182
+clearGBUF         = $013C =   316          Z80MiniAPI.asm:23
+clearGrLCD        = $013F =   319          Z80MiniAPI.asm:24 (unused)
+clearPixel        = $0172 =   370          Z80MiniAPI.asm:41 (unused)
+clearTxtLCD       = $0142 =   322          Z80MiniAPI.asm:25 (unused)
+count             = $81FD = 33277          Main.asm:377
+delay             = $0103 =   259          Z80MiniAPI.asm:3 (unused)
+delay500ms        = $0100 =   256          Z80MiniAPI.asm:2 (unused)
+displayCursor     = $0193 =   403          Z80MiniAPI.asm:52
+drawBox           = $014B =   331          Z80MiniAPI.asm:28 (unused)
+drawCircle        = $0151 =   337          Z80MiniAPI.asm:30 (unused)
+drawGraphic       = $0178 =   376          Z80MiniAPI.asm:43
+drawLine          = $014E =   334          Z80MiniAPI.asm:29 (unused)
+drawPixel         = $0154 =   340          Z80MiniAPI.asm:31 (unused)
+fillBox           = $0157 =   343          Z80MiniAPI.asm:32 (unused)
+fillCircle        = $015A =   346          Z80MiniAPI.asm:33
+fim_de_jogo_loop  = $8110 = 33040          Main.asm:189
+flipPixel         = $0175 =   373          Z80MiniAPI.asm:42 (unused)
+fruit_x           = $81FE = 33278          Main.asm:379
+fruit_y           = $81FF = 33279          Main.asm:380
+gameover          = $821C = 33308          Main.asm:393
+getCursor         = $0190 =   400          Z80MiniAPI.asm:51 (unused)
+imageD            = $8225 = 33317          Main.asm:396
+imageR            = $821D = 33309          Main.asm:395
+inc_x             = $8166 = 33126          Main.asm:246
+inc_y             = $813E = 33086          Main.asm:221
+inicio            = $8005 = 32773          Main.asm:10
+initLCD           = $0139 =   313          Z80MiniAPI.asm:22 (unused)
+initTerminal      = $017E =   382          Z80MiniAPI.asm:45 (unused)
+invGraphic        = $017B =   379          Z80MiniAPI.asm:44 (unused)
+keyboardA         = $0118 =   280          Z80MiniAPI.asm:10
+keyboardIsEsc     = $0112 =   274          Z80MiniAPI.asm:8 (unused)
+keyboardWaitA     = $0115 =   277          Z80MiniAPI.asm:9 (unused)
+ler_teclado       = $8180 = 33152          Main.asm:264
+loop              = $8028 = 32808          Main.asm:27
+loop_enter        = $80B6 = 32950          Main.asm:121
+msg_gameover      = $8212 = 33298          Main.asm:392
+msg_start         = $8206 = 33286          Main.asm:391
+new_fruit         = $811B = 33051          Main.asm:197
+player            = $822D = 33325          Main.asm:397
+player_x          = $8204 = 33284          Main.asm:388
+player_y          = $8205 = 33285          Main.asm:389
+plotAlways        = $019C =   412          Z80MiniAPI.asm:55 (unused)
+plotToLCD         = $015D =   349          Z80MiniAPI.asm:34
+printChars        = $0163 =   355          Z80MiniAPI.asm:36 (unused)
+printString       = $0160 =   352          Z80MiniAPI.asm:35 (unused)
+prng16            = $81DF = 33247          Main.asm:341
+randomHL          = $81C9 = 33225          Main.asm:323
+res_box           = $8150 = 33104          Main.asm:231
+res_box2          = $8178 = 33144          Main.asm:256
+resetCollisionPixel = $0294 =   660          Z80MiniAPI.asm:56
+seed1             = $81F9 = 33273          Main.asm:374
+seed2             = $81FB = 33275          Main.asm:375
+sendCharToLCD     = $0181 =   385          Z80MiniAPI.asm:46 (unused)
+sendHLToLCD       = $018A =   394          Z80MiniAPI.asm:49 (unused)
+sendRegToLCD      = $0187 =   391          Z80MiniAPI.asm:48
+sendStringToLCD   = $0184 =   388          Z80MiniAPI.asm:47
+serialCRLF        = $012A =   298          Z80MiniAPI.asm:16 (unused)
+serialHexA        = $012D =   301          Z80MiniAPI.asm:17 (unused)
+serialHexHL       = $0130 =   304          Z80MiniAPI.asm:18 (unused)
+serialInHexA      = $0133 =   307          Z80MiniAPI.asm:19 (unused)
+serialInHexHL     = $0136 =   310          Z80MiniAPI.asm:20 (unused)
+serialInputA      = $0124 =   292          Z80MiniAPI.asm:14 (unused)
+serialPrintA      = $0121 =   289          Z80MiniAPI.asm:13 (unused)
+serialPrintStr    = $0127 =   295          Z80MiniAPI.asm:15 (unused)
+setBufClear       = $016C =   364          Z80MiniAPI.asm:39 (unused)
+setBufNoClear     = $016F =   367          Z80MiniAPI.asm:40 (unused)
+setCursor         = $018D =   397          Z80MiniAPI.asm:50
+setDefaultSerialA = $011B =   283          Z80MiniAPI.asm:11 (unused)
+setDefaultSerialB = $011E =   286          Z80MiniAPI.asm:12 (unused)
+setGrMode         = $0145 =   325          Z80MiniAPI.asm:26 (unused)
+setInt38          = $0166 =   358          Z80MiniAPI.asm:37 (unused)
+setTxtMode        = $0148 =   328          Z80MiniAPI.asm:27 (unused)
+setint66          = $0169 =   361          Z80MiniAPI.asm:38 (unused)
+underline         = $0199 =   409          Z80MiniAPI.asm:54 (unused)
+update_box        = $8130 = 33072          Main.asm:213
+update_box2       = $8158 = 33112          Main.asm:238
 
 
-total time: 0.1806 sec.
+total time: 0.0179 sec.
 no errors

@@ -1,9 +1,10 @@
               	; --------------------------------------
               	; zasm: assemble "Main.asm"
-              	; date: 2026-06-10 23:34:54
+              	; date: 2026-06-11 23:25:30
               	; --------------------------------------
 
 
+              	#include "../../Z80MiniAPI.asm"
               	;   API Z80Mini:
 0100:         	delay500ms          equ     0x0100  ;   Delay 500ms
 0103:         	delay               equ     0x0103  ;   On entry: DE = Delay time in milliseconds
@@ -59,13 +60,30 @@
 0196:         	autoLF              equ     0x0196  ;   Avanço de linha automático quando o cursor atinge o final da linha (Terminal). Entrada: A = 0, Avanço de linha automático; A = diferente de zero, Sem avanço de linha automático. Padrao LIGADO.
 0199:         	underline           equ     0x0199  ;   Exibir sublinhado no caractere (Terminal). O estado inicial é sem sublinhado. Chamar esta rotina irá ALTERAR/DESLIGAR o sinalizador de sublinhado.
 019C:         	plotAlways          equ     0x019C  ;   Quando sendCharToLCD é chamado, Atualiza GLCD ou não. Se Desativado plotToLCD deve ser chamado atualizar o GLCD. Entrada: A=0, Plotar sempre; A>0, Não plotar. O padrão é Plotar sempre.
+0294:         	resetCollisionPixel equ     0x0294  ;   Limpa flag de colisao
+0299:         	checkCollisionPixel equ     0x0299  ;   Check se um pixel ja estava ligado quando tenta ligar. JP Z, SEM_COLISAO. JP NZ, COLISAO.
+              	
+              	
               	
               	; -------- Constantes gerais --------
 000D:         	CR:       EQU   0DH
+000A:         	LF:       EQU   0AH
 0008:         	BKS:      EQU   08H
 007F:         	DEL:      EQU   7FH
 001B:         	ESC:      EQU   1BH
 0020:         	SPACE:    EQU   20H
+0000:         	NUL:      EQU   00H
+000C:         	FF:       EQU   0CH                 ; Form Feed -> Limpa lcd
+              	
+              	; -----------------------------------------------------------------------------
+              	; SIO/2 - SERIAL
+              	; -----------------------------------------------------------------------------
+0000:         	SIOA_D:   EQU   $00
+0002:         	SIOA_C:   EQU   $02
+0001:         	SIOB_D:   EQU   $01   ; Conector P2
+0003:         	SIOB_C:   EQU   $03   ; Conector P2
+              	
+              	
               	
               	
 8000:         	    .org $8000
@@ -614,116 +632,125 @@
 
 ; +++ global symbols +++
 
-BKS               = $0008 =     8          Main.asm:59 (unused)
-CR                = $000D =    13          Main.asm:58
-DEL               = $007F =   127          Main.asm:60 (unused)
-ESC               = $001B =    27          Main.asm:61
-I2C_Close         = $0109 =   265          Main.asm:5 (unused)
-I2C_Open          = $0106 =   262          Main.asm:4 (unused)
-I2C_Read          = $010C =   268          Main.asm:6 (unused)
-I2C_Write         = $010F =   271          Main.asm:7 (unused)
-KA                = $81DB = 33243          Main.asm:371
-KDOWN             = $81A5 = 33189          Main.asm:330
-KLEFT             = $81B3 = 33203          Main.asm:339
-KRIGHT            = $81C1 = 33217          Main.asm:348
-KUP               = $8197 = 33175          Main.asm:321
-SPACE             = $0020 =    32          Main.asm:62
-_end              = $8355 = 33621          Main.asm:65 (unused)
-_size             = $0355 =   853          Main.asm:65 (unused)
+BKS               = $0008 =     8          Z80MiniAPI.asm:64 (unused)
+CR                = $000D =    13          Z80MiniAPI.asm:62
+DEL               = $007F =   127          Z80MiniAPI.asm:65 (unused)
+ESC               = $001B =    27          Z80MiniAPI.asm:66
+FF                = $000C =    12          Z80MiniAPI.asm:69 (unused)
+I2C_Close         = $0109 =   265          Z80MiniAPI.asm:5 (unused)
+I2C_Open          = $0106 =   262          Z80MiniAPI.asm:4 (unused)
+I2C_Read          = $010C =   268          Z80MiniAPI.asm:6 (unused)
+I2C_Write         = $010F =   271          Z80MiniAPI.asm:7 (unused)
+KA                = $81DB = 33243          Main.asm:310
+KDOWN             = $81A5 = 33189          Main.asm:269
+KLEFT             = $81B3 = 33203          Main.asm:278
+KRIGHT            = $81C1 = 33217          Main.asm:287
+KUP               = $8197 = 33175          Main.asm:260
+LF                = $000A =    10          Z80MiniAPI.asm:63 (unused)
+NUL               = $0000 =     0          Z80MiniAPI.asm:68 (unused)
+SIOA_C            = $0002 =     2          Z80MiniAPI.asm:75 (unused)
+SIOA_D            = $0000 =     0          Z80MiniAPI.asm:74 (unused)
+SIOB_C            = $0003 =     3          Z80MiniAPI.asm:77 (unused)
+SIOB_D            = $0001 =     1          Z80MiniAPI.asm:76 (unused)
+SPACE             = $0020 =    32          Z80MiniAPI.asm:67
+_end              = $8355 = 33621          Z80MiniAPI.asm:3 (unused)
+_size             = $0355 =   853          Z80MiniAPI.asm:3 (unused)
 _z80_             = $0001 =     1          Main.asm:1 (unused)
-add10             = $8227 = 33319          Main.asm:418
-add19             = $822A = 33322          Main.asm:422
-ajuste_cursor     = $821C = 33308          Main.asm:411
-autoLF            = $0196 =   406          Main.asm:53 (unused)
-clearGBUF         = $013C =   316          Main.asm:23
-clearGrLCD        = $013F =   319          Main.asm:24 (unused)
-clearPixel        = $0172 =   370          Main.asm:41 (unused)
-clearTxtLCD       = $0142 =   322          Main.asm:25 (unused)
-cursor_x          = $8349 = 33609          Main.asm:578
-cursor_y          = $834A = 33610          Main.asm:579
-delay             = $0103 =   259          Main.asm:3
-delay500ms        = $0100 =   256          Main.asm:2 (unused)
-delay_150ms       = $8215 = 33301          Main.asm:406
-desenha_cursor    = $8257 = 33367          Main.asm:453
-desenha_jogadas   = $8273 = 33395          Main.asm:472
-desenha_jogadas_loop = $827B = 33403          Main.asm:476
-desenha_jogador_atual = $822D = 33325          Main.asm:427
-desenha_tabuleiro = $82D4 = 33492          Main.asm:549
-deu_velha         = $8163 = 33123          Main.asm:287
-displayCursor     = $0193 =   403          Main.asm:52
-do                = $8341 = 33601          Main.asm:576
-drawBox           = $014B =   331          Main.asm:28 (unused)
-drawCircle        = $0151 =   337          Main.asm:30 (unused)
-drawGraphic       = $0178 =   376          Main.asm:43
-drawLine          = $014E =   334          Main.asm:29
-drawPixel         = $0154 =   340          Main.asm:31 (unused)
-draw_O            = $82BC = 33468          Main.asm:528
-draw_X            = $82A4 = 33444          Main.asm:507
-dx                = $8339 = 33593          Main.asm:575
-fillBox           = $0157 =   343          Main.asm:32
-fillCircle        = $015A =   346          Main.asm:33 (unused)
-fim_de_jogo       = $8066 = 32870          Main.asm:131
-fim_de_jogo_loop  = $8074 = 32884          Main.asm:138
-flipPixel         = $0175 =   373          Main.asm:42 (unused)
-gameover          = $8338 = 33592          Main.asm:574
-ganhouO           = $8151 = 33105          Main.asm:277
-ganhouX           = $813F = 33087          Main.asm:267
-getCursor         = $0190 =   400          Main.asm:51 (unused)
-getline0          = $81CF = 33231          Main.asm:358
-getline1          = $81D3 = 33235          Main.asm:362
-getline2          = $81D7 = 33239          Main.asm:366
-initLCD           = $0139 =   313          Main.asm:22 (unused)
-initTerminal      = $017E =   382          Main.asm:45 (unused)
-invGraphic        = $017B =   379          Main.asm:44 (unused)
-jogador           = $834B = 33611          Main.asm:580
-keyboardA         = $0118 =   280          Main.asm:10
-keyboardIsEsc     = $0112 =   274          Main.asm:8 (unused)
-keyboardWaitA     = $0115 =   277          Main.asm:9 (unused)
-ler_controle      = $8175 = 33141          Main.asm:298
-loop              = $8023 = 32803          Main.asm:92
-loop_enter        = $8056 = 32854          Main.asm:122
-mostra_jogador1   = $8241 = 33345          Main.asm:438
-mostra_jogador2   = $824C = 33356          Main.asm:446
-msg_gameover      = $832E = 33582          Main.asm:573
-msg_start         = $8322 = 33570          Main.asm:572
-msg_velha         = $8315 = 33557          Main.asm:571
-msg_winO          = $8307 = 33543          Main.asm:570
-msg_winX          = $82F9 = 33529          Main.asm:569
-plotAlways        = $019C =   412          Main.asm:55 (unused)
-plotToLCD         = $015D =   349          Main.asm:34
-printChars        = $0163 =   355          Main.asm:36 (unused)
-printString       = $0160 =   352          Main.asm:35 (unused)
-proximo_jogador   = $8201 = 33281          Main.asm:392
-proximo_jogador2  = $820F = 33295          Main.asm:399
-sendCharToLCD     = $0181 =   385          Main.asm:46 (unused)
-sendHLToLCD       = $018A =   394          Main.asm:49 (unused)
-sendRegToLCD      = $0187 =   391          Main.asm:48 (unused)
-sendStringToLCD   = $0184 =   388          Main.asm:47
-serialCRLF        = $012A =   298          Main.asm:16 (unused)
-serialHexA        = $012D =   301          Main.asm:17 (unused)
-serialHexHL       = $0130 =   304          Main.asm:18 (unused)
-serialInHexA      = $0133 =   307          Main.asm:19 (unused)
-serialInHexHL     = $0136 =   310          Main.asm:20 (unused)
-serialInputA      = $0124 =   292          Main.asm:14 (unused)
-serialPrintA      = $0121 =   289          Main.asm:13 (unused)
-serialPrintStr    = $0127 =   295          Main.asm:15 (unused)
-setBufClear       = $016C =   364          Main.asm:39 (unused)
-setBufNoClear     = $016F =   367          Main.asm:40 (unused)
-setCursor         = $018D =   397          Main.asm:50
-setDefaultSerialA = $011B =   283          Main.asm:11 (unused)
-setDefaultSerialB = $011E =   286          Main.asm:12 (unused)
-setGrMode         = $0145 =   325          Main.asm:26 (unused)
-setInt38          = $0166 =   358          Main.asm:37 (unused)
-setTxtMode        = $0148 =   328          Main.asm:27 (unused)
-setint66          = $0169 =   361          Main.asm:38 (unused)
-setup             = $8005 = 32773          Main.asm:70
-tabuleiro         = $834C = 33612          Main.asm:584
-underline         = $0199 =   409          Main.asm:54 (unused)
-verifica_velha    = $807F = 32895          Main.asm:145
-verifica_velha_loop = $8084 = 32900          Main.asm:148
-verifica_vencedor = $808F = 32911          Main.asm:157
-zera_tab          = $801D = 32797          Main.asm:86
+add10             = $8227 = 33319          Main.asm:357
+add19             = $822A = 33322          Main.asm:361
+ajuste_cursor     = $821C = 33308          Main.asm:350
+autoLF            = $0196 =   406          Z80MiniAPI.asm:53 (unused)
+checkCollisionPixel = $0299 =   665          Z80MiniAPI.asm:57 (unused)
+clearGBUF         = $013C =   316          Z80MiniAPI.asm:23
+clearGrLCD        = $013F =   319          Z80MiniAPI.asm:24 (unused)
+clearPixel        = $0172 =   370          Z80MiniAPI.asm:41 (unused)
+clearTxtLCD       = $0142 =   322          Z80MiniAPI.asm:25 (unused)
+cursor_x          = $8349 = 33609          Main.asm:517
+cursor_y          = $834A = 33610          Main.asm:518
+delay             = $0103 =   259          Z80MiniAPI.asm:3
+delay500ms        = $0100 =   256          Z80MiniAPI.asm:2 (unused)
+delay_150ms       = $8215 = 33301          Main.asm:345
+desenha_cursor    = $8257 = 33367          Main.asm:392
+desenha_jogadas   = $8273 = 33395          Main.asm:411
+desenha_jogadas_loop = $827B = 33403          Main.asm:415
+desenha_jogador_atual = $822D = 33325          Main.asm:366
+desenha_tabuleiro = $82D4 = 33492          Main.asm:488
+deu_velha         = $8163 = 33123          Main.asm:226
+displayCursor     = $0193 =   403          Z80MiniAPI.asm:52
+do                = $8341 = 33601          Main.asm:515
+drawBox           = $014B =   331          Z80MiniAPI.asm:28 (unused)
+drawCircle        = $0151 =   337          Z80MiniAPI.asm:30 (unused)
+drawGraphic       = $0178 =   376          Z80MiniAPI.asm:43
+drawLine          = $014E =   334          Z80MiniAPI.asm:29
+drawPixel         = $0154 =   340          Z80MiniAPI.asm:31 (unused)
+draw_O            = $82BC = 33468          Main.asm:467
+draw_X            = $82A4 = 33444          Main.asm:446
+dx                = $8339 = 33593          Main.asm:514
+fillBox           = $0157 =   343          Z80MiniAPI.asm:32
+fillCircle        = $015A =   346          Z80MiniAPI.asm:33 (unused)
+fim_de_jogo       = $8066 = 32870          Main.asm:70
+fim_de_jogo_loop  = $8074 = 32884          Main.asm:77
+flipPixel         = $0175 =   373          Z80MiniAPI.asm:42 (unused)
+gameover          = $8338 = 33592          Main.asm:513
+ganhouO           = $8151 = 33105          Main.asm:216
+ganhouX           = $813F = 33087          Main.asm:206
+getCursor         = $0190 =   400          Z80MiniAPI.asm:51 (unused)
+getline0          = $81CF = 33231          Main.asm:297
+getline1          = $81D3 = 33235          Main.asm:301
+getline2          = $81D7 = 33239          Main.asm:305
+initLCD           = $0139 =   313          Z80MiniAPI.asm:22 (unused)
+initTerminal      = $017E =   382          Z80MiniAPI.asm:45 (unused)
+invGraphic        = $017B =   379          Z80MiniAPI.asm:44 (unused)
+jogador           = $834B = 33611          Main.asm:519
+keyboardA         = $0118 =   280          Z80MiniAPI.asm:10
+keyboardIsEsc     = $0112 =   274          Z80MiniAPI.asm:8 (unused)
+keyboardWaitA     = $0115 =   277          Z80MiniAPI.asm:9 (unused)
+ler_controle      = $8175 = 33141          Main.asm:237
+loop              = $8023 = 32803          Main.asm:31
+loop_enter        = $8056 = 32854          Main.asm:61
+mostra_jogador1   = $8241 = 33345          Main.asm:377
+mostra_jogador2   = $824C = 33356          Main.asm:385
+msg_gameover      = $832E = 33582          Main.asm:512
+msg_start         = $8322 = 33570          Main.asm:511
+msg_velha         = $8315 = 33557          Main.asm:510
+msg_winO          = $8307 = 33543          Main.asm:509
+msg_winX          = $82F9 = 33529          Main.asm:508
+plotAlways        = $019C =   412          Z80MiniAPI.asm:55 (unused)
+plotToLCD         = $015D =   349          Z80MiniAPI.asm:34
+printChars        = $0163 =   355          Z80MiniAPI.asm:36 (unused)
+printString       = $0160 =   352          Z80MiniAPI.asm:35 (unused)
+proximo_jogador   = $8201 = 33281          Main.asm:331
+proximo_jogador2  = $820F = 33295          Main.asm:338
+resetCollisionPixel = $0294 =   660          Z80MiniAPI.asm:56 (unused)
+sendCharToLCD     = $0181 =   385          Z80MiniAPI.asm:46 (unused)
+sendHLToLCD       = $018A =   394          Z80MiniAPI.asm:49 (unused)
+sendRegToLCD      = $0187 =   391          Z80MiniAPI.asm:48 (unused)
+sendStringToLCD   = $0184 =   388          Z80MiniAPI.asm:47
+serialCRLF        = $012A =   298          Z80MiniAPI.asm:16 (unused)
+serialHexA        = $012D =   301          Z80MiniAPI.asm:17 (unused)
+serialHexHL       = $0130 =   304          Z80MiniAPI.asm:18 (unused)
+serialInHexA      = $0133 =   307          Z80MiniAPI.asm:19 (unused)
+serialInHexHL     = $0136 =   310          Z80MiniAPI.asm:20 (unused)
+serialInputA      = $0124 =   292          Z80MiniAPI.asm:14 (unused)
+serialPrintA      = $0121 =   289          Z80MiniAPI.asm:13 (unused)
+serialPrintStr    = $0127 =   295          Z80MiniAPI.asm:15 (unused)
+setBufClear       = $016C =   364          Z80MiniAPI.asm:39 (unused)
+setBufNoClear     = $016F =   367          Z80MiniAPI.asm:40 (unused)
+setCursor         = $018D =   397          Z80MiniAPI.asm:50
+setDefaultSerialA = $011B =   283          Z80MiniAPI.asm:11 (unused)
+setDefaultSerialB = $011E =   286          Z80MiniAPI.asm:12 (unused)
+setGrMode         = $0145 =   325          Z80MiniAPI.asm:26 (unused)
+setInt38          = $0166 =   358          Z80MiniAPI.asm:37 (unused)
+setTxtMode        = $0148 =   328          Z80MiniAPI.asm:27 (unused)
+setint66          = $0169 =   361          Z80MiniAPI.asm:38 (unused)
+setup             = $8005 = 32773          Main.asm:9
+tabuleiro         = $834C = 33612          Main.asm:523
+underline         = $0199 =   409          Z80MiniAPI.asm:54 (unused)
+verifica_velha    = $807F = 32895          Main.asm:84
+verifica_velha_loop = $8084 = 32900          Main.asm:87
+verifica_vencedor = $808F = 32911          Main.asm:96
+zera_tab          = $801D = 32797          Main.asm:25
 
 
-total time: 0.0622 sec.
+total time: 0.0057 sec.
 no errors

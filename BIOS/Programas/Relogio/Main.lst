@@ -1,9 +1,10 @@
               	; --------------------------------------
               	; zasm: assemble "Main.asm"
-              	; date: 2026-06-09 23:00:36
+              	; date: 2026-06-11 23:15:58
               	; --------------------------------------
 
 
+              	#include "../Z80MiniAPI.asm"
               	;   API Z80Mini:
 0100:         	delay500ms          equ     0x0100  ;   Delay 500ms
 0103:         	delay               equ     0x0103  ;   On entry: DE = Delay time in milliseconds
@@ -166,69 +167,69 @@
 
 ; +++ global symbols +++
 
-I2C_Close         = $0109 =   265          Main.asm:5
-I2C_Open          = $0106 =   262          Main.asm:4
-I2C_Read          = $010C =   268          Main.asm:6
-I2C_Write         = $010F =   271          Main.asm:7
-_end              = $80C1 = 32961          Main.asm:57 (unused)
-_size             = $00C1 =   193          Main.asm:57 (unused)
+I2C_Close         = $0109 =   265          Z80MiniAPI.asm:5
+I2C_Open          = $0106 =   262          Z80MiniAPI.asm:4
+I2C_Read          = $010C =   268          Z80MiniAPI.asm:6
+I2C_Write         = $010F =   271          Z80MiniAPI.asm:7
+_end              = $80C1 = 32961          Z80MiniAPI.asm:1 (unused)
+_size             = $00C1 =   193          Z80MiniAPI.asm:1 (unused)
 _z80_             = $0001 =     1          Main.asm:1 (unused)
-autoLF            = $0196 =   406          Main.asm:53 (unused)
-clearGBUF         = $013C =   316          Main.asm:23 (unused)
-clearGrLCD        = $013F =   319          Main.asm:24 (unused)
-clearPixel        = $0172 =   370          Main.asm:41 (unused)
-clearTxtLCD       = $0142 =   322          Main.asm:25 (unused)
-delay             = $0103 =   259          Main.asm:3
-delay500ms        = $0100 =   256          Main.asm:2 (unused)
-displayCursor     = $0193 =   403          Main.asm:52 (unused)
-drawBox           = $014B =   331          Main.asm:28 (unused)
-drawCircle        = $0151 =   337          Main.asm:30 (unused)
-drawGraphic       = $0178 =   376          Main.asm:43 (unused)
-drawLine          = $014E =   334          Main.asm:29 (unused)
-drawPixel         = $0154 =   340          Main.asm:31 (unused)
-fillBox           = $0157 =   343          Main.asm:32 (unused)
-fillCircle        = $015A =   346          Main.asm:33 (unused)
-flipPixel         = $0175 =   373          Main.asm:42 (unused)
-getCursor         = $0190 =   400          Main.asm:51 (unused)
-horas             = $80BE = 32958          Main.asm:152
-inicio            = $8000 = 32768          Main.asm:59 (unused)
-initLCD           = $0139 =   313          Main.asm:22 (unused)
-initTerminal      = $017E =   382          Main.asm:45 (unused)
-invGraphic        = $017B =   379          Main.asm:44 (unused)
-keyboardA         = $0118 =   280          Main.asm:10 (unused)
-keyboardIsEsc     = $0112 =   274          Main.asm:8 (unused)
-keyboardWaitA     = $0115 =   277          Main.asm:9 (unused)
-loop              = $8012 = 32786          Main.asm:69
-minutos           = $80BF = 32959          Main.asm:153
-plotAlways        = $019C =   412          Main.asm:55 (unused)
-plotToLCD         = $015D =   349          Main.asm:34 (unused)
-printChars        = $0163 =   355          Main.asm:36 (unused)
-printString       = $0160 =   352          Main.asm:35 (unused)
-segundos          = $80C0 = 32960          Main.asm:154
-sendCharToLCD     = $0181 =   385          Main.asm:46 (unused)
-sendHLToLCD       = $018A =   394          Main.asm:49 (unused)
-sendRegToLCD      = $0187 =   391          Main.asm:48 (unused)
-sendStringToLCD   = $0184 =   388          Main.asm:47 (unused)
-serialCRLF        = $012A =   298          Main.asm:16 (unused)
-serialHexA        = $012D =   301          Main.asm:17 (unused)
-serialHexHL       = $0130 =   304          Main.asm:18 (unused)
-serialInHexA      = $0133 =   307          Main.asm:19 (unused)
-serialInHexHL     = $0136 =   310          Main.asm:20 (unused)
-serialInputA      = $0124 =   292          Main.asm:14 (unused)
-serialPrintA      = $0121 =   289          Main.asm:13 (unused)
-serialPrintStr    = $0127 =   295          Main.asm:15 (unused)
-setBufClear       = $016C =   364          Main.asm:39 (unused)
-setBufNoClear     = $016F =   367          Main.asm:40 (unused)
-setCursor         = $018D =   397          Main.asm:50 (unused)
-setDefaultSerialA = $011B =   283          Main.asm:11 (unused)
-setDefaultSerialB = $011E =   286          Main.asm:12 (unused)
-setGrMode         = $0145 =   325          Main.asm:26 (unused)
-setInt38          = $0166 =   358          Main.asm:37 (unused)
-setTxtMode        = $0148 =   328          Main.asm:27 (unused)
-setint66          = $0169 =   361          Main.asm:38 (unused)
-status            = $80BD = 32957          Main.asm:151
-underline         = $0199 =   409          Main.asm:54 (unused)
+autoLF            = $0196 =   406          Z80MiniAPI.asm:53 (unused)
+clearGBUF         = $013C =   316          Z80MiniAPI.asm:23 (unused)
+clearGrLCD        = $013F =   319          Z80MiniAPI.asm:24 (unused)
+clearPixel        = $0172 =   370          Z80MiniAPI.asm:41 (unused)
+clearTxtLCD       = $0142 =   322          Z80MiniAPI.asm:25 (unused)
+delay             = $0103 =   259          Z80MiniAPI.asm:3
+delay500ms        = $0100 =   256          Z80MiniAPI.asm:2 (unused)
+displayCursor     = $0193 =   403          Z80MiniAPI.asm:52 (unused)
+drawBox           = $014B =   331          Z80MiniAPI.asm:28 (unused)
+drawCircle        = $0151 =   337          Z80MiniAPI.asm:30 (unused)
+drawGraphic       = $0178 =   376          Z80MiniAPI.asm:43 (unused)
+drawLine          = $014E =   334          Z80MiniAPI.asm:29 (unused)
+drawPixel         = $0154 =   340          Z80MiniAPI.asm:31 (unused)
+fillBox           = $0157 =   343          Z80MiniAPI.asm:32 (unused)
+fillCircle        = $015A =   346          Z80MiniAPI.asm:33 (unused)
+flipPixel         = $0175 =   373          Z80MiniAPI.asm:42 (unused)
+getCursor         = $0190 =   400          Z80MiniAPI.asm:51 (unused)
+horas             = $80BE = 32958          Main.asm:97
+inicio            = $8000 = 32768          Main.asm:4 (unused)
+initLCD           = $0139 =   313          Z80MiniAPI.asm:22 (unused)
+initTerminal      = $017E =   382          Z80MiniAPI.asm:45 (unused)
+invGraphic        = $017B =   379          Z80MiniAPI.asm:44 (unused)
+keyboardA         = $0118 =   280          Z80MiniAPI.asm:10 (unused)
+keyboardIsEsc     = $0112 =   274          Z80MiniAPI.asm:8 (unused)
+keyboardWaitA     = $0115 =   277          Z80MiniAPI.asm:9 (unused)
+loop              = $8012 = 32786          Main.asm:14
+minutos           = $80BF = 32959          Main.asm:98
+plotAlways        = $019C =   412          Z80MiniAPI.asm:55 (unused)
+plotToLCD         = $015D =   349          Z80MiniAPI.asm:34 (unused)
+printChars        = $0163 =   355          Z80MiniAPI.asm:36 (unused)
+printString       = $0160 =   352          Z80MiniAPI.asm:35 (unused)
+segundos          = $80C0 = 32960          Main.asm:99
+sendCharToLCD     = $0181 =   385          Z80MiniAPI.asm:46 (unused)
+sendHLToLCD       = $018A =   394          Z80MiniAPI.asm:49 (unused)
+sendRegToLCD      = $0187 =   391          Z80MiniAPI.asm:48 (unused)
+sendStringToLCD   = $0184 =   388          Z80MiniAPI.asm:47 (unused)
+serialCRLF        = $012A =   298          Z80MiniAPI.asm:16 (unused)
+serialHexA        = $012D =   301          Z80MiniAPI.asm:17 (unused)
+serialHexHL       = $0130 =   304          Z80MiniAPI.asm:18 (unused)
+serialInHexA      = $0133 =   307          Z80MiniAPI.asm:19 (unused)
+serialInHexHL     = $0136 =   310          Z80MiniAPI.asm:20 (unused)
+serialInputA      = $0124 =   292          Z80MiniAPI.asm:14 (unused)
+serialPrintA      = $0121 =   289          Z80MiniAPI.asm:13 (unused)
+serialPrintStr    = $0127 =   295          Z80MiniAPI.asm:15 (unused)
+setBufClear       = $016C =   364          Z80MiniAPI.asm:39 (unused)
+setBufNoClear     = $016F =   367          Z80MiniAPI.asm:40 (unused)
+setCursor         = $018D =   397          Z80MiniAPI.asm:50 (unused)
+setDefaultSerialA = $011B =   283          Z80MiniAPI.asm:11 (unused)
+setDefaultSerialB = $011E =   286          Z80MiniAPI.asm:12 (unused)
+setGrMode         = $0145 =   325          Z80MiniAPI.asm:26 (unused)
+setInt38          = $0166 =   358          Z80MiniAPI.asm:37 (unused)
+setTxtMode        = $0148 =   328          Z80MiniAPI.asm:27 (unused)
+setint66          = $0169 =   361          Z80MiniAPI.asm:38 (unused)
+status            = $80BD = 32957          Main.asm:96
+underline         = $0199 =   409          Z80MiniAPI.asm:54 (unused)
 
 
-total time: 0.0022 sec.
+total time: 0.0107 sec.
 no errors

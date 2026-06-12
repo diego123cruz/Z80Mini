@@ -1,9 +1,10 @@
               	; --------------------------------------
               	; zasm: assemble "Snake.asm"
-              	; date: 2026-06-10 22:26:06
+              	; date: 2026-06-11 23:21:40
               	; --------------------------------------
 
 
+              	#include "../../Z80MiniAPI.asm"
               	;   API Z80Mini:
 0100:         	delay500ms          equ     0x0100  ;   Delay 500ms
 0103:         	delay               equ     0x0103  ;   On entry: DE = Delay time in milliseconds
@@ -60,6 +61,8 @@
 0199:         	underline           equ     0x0199  ;   Exibir sublinhado no caractere (Terminal). O estado inicial é sem sublinhado. Chamar esta rotina irá ALTERAR/DESLIGAR o sinalizador de sublinhado.
 019C:         	plotAlways          equ     0x019C  ;   Quando sendCharToLCD é chamado, Atualiza GLCD ou não. Se Desativado plotToLCD deve ser chamado atualizar o GLCD. Entrada: A=0, Plotar sempre; A>0, Não plotar. O padrão é Plotar sempre.
               	
+              	
+              	
               	; -------- Constantes gerais --------
 000D:         	CR:       EQU   0DH
 000A:         	LF:       EQU   0AH
@@ -69,6 +72,16 @@
 0020:         	SPACE:    EQU   20H
 0000:         	NUL:      EQU   00H
 000C:         	FF:       EQU   0CH                 ; Form Feed -> Limpa lcd
+              	
+              	; -----------------------------------------------------------------------------
+              	; SIO/2 - SERIAL
+              	; -----------------------------------------------------------------------------
+0000:         	SIOA_D:   EQU   $00
+0002:         	SIOA_C:   EQU   $02
+0001:         	SIOB_D:   EQU   $01   ; Conector P2
+0003:         	SIOB_C:   EQU   $03   ; Conector P2
+              	
+              	
               	
               	; direções
 0001:         	DIR_UP      .EQU    1
@@ -535,124 +548,128 @@
 
 ; +++ global symbols +++
 
-BKS                 = $0008 =     8          Snake.asm:60 (unused)
-CR                  = $000D =    13          Snake.asm:58
-DEL                 = $007F =   127          Snake.asm:61 (unused)
-DIR_DOWN            = $0002 =     2          Snake.asm:69
-DIR_LEFT            = $0003 =     3          Snake.asm:70
-DIR_RIGHT           = $0004 =     4          Snake.asm:71
-DIR_UP              = $0001 =     1          Snake.asm:68
-ESC                 = $001B =    27          Snake.asm:62
-FF                  = $000C =    12          Snake.asm:65 (unused)
-HEAD_DOWN           = $8144 = 33092          Snake.asm:295
-HEAD_LEFT           = $814C = 33100          Snake.asm:301
-HEAD_RIGHT          = $8154 = 33108          Snake.asm:307
-HEAD_UP             = $813C = 33084          Snake.asm:289
-I2C_Close           = $0109 =   265          Snake.asm:5 (unused)
-I2C_Open            = $0106 =   262          Snake.asm:4 (unused)
-I2C_Read            = $010C =   268          Snake.asm:6 (unused)
-I2C_Write           = $010F =   271          Snake.asm:7 (unused)
-LF                  = $000A =    10          Snake.asm:59 (unused)
-NUL                 = $0000 =     0          Snake.asm:64 (unused)
-PIXEL_BC_DRAW       = $81E7 = 33255          Snake.asm:433
-SPACE               = $0020 =    32          Snake.asm:63 (unused)
-TELA_X              = $007F =   127          Snake.asm:73
-TELA_Y              = $003F =    63          Snake.asm:74
-TRY_DOWN            = $818C = 33164          Snake.asm:350
-TRY_LEFT            = $8198 = 33176          Snake.asm:358
-TRY_RIGHT           = $81A4 = 33188          Snake.asm:366
-TRY_UP              = $8180 = 33152          Snake.asm:342
-VTELA_X             = $003F =    63          Snake.asm:76
-VTELA_Y             = $001F =    31          Snake.asm:77
-_end                = $8257 = 33367          Snake.asm:79 (unused)
-_size               = $0257 =   599          Snake.asm:79 (unused)
+BKS                 = $0008 =     8          Z80MiniAPI.asm:62 (unused)
+CR                  = $000D =    13          Z80MiniAPI.asm:60
+DEL                 = $007F =   127          Z80MiniAPI.asm:63 (unused)
+DIR_DOWN            = $0002 =     2          Snake.asm:5
+DIR_LEFT            = $0003 =     3          Snake.asm:6
+DIR_RIGHT           = $0004 =     4          Snake.asm:7
+DIR_UP              = $0001 =     1          Snake.asm:4
+ESC                 = $001B =    27          Z80MiniAPI.asm:64
+FF                  = $000C =    12          Z80MiniAPI.asm:67 (unused)
+HEAD_DOWN           = $8144 = 33092          Snake.asm:231
+HEAD_LEFT           = $814C = 33100          Snake.asm:237
+HEAD_RIGHT          = $8154 = 33108          Snake.asm:243
+HEAD_UP             = $813C = 33084          Snake.asm:225
+I2C_Close           = $0109 =   265          Z80MiniAPI.asm:5 (unused)
+I2C_Open            = $0106 =   262          Z80MiniAPI.asm:4 (unused)
+I2C_Read            = $010C =   268          Z80MiniAPI.asm:6 (unused)
+I2C_Write           = $010F =   271          Z80MiniAPI.asm:7 (unused)
+LF                  = $000A =    10          Z80MiniAPI.asm:61 (unused)
+NUL                 = $0000 =     0          Z80MiniAPI.asm:66 (unused)
+PIXEL_BC_DRAW       = $81E7 = 33255          Snake.asm:369
+SIOA_C              = $0002 =     2          Z80MiniAPI.asm:73 (unused)
+SIOA_D              = $0000 =     0          Z80MiniAPI.asm:72 (unused)
+SIOB_C              = $0003 =     3          Z80MiniAPI.asm:75 (unused)
+SIOB_D              = $0001 =     1          Z80MiniAPI.asm:74 (unused)
+SPACE               = $0020 =    32          Z80MiniAPI.asm:65 (unused)
+TELA_X              = $007F =   127          Snake.asm:9
+TELA_Y              = $003F =    63          Snake.asm:10
+TRY_DOWN            = $818C = 33164          Snake.asm:286
+TRY_LEFT            = $8198 = 33176          Snake.asm:294
+TRY_RIGHT           = $81A4 = 33188          Snake.asm:302
+TRY_UP              = $8180 = 33152          Snake.asm:278
+VTELA_X             = $003F =    63          Snake.asm:12
+VTELA_Y             = $001F =    31          Snake.asm:13
+_end                = $8257 = 33367          Z80MiniAPI.asm:14 (unused)
+_size               = $0257 =   599          Z80MiniAPI.asm:14 (unused)
 _z80_               = $0001 =     1          Snake.asm:1 (unused)
-atualiza_corpo      = $8103 = 33027          Snake.asm:242
-atualiza_corpo_loop = $811B = 33051          Snake.asm:265
-atualiza_display    = $81ED = 33261          Snake.asm:439
-atualiza_head       = $8124 = 33060          Snake.asm:276
-atualiza_jogo       = $8089 = 32905          Snake.asm:166
-autoLF              = $0196 =   406          Snake.asm:53 (unused)
-check_colisao       = $80E9 = 33001          Snake.asm:222
-check_food          = $8099 = 32921          Snake.asm:175
-clearGBUF           = $013C =   316          Snake.asm:23
-clearGrLCD          = $013F =   319          Snake.asm:24 (unused)
-clearPixel          = $0172 =   370          Snake.asm:41 (unused)
-clearTxtLCD         = $0142 =   322          Snake.asm:25 (unused)
-comer               = $80AA = 32938          Snake.asm:187
-count               = $824A = 33354          Snake.asm:509
-delay               = $0103 =   259          Snake.asm:3
-delay500ms          = $0100 =   256          Snake.asm:2 (unused)
-delay_loop          = $804D = 32845          Snake.asm:131
-delay_loop_skip     = $8056 = 32854          Snake.asm:135
-desenha_food        = $81B0 = 33200          Snake.asm:375
-desenha_snake       = $81BC = 33212          Snake.asm:384
-desenha_snake_loop  = $81C3 = 33219          Snake.asm:388
-direction           = $8251 = 33361          Snake.asm:514
-displayCursor       = $0193 =   403          Snake.asm:52
-drawBox             = $014B =   331          Snake.asm:28
-drawCircle          = $0151 =   337          Snake.asm:30 (unused)
-drawGraphic         = $0178 =   376          Snake.asm:43 (unused)
-drawLine            = $014E =   334          Snake.asm:29 (unused)
-drawPixel           = $0154 =   340          Snake.asm:31
-fillBox             = $0157 =   343          Snake.asm:32 (unused)
-fillCircle          = $015A =   346          Snake.asm:33 (unused)
-fim_de_jogo         = $80CA = 32970          Snake.asm:206
-fim_de_jogo_loop    = $80DE = 32990          Snake.asm:215
-flipPixel           = $0175 =   373          Snake.asm:42 (unused)
-food_x              = $8254 = 33364          Snake.asm:517
-food_y              = $8253 = 33363          Snake.asm:516
-gameover            = $824C = 33356          Snake.asm:511
-getCursor           = $0190 =   400          Snake.asm:51 (unused)
-head_x              = $8256 = 33366          Snake.asm:519
-head_y              = $8255 = 33365          Snake.asm:518
-initLCD             = $0139 =   313          Snake.asm:22 (unused)
-initTerminal        = $017E =   382          Snake.asm:45 (unused)
-invGraphic          = $017B =   379          Snake.asm:44 (unused)
-keyboardA           = $0118 =   280          Snake.asm:10
-keyboardIsEsc       = $0112 =   274          Snake.asm:8 (unused)
-keyboardWaitA       = $0115 =   277          Snake.asm:9 (unused)
-ler_teclado         = $815C = 33116          Snake.asm:317
-loop                = $8045 = 32837          Snake.asm:126
-loop_enter          = $8079 = 32889          Snake.asm:157
-msg_gameover        = $8240 = 33344          Snake.asm:508
-msg_start           = $8234 = 33332          Snake.asm:507
-new_food            = $80B5 = 32949          Snake.asm:194
-plotAlways          = $019C =   412          Snake.asm:55 (unused)
-plotToLCD           = $015D =   349          Snake.asm:34
-printChars          = $0163 =   355          Snake.asm:36 (unused)
-printString         = $0160 =   352          Snake.asm:35 (unused)
-prng16              = $821A = 33306          Snake.asm:475
-randomHL            = $8204 = 33284          Snake.asm:457
-read_keys           = $824B = 33355          Snake.asm:510
-seed1               = $824D = 33357          Snake.asm:512
-seed2               = $824F = 33359          Snake.asm:513
-sendCharToLCD       = $0181 =   385          Snake.asm:46
-sendHLToLCD         = $018A =   394          Snake.asm:49 (unused)
-sendRegToLCD        = $0187 =   391          Snake.asm:48 (unused)
-sendStringToLCD     = $0184 =   388          Snake.asm:47
-serialCRLF          = $012A =   298          Snake.asm:16 (unused)
-serialHexA          = $012D =   301          Snake.asm:17 (unused)
-serialHexHL         = $0130 =   304          Snake.asm:18 (unused)
-serialInHexA        = $0133 =   307          Snake.asm:19 (unused)
-serialInHexHL       = $0136 =   310          Snake.asm:20 (unused)
-serialInputA        = $0124 =   292          Snake.asm:14 (unused)
-serialPrintA        = $0121 =   289          Snake.asm:13 (unused)
-serialPrintStr      = $0127 =   295          Snake.asm:15 (unused)
-setBufClear         = $016C =   364          Snake.asm:39 (unused)
-setBufNoClear       = $016F =   367          Snake.asm:40 (unused)
-setCursor           = $018D =   397          Snake.asm:50
-setDefaultSerialA   = $011B =   283          Snake.asm:11 (unused)
-setDefaultSerialB   = $011E =   286          Snake.asm:12 (unused)
-setGrMode           = $0145 =   325          Snake.asm:26 (unused)
-setInt38            = $0166 =   358          Snake.asm:37 (unused)
-setTxtMode          = $0148 =   328          Snake.asm:27 (unused)
-set_pixel_bc        = $81D1 = 33233          Snake.asm:405
-setint66            = $0169 =   361          Snake.asm:38 (unused)
-size                = $8252 = 33362          Snake.asm:515
-start_game          = $8005 = 32773          Snake.asm:84
-underline           = $0199 =   409          Snake.asm:54 (unused)
+atualiza_corpo      = $8103 = 33027          Snake.asm:178
+atualiza_corpo_loop = $811B = 33051          Snake.asm:201
+atualiza_display    = $81ED = 33261          Snake.asm:375
+atualiza_head       = $8124 = 33060          Snake.asm:212
+atualiza_jogo       = $8089 = 32905          Snake.asm:102
+autoLF              = $0196 =   406          Z80MiniAPI.asm:53 (unused)
+check_colisao       = $80E9 = 33001          Snake.asm:158
+check_food          = $8099 = 32921          Snake.asm:111
+clearGBUF           = $013C =   316          Z80MiniAPI.asm:23
+clearGrLCD          = $013F =   319          Z80MiniAPI.asm:24 (unused)
+clearPixel          = $0172 =   370          Z80MiniAPI.asm:41 (unused)
+clearTxtLCD         = $0142 =   322          Z80MiniAPI.asm:25 (unused)
+comer               = $80AA = 32938          Snake.asm:123
+count               = $824A = 33354          Snake.asm:445
+delay               = $0103 =   259          Z80MiniAPI.asm:3
+delay500ms          = $0100 =   256          Z80MiniAPI.asm:2 (unused)
+delay_loop          = $804D = 32845          Snake.asm:67
+delay_loop_skip     = $8056 = 32854          Snake.asm:71
+desenha_food        = $81B0 = 33200          Snake.asm:311
+desenha_snake       = $81BC = 33212          Snake.asm:320
+desenha_snake_loop  = $81C3 = 33219          Snake.asm:324
+direction           = $8251 = 33361          Snake.asm:450
+displayCursor       = $0193 =   403          Z80MiniAPI.asm:52
+drawBox             = $014B =   331          Z80MiniAPI.asm:28
+drawCircle          = $0151 =   337          Z80MiniAPI.asm:30 (unused)
+drawGraphic         = $0178 =   376          Z80MiniAPI.asm:43 (unused)
+drawLine            = $014E =   334          Z80MiniAPI.asm:29 (unused)
+drawPixel           = $0154 =   340          Z80MiniAPI.asm:31
+fillBox             = $0157 =   343          Z80MiniAPI.asm:32 (unused)
+fillCircle          = $015A =   346          Z80MiniAPI.asm:33 (unused)
+fim_de_jogo         = $80CA = 32970          Snake.asm:142
+fim_de_jogo_loop    = $80DE = 32990          Snake.asm:151
+flipPixel           = $0175 =   373          Z80MiniAPI.asm:42 (unused)
+food_x              = $8254 = 33364          Snake.asm:453
+food_y              = $8253 = 33363          Snake.asm:452
+gameover            = $824C = 33356          Snake.asm:447
+getCursor           = $0190 =   400          Z80MiniAPI.asm:51 (unused)
+head_x              = $8256 = 33366          Snake.asm:455
+head_y              = $8255 = 33365          Snake.asm:454
+initLCD             = $0139 =   313          Z80MiniAPI.asm:22 (unused)
+initTerminal        = $017E =   382          Z80MiniAPI.asm:45 (unused)
+invGraphic          = $017B =   379          Z80MiniAPI.asm:44 (unused)
+keyboardA           = $0118 =   280          Z80MiniAPI.asm:10
+keyboardIsEsc       = $0112 =   274          Z80MiniAPI.asm:8 (unused)
+keyboardWaitA       = $0115 =   277          Z80MiniAPI.asm:9 (unused)
+ler_teclado         = $815C = 33116          Snake.asm:253
+loop                = $8045 = 32837          Snake.asm:62
+loop_enter          = $8079 = 32889          Snake.asm:93
+msg_gameover        = $8240 = 33344          Snake.asm:444
+msg_start           = $8234 = 33332          Snake.asm:443
+new_food            = $80B5 = 32949          Snake.asm:130
+plotAlways          = $019C =   412          Z80MiniAPI.asm:55 (unused)
+plotToLCD           = $015D =   349          Z80MiniAPI.asm:34
+printChars          = $0163 =   355          Z80MiniAPI.asm:36 (unused)
+printString         = $0160 =   352          Z80MiniAPI.asm:35 (unused)
+prng16              = $821A = 33306          Snake.asm:411
+randomHL            = $8204 = 33284          Snake.asm:393
+read_keys           = $824B = 33355          Snake.asm:446
+seed1               = $824D = 33357          Snake.asm:448
+seed2               = $824F = 33359          Snake.asm:449
+sendCharToLCD       = $0181 =   385          Z80MiniAPI.asm:46
+sendHLToLCD         = $018A =   394          Z80MiniAPI.asm:49 (unused)
+sendRegToLCD        = $0187 =   391          Z80MiniAPI.asm:48 (unused)
+sendStringToLCD     = $0184 =   388          Z80MiniAPI.asm:47
+serialCRLF          = $012A =   298          Z80MiniAPI.asm:16 (unused)
+serialHexA          = $012D =   301          Z80MiniAPI.asm:17 (unused)
+serialHexHL         = $0130 =   304          Z80MiniAPI.asm:18 (unused)
+serialInHexA        = $0133 =   307          Z80MiniAPI.asm:19 (unused)
+serialInHexHL       = $0136 =   310          Z80MiniAPI.asm:20 (unused)
+serialInputA        = $0124 =   292          Z80MiniAPI.asm:14 (unused)
+serialPrintA        = $0121 =   289          Z80MiniAPI.asm:13 (unused)
+serialPrintStr      = $0127 =   295          Z80MiniAPI.asm:15 (unused)
+setBufClear         = $016C =   364          Z80MiniAPI.asm:39 (unused)
+setBufNoClear       = $016F =   367          Z80MiniAPI.asm:40 (unused)
+setCursor           = $018D =   397          Z80MiniAPI.asm:50
+setDefaultSerialA   = $011B =   283          Z80MiniAPI.asm:11 (unused)
+setDefaultSerialB   = $011E =   286          Z80MiniAPI.asm:12 (unused)
+setGrMode           = $0145 =   325          Z80MiniAPI.asm:26 (unused)
+setInt38            = $0166 =   358          Z80MiniAPI.asm:37 (unused)
+setTxtMode          = $0148 =   328          Z80MiniAPI.asm:27 (unused)
+set_pixel_bc        = $81D1 = 33233          Snake.asm:341
+setint66            = $0169 =   361          Z80MiniAPI.asm:38 (unused)
+size                = $8252 = 33362          Snake.asm:451
+start_game          = $8005 = 32773          Snake.asm:20
+underline           = $0199 =   409          Z80MiniAPI.asm:54 (unused)
 
 
-total time: 0.0755 sec.
+total time: 0.0051 sec.
 no errors
