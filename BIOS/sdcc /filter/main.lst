@@ -1,0 +1,411 @@
+                                      1 ;--------------------------------------------------------
+                                      2 ; File Created by SDCC : free open source ISO C Compiler
+                                      3 ; Version 4.5.0 #15242 (Linux)
+                                      4 ;--------------------------------------------------------
+                                      5 	.module main
+                                      6 	
+                                      7 	.optsdcc -mz80 sdcccall(1)
+                                      8 ;--------------------------------------------------------
+                                      9 ; Public variables in this module
+                                     10 ;--------------------------------------------------------
+                                     11 	.globl _main
+                                     12 	.globl _displayCursor
+                                     13 	.globl _plotToLCD
+                                     14 	.globl _drawCircle
+                                     15 	.globl _drawLine
+                                     16 	.globl _clearGBUF
+                                     17 	.globl _keyboardA
+                                     18 	.globl _I2C_Write
+                                     19 	.globl _I2C_Close
+                                     20 	.globl _I2C_Open
+                                     21 	.globl _delay
+                                     22 	.globl _by
+                                     23 	.globl _bx
+                                     24 	.globl _erros
+                                     25 	.globl _count
+                                     26 	.globl _py
+                                     27 	.globl _px
+                                     28 	.globl _input
+                                     29 	.globl _pontos
+                                     30 	.globl _new_ball
+                                     31 	.globl _incPontos
+                                     32 	.globl _showPontos
+                                     33 	.globl _showVidas
+                                     34 	.globl _hitSound
+                                     35 	.globl _gameoverSound
+                                     36 	.globl _fireInvSound
+                                     37 ;--------------------------------------------------------
+                                     38 ; special function registers
+                                     39 ;--------------------------------------------------------
+                                     40 ;--------------------------------------------------------
+                                     41 ; ram data
+                                     42 ;--------------------------------------------------------
+                                     43 	.area _DATA
+    00000000                         44 _pontos::
+    00000000                         45 	.ds 1
+    00000001                         46 _input::
+    00000001                         47 	.ds 1
+    00000002                         48 _px::
+    00000002                         49 	.ds 1
+    00000003                         50 _py::
+    00000003                         51 	.ds 1
+    00000004                         52 _count::
+    00000004                         53 	.ds 1
+    00000005                         54 _erros::
+    00000005                         55 	.ds 1
+    00000006                         56 _bx::
+    00000006                         57 	.ds 1
+    00000007                         58 _by::
+    00000007                         59 	.ds 1
+                                     60 ;--------------------------------------------------------
+                                     61 ; ram data
+                                     62 ;--------------------------------------------------------
+                                     63 	.area _INITIALIZED
+                                     64 ;--------------------------------------------------------
+                                     65 ; absolute external ram data
+                                     66 ;--------------------------------------------------------
+                                     67 	.area _DABS (ABS)
+                                     68 ;--------------------------------------------------------
+                                     69 ; global & static initialisations
+                                     70 ;--------------------------------------------------------
+                                     71 	.area _HOME
+                                     72 	.area _GSINIT
+                                     73 	.area _GSFINAL
+                                     74 	.area _GSINIT
+                                     75 ;--------------------------------------------------------
+                                     76 ; Home
+                                     77 ;--------------------------------------------------------
+                                     78 	.area _HOME
+                                     79 	.area _HOME
+                                     80 ;--------------------------------------------------------
+                                     81 ; code
+                                     82 ;--------------------------------------------------------
+                                     83 	.area _CODE
+                                     84 ;main.c:22: int main(void) {
+                                     85 ;	---------------------------------
+                                     86 ; Function main
+                                     87 ; ---------------------------------
+    00000000                         88 _main::
+                                     89 ;main.c:24: pontos=0;
+    00000000 AF               [ 4]   90 	xor	a, a
+    00000001 32r00r00         [13]   91 	ld	(_pontos+0), a
+                                     92 ;main.c:25: px=60;
+    00000004 21r02r00         [10]   93 	ld	hl, #_px
+    00000007 36 3C            [10]   94 	ld	(hl), #0x3c
+                                     95 ;main.c:26: py=60;
+    00000009 21r03r00         [10]   96 	ld	hl, #_py
+    0000000C 36 3C            [10]   97 	ld	(hl), #0x3c
+                                     98 ;main.c:27: count=0;
+    0000000E AF               [ 4]   99 	xor	a, a
+    0000000F 32r04r00         [13]  100 	ld	(_count+0), a
+                                    101 ;main.c:28: erros=3;
+    00000012 21r05r00         [10]  102 	ld	hl, #_erros
+    00000015 36 03            [10]  103 	ld	(hl), #0x03
+                                    104 ;main.c:29: bx=60;
+    00000017 21r06r00         [10]  105 	ld	hl, #_bx
+    0000001A 36 3C            [10]  106 	ld	(hl), #0x3c
+                                    107 ;main.c:30: by=3;
+    0000001C 21r07r00         [10]  108 	ld	hl, #_by
+    0000001F 36 03            [10]  109 	ld	(hl), #0x03
+                                    110 ;main.c:32: displayCursor(1);
+    00000021 3E 01            [ 7]  111 	ld	a, #0x01
+    00000023 CDr00r00         [17]  112 	call	_displayCursor
+                                    113 ;main.c:34: clearGBUF();
+    00000026 CDr00r00         [17]  114 	call	_clearGBUF
+                                    115 ;main.c:37: I2C_Open(0x0E);
+    00000029 3E 0E            [ 7]  116 	ld	a, #0x0e
+    0000002B CDr00r00         [17]  117 	call	_I2C_Open
+                                    118 ;main.c:38: I2C_Write(0x00);
+    0000002E AF               [ 4]  119 	xor	a, a
+    0000002F CDr00r00         [17]  120 	call	_I2C_Write
+                                    121 ;main.c:39: I2C_Write(0x01); // Liga somente o display LOW (3 e 4)
+    00000032 3E 01            [ 7]  122 	ld	a, #0x01
+    00000034 CDr00r00         [17]  123 	call	_I2C_Write
+                                    124 ;main.c:40: I2C_Close();
+    00000037 CDr00r00         [17]  125 	call	_I2C_Close
+                                    126 ;main.c:42: showPontos(pontos);
+    0000003A 3Ar00r00         [13]  127 	ld	a, (_pontos)
+    0000003D CDr5Ar01         [17]  128 	call	_showPontos
+                                    129 ;main.c:43: showVidas(erros);
+    00000040 3Ar05r00         [13]  130 	ld	a, (_erros)
+    00000043 CDr6Er01         [17]  131 	call	_showVidas
+                                    132 ;main.c:45: while(TRUE) {
+    00000046                        133 00121$:
+                                    134 ;main.c:47: input = keyboardA();
+    00000046 CDr00r00         [17]  135 	call	_keyboardA
+    00000049 32r01r00         [13]  136 	ld	(_input+0), a
+                                    137 ;main.c:49: if (count >= 10) {
+    0000004C 3Ar04r00         [13]  138 	ld	a, (_count+0)
+    0000004F D6 0A            [ 7]  139 	sub	a, #0x0a
+    00000051 DAr33r01         [10]  140 	jp	C, 00119$
+                                    141 ;main.c:52: if (input == 'a') {
+    00000054 3Ar01r00         [13]  142 	ld	a, (_input+0)
+    00000057 D6 61            [ 7]  143 	sub	a, #0x61
+    00000059 20 11            [12]  144 	jr	NZ, 00104$
+                                    145 ;main.c:53: if (px > 2) {
+    0000005B 3E 02            [ 7]  146 	ld	a, #0x02
+    0000005D 21r02r00         [10]  147 	ld	hl, #_px
+    00000060 96               [ 7]  148 	sub	a, (hl)
+    00000061 30 09            [12]  149 	jr	NC, 00104$
+                                    150 ;main.c:54: px = px - 3;
+    00000063 3Ar02r00         [13]  151 	ld	a, (_px+0)
+    00000066 21r02r00         [10]  152 	ld	hl, #_px
+    00000069 C6 FD            [ 7]  153 	add	a, #0xfd
+    0000006B 77               [ 7]  154 	ld	(hl), a
+    0000006C                        155 00104$:
+                                    156 ;main.c:58: if (input == 'd') {
+    0000006C 3Ar01r00         [13]  157 	ld	a, (_input+0)
+    0000006F D6 64            [ 7]  158 	sub	a, #0x64
+    00000071 20 0F            [12]  159 	jr	NZ, 00108$
+                                    160 ;main.c:59: if (px < 116) {
+    00000073 3Ar02r00         [13]  161 	ld	a, (_px+0)
+    00000076 D6 74            [ 7]  162 	sub	a, #0x74
+    00000078 30 08            [12]  163 	jr	NC, 00108$
+                                    164 ;main.c:60: px = px + 3;
+    0000007A 3Ar02r00         [13]  165 	ld	a, (_px)
+    0000007D C6 03            [ 7]  166 	add	a, #0x03
+    0000007F 32r02r00         [13]  167 	ld	(_px+0), a
+    00000082                        168 00108$:
+                                    169 ;main.c:65: clearGBUF();
+    00000082 CDr00r00         [17]  170 	call	_clearGBUF
+                                    171 ;main.c:67: drawLine(px, py, px+10, py);
+    00000085 3Ar02r00         [13]  172 	ld	a, (_px)
+    00000088 C6 0A            [ 7]  173 	add	a, #0x0a
+    0000008A 47               [ 4]  174 	ld	b, a
+    0000008B 3Ar03r00         [13]  175 	ld	a, (_py)
+    0000008E F5               [11]  176 	push	af
+    0000008F 33               [ 6]  177 	inc	sp
+    00000090 C5               [11]  178 	push	bc
+    00000091 33               [ 6]  179 	inc	sp
+    00000092 3Ar03r00         [13]  180 	ld	a, (_py)
+    00000095 6F               [ 4]  181 	ld	l, a
+    00000096 3Ar02r00         [13]  182 	ld	a, (_px)
+    00000099 CDr00r00         [17]  183 	call	_drawLine
+                                    184 ;main.c:69: drawCircle(bx, by, 1);
+    0000009C 3E 01            [ 7]  185 	ld	a, #0x01
+    0000009E F5               [11]  186 	push	af
+    0000009F 33               [ 6]  187 	inc	sp
+    000000A0 3Ar07r00         [13]  188 	ld	a, (_by)
+    000000A3 6F               [ 4]  189 	ld	l, a
+    000000A4 3Ar06r00         [13]  190 	ld	a, (_bx)
+    000000A7 CDr00r00         [17]  191 	call	_drawCircle
+                                    192 ;main.c:71: plotToLCD();
+    000000AA CDr00r00         [17]  193 	call	_plotToLCD
+                                    194 ;main.c:73: if (py == by) {
+    000000AD 3Ar03r00         [13]  195 	ld	a, (_py+0)
+    000000B0 21r07r00         [10]  196 	ld	hl, #_by
+    000000B3 96               [ 7]  197 	sub	a, (hl)
+    000000B4 20 33            [12]  198 	jr	NZ, 00113$
+                                    199 ;main.c:74: if (bx+1 >= px && bx <= px+10) {
+    000000B6 3Ar06r00         [13]  200 	ld	a, (_bx)
+    000000B9 4F               [ 4]  201 	ld	c, a
+    000000BA 06 00            [ 7]  202 	ld	b, #0x00
+    000000BC 69               [ 4]  203 	ld	l, c
+    000000BD 60               [ 4]  204 	ld	h, b
+    000000BE 23               [ 6]  205 	inc	hl
+    000000BF 3Ar02r00         [13]  206 	ld	a, (_px)
+    000000C2 5F               [ 4]  207 	ld	e, a
+    000000C3 AF               [ 4]  208 	xor	a, a
+    000000C4 57               [ 4]  209 	ld	d, a
+    000000C5 ED 52            [15]  210 	sbc	hl, de
+    000000C7 38 20            [12]  211 	jr	C, 00113$
+    000000C9 21 0A 00         [10]  212 	ld	hl, #0x000a
+    000000CC 19               [11]  213 	add	hl, de
+    000000CD AF               [ 4]  214 	xor	a, a
+    000000CE ED 42            [15]  215 	sbc	hl, bc
+    000000D0 38 17            [12]  216 	jr	C, 00113$
+                                    217 ;main.c:75: incPontos();
+    000000D2 CDr50r01         [17]  218 	call	_incPontos
+                                    219 ;main.c:76: showPontos(pontos);
+    000000D5 3Ar00r00         [13]  220 	ld	a, (_pontos)
+    000000D8 CDr5Ar01         [17]  221 	call	_showPontos
+                                    222 ;main.c:77: bx = new_ball();
+    000000DB CDr43r01         [17]  223 	call	_new_ball
+    000000DE 32r06r00         [13]  224 	ld	(_bx+0), a
+                                    225 ;main.c:78: by = 1;
+    000000E1 21r07r00         [10]  226 	ld	hl, #_by
+    000000E4 36 01            [10]  227 	ld	(hl), #0x01
+                                    228 ;main.c:79: hitSound();
+    000000E6 CDr82r01         [17]  229 	call	_hitSound
+    000000E9                        230 00113$:
+                                    231 ;main.c:83: if (by > 65) {
+    000000E9 3E 41            [ 7]  232 	ld	a, #0x41
+    000000EB 21r07r00         [10]  233 	ld	hl, #_by
+    000000EE 96               [ 7]  234 	sub	a, (hl)
+    000000EF 30 1C            [12]  235 	jr	NC, 00115$
+                                    236 ;main.c:84: bx = new_ball();
+    000000F1 CDr43r01         [17]  237 	call	_new_ball
+    000000F4 32r06r00         [13]  238 	ld	(_bx+0), a
+                                    239 ;main.c:85: by = 1;
+    000000F7 21r07r00         [10]  240 	ld	hl, #_by
+    000000FA 36 01            [10]  241 	ld	(hl), #0x01
+                                    242 ;main.c:86: erros = erros - 1;
+    000000FC 3Ar05r00         [13]  243 	ld	a, (_erros)
+    000000FF 21r05r00         [10]  244 	ld	hl, #_erros
+    00000102 3D               [ 4]  245 	dec	a
+    00000103 77               [ 7]  246 	ld	(hl), a
+                                    247 ;main.c:87: showVidas(erros);
+    00000104 3Ar05r00         [13]  248 	ld	a, (_erros)
+    00000107 CDr6Er01         [17]  249 	call	_showVidas
+                                    250 ;main.c:88: fireInvSound();
+    0000010A CDrA6r01         [17]  251 	call	_fireInvSound
+    0000010D                        252 00115$:
+                                    253 ;main.c:91: if (erros == 0) {
+    0000010D 3Ar05r00         [13]  254 	ld	a, (_erros+0)
+    00000110 B7               [ 4]  255 	or	a, a
+    00000111 20 15            [12]  256 	jr	NZ, 00117$
+                                    257 ;main.c:92: erros = 3;
+    00000113 21r05r00         [10]  258 	ld	hl, #_erros
+    00000116 36 03            [10]  259 	ld	(hl), #0x03
+                                    260 ;main.c:93: pontos = 0;
+                                    261 ;main.c:95: showPontos(pontos);
+    00000118 AF               [ 4]  262 	xor	a, a
+    00000119 32r00r00         [13]  263 	ld	(_pontos+0), a
+    0000011C CDr5Ar01         [17]  264 	call	_showPontos
+                                    265 ;main.c:96: showVidas(erros);
+    0000011F 3Ar05r00         [13]  266 	ld	a, (_erros)
+    00000122 CDr6Er01         [17]  267 	call	_showVidas
+                                    268 ;main.c:97: gameoverSound();
+    00000125 CDr94r01         [17]  269 	call	_gameoverSound
+    00000128                        270 00117$:
+                                    271 ;main.c:99: by=by+1;
+    00000128 3Ar07r00         [13]  272 	ld	a, (_by)
+    0000012B 3C               [ 4]  273 	inc	a
+    0000012C 32r07r00         [13]  274 	ld	(_by+0), a
+                                    275 ;main.c:100: count=0;
+    0000012F AF               [ 4]  276 	xor	a, a
+    00000130 32r04r00         [13]  277 	ld	(_count+0), a
+    00000133                        278 00119$:
+                                    279 ;main.c:102: count = count + 1;
+    00000133 3Ar04r00         [13]  280 	ld	a, (_count)
+    00000136 3C               [ 4]  281 	inc	a
+    00000137 32r04r00         [13]  282 	ld	(_count+0), a
+                                    283 ;main.c:103: delay(1);
+    0000013A 21 01 00         [10]  284 	ld	hl, #0x0001
+    0000013D CDr00r00         [17]  285 	call	_delay
+                                    286 ;main.c:105: }
+    00000140 C3r46r00         [10]  287 	jp	00121$
+                                    288 ;main.c:107: byte new_ball() {
+                                    289 ;	---------------------------------
+                                    290 ; Function new_ball
+                                    291 ; ---------------------------------
+    00000143                        292 _new_ball::
+                                    293 ;main.c:108: while(1) {
+    00000143                        294 00105$:
+                                    295 ;main.c:109: byte x = rand();
+    00000143 CDr00r00         [17]  296 	call	_rand
+    00000146 7B               [ 4]  297 	ld	a, e
+                                    298 ;main.c:110: if (x > 3 && x < 124) {
+    00000147 FE 04            [ 7]  299 	cp	a, #0x04
+    00000149 38 F8            [12]  300 	jr	C, 00105$
+    0000014B FE 7C            [ 7]  301 	cp	a, #0x7c
+    0000014D 30 F4            [12]  302 	jr	NC, 00105$
+                                    303 ;main.c:111: return x;
+                                    304 ;main.c:114: }
+    0000014F C9               [10]  305 	ret
+                                    306 ;main.c:116: void incPontos(void) __naked {
+                                    307 ;	---------------------------------
+                                    308 ; Function incPontos
+                                    309 ; ---------------------------------
+    00000150                        310 _incPontos::
+                                    311 ;main.c:123: __endasm;
+    00000150 3Ar00r00         [13]  312 	ld	a, (_pontos) ; carrega o valor atual em A
+    00000153 C6 01            [ 7]  313 	add	a, #1 ; incrementa 1
+    00000155 27               [ 4]  314 	daa	; ajusta para BCD
+    00000156 32r00r00         [13]  315 	ld	(_pontos), a ; salva de volta
+    00000159 C9               [10]  316 	ret
+                                    317 ;main.c:124: }
+                                    318 ;main.c:126: void showPontos(byte p) {
+                                    319 ;	---------------------------------
+                                    320 ; Function showPontos
+                                    321 ; ---------------------------------
+    0000015A                        322 _showPontos::
+    0000015A 4F               [ 4]  323 	ld	c, a
+                                    324 ;main.c:127: I2C_Open(0x0E);
+    0000015B C5               [11]  325 	push	bc
+    0000015C 3E 0E            [ 7]  326 	ld	a, #0x0e
+    0000015E CDr00r00         [17]  327 	call	_I2C_Open
+                                    328 ;main.c:128: I2C_Write(0x01);
+    00000161 3E 01            [ 7]  329 	ld	a, #0x01
+    00000163 CDr00r00         [17]  330 	call	_I2C_Write
+    00000166 C1               [10]  331 	pop	bc
+                                    332 ;main.c:129: I2C_Write(p);
+    00000167 79               [ 4]  333 	ld	a, c
+    00000168 CDr00r00         [17]  334 	call	_I2C_Write
+                                    335 ;main.c:130: I2C_Close();
+                                    336 ;main.c:131: }
+    0000016B C3r00r00         [10]  337 	jp	_I2C_Close
+                                    338 ;main.c:133: void showVidas(byte v) {
+                                    339 ;	---------------------------------
+                                    340 ; Function showVidas
+                                    341 ; ---------------------------------
+    0000016E                        342 _showVidas::
+    0000016E 4F               [ 4]  343 	ld	c, a
+                                    344 ;main.c:134: I2C_Open(0x0E);
+    0000016F C5               [11]  345 	push	bc
+    00000170 3E 0E            [ 7]  346 	ld	a, #0x0e
+    00000172 CDr00r00         [17]  347 	call	_I2C_Open
+                                    348 ;main.c:135: I2C_Write(0x03);
+    00000175 3E 03            [ 7]  349 	ld	a, #0x03
+    00000177 CDr00r00         [17]  350 	call	_I2C_Write
+    0000017A C1               [10]  351 	pop	bc
+                                    352 ;main.c:136: I2C_Write(v);
+    0000017B 79               [ 4]  353 	ld	a, c
+    0000017C CDr00r00         [17]  354 	call	_I2C_Write
+                                    355 ;main.c:137: I2C_Close();
+                                    356 ;main.c:138: }
+    0000017F C3r00r00         [10]  357 	jp	_I2C_Close
+                                    358 ;main.c:140: void hitSound() {
+                                    359 ;	---------------------------------
+                                    360 ; Function hitSound
+                                    361 ; ---------------------------------
+    00000182                        362 _hitSound::
+                                    363 ;main.c:141: I2C_Open(0x0E);
+    00000182 3E 0E            [ 7]  364 	ld	a, #0x0e
+    00000184 CDr00r00         [17]  365 	call	_I2C_Open
+                                    366 ;main.c:142: I2C_Write(0x05);
+    00000187 3E 05            [ 7]  367 	ld	a, #0x05
+    00000189 CDr00r00         [17]  368 	call	_I2C_Write
+                                    369 ;main.c:143: I2C_Write(0x12);
+    0000018C 3E 12            [ 7]  370 	ld	a, #0x12
+    0000018E CDr00r00         [17]  371 	call	_I2C_Write
+                                    372 ;main.c:144: I2C_Close();
+                                    373 ;main.c:145: }
+    00000191 C3r00r00         [10]  374 	jp	_I2C_Close
+                                    375 ;main.c:147: void gameoverSound() {
+                                    376 ;	---------------------------------
+                                    377 ; Function gameoverSound
+                                    378 ; ---------------------------------
+    00000194                        379 _gameoverSound::
+                                    380 ;main.c:148: I2C_Open(0x0E);
+    00000194 3E 0E            [ 7]  381 	ld	a, #0x0e
+    00000196 CDr00r00         [17]  382 	call	_I2C_Open
+                                    383 ;main.c:149: I2C_Write(0x05);
+    00000199 3E 05            [ 7]  384 	ld	a, #0x05
+    0000019B CDr00r00         [17]  385 	call	_I2C_Write
+                                    386 ;main.c:150: I2C_Write(0x10);
+    0000019E 3E 10            [ 7]  387 	ld	a, #0x10
+    000001A0 CDr00r00         [17]  388 	call	_I2C_Write
+                                    389 ;main.c:151: I2C_Close();
+                                    390 ;main.c:152: }
+    000001A3 C3r00r00         [10]  391 	jp	_I2C_Close
+                                    392 ;main.c:154: void fireInvSound() {
+                                    393 ;	---------------------------------
+                                    394 ; Function fireInvSound
+                                    395 ; ---------------------------------
+    000001A6                        396 _fireInvSound::
+                                    397 ;main.c:155: I2C_Open(0x0E);
+    000001A6 3E 0E            [ 7]  398 	ld	a, #0x0e
+    000001A8 CDr00r00         [17]  399 	call	_I2C_Open
+                                    400 ;main.c:156: I2C_Write(0x05);
+    000001AB 3E 05            [ 7]  401 	ld	a, #0x05
+    000001AD CDr00r00         [17]  402 	call	_I2C_Write
+                                    403 ;main.c:157: I2C_Write(0x01);
+    000001B0 3E 01            [ 7]  404 	ld	a, #0x01
+    000001B2 CDr00r00         [17]  405 	call	_I2C_Write
+                                    406 ;main.c:158: I2C_Close();
+                                    407 ;main.c:159: }
+    000001B5 C3r00r00         [10]  408 	jp	_I2C_Close
+                                    409 	.area _CODE
+                                    410 	.area _INITIALIZER
+                                    411 	.area _CABS (ABS)

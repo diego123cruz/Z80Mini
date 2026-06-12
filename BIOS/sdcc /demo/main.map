@@ -18,21 +18,21 @@ Area                                    Addr        Size        Decimal Bytes (A
      00000000  s__DABS                         
      00000004  l__INITIALIZED                  
      00000004  l__INITIALIZER                  
-     00000192  l__CODE                         
+     00000186  l__CODE                         
      00008000  s__CODE                         
-     00008192  s__DATA                         
-     00008192  s__INITIALIZED                  
-     00008196  s__GSFINAL                      
-     00008196  s__GSINIT                       
-     00008196  s__HOME                         
-     00008196  s__INITIALIZER                  
+     00008186  s__DATA                         
+     00008186  s__INITIALIZED                  
+     0000818A  s__GSFINAL                      
+     0000818A  s__GSINIT                       
+     0000818A  s__HOME                         
+     0000818A  s__INITIALIZER                  
 
 ASxxxx Linker V03.00/V05.40 + sdld,  page 2.
 Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-_CODE                               00008000    00000192 =         402. bytes (REL,CON)
+_CODE                               00008000    00000186 =         390. bytes (REL,CON)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
@@ -63,61 +63,61 @@ _CODE                               00008000    00000192 =         402. bytes (R
      000080E6  _setGrMode                         main
      000080EA  _setTxtMode                        main
      000080EE  _drawBox                           main
-     000080FE  _drawLine                          main
-     0000810B  _fillBox                           main
-     00008118  _drawCircle                        main
-     00008123  _fillCircle                        main
-     0000812E  _drawPixel                         main
-     00008134  _clearPixel                        main
-     0000813A  _flipPixel                         main
-     00008140  _plotToLCD                         main
-     00008144  _printString                       main
-     00008148  _printChars                        main
-     0000814F  _setBufClear                       main
-     00008153  _setBufNoClear                     main
-     00008157  _drawGraphic                       main
-     0000815B  _invGraphic                        main
-     0000815F  _initTerminal                      main
-     00008163  _sendCharToLCD                     main
-     00008167  _sendStringToLCD                   main
-     0000816E  _sendRegToLCD                      main
-     00008172  _sendHLToLCD                       main
-     00008176  _setCursor                         main
-     0000817C  _getCursor                         main
-     00008182  _displayCursor                     main
-     00008186  _autoLF                            main
+     000080F8  _drawLine                          main
+     00008102  _fillBox                           main
+     0000810C  _drawCircle                        main
+     00008117  _fillCircle                        main
+     00008122  _drawPixel                         main
+     00008128  _clearPixel                        main
+     0000812E  _flipPixel                         main
+     00008134  _plotToLCD                         main
+     00008138  _printString                       main
+     0000813C  _printChars                        main
+     00008143  _setBufClear                       main
+     00008147  _setBufNoClear                     main
+     0000814B  _drawGraphic                       main
+     0000814F  _invGraphic                        main
+     00008153  _initTerminal                      main
+     00008157  _sendCharToLCD                     main
+     0000815B  _sendStringToLCD                   main
+     00008162  _sendRegToLCD                      main
+     00008166  _sendHLToLCD                       main
+     0000816A  _setCursor                         main
+     00008170  _getCursor                         main
+     00008176  _displayCursor                     main
+     0000817A  _autoLF                            main
 ASxxxx Linker V03.00/V05.40 + sdld,  page 3.
 Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-_CODE                               00008000    00000192 =         402. bytes (REL,CON)
+_CODE                               00008000    00000186 =         390. bytes (REL,CON)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
-     0000818A  _underline                         main
-     0000818E  _plotAlways                        main
+     0000817E  _underline                         main
+     00008182  _plotAlways                        main
 
 ASxxxx Linker V03.00/V05.40 + sdld,  page 4.
 Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-_INITIALIZED                        00008192    00000004 =           4. bytes (REL,CON)
+_INITIALIZED                        00008186    00000004 =           4. bytes (REL,CON)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
-     00008192  _x                                 main
-     00008193  _y                                 main
-     00008194  _vx                                main
-     00008195  _vy                                main
+     00008186  _x                                 main
+     00008187  _y                                 main
+     00008188  _vx                                main
+     00008189  _vy                                main
 
 ASxxxx Linker V03.00/V05.40 + sdld,  page 5.
 Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-_INITIALIZER                        00008196    00000004 =           4. bytes (REL,CON)
+_INITIALIZER                        0000818A    00000004 =           4. bytes (REL,CON)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------

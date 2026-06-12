@@ -1,4 +1,4 @@
-#include "Z80Mini.h"
+#include "../Z80Mini.h"
 
     byte x = 1;
     byte y = 1;
@@ -20,7 +20,7 @@ void main(void) {
         sendStringToLCD("Z80Mini");
 
 
-        if(x > 80) {
+        if(x > 84) {
             vx=-2;
         }
         if (y > 55) {
@@ -43,4 +43,4 @@ void main(void) {
 
 }
 
-#include "Z80Mini.c"
+#include "../Z80Mini.c"

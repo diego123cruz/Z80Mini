@@ -263,19 +263,14 @@ __asm
 
     ld  b, a
     ld  c, l
-
-    ld  hl, #2
-    add hl, sp
-
-    ld  d, (hl)
-    inc hl
-    ld  e, (hl)
+    
+    pop hl
+    ex (sp), hl
+    
+    ld d, l
+    ld e, h
 
     call 0x014B
-    
-    pop hl      ; retorno
-    pop de      ; remove x1/y1
-    push hl     ; restaura retorno
 
     ret
 
@@ -295,25 +290,19 @@ void drawLine(
     y1;
 
 __asm
-
     ld  b, a
     ld  c, l
-
-    ld  hl, #2
-    add  hl, sp
-
-    ld   d, (hl)
-    inc  hl
-    ld  e, (hl)
+    
+    pop hl
+    ex (sp), hl
+    
+    ld d, l
+    ld e, h
 
     call 0x014E
-
-    pop hl      ; retorno
-    pop de      ; remove x1/y1
-    push hl     ; restaura retorno
-
+    
     ret
-
+ 
 __endasm;
 }
 
@@ -333,19 +322,14 @@ __asm
 
     ld  b, a
     ld  c, l
-
-    ld  hl, #2
-    add  hl, sp
-
-    ld   d, (hl)
-    inc  hl
-    ld  e, (hl)
+    
+    pop hl
+    ex (sp), hl
+    
+    ld d, l
+    ld e, h
 
     call 0x0157
-
-    pop hl      ; retorno
-    pop de      ; remove x1/y1
-    push hl     ; restaura retorno
     
     ret
 
@@ -366,18 +350,16 @@ __asm
 
     ld  b, a
     ld  c, l
+    
+    pop hl
+    pop de
+    push de
+    inc sp
 
-    ld  hl, #2
-    add hl, sp
-
-    ld  e, (hl)
+	push hl
 
     call 0x0151
-
-    pop hl      ; retorno
-    pop de      ; remove x1/y1
-    push hl     ; restaura retorno
-
+   
     ret
 
 __endasm;
@@ -397,17 +379,15 @@ __asm
 
     ld  b, a
     ld  c, l
+    
+    pop hl
+    pop de
+    push de
+    inc sp
 
-    ld  hl, #2
-    add hl, sp
-
-    ld  e, (hl)
+	push hl
 
     call 0x015A
-
-    pop hl      ; retorno
-    pop de      ; remove x1/y1
-    push hl     ; restaura retorno
 
     ret
 

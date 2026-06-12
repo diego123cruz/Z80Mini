@@ -1,0 +1,76 @@
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80 / R800)                          Page 1
+Hexadecimal [32-Bits]
+
+
+
+                                      1 ;--------------------------------------------------------------------------
+                                      2 ;  crt0.s - Generic crt0.s for a Z80
+                                      3 ;
+                                      4 ;  Copyright (C) 2000, Michael Hope
+                                      5 ;
+                                      6 ;  This library is free software; you can redistribute it and/or modify it
+                                      7 ;  under the terms of the GNU General Public License as published by the
+                                      8 ;  Free Software Foundation; either version 2, or (at your option) any
+                                      9 ;  later version.
+                                     10 ;
+                                     11 ;  This library is distributed in the hope that it will be useful,
+                                     12 ;  but WITHOUT ANY WARRANTY; without even the implied warranty of
+                                     13 ;  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+                                     14 ;  GNU General Public License for more details.
+                                     15 ;
+                                     16 ;  You should have received a copy of the GNU General Public License 
+                                     17 ;  along with this library; see the file COPYING. If not, write to the
+                                     18 ;  Free Software Foundation, 51 Franklin Street, Fifth Floor, Boston,
+                                     19 ;   MA 02110-1301, USA.
+                                     20 ;
+                                     21 ;  As a special exception, if you link this library with other files,
+                                     22 ;  some of which are compiled with SDCC, to produce an executable,
+                                     23 ;  this library does not by itself cause the resulting executable to
+                                     24 ;  be covered by the GNU General Public License. This exception does
+                                     25 ;  not however invalidate any other reasons why the executable file
+                                     26 ;  might be covered by the GNU General Public License.
+                                     27 ;--------------------------------------------------------------------------
+                                     28 
+                                     29 	.module crt0
+                                     30 	.globl	_main
+                                     31 
+                                     32 	.area	_MAIN
+    00000000 CD 08 00         [17]   33         call    gsinit
+    00000003 CD 00 00         [17]   34 	call	_main
+    00000006 F3               [ 4]   35 	di
+    00000007 76               [ 4]   36 	halt
+                                     37 
+                                     38 	;///////////////////////////////////////////////////////////////////////
+    00000008                         39 gsinit:
+    00000008 01 00 00         [10]   40 	ld	bc, #l__INITIALIZER
+    0000000B 78               [ 4]   41 	ld	a, b
+    0000000C B1               [ 4]   42 	or	a, c
+    0000000D 28 08            [12]   43 	jr	Z, gsinit_next
+    0000000F 11 00 00         [10]   44 	ld	de, #s__INITIALIZED
+    00000012 21 00 00         [10]   45 	ld	hl, #s__INITIALIZER
+    00000015 ED B0            [21]   46 	ldir
+    00000017                         47 gsinit_next:
+    00000017 C9               [10]   48         ret
+                                     49 
+                                     50 	;; Ordering of segments for the linker.
+                                     51 	.area	_HOME
+                                     52 	.area	_CODE
+                                     53 	.area	_INITIALIZER
+                                     54 	.area   _GSINIT
+                                     55 	.area   _GSFINAL
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80 / R800)                          Page 2
+Hexadecimal [32-Bits]
+
+
+
+                                     56         .area   _MAIN
+                                     57 	.area	_DATA
+                                     58 	.area	_INITIALIZED
+                                     59 	.area	_BSEG
+                                     60 	.area   _BSS
+                                     61 	.area   _HEAP
+                                     62 
+                                     63 	.area   _CODE
+                                     64 
+                                     65 	.area   _GSFINAL
+                                     66 

@@ -1,0 +1,53 @@
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80 / R800)                          Page 1
+Hexadecimal [32-Bits]
+
+Symbol Table
+
+    .__.$$$.                                                    =   00002710 L
+    .__.ABS.                                                    =   00000000 G
+    .__.CPU.                                                    =   00000000 L
+    .__.H$L.                                                    =   00000000 L
+    _I2C_Close                                                      ******** GX
+    _I2C_Open                                                       ******** GX
+    _I2C_Write                                                      ******** GX
+  1 _bx                                                             00000006 GR
+  1 _by                                                             00000007 GR
+    _clearGBUF                                                      ******** GX
+  1 _count                                                          00000004 GR
+    _delay                                                          ******** GX
+    _displayCursor                                                  ******** GX
+    _drawCircle                                                     ******** GX
+    _drawLine                                                       ******** GX
+  1 _erros                                                          00000005 GR
+  0 _fireInvSound                                                   000001A6 GR
+  0 _gameoverSound                                                  00000194 GR
+  0 _hitSound                                                       00000182 GR
+  0 _incPontos                                                      00000150 GR
+  1 _input                                                          00000001 GR
+    _keyboardA                                                      ******** GX
+  0 _main                                                           00000000 GR
+  0 _new_ball                                                       00000143 GR
+    _plotToLCD                                                      ******** GX
+  1 _pontos                                                         00000000 GR
+  1 _px                                                             00000002 GR
+  1 _py                                                             00000003 GR
+    _rand                                                           ******** GX
+  0 _showPontos                                                     0000015A GR
+  0 _showVidas                                                      0000016E GR
+
+
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (Zilog Z80 / Hitachi HD64180 / ZX-Next / eZ80 / R800)                          Page 2
+Hexadecimal [32-Bits]
+
+Area Table
+
+   0 _CODE                                      size      1B8   flags    0
+   1 _DATA                                      size        8   flags    0
+   2 _INITIALIZED                               size        0   flags    0
+   3 _DABS                                      size        0   flags    8
+   4 _HOME                                      size        0   flags    0
+   5 _GSINIT                                    size        0   flags    0
+   6 _GSFINAL                                   size        0   flags    0
+   7 _INITIALIZER                               size        0   flags    0
+   8 _CABS                                      size        0   flags    8
+
