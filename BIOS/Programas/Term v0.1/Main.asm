@@ -1,5 +1,13 @@
 #include "../Z80MiniAPI.asm"
 
+;       TESTES
+;
+;       ATW "wifiName,WifiSenha"
+;
+;       ATD "bbs.retrocampus.com"
+;
+;       atualiza o display quando é preciona uma tecla, a cada 3 chars recebidos (PLOT_EVERY) ou a cada $0800 ticks.
+
 SER_BUFSIZE     .EQU  $200    ; 512 bytes
 SER_FULLSIZE    .EQU  $80
 SER_EMPTYSIZE   .EQU  5
@@ -44,6 +52,9 @@ inicio:
         XOR     A
         LD      (plotCounter), A
 
+        LD HL, $0800
+        LD (tick), HL
+
 
         ; Configura serial B como padrao
         CALL    setDefaultSerialB
@@ -64,8 +75,8 @@ inicio:
 ; Loop principal — le byte do buffer e exibe no LCD
 ;------------------------------------------------------------------------------
 LOOP:
-        CALL    coninB
-        CALL    PUTCHAR
+        CALL    coninB        ; pega do buffer se tiver, le teclado se tecla e retorna
+        CALL    PUTCHAR       ; mostra no display
         JP      LOOP
 
 ;------------------------------------------------------------------------------
@@ -110,6 +121,14 @@ notBWrap:
         EI
         RETI
 
+
+updateDisplay:
+        call plotToLCD
+        LD HL, $0800
+        LD (tick), HL
+        ret
+
+
 ;------------------------------------------------------------------------------
 ; coninB — aguarda e retorna um byte do buffer serial B em A
 ; Também verifica teclado: se tecla pressionada, chama getLine
@@ -117,7 +136,16 @@ notBWrap:
 coninB:
 waitForCharB:
         CALL    keyboardA
-        CALL    C,getLine       ; tecla pressionada: envia linha via serial
+        CALL    C, keyboardSend       ; tecla pressionada: envia linha via serial
+
+        ;tick para atualizar o display
+        ld HL, (tick)
+        dec HL
+        LD (tick), HL
+        ld a, h
+        or l
+        cp 0
+        call z, updateDisplay
 
         ; Verifica se buffer tem dados (16 bits)
         LD      HL,(serBBufUsed)
@@ -156,9 +184,19 @@ notRdWrapB:
 ;------------------------------------------------------------------------------
 ; getLine — captura linha do teclado e envia pela serial
 ;------------------------------------------------------------------------------
-getLine:
-        CALL    GETLINE_KEY
-        RET
+keyboardSend:
+        call keyboardWaitA              ; pega char do teclado
+        CP  $F8                         ; UP key
+        JR  Z, keyboardSendDispOnly     ; Só manda para o display (comando scroll tela)
+        CP  $F7                         ; DOWN key
+        JR  Z, keyboardSendDispOnly     ; Só manda para o display (comando scroll tela)
+        call serialPrintA               ; envia direto pra serial, sem buffer..
+        LD A, PLOT_EVERY                ; forca mostrar
+        LD (plotCounter), A             ; força atualizar display
+        ret                             ; retorna
+keyboardSendDispOnly:
+        CALL    sendCharToLCD           ; manda para o display
+        RET                             ; retorna
 
 ;------------------------------------------------------------------------------
 ; PUTCHAR — exibe o caractere em A no LCD e atualiza display
@@ -191,66 +229,13 @@ PUTCHAR:
 PUTCHARdoPlot:
         XOR     A
         LD      (plotCounter), A
-        CALL    plotToLCD
+        CALL    updateDisplay
 
 PUTCHARskip:
         POP     HL
         POP     DE
         POP     BC
         RET
-
-
-PUTCHAR_NOW:
-        PUSH    BC
-        PUSH    DE
-        PUSH    HL
-        CALL    sendCharToLCD
-        CALL    plotToLCD
-        POP     HL
-        POP     DE
-        POP     BC
-        RET
-
-;------------------------------------------------------------------------------
-; GETLINE_KEY — lê linha do teclado com eco no LCD, envia pela serial ao Enter
-;------------------------------------------------------------------------------
-GETLINE_KEY:
-        LD      HL,LINEBUF
-        LD      B,255           ; máx 255 chars + NUL
-GETLINE_LOOP_KEY:
-        CALL    keyboardWaitA
-        CP      CR
-        JR      Z,GETLINE_DONE_KEY
-        CP      BKS
-        JR      Z,GETLINE_KEY_DEL
-        LD      C,A
-        LD      A,B
-        CP      0
-        JR      Z,GETLINE_LOOP_KEY  ; buffer cheio, ignora
-        LD      A,C
-        LD      (HL),A
-        INC     HL
-        DEC     B
-        CALL    PUTCHAR_NOW             ; eco no LCD
-        JR      GETLINE_LOOP_KEY
-GETLINE_DONE_KEY:
-        LD      (HL),CR
-        INC     HL
-        LD      (HL),NUL            ; termina string
-        LD      HL,LINEBUF
-        CALL    serialPrintStr      ; envia pela serial
-        RET
-GETLINE_KEY_DEL:
-        LD      D,A             ; salva A
-        LD      A,B
-        CP      255             ; buffer vazio? (nenhum char digitado)
-        JR      Z,GETLINE_LOOP_KEY  ; sim, ignora backspace
-        DEC     HL
-        LD      (HL),BKS
-        INC     B
-        LD      A,D             ; restaura A
-        CALL    PUTCHAR_NOW
-        JR      GETLINE_LOOP_KEY
 
 ;------------------------------------------------------------------------------
 ; Dados
@@ -260,9 +245,9 @@ msg:    db      "Term v0.1", CR, 0
 ;------------------------------------------------------------------------------
 ; RAM
 ;------------------------------------------------------------------------------
-LINEBUF:        DS      255
 serBBuf:        .ds     SER_BUFSIZE
 serBInPtr:      .ds     2
 serBRdPtr:      .ds     2
 serBBufUsed:    .ds     2
 plotCounter:    .ds     1
+tick:           .ds     2
