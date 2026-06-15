@@ -42,7 +42,7 @@ def draw_board(board):
     b = board
     lines = []
     lines.append("    1 2 3")
-    lines.append("  -------")
+    lines.append("   ______")
     lines.append(f"a | {b[0]} {b[1]} {b[2]}")
     lines.append(f"b | {b[3]} {b[4]} {b[5]}")
     lines.append(f"c | {b[6]} {b[7]} {b[8]}")
@@ -101,8 +101,8 @@ def play(conn, helpers):
         "Jogue: letra+num\n"
         "ex: a1, b2, c3\n"
         "\n"
-        "   1 2 3\n"
-        "  -------\n"
+        "    1 2 3\n"
+        "  _______\n"
         "a |\n"
         "b |\n"
         "c |\n"

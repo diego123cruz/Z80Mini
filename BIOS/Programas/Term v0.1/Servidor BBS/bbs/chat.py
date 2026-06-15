@@ -52,8 +52,8 @@ def play(conn, helpers):
                 while queue:
                     sender, text = queue.pop(0)
                     line = f"{sender}: {text}"
-                    if len(line) > 20:
-                        line = line[:19] + ">"
+                    if len(line) > 161:
+                        line = line[:160] + ">"
                     send(line + "\n")
                 send("> ")
 
@@ -69,6 +69,6 @@ def play(conn, helpers):
 
             if line.strip():
                 broadcast(name, line.strip(), exclude=client_info)
-                send(f"\n(voce) {line.strip()[:14]}\n> ")
+                send(f"\n[EU] {line.strip()[:160]}\n> ")
     finally:
         broadcast("*", f"{name} saiu do chat", exclude=client_info)

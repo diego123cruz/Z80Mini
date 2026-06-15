@@ -1,12 +1,52 @@
 #include "../Z80MiniAPI.asm"
 
-;       TESTES
+; ------------------------------------------------------------
+; Z80Mini + Zimodem
 ;
-;       ATW "wifiName,WifiSenha"
+; Comandos úteis:
 ;
-;       ATD "bbs.retrocampus.com"
+;   AT
+;       Testa comunicação com o modem
 ;
-;       atualiza o display quando é preciona uma tecla, a cada 3 chars recebidos (PLOT_EVERY) ou a cada $0800 ticks.
+;   A/
+;	Repete último comando
+;
+;   AT+CONFIG
+;	Setup inicia para configurar o wifi e outros
+;
+;   ATW "WifiName,WifiSenha"
+;       Conecta à rede Wi-Fi
+;
+;   ATI2
+;       Mostra o endereço IP atual
+;
+;   ATI3
+;       Mostra a rede Wi-Fi conectada
+;
+;   ATD "ip:porta"
+;       Conecta a um servidor TCP/Telnet
+;       Ex: ATD "192.168.1.100:2323"
+;
+;   +++
+;       Retorna ao modo de comando
+;
+;   ATH
+;       Encerra a conexão atual
+;
+;   ATA2323
+;       Escuta conexões na porta 2323
+;   (aguarda RING)
+;
+;   ATA                 
+;	Atende a chamada
+;
+; ------------------------------------------------------------
+; Atualiza o display quando uma tecla é pressionada,
+; a cada 3 caracteres recebidos (PLOT_EVERY)
+; ou a cada $0800 ticks.
+; ------------------------------------------------------------
+
+
 
 SER_BUFSIZE     .EQU  $200    ; 512 bytes
 SER_FULLSIZE    .EQU  $80
@@ -131,7 +171,7 @@ updateDisplay:
 
 ;------------------------------------------------------------------------------
 ; coninB — aguarda e retorna um byte do buffer serial B em A
-; Também verifica teclado: se tecla pressionada, chama getLine
+; Também verifica teclado: se tecla pressionada, chama keyboardSend
 ;------------------------------------------------------------------------------
 coninB:
 waitForCharB:
@@ -182,7 +222,7 @@ notRdWrapB:
         RET
 
 ;------------------------------------------------------------------------------
-; getLine — captura linha do teclado e envia pela serial
+; keyboardSend — pega a tecla e envia para a serial, tbm trata teclas UP/DOWN scroll screen
 ;------------------------------------------------------------------------------
 keyboardSend:
         call keyboardWaitA              ; pega char do teclado
