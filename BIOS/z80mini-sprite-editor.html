@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Z80Mini Sprite Editor</title>
+<style>
+  :root {
+    --bg:        #0d0f0e;
+    --panel:     #141714;
+    --border:    #2a2e2a;
+    --accent:    #39ff5a;
+    --accent-dk: #1a7a28;
+    --muted:     #4a5249;
+    --text:      #c8d4c8;
+    --text-dim:  #6a7a69;
+    --pixel-off: #0a0c0a;
+    --pixel-on:  #ffffff;
+    --grid-line: #1e221e;
+    --danger:    #ff4444;
+    --warn:      #ffaa00;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+  }
+
+  header h1 {
+    font-size: 15px;
+    font-weight: bold;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  header .subtitle {
+    color: var(--text-dim);
+    font-size: 11px;
+  }
+
+  .main {
+    display: flex;
+    flex: 1;
+    gap: 0;
+    overflow: hidden;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 220px;
+    min-width: 220px;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    overflow-y: auto;
+  }
+
+  .section {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-title {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+
+  label {
+    display: block;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 3px;
+  }
+
+  input[type="number"], select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 5px 8px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    border-radius: 3px;
+    outline: none;
+    margin-bottom: 8px;
+    -moz-appearance: textfield;
+  }
+  input[type="number"]::-webkit-inner-spin-button { opacity: 0.4; }
+  input[type="number"]:focus, select:focus {
+    border-color: var(--accent-dk);
+  }
+
+  .dim-row {
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+  }
+  .dim-row > div { flex: 1; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 7px 10px;
+    margin-bottom: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    border-radius: 3px;
+    text-align: left;
+    transition: border-color 0.1s, color 0.1s, background 0.1s;
+    letter-spacing: 0.02em;
+  }
+  .btn:hover { border-color: var(--accent-dk); color: var(--accent); }
+  .btn.primary {
+    border-color: var(--accent-dk);
+    color: var(--accent);
+    background: rgba(57,255,90,0.05);
+  }
+  .btn.primary:hover { background: rgba(57,255,90,0.12); }
+  .btn.danger { color: var(--danger); border-color: #441111; }
+  .btn.danger:hover { background: rgba(255,68,68,0.08); border-color: var(--danger); }
+  .btn.warn { color: var(--warn); border-color: #443300; }
+  .btn.warn:hover { background: rgba(255,170,0,0.08); border-color: var(--warn); }
+
+  .btn-icon { margin-right: 6px; }
+
+  /* ── TOOLS ── */
+  .tool-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  .tool-btn {
+    flex: 1;
+    padding: 8px 4px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    border-radius: 3px;
+    text-align: center;
+    transition: all 0.1s;
+  }
+  .tool-btn:hover { border-color: var(--accent-dk); color: var(--accent); }
+  .tool-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(57,255,90,0.08);
+  }
+  .tool-icon { font-size: 16px; display: block; margin-bottom: 2px; }
+
+  /* ── ZOOM ── */
+  .zoom-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .zoom-row button {
+    width: 26px; height: 26px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 3px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .zoom-row button:hover { border-color: var(--accent-dk); color: var(--accent); }
+  .zoom-val { font-size: 12px; color: var(--accent); min-width: 38px; text-align: center; }
+
+  /* ── INFO ── */
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+  .info-row span:last-child { color: var(--text); }
+
+  /* ── GRID TOGGLE ── */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    font-size: 11px;
+    color: var(--text-dim);
+    cursor: pointer;
+    user-select: none;
+  }
+  .toggle-row input[type=checkbox] { accent-color: var(--accent); cursor: pointer; }
+
+  /* ── CANVAS AREA ── */
+  .canvas-area {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: auto;
+    background: var(--bg);
+    position: relative;
+    padding: 30px;
+  }
+
+  #spriteCanvas {
+    cursor: crosshair;
+    image-rendering: pixelated;
+    display: block;
+    /* checkerboard bg to signal canvas bounds */
+    background-image:
+      linear-gradient(45deg, #181a18 25%, transparent 25%),
+      linear-gradient(-45deg, #181a18 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, #181a18 75%),
+      linear-gradient(-45deg, transparent 75%, #181a18 75%);
+    background-size: 12px 12px;
+    background-position: 0 0, 0 6px, 6px -6px, -6px 0px;
+  }
+
+  /* ── STATUS BAR ── */
+  .statusbar {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 5px 16px;
+    border-top: 1px solid var(--border);
+    background: var(--panel);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .statusbar span { color: var(--text); }
+  .statusbar .cursor-pos { color: var(--accent); }
+
+  /* ── EXPORT MODAL ── */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    width: 560px;
+    max-width: 96vw;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+  }
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-header h2 { font-size: 13px; color: var(--accent); letter-spacing: 0.06em; }
+  .modal-close {
+    background: none; border: none;
+    color: var(--text-dim); font-size: 18px; cursor: pointer;
+  }
+  .modal-close:hover { color: var(--text); }
+
+  .modal-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-tab {
+    flex: 1;
+    padding: 9px;
+    background: none;
+    border: none;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.1s;
+  }
+  .modal-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .modal-tab:hover { color: var(--text); }
+
+  .modal-body { padding: 16px 18px; overflow-y: auto; flex: 1; }
+
+  .options-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .option-group { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 120px; }
+
+  pre#exportCode {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 12px;
+    font-size: 11px;
+    line-height: 1.6;
+    color: #9be89b;
+    border-radius: 4px;
+    overflow: auto;
+    max-height: 300px;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .copy-btn {
+    margin-top: 10px;
+    padding: 7px 16px;
+    background: rgba(57,255,90,0.07);
+    border: 1px solid var(--accent-dk);
+    color: var(--accent);
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: background 0.1s;
+  }
+  .copy-btn:hover { background: rgba(57,255,90,0.15); }
+
+  .preview-block {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 14px;
+  }
+  #exportPreview {
+    image-rendering: pixelated;
+    border: 1px solid var(--border);
+    background: #fff;
+  }
+  .preview-info { font-size: 11px; color: var(--text-dim); line-height: 1.8; }
+  .preview-info span { color: var(--text); }
+
+  /* confirm dialog */
+  .confirm-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+  .confirm-overlay.open { display: flex; }
+  .confirm-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 24px 28px;
+    text-align: center;
+    max-width: 320px;
+  }
+  .confirm-box p { margin-bottom: 18px; line-height: 1.5; }
+  .confirm-row { display: flex; gap: 10px; justify-content: center; }
+  .confirm-row button {
+    padding: 7px 20px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    transition: all 0.1s;
+  }
+  .confirm-row .ok { border-color: #441111; color: var(--danger); }
+  .confirm-row .ok:hover { background: rgba(255,68,68,0.1); }
+  .confirm-row .cancel:hover { border-color: var(--accent-dk); color: var(--accent); }
+
+  /* pixel preview strip */
+  #previewStrip {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+  }
+  #previewStrip canvas {
+    image-rendering: pixelated;
+    border: 1px solid var(--border);
+  }
+  #previewStrip .strip-label { font-size: 10px; color: var(--text-dim); margin-right: 4px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Z80Mini Sprite Editor</h1>
+  <span class="subtitle">monocromático · bitmap · export Z80 ASM</span>
+</header>
+
+<!-- preview strip (1x, 2x, 4x) -->
+<div id="previewStrip">
+  <span class="strip-label">PREVIEW</span>
+  <canvas id="prev1" title="1:1"></canvas>
+  <canvas id="prev2" title="2x"></canvas>
+  <canvas id="prev4" title="4x"></canvas>
+</div>
+
+<div class="main">
+  <!-- ── SIDEBAR ── -->
+  <div class="sidebar">
+
+    <div class="section">
+      <div class="section-title">Dimensões</div>
+      <div class="dim-row">
+        <div>
+          <label>Largura</label>
+          <input type="number" id="inpW" value="8" min="1" max="128">
+        </div>
+        <div>
+          <label>Altura</label>
+          <input type="number" id="inpH" value="8" min="1" max="128">
+        </div>
+      </div>
+      <div style="margin-bottom:8px">
+        <label>Presets</label>
+        <select id="presetSel">
+          <option value="">— escolha —</option>
+          <option value="8,8">8 × 8</option>
+          <option value="8,16">8 × 16</option>
+          <option value="16,8">16 × 8</option>
+          <option value="16,16">16 × 16</option>
+          <option value="24,8">24 × 8</option>
+          <option value="8,24">8 × 24</option>
+          <option value="32,32">32 × 32</option>
+          <option value="128,64">128 × 64</option>
+        </select>
+      </div>
+      <button class="btn danger" id="btnNew">⬜ <span class="btn-icon"></span>Nova Imagem</button>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Ferramenta</div>
+      <div class="tool-row">
+        <button class="tool-btn active" id="toolPen" title="Lápis (click esquerdo)">
+          <span class="tool-icon">✏️</span>Lápis
+        </button>
+        <button class="tool-btn" id="toolErase" title="Borracha (click direito)">
+          <span class="tool-icon">🔲</span>Borracha
+        </button>
+      </div>
+      <div class="tool-row">
+        <button class="tool-btn" id="toolFill" title="Preencher tudo">
+          <span class="tool-icon">◼</span>Fill All
+        </button>
+        <button class="tool-btn" id="toolClear" title="Limpar tudo">
+          <span class="tool-icon">◻</span>Clear All
+        </button>
+      </div>
+      <div class="toggle-row">
+        <input type="checkbox" id="chkInvert"> <label for="chkInvert" style="display:inline;margin:0;cursor:pointer">Invertido (preto=0)</label>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Zoom</div>
+      <div class="zoom-row">
+        <button id="btnZoomOut">−</button>
+        <span class="zoom-val" id="zoomLabel">16×</span>
+        <button id="btnZoomIn">+</button>
+      </div>
+      <div class="toggle-row">
+        <input type="checkbox" id="chkGrid" checked> <label for="chkGrid" style="display:inline;margin:0;cursor:pointer">Mostrar grade</label>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Informações</div>
+      <div class="info-row"><span>Tamanho</span><span id="infoSize">8 × 8</span></div>
+      <div class="info-row"><span>Bytes</span><span id="infoBytes">8</span></div>
+      <div class="info-row"><span>Pixels on</span><span id="infoOn">0</span></div>
+      <div class="info-row"><span>Cursor</span><span id="infoCursor" class="cursor-pos">—</span></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Exportar</div>
+      <button class="btn primary" id="btnExport">⬛ Exportar ASM / Array</button>
+      <button class="btn warn" id="btnSaveBmp">💾 Salvar como BMP</button>
+    </div>
+
+  </div>
+
+  <!-- ── CANVAS ── -->
+  <div class="canvas-area" id="canvasArea">
+    <canvas id="spriteCanvas"></canvas>
+  </div>
+</div>
+
+<div class="statusbar">
+  <span>Z80Mini Sprite Editor</span>
+  <span>LMB = lápis &nbsp;|&nbsp; RMB = borracha</span>
+  <span id="sbPos">X:— Y:—</span>
+</div>
+
+<!-- ── EXPORT MODAL ── -->
+<div class="modal-overlay" id="exportModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>EXPORTAR</h2>
+      <button class="modal-close" id="btnCloseModal">✕</button>
+    </div>
+    <div class="modal-tabs">
+      <button class="modal-tab active" data-tab="asm">Z80 ASM (DB)</button>
+      <button class="modal-tab" data-tab="c">C Array</button>
+      <button class="modal-tab" data-tab="hex">Hex puro</button>
+      <button class="modal-tab" data-tab="bin">Binário</button>
+    </div>
+    <div class="modal-body">
+      <div class="preview-block">
+        <canvas id="exportPreview"></canvas>
+        <div class="preview-info">
+          Dimensão: <span id="ei_dim">—</span><br>
+          Bytes: <span id="ei_bytes">—</span><br>
+          Ordem: <span id="ei_order">linha × byte</span><br>
+          Bit MSB: <span id="ei_msb">pixel esquerdo</span>
+        </div>
+      </div>
+
+      <div class="options-row">
+        <div class="option-group">
+          <label>Nome do label/variável</label>
+          <input type="text" id="expLabel" value="sprite_data" style="margin-bottom:0">
+        </div>
+        <div class="option-group">
+          <label>Bytes por linha</label>
+          <select id="expCols" style="margin-bottom:0">
+            <option value="1">1 (1 byte por largura)</option>
+            <option value="4" selected>4 bytes/linha</option>
+            <option value="8">8 bytes/linha</option>
+            <option value="0">Tudo em uma linha</option>
+          </select>
+        </div>
+      </div>
+
+      <pre id="exportCode"></pre>
+      <button class="copy-btn" id="btnCopyCode">📋 Copiar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── CONFIRM DIALOG ── -->
+<div class="confirm-overlay" id="confirmDlg">
+  <div class="confirm-box">
+    <p id="confirmMsg">Tem certeza?</p>
+    <div class="confirm-row">
+      <button class="ok" id="confirmOk">Sim, limpar</button>
+      <button class="cancel" id="confirmCancel">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════
+let W = 8, H = 8;
+let pixels = new Uint8Array(W * H); // 1 = black
+let zoom = 16;
+let showGrid = true;
+let activeTool = 'pen'; // pen | erase | fill | clear
+let isDrawing = false;
+let lastTool = 'pen'; // pen or erase while dragging
+
+const canvas = document.getElementById('spriteCanvas');
+const ctx    = canvas.getContext('2d');
+
+// ═══════════════════════════════════════════
+//  INIT / RESIZE CANVAS
+// ═══════════════════════════════════════════
+function initCanvas() {
+  canvas.width  = W * zoom;
+  canvas.height = H * zoom;
+  render();
+  updateInfo();
+  updatePreviews();
+}
+
+// ═══════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════
+function render() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // pixels
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      ctx.fillStyle = pixels[y * W + x] ? '#ffffff' : '#0a0c0a';
+      ctx.fillRect(x * zoom, y * zoom, zoom, zoom);
+    }
+  }
+
+  // grid
+  if (showGrid && zoom >= 4) {
+    ctx.strokeStyle = '#1e221e';
+    ctx.lineWidth = 1;
+    for (let x = 0; x <= W; x++) {
+      ctx.beginPath();
+      ctx.moveTo(x * zoom + 0.5, 0);
+      ctx.lineTo(x * zoom + 0.5, H * zoom);
+      ctx.stroke();
+    }
+    for (let y = 0; y <= H; y++) {
+      ctx.beginPath();
+      ctx.moveTo(0, y * zoom + 0.5);
+      ctx.lineTo(W * zoom, y * zoom + 0.5);
+      ctx.stroke();
+    }
+    // 8-pixel group markers (brighter lines every 8px)
+    ctx.strokeStyle = '#2e342e';
+    for (let x = 0; x <= W; x += 8) {
+      ctx.beginPath();
+      ctx.moveTo(x * zoom + 0.5, 0);
+      ctx.lineTo(x * zoom + 0.5, H * zoom);
+      ctx.stroke();
+    }
+    for (let y = 0; y <= H; y += 8) {
+      ctx.beginPath();
+      ctx.moveTo(0, y * zoom + 0.5);
+      ctx.lineTo(W * zoom, y * zoom + 0.5);
+      ctx.stroke();
+    }
+  }
+}
+
+// ═══════════════════════════════════════════
+//  PREVIEW STRIP (1x, 2x, 4x)
+// ═══════════════════════════════════════════
+function updatePreviews() {
+  [['prev1',1],['prev2',2],['prev4',4]].forEach(([id, scale]) => {
+    const c = document.getElementById(id);
+    c.width  = W * scale;
+    c.height = H * scale;
+    const cx = c.getContext('2d');
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        cx.fillStyle = pixels[y * W + x] ? '#ffffff' : '#0a0c0a';
+        cx.fillRect(x * scale, y * scale, scale, scale);
+      }
+    }
+  });
+}
+
+// ═══════════════════════════════════════════
+//  INFO PANEL
+// ═══════════════════════════════════════════
+function updateInfo() {
+  document.getElementById('infoSize').textContent  = `${W} × ${H}`;
+  const bytesPerRow = Math.ceil(W / 8);
+  document.getElementById('infoBytes').textContent = bytesPerRow * H;
+  const on = pixels.reduce((a,v) => a + v, 0);
+  document.getElementById('infoOn').textContent    = on;
+}
+
+// ═══════════════════════════════════════════
+//  PIXEL OPERATIONS
+// ═══════════════════════════════════════════
+function getPixelCoord(e) {
+  const rect = canvas.getBoundingClientRect();
+  const x = Math.floor((e.clientX - rect.left) / zoom);
+  const y = Math.floor((e.clientY - rect.top)  / zoom);
+  return { x, y };
+}
+
+function setPixel(x, y, val) {
+  if (x < 0 || x >= W || y < 0 || y >= H) return;
+  pixels[y * W + x] = val;
+}
+
+function paintAt(e, force) {
+  const { x, y } = getPixelCoord(e);
+  if (x < 0 || x >= W || y < 0 || y >= H) return;
+  const val = lastTool === 'pen' ? 1 : 0;
+  setPixel(x, y, val);
+  render();
+  updateInfo();
+  updatePreviews();
+  document.getElementById('sbPos').textContent = `X:${x} Y:${y}`;
+  document.getElementById('infoCursor').textContent = `${x}, ${y}`;
+}
+
+canvas.addEventListener('mousedown', e => {
+  e.preventDefault();
+  if (activeTool === 'fill') { fillAll(1); return; }
+  if (activeTool === 'clear') { fillAll(0); return; }
+  isDrawing = true;
+  lastTool = e.button === 2 ? 'erase' : 'pen';
+  paintAt(e);
+});
+
+canvas.addEventListener('mousemove', e => {
+  const { x, y } = getPixelCoord(e);
+  if (x >= 0 && x < W && y >= 0 && y < H) {
+    document.getElementById('sbPos').textContent = `X:${x} Y:${y}`;
+    document.getElementById('infoCursor').textContent = `${x}, ${y}`;
+  }
+  if (!isDrawing) return;
+  paintAt(e);
+});
+
+canvas.addEventListener('mouseup', () => { isDrawing = false; });
+canvas.addEventListener('mouseleave', () => { isDrawing = false; });
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+// ═══════════════════════════════════════════
+//  FILL / CLEAR
+// ═══════════════════════════════════════════
+function fillAll(val) {
+  pixels.fill(val);
+  render(); updateInfo(); updatePreviews();
+}
+
+// ═══════════════════════════════════════════
+//  TOOLS
+// ═══════════════════════════════════════════
+function setTool(t) {
+  activeTool = t;
+  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tool' + t.charAt(0).toUpperCase() + t.slice(1)).classList.add('active');
+}
+
+document.getElementById('toolPen').addEventListener('click',   () => setTool('pen'));
+document.getElementById('toolErase').addEventListener('click', () => setTool('erase'));
+document.getElementById('toolFill').addEventListener('click',  () => setTool('fill'));
+document.getElementById('toolClear').addEventListener('click', () => setTool('clear'));
+
+// ═══════════════════════════════════════════
+//  ZOOM
+// ═══════════════════════════════════════════
+function setZoom(z) {
+  zoom = Math.max(1, Math.min(64, z));
+  document.getElementById('zoomLabel').textContent = zoom + '×';
+  canvas.width  = W * zoom;
+  canvas.height = H * zoom;
+  render();
+}
+
+document.getElementById('btnZoomIn').addEventListener('click',  () => setZoom(zoom * 2));
+document.getElementById('btnZoomOut').addEventListener('click', () => setZoom(Math.max(1, Math.floor(zoom / 2))));
+
+// scroll zoom
+document.getElementById('canvasArea').addEventListener('wheel', e => {
+  e.preventDefault();
+  if (e.deltaY < 0) setZoom(zoom < 32 ? zoom + 1 : zoom + 4);
+  else              setZoom(zoom > 1  ? zoom - 1 : 1);
+}, { passive: false });
+
+// ═══════════════════════════════════════════
+//  GRID TOGGLE
+// ═══════════════════════════════════════════
+document.getElementById('chkGrid').addEventListener('change', e => {
+  showGrid = e.target.checked;
+  render();
+});
+
+// ═══════════════════════════════════════════
+//  DIMENSION CHANGE
+// ═══════════════════════════════════════════
+function applyDimensions(newW, newH) {
+  if (newW < 1 || newH < 1 || newW > 512 || newH > 512) return;
+  const old = pixels.slice();
+  const oldW = W, oldH = H;
+  W = newW; H = newH;
+  pixels = new Uint8Array(W * H);
+  // copy overlap
+  const cW = Math.min(oldW, W), cH = Math.min(oldH, H);
+  for (let y = 0; y < cH; y++)
+    for (let x = 0; x < cW; x++)
+      pixels[y * W + x] = old[y * oldW + x];
+  document.getElementById('inpW').value = W;
+  document.getElementById('inpH').value = H;
+  initCanvas();
+}
+
+document.getElementById('inpW').addEventListener('change', e => {
+  applyDimensions(parseInt(e.target.value)||8, H);
+});
+document.getElementById('inpH').addEventListener('change', e => {
+  applyDimensions(W, parseInt(e.target.value)||8);
+});
+
+document.getElementById('presetSel').addEventListener('change', e => {
+  if (!e.target.value) return;
+  const [pw, ph] = e.target.value.split(',').map(Number);
+  applyDimensions(pw, ph);
+  e.target.value = '';
+});
+
+// ═══════════════════════════════════════════
+//  NEW IMAGE (confirm)
+// ═══════════════════════════════════════════
+function showConfirm(msg, okLabel, onOk) {
+  document.getElementById('confirmMsg').textContent = msg;
+  document.getElementById('confirmOk').textContent = okLabel;
+  document.getElementById('confirmDlg').classList.add('open');
+  const ok = document.getElementById('confirmOk');
+  const cancel = document.getElementById('confirmCancel');
+  const cleanup = () => {
+    document.getElementById('confirmDlg').classList.remove('open');
+    ok.replaceWith(ok.cloneNode(true));
+    cancel.replaceWith(cancel.cloneNode(true));
+  };
+  document.getElementById('confirmOk').addEventListener('click', () => { cleanup(); onOk(); }, { once: true });
+  document.getElementById('confirmCancel').addEventListener('click', cleanup, { once: true });
+}
+
+document.getElementById('btnNew').addEventListener('click', () => {
+  showConfirm('Isso vai apagar todos os pixels. Continuar?', 'Sim, limpar', () => {
+    pixels.fill(0);
+    render(); updateInfo(); updatePreviews();
+  });
+});
+
+// ═══════════════════════════════════════════
+//  BYTE ENCODING
+// ═══════════════════════════════════════════
+function getInverted() { return document.getElementById('chkInvert').checked; }
+
+function encodeBytes() {
+  const inverted = getInverted();
+  const bpr = Math.ceil(W / 8); // bytes per row
+  const out = [];
+  for (let y = 0; y < H; y++) {
+    for (let b = 0; b < bpr; b++) {
+      let byte = 0;
+      for (let bit = 0; bit < 8; bit++) {
+        const x = b * 8 + bit;
+        let val = (x < W) ? pixels[y * W + x] : 0;
+        if (inverted) val ^= 1;
+        if (val) byte |= (0x80 >> bit);
+      }
+      out.push(byte);
+    }
+  }
+  return out;
+}
+
+// ═══════════════════════════════════════════
+//  EXPORT MODAL
+// ═══════════════════════════════════════════
+let currentTab = 'asm';
+
+document.getElementById('btnExport').addEventListener('click', openExportModal);
+document.getElementById('btnCloseModal').addEventListener('click', () => {
+  document.getElementById('exportModal').classList.remove('open');
+});
+
+document.querySelectorAll('.modal-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    currentTab = tab.dataset.tab;
+    buildExportCode();
+  });
+});
+
+document.getElementById('expLabel').addEventListener('input', buildExportCode);
+document.getElementById('expCols').addEventListener('change', buildExportCode);
+document.getElementById('chkInvert').addEventListener('change', buildExportCode);
+
+function openExportModal() {
+  // preview canvas
+  const pc = document.getElementById('exportPreview');
+  const scale = Math.min(8, Math.max(1, Math.floor(200 / Math.max(W, H))));
+  pc.width  = W * scale;
+  pc.height = H * scale;
+  pc.style.width  = (W * scale) + 'px';
+  pc.style.height = (H * scale) + 'px';
+  const pcx = pc.getContext('2d');
+  pcx.imageSmoothingEnabled = false;
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      pcx.fillStyle = pixels[y * W + x] ? '#ffffff' : '#000000';
+      pcx.fillRect(x * scale, y * scale, scale, scale);
+    }
+
+  const bpr = Math.ceil(W / 8);
+  document.getElementById('ei_dim').textContent   = `${W} × ${H}`;
+  document.getElementById('ei_bytes').textContent = `${bpr * H}`;
+  document.getElementById('exportModal').classList.add('open');
+  buildExportCode();
+}
+
+function buildExportCode() {
+  const bytes  = encodeBytes();
+  const label  = document.getElementById('expLabel').value || 'sprite_data';
+  const colsVal = parseInt(document.getElementById('expCols').value);
+  const bpr    = Math.ceil(W / 8);
+  const cols   = colsVal === 0 ? bytes.length : (colsVal || 4);
+  let code = '';
+
+  if (currentTab === 'asm') {
+    code += `; ${W}x${H} sprite — ${bytes.length} bytes (${bpr} byte(s)/row)\n`;
+    code += `; Gerado pelo Z80Mini Sprite Editor\n\n`;
+    code += `${label}:\n`;
+    for (let i = 0; i < bytes.length; i++) {
+      if (i % cols === 0) code += '    DB ';
+      code += '$' + bytes[i].toString(16).padStart(2,'0').toUpperCase();
+      if (i % cols === cols - 1 || i === bytes.length - 1) {
+        if ((i + 1) % bpr === 0) {
+          const row = Math.floor(i / bpr);
+          code += `   ; row ${row}\n`;
+        } else { code += '\n'; }
+      } else { code += ', '; }
+    }
+
+  } else if (currentTab === 'c') {
+    code += `/* ${W}x${H} sprite — ${bytes.length} bytes (${bpr} byte(s)/row) */\n`;
+    code += `/* Gerado pelo Z80Mini Sprite Editor */\n\n`;
+    code += `const uint8_t ${label}[${bytes.length}] = {\n`;
+    for (let i = 0; i < bytes.length; i++) {
+      if (i % cols === 0) code += '    ';
+      code += '0x' + bytes[i].toString(16).padStart(2,'0').toUpperCase();
+      if (i < bytes.length - 1) code += ', ';
+      if (i % cols === cols - 1 || i === bytes.length - 1) {
+        if ((i + 1) % bpr === 0) {
+          const row = Math.floor(i / bpr);
+          code += `  /* row ${row} */\n`;
+        } else { code += '\n'; }
+      }
+    }
+    code += `};\n`;
+
+  } else if (currentTab === 'hex') {
+    for (let i = 0; i < bytes.length; i++) {
+      code += bytes[i].toString(16).padStart(2,'0').toUpperCase();
+      if ((i + 1) % bpr === 0) code += '\n';
+      else code += ' ';
+    }
+
+  } else if (currentTab === 'bin') {
+    for (let i = 0; i < bytes.length; i++) {
+      code += bytes[i].toString(2).padStart(8,'0');
+      if ((i + 1) % bpr === 0) code += '\n';
+      else code += ' ';
+    }
+  }
+
+  document.getElementById('exportCode').textContent = code;
+}
+
+document.getElementById('btnCopyCode').addEventListener('click', () => {
+  const text = document.getElementById('exportCode').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('btnCopyCode');
+    const orig = btn.textContent;
+    btn.textContent = '✅ Copiado!';
+    setTimeout(() => { btn.textContent = orig; }, 1500);
+  });
+});
+
+// ═══════════════════════════════════════════
+//  SAVE BMP
+// ═══════════════════════════════════════════
+document.getElementById('btnSaveBmp').addEventListener('click', () => {
+  const inverted = getInverted();
+  // BMP 1-bit is complex; use a 24-bit BMP for simplicity
+  // Actually let's use 1-bit BMP — standard format
+  // Row padded to 4 bytes
+  const rowBytes = Math.ceil(W / 32) * 4; // 1bpp row stride (DWORD aligned)
+  const pixelDataSize = rowBytes * H;
+  const fileSize = 54 + 8 + pixelDataSize; // headers + color table + pixels
+
+  const buf = new ArrayBuffer(fileSize);
+  const view = new DataView(buf);
+  let p = 0;
+
+  const writeU8  = v => { view.setUint8(p++, v); };
+  const writeU16 = v => { view.setUint16(p, v, true); p += 2; };
+  const writeU32 = v => { view.setUint32(p, v, true); p += 4; };
+  const writeS32 = v => { view.setInt32(p, v, true); p += 4; };
+
+  // BMP File Header
+  writeU8(0x42); writeU8(0x4D);   // 'BM'
+  writeU32(fileSize);
+  writeU16(0); writeU16(0);        // reserved
+  writeU32(54 + 8);                // offset to pixel data
+
+  // DIB Header (BITMAPINFOHEADER)
+  writeU32(40);        // header size
+  writeS32(W);
+  writeS32(-H);        // negative = top-down
+  writeU16(1);         // color planes
+  writeU16(1);         // bits per pixel
+  writeU32(0);         // BI_RGB
+  writeU32(pixelDataSize);
+  writeS32(2835);      // x pixels per meter (72 DPI)
+  writeS32(2835);
+  writeU32(2);         // colors used
+  writeU32(2);         // colors important
+
+  // Color table: index 0 = black, index 1 = white (or inverted)
+  // 0 = off pixel color, 1 = on pixel color
+  // In BMP: bit=0 → first color entry
+  if (!inverted) {
+    // bit 1 = black pixel = 0,0,0
+    // bit 0 = white = 255,255,255
+    writeU32(0x00FFFFFF); // color 0 = white (off)
+    writeU32(0x00000000); // color 1 = black (on)
+  } else {
+    writeU32(0x00000000); // color 0 = black (off)
+    writeU32(0x00FFFFFF); // color 1 = white (on)
+  }
+
+  // Pixel data (top-down, 1bpp, MSB first, DWORD aligned rows)
+  for (let y = 0; y < H; y++) {
+    let byteOffset = p;
+    for (let x = 0; x < W; x++) {
+      const px = pixels[y * W + x]; // 1=black/on, 0=white/off
+      // bit 1 = black = color index 1
+      if (px) {
+        const byteIdx = byteOffset + Math.floor(x / 8);
+        const bitShift = 7 - (x % 8);
+        view.setUint8(byteIdx, view.getUint8(byteIdx) | (1 << bitShift));
+      }
+    }
+    p += rowBytes;
+  }
+
+  const blob = new Blob([buf], { type: 'image/bmp' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'sprite.bmp';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+// ═══════════════════════════════════════════
+//  KEYBOARD SHORTCUTS
+// ═══════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'p' || e.key === 'P') setTool('pen');
+  if (e.key === 'e' || e.key === 'E') setTool('erase');
+  if (e.key === '+' || e.key === '=') setZoom(zoom < 32 ? zoom + 1 : zoom + 4);
+  if (e.key === '-') setZoom(Math.max(1, zoom - 1));
+  if (e.key === 'g' || e.key === 'G') {
+    const chk = document.getElementById('chkGrid');
+    chk.checked = !chk.checked;
+    showGrid = chk.checked;
+    render();
+  }
+});
+
+// ═══════════════════════════════════════════
+//  BOOT
+// ═══════════════════════════════════════════
+initCanvas();
+</script>
+</body>
+</html>
