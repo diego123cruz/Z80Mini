@@ -93,10 +93,45 @@ checkShiftKey:
     CP 1
     JP NZ, NO_SHIFT
     LD HL, KEYMAP_SHIFT
+    CALL DO_LOOKUP
+    LD (KEY_PRESS), A
+    RET
 NO_SHIFT:
     CALL 	DO_LOOKUP	; pega tecla
     LD (KEY_PRESS), A
+    CP $FF ;capslook?
+    JP Z, CAPSLOCK
+    LD A, (MEN_CAPSL)
+    CP 0
+    RET NZ
+    LD HL, KEYMAP_CAPSLOCK
+    CALL DO_LOOKUP
+    LD (KEY_PRESS), A
     RET
+
+
+
+
+
+CAPSLOCK:
+    LD A, (MEN_CAPSL)
+    CP 0
+    JP Z, CAPSLOCK_OFF
+    XOR A
+    LD (MEN_CAPSL), A
+    LD BC, $0603
+    LD (MEN_CURSR), BC
+    JP CAPSLOCK_OK
+CAPSLOCK_OFF:
+    LD A, 1
+    LD (MEN_CAPSL), A
+    LD BC, $0606
+    LD (MEN_CURSR), BC
+CAPSLOCK_OK:
+    LD DE, $0064 ; 100ms
+    CALL H_Delay
+    RET
+
 
 
 

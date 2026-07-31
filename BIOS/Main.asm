@@ -271,7 +271,7 @@ INT_DEFAULT:
 ; KEYMAPS
 ; ============================================================
 
-;	$FF - Capsloock
+;	$FF - Capslock
 ;	$FE - Shift left
 ;	$FD - Ctrl left
 ;	$FC - Windows
@@ -304,6 +304,15 @@ KEYMAP_SHIFT:
     DB   '&', 'U',  'J',  'N',  '?',  '}',  '{',  '+'
     DB   '@', 'W',  'S',  'Z',  'M',  'K',  'I',  '*'
 
+KEYMAP_CAPSLOCK:
+    DB  $1B,  $09,  $FF,  $FE,  $FD,  $FC,  $FB,  $20
+    DB   '1', 'Q',  'A',  '\',  $00,  $FA,  $F6,  $F9
+    DB   '3', 'E',  'D',  'X',  ',',  'L',  'O',  '9'
+    DB   '4', 'R',  'F',  'C',  '.',  'Ç',  'P',  '0'
+    DB   '6', 'Y',  'H',  'B',  $F8,  $F7,  0x0D, 0x08
+    DB   '5', 'T',  'G',  'V',  ';',  '~', 	'`',  '-'
+    DB   '7', 'U',  'J',  'N',  '/',  ']',  '[',  '='
+    DB   '2', 'W',  'S',  'Z',  'M',  'K',  'I',  '8'
 
 INICIO:
     LD HL, INT_DEFAULT
@@ -312,7 +321,12 @@ INICIO:
 
     ; Set defult I2C device addess: 24LC256 (Copy from/to Mem)
     LD A, EEDRIVE_A
-    LD (I2CA_BLOCK), A        
+    LD (I2CA_BLOCK), A     
+
+    LD A, 1 ;capslock OFF
+    LD (MEN_CAPSL), A
+    LD BC, $0606
+    LD (MEN_CURSR), BC   
 
     ;CALL FS_CHK_SIG
     ;JP Z, INICIO1
@@ -505,7 +519,9 @@ GETCH:  DW  0000H       ; Serial
 
 ; TECLADO
 MEN_SHIFT: DB 00H
+MEN_CAPSL: DB 00H
 KEY_PRESS: DB 00H
+MEN_CURSR: DW 0606H
 
 ; COMANDOS
 LINEBUF:    DS 80          ; Buffer de linha de comando

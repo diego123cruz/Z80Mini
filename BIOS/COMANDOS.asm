@@ -469,6 +469,8 @@ LCD_SCROLL:
     JR GETLINE_LOOP
 
 
+
+
 ; --- GETLINE: Lê linha para LINEBUF; eco local ---
 ;     Termina em CR. Suporta BS/DEL para apagar.
 GETLINE:
@@ -486,6 +488,8 @@ GETLINE_LOOP:
             JR   Z, GETLINE_LOOP    ; Ignora LF
             CP   ESC
             JR   Z, GETLINE_LOOP    ; Ignora
+            CP   $FF ;capslock Ignora
+            JP   Z, GETLINE_LOOP
             CP   BkS
             JR   Z, GETLINE_BS
             CP   DEL

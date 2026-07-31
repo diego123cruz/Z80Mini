@@ -1216,7 +1216,7 @@ drawCursor:
         LD A,(CURSOR_ON)
         OR A
         RET NZ              ;exit if cursor off
-        LD DE,0606H         ;Six pixels across, Six pixels down
+        LD DE, (MEN_CURSR) ;0606H         ;Six pixels across, Six pixels down
         LD BC,(CURSOR_XY)   ;Get graphics cursor position
 FLIP_BIT:        
         LD A,(INVERSE)      ;check inverse flag
