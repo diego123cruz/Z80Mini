@@ -22,6 +22,27 @@ I2C_Open:   PUSH AF
 I2C_Close:  JP   I2C_Stop       ;Output stop condition
 
 
+; I2C bus open read device
+;   On entry: A = Device address
+;             SCL = unknown, SDA = unknown
+;   On exit:  If successfully A = 0 and Z flagged
+;             If unsuccessfully A = Error and NZ flagged
+;             BC DE HL IX IY preserved
+I2C_OpenRead:   
+            SLL A
+            JP I2C_Open
+
+
+; I2C bus open write device
+;   On entry: A = Device address 
+;             SCL = unknown, SDA = unknown
+;   On exit:  If successfully A = 0 and Z flagged
+;             If unsuccessfully A = Error and NZ flagged
+;             BC DE HL IX IY preserved
+I2C_OpenWrite:   
+            SLA     A
+            JP I2C_Open
+
 ; **********************************************************************
 ; **********************************************************************
 ; I2C bus master driver
@@ -259,18 +280,7 @@ I2C_RdPort: PUSH BC             ;Preserve registers
             RET
 
 
-
-
-
-
-
-
-
-
-
-
-
-I2C_LIST_MSG:    .DB "I2C device found at:",CR,0
+I2C_LIST_MSG:    .DB " .: I2C devices :.",CR,0
 
 
 
@@ -332,8 +342,23 @@ LISTLOOP:      PUSH DE             ;Preserve DE
             POP  DE             ;Restore DE
             JR   NZ,LISTNEXT       ;Skip if no acknowledge
             LD   A,D            ;Get address of device tested
+            SRL  A     ; remove bit R/W
+            PUSH AF
             CALL HexOut         ;Output as two character hex 
-            LD A, ' '; space
+            ;LD A, ' '; space
+            ;CALL PUTCHAR       ;Output space character
+            POP AF
+            CP  $07
+            CALL Z, i2cPrintL07
+            CP  $08
+            CALL Z, i2cPrintL08
+            CP  $32
+            CALL Z, i2cPrintL32
+            CP  $50
+            CALL Z, i2cPrintL50
+            CP  $57
+            CALL Z, i2cPrintL57
+            LD A, CR; enter
             CALL PUTCHAR       ;Output space character
 LISTNEXT:      INC  D              ;Get next write address
             INC  D
@@ -353,6 +378,59 @@ LISTTEST:      CALL I2C_Open       ;Open I2C device for write
             CALL I2C_Close      ;Close I2C device 
             XOR  A              ;Return with Z flagged
             RET
+
+i2cPrintL07:
+    PUSH AF
+    PUSH DE
+    LD   HL, I2C_LIST_07
+    JP i2cPrintPuts
+
+i2cPrintL08:
+    PUSH AF
+    PUSH DE
+    LD   HL, I2C_LIST_08
+    JP i2cPrintPuts
+
+i2cPrintL32:
+    PUSH AF
+    PUSH DE
+    LD   HL, I2C_LIST_32
+    JP i2cPrintPuts
+
+i2cPrintL50:
+    PUSH AF
+    PUSH DE
+    LD   HL, I2C_LIST_50
+    JP i2cPrintPuts
+
+i2cPrintL57:
+    PUSH AF
+    PUSH DE
+    LD   HL, I2C_LIST_57
+    JP i2cPrintPuts
+
+i2cPrintPuts:
+    CALL PUTS
+    POP DE
+    POP AF
+    RET
+
+
+
+I2C_LIST_07:    .DB " - ArduGame",0
+I2C_LIST_08:    .DB " - ArduBox",0
+I2C_LIST_32:    .DB " - RTC Ricoh r223",0
+I2C_LIST_50:    .DB " - EE Drive A",0
+I2C_LIST_57:    .DB " - EE Drive B",0
+
+
+
+
+
+
+
+
+
 
 
 

@@ -119,6 +119,8 @@ CMD_TABLE:
             DW   CHANGE_DRIVE_A
             DB   "B:",    NUL
             DW   CHANGE_DRIVE_B
+            DB   "I2C", NUL
+            DW   I2C_CMD
 
             DB   NUL                 ; fim da tabela
 
@@ -461,6 +463,15 @@ HELP_CMD:
 
             LD   DE, MSG_HELP_L18
             CALL sendStringToLCD
+
+            LD   DE, MSG_HELP_L19
+            CALL sendStringToLCD
+
+            LD   DE, MSG_HELP_L20
+            CALL sendStringToLCD
+
+            LD   DE, MSG_HELP_L21
+            CALL sendStringToLCD
             RET
 
 
@@ -713,10 +724,178 @@ PRINT_HEX16:
             CALL PRINT_HEX8
             RET
 
+
+
+
+; ============================================================
+; I2C_CMD - Testes rapidos no barramento I2C
+;
+; Sintaxe: I2C aa [Wdd] [Rnn] [Wdd] [Rnn] ...
+;   aa  = endereco do device, 7 bits, hex, SEM o bit R/W
+;   Wdd = escreve o byte dd (hex)
+;   Rnn = le nn bytes (hex) e imprime cada um em hex
+;
+; Exemplos:
+;   I2C 20 WFF           -> PCF8574: open(write), write FF, close
+;   I2C 50 W10 W20 R04    -> EEPROM : open(write), write 10, write 20,
+;                             open(read, repeated start), read 4, close
+;
+; O comando reabre o device (I2C_Open de novo, sem fechar antes) toda
+; vez que a direcao muda de W para R ou de R para W - isso gera um
+; repeated start, igual o I2C_MemRd ja faz internamente.
+;
+; Dentro de um bloco Rnn, todo byte manda ACK pro slave, exceto o
+; ultimo, que manda NACK (fim da leitura) - mesma logica do I2C_MemRd.
+;
+; No primeiro NACK (falha de escrita/open), a sequencia e abortada,
+; o barramento e fechado (STOP) para nao ficar travado, e uma
+; mensagem de erro e impressa.
+;
+; Requer de I2C.asm: I2C_Open, I2C_Write, I2C_Read, I2C_Close
+; ============================================================
+
+I2C_CMD:
+    ; DE -> argumentos (endereco DEc apos "I2C ")
+    CALL PARSE_HEX8_DE     ; A = endereco do device (7 bits)
+    JP  C, I2C_BAD_SYNTAX
+    LD  (I2C_ADDR7), A
+    XOR A
+    LD  (I2C_STATE), A     ; 0 = fechado
+
+I2C_LOOP:
+    CALL SKIP_SPACES_DE
+    LD  A, (DE)
+    CP  CR
+    JP  Z, I2C_DONE
+    CP  NUL
+    JP  Z, I2C_DONE
+
+    ; Le o operador (W ou R)
+    LD  A, (DE)
+    AND 0DFH                ; forca maiuscula
+    INC DE
+    CP  'W'
+    JR  Z, I2C_DO_WRITE
+    CP  'R'
+    JR  Z, I2C_DO_READ
+    JP  I2C_BAD_SYNTAX
+
+; -------- WRITE --------
+I2C_DO_WRITE:
+    CALL PARSE_HEX8_DE      ; A = byte a escrever
+    JP  C, I2C_BAD_SYNTAX
+    LD  C, A                ; guarda o byte
+
+    LD  A, (I2C_STATE)
+    CP  1
+    JR  Z, I2C_WRITE_GO      ; ja aberto em modo write
+
+    LD  A, (I2C_ADDR7)
+    RLCA                     ; addr << 1
+    AND 0FEH                 ; bit0 = 0 (write)
+    CALL I2C_Open
+    JR  NZ, I2C_NOACK
+    LD  A, 1
+    LD  (I2C_STATE), A
+
+I2C_WRITE_GO:
+    LD  A, C
+    CALL I2C_Write
+    JR  NZ, I2C_NOACK
+    JR  I2C_LOOP
+
+; -------- READ --------
+I2C_DO_READ:
+    CALL PARSE_HEX8_DE       ; A = quantidade de bytes a ler
+    JR  C, I2C_BAD_SYNTAX
+    LD  B, A
+    LD  A, B
+    OR  A
+    JR  Z, I2C_LOOP           ; R00 = nada a fazer
+
+    LD  A, (I2C_STATE)
+    CP  2
+    JR  Z, I2C_READ_GO         ; ja aberto em modo read
+
+    LD  A, (I2C_ADDR7)
+    RLCA
+    OR  01H                    ; bit0 = 1 (read)
+    CALL I2C_Open
+    JR  NZ, I2C_NOACK
+    LD  A, 2
+    LD  (I2C_STATE), A
+
+I2C_READ_GO:
+    LD  A, B
+    CP  1
+    JR  Z, I2C_READ_LASTBYTE
+    LD  A, 0FFH                 ; ACK - ainda tem mais bytes
+    JR  I2C_READ_DOIT
+I2C_READ_LASTBYTE:
+    XOR A                        ; NACK - ultimo byte do bloco
+I2C_READ_DOIT:
+    CALL I2C_Read                ; A = byte lido
+    PUSH BC
+    CALL PRINT_HEX8
+    LD  A, SPACE
+    CALL PUTCHAR
+    POP BC
+    DEC B
+    LD  A, B
+    OR  A
+    JR  NZ, I2C_READ_GO
+    JP  I2C_LOOP
+
+; -------- Erro / fim --------
+I2C_NOACK:
+    PUSH AF
+    CALL I2C_Close               ; garante que o barramento nao trava
+    XOR A
+    LD  (I2C_STATE), A
+    POP AF
+    LD  HL, MSG_I2C_NOACK
+    CALL PUTS
+    RET
+
+I2C_DONE:
+    LD  A, (I2C_STATE)
+    OR  A
+    JR  Z, I2C_OK
+    CALL I2C_Close
+    XOR A
+    LD  (I2C_STATE), A
+I2C_OK:
+    LD  HL, MSG_OK
+    CALL PUTS
+    RET
+
+I2C_BAD_SYNTAX:
+    LD  HL, MSG_SYNTAX
+    CALL PUTS
+    RET
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ; ============================================================
 ;  STRINGS
 ; ============================================================
 
+MSG_I2C_NOACK:
+    DB "I2C: sem ACK do device.", CR, NUL
+    
 MSG_PROMPT:
             DB   CR, LF, "> ", NUL
 
@@ -756,3 +935,4 @@ MSG_HELP_L17:   DB   " FORMAT - Format eeprom", CR
 MSG_HELP_L18:   DB   " LOAD - Load file", CR
 MSG_HELP_L19:   DB   " BASIC - Cold basic", CR
 MSG_HELP_L20:   DB   " WBASIC - Warm basic", CR
+MSG_HELP_L21:   DB   " I2C aa [Wdd][Rnn]..", CR

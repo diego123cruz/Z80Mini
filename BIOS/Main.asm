@@ -43,7 +43,7 @@
 ;   API Z80Mini:
 ;       delay500ms          equ     0x0100  ;   Delay 500ms
 ;       delay               equ     0x0103  ;   On entry: DE = Delay time in milliseconds
-;       I2C_Open            equ     0x0106  ;   On entry: A = Device address (bit zero is read flag)
+;       I2C_Open            equ     0x0106  ;   On entry: A = Device address (bit zero is read flag), I2CLIST(32H) -> SLA -> 64H(bit 0 = 0 - Write), 64+1(bit 0 = 1 - Read) 
 ;       I2C_Close           equ     0x0109  ;   Close
 ;       I2C_Read            equ     0x010C  ;   On exit: If successful A = data byte and Z flagged
 ;       I2C_Write           equ     0x010F  ;   On entry: A = Data byte, or Address byte (bit zero is read flag)
@@ -97,7 +97,8 @@
 ;       plotAlways          equ     0x019C  ;   Quando sendCharToLCD é chamado, Atualiza GLCD ou não. Se Desativado plotToLCD deve ser chamado atualizar o GLCD. Entrada: A=0, Plotar sempre; A>0, Não plotar. O padrão é Plotar sempre.
 ;       resetCollisionPixel equ     0x0294  ;   Limpa flag de colisao
 ;       checkCollisionPixel equ     0x0299  ;   Check se um pixel ja estava ligado quando tenta ligar. JP Z, SEM_COLISAO. JP NZ, COLISAO.
-
+;       I2C_OpenRead        equ     0x1929  ;   I2C Open Read  (On entry: A = Device address)
+;       I2C_OpenWrite       equ     0x192E  ;   I2C Open Write (On entry: A = Device address)
 
 ; -----------------------------------------------------------------------------
 ; H_Delay CONFIG
@@ -556,3 +557,5 @@ PG_BUF:     .DS $FF
 
 ; pixel collision
 DRAW_PIXEL_COLLISION .db $00 ; 0 - reset, 1 - set
+I2C_ADDR7:  DS 1
+I2C_STATE:  DS 1   ; 0=fechado, 1=aberto p/ write, 2=aberto p/ read
