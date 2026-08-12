@@ -1,0 +1,1282 @@
+              	; --------------------------------------
+              	; zasm: assemble "Main.asm"
+              	; date: 2026-07-10 19:51:45
+              	; --------------------------------------
+
+
+              	#include "../../Z80MiniAPI.asm"
+              	;   API Z80Mini:
+0100:         	delay500ms          equ     0x0100  ;   Delay 500ms
+0103:         	delay               equ     0x0103  ;   On entry: DE = Delay time in milliseconds
+0106:         	I2C_Open            equ     0x0106  ;   On entry: A = Device address (bit zero is read flag)
+0109:         	I2C_Close           equ     0x0109  ;   Close
+010C:         	I2C_Read            equ     0x010C  ;   On exit: If successful A = data byte and Z flagged
+010F:         	I2C_Write           equ     0x010F  ;   On entry: A = Data byte, or Address byte (bit zero is read flag)
+0112:         	keyboardIsEsc       equ     0x0112  ;   Verifica se ESC foi precionada. On exit: If press A = CTRLC and NZ flagged
+0115:         	keyboardWaitA       equ     0x0115  ;   Aguarda tecla, letra em A. (BC DE HL preserved)
+0118:         	keyboardA           equ     0x0118  ;   Lê teclado, Se tecla Carry=1. Letra em A. (BC DE HL preserved)
+011B:         	setDefaultSerialA   equ     0x011B  ;   Seta terminal padrao porta A, Quando reinicia volta para A.
+011E:         	setDefaultSerialB   equ     0x011E  ;   Seta terminal padrao porta B (P2), Quando reinicia volta para A.
+0121:         	serialPrintA        equ     0x0121  ;   Imprime char in A no terminal setado.
+0124:         	serialInputA        equ     0x0124  ;   Aguarda receber char no terminal setado. Retorno em A.
+0127:         	serialPrintStr      equ     0x0127  ;   Imprime string (HL) terminado em 0 no terminal setado. MAX 128 chars. MODIFIES : A,B,C
+012A:         	serialCRLF          equ     0x012A  ;   Imprime CR e LF no terminal setado.
+012D:         	serialHexA          equ     0x012D  ;   Imprime byte em A no formato HEX, no terminal setado. Ex: 'D' = 44
+0130:         	serialHexHL         equ     0x0130  ;   Imprime HL como 4 digitos hexadecimais, no terminal setado. Ex: HL=$80FF -> imprime "80FF"
+0133:         	serialInHexA        equ     0x0133  ;   Pegar 2 caracteres ASCII (0-9 A-F), do terminal setado e converte em um byte em A. SEM ECHO
+0136:         	serialInHexHL       equ     0x0136  ;   Pegar 4 caracteres ASCII (0-9 A-F), do terminal setado e converte em HL. SEM ECHO
+              	
+0139:         	initLCD             equ     0x0139  ;   Inicializa GLCD
+013C:         	clearGBUF           equ     0x013C  ;   Limpa buffer da memoria de grafico. Precisa do plotToLCD para refletir no lcd.
+013F:         	clearGrLCD          equ     0x013F  ;   Limpa memoria grafico do GLCD. Sem o plotToLCD.
+0142:         	clearTxtLCD         equ     0x0142  ;   Limpar caracteres do LCD
+0145:         	setGrMode           equ     0x0145  ;   Seta modo Grafico. 128x64
+0148:         	setTxtMode          equ     0x0148  ;   Seta mode Text. 16x4 equivalente
+014B:         	drawBox             equ     0x014B  ;   Desenha caixa. Entradas: BC = X0,Y0 - DE = X1,Y1    Destroys: HL
+014E:         	drawLine            equ     0x014E  ;   Desenha linha.  Entradas: BC = X0,Y0 - DE = X1,Y1
+0151:         	drawCircle          equ     0x0151  ;   Desenha circulo. Entradas BC = xm,ym (Ponro do Meio) - E = radius
+0154:         	drawPixel           equ     0x0154  ;   Desenha um pixel em X Y.  Entrada B = column/X (0-127), C = row/Y (0-63)   Destroys: HL
+0157:         	fillBox             equ     0x0157  ;   Desenha caixa preenchida. Entradas: BC = X0,Y0 - DE = X1,Y1    Destroys: HL
+015A:         	fillCircle          equ     0x015A  ;   Desenha circulo preenchido. Entradas BC = xm,ym (Ponro do Meio) - E = radius
+015D:         	plotToLCD           equ     0x015D  ;   Rotina principal de desenho. Move GBUF para o LCD e limpa o buffer ou não (setBufClear, setBufNoClear).  Destroys: ALL
+0160:         	printString         equ     0x0160  ;   Imprimir texto ASCII em uma determinada linha. Entradas: A = 0 a 3 Número da linha. .db "String" na próxima linha, terminar com 0
+0163:         	printChars          equ     0x0163  ;   (Ver detalhes) Imprimir caracteres na posição X,Y. Entrada B = coluna/X (0-7), C = linha/Y (0-3). HL = Endereço inicial do texto a ser exibido, termina com 0
+0166:         	setInt38            equ     0x0166  ;   Seta vetor de interrupcao int38. Entradas HL = RST38_ADDR
+0169:         	setint66            equ     0x0169  ;   Seta vetor de interrupcao int66. Entradas HL = RST66_ADDR
+016C:         	setBufClear         equ     0x016C  ;   Configura limpeza do buffer após a saída para o LCD e vai para clearGBUF.
+016F:         	setBufNoClear       equ     0x016F  ;   Configura para não limpar o buffer após a saída para o LCD.
+0172:         	clearPixel          equ     0x0172  ;   Limpa um pixel X Y.  Input B = column/X (0-127), C = row/Y (0-63)    Destroy HL
+0175:         	flipPixel           equ     0x0175  ;   Inverte um pixel X Y.  Input B = column/X (0-127), C = row/Y (0-63)    Destroy HL
+0178:         	drawGraphic         equ     0x0178  ;   Desenha no buffer. Entrada: A = número ASCII ou se A=0 Então  HL = Endereço dos dados gráficos. B = (MULTIPLO DE 8) largura do gráfico em pixels (1-128). C = altura do gráfico em pixels (1-64). Destroy: ALL
+017B:         	invGraphic          equ     0x017B  ;   Altera a flag de desenho inverso. (não inverte grafico atual) Destroy A
+017E:         	initTerminal        equ     0x017E  ;   Inicializa o Terminal GLCD. Cursor 0,0 e limpa buffer.
+0181:         	sendCharToLCD       equ     0x0181  ;   Envia ou manipula caracteres ASCII para a tela GLCD (Terminal). Entrada: A = caractere ASCII a ser enviado para a tela GLCD. A = somente cursor desenhado.
+0184:         	sendStringToLCD     equ     0x0184  ;   Imprime string no terminal GLCD. DE = inicio da string. A = caractere para parar a impressão. A impressão para e retorna quando um CR é impresso. Destroy ALL
+0187:         	sendRegToLCD        equ     0x0187  ;   Imprime byte em A no formato HEX, no GLCD. Ex: 'D' = 44
+018A:         	sendHLToLCD         equ     0x018A  ;   Imprime HL como 4 digitos hexadecimais, no GLCD. Ex: HL=$80FF -> imprime "80FF"
+018D:         	setCursor           equ     0x018D  ;   Define a posição do cursor gráfico. Entradas: BC = X,Y onde X = 0..127, Y = 0..63   Destroy A
+0190:         	getCursor           equ     0x0190  ;   Obter a posição do cursor. Saídas: BC = X,Y onde X = 0..127, Y = 0..63
+0193:         	displayCursor       equ     0x0193  ;   Exibir Cursor. Entrada: A = 0, Ativar cursor, A = diferente de zero, Desativar cursor.
+0196:         	autoLF              equ     0x0196  ;   Avanço de linha automático quando o cursor atinge o final da linha (Terminal). Entrada: A = 0, Avanço de linha automático; A = diferente de zero, Sem avanço de linha automático. Padrao LIGADO.
+0199:         	underline           equ     0x0199  ;   Exibir sublinhado no caractere (Terminal). O estado inicial é sem sublinhado. Chamar esta rotina irá ALTERAR/DESLIGAR o sinalizador de sublinhado.
+019C:         	plotAlways          equ     0x019C  ;   Quando sendCharToLCD é chamado, Atualiza GLCD ou não. Se Desativado plotToLCD deve ser chamado atualizar o GLCD. Entrada: A=0, Plotar sempre; A>0, Não plotar. O padrão é Plotar sempre.
+0294:         	resetCollisionPixel equ     0x0294  ;   Limpa flag de colisao
+0299:         	checkCollisionPixel equ     0x0299  ;   Check se um pixel ja estava ligado quando tenta ligar. JP Z, SEM_COLISAO. JP NZ, COLISAO.
+              	
+              	
+              	
+              	
+              	; -----------------------------------------------------------------------------
+              	; PORTS
+              	; -----------------------------------------------------------------------------
+0070:         	GLCD_INST           .EQU    $70
+0071:         	GLCD_DATA           .EQU    $71
+              	
+0040:         	KEYBOARD		    .EQU	$40
+              	
+              	; ============================================================
+              	; KEYMAPS
+              	; ============================================================
+              	
+              	;	$FF - Capsloock
+              	;	$FE - Shift left
+              	;	$FD - Ctrl left
+              	;	$FC - Windows
+              	;	$FB - Alt left
+              	;	$FA - Alt Gr    (Load intel hex - Serial A)
+              	;	$F9 - LUZ   (CALL 8000H)
+              	;	$F8 - Shift Right   (Display Scroll UP)
+              	;	$F7 - Ctrl Right    (Display Scroll DOWN)
+              	;	$F6 - Fn
+              	
+              	; -------- Constantes gerais --------
+000D:         	CR:       EQU   0DH
+000A:         	LF:       EQU   0AH
+0008:         	BKS:      EQU   08H
+007F:         	DEL:      EQU   7FH
+001B:         	ESC:      EQU   1BH
+0020:         	SPACE:    EQU   20H
+0000:         	NUL:      EQU   00H
+000C:         	FF:       EQU   0CH                 ; Form Feed -> Limpa lcd
+              	
+              	; -----------------------------------------------------------------------------
+              	; SIO/2 - SERIAL
+              	; -----------------------------------------------------------------------------
+0000:         	SIOA_D:   EQU   $00
+0002:         	SIOA_C:   EQU   $02
+0001:         	SIOB_D:   EQU   $01   ; Conector P2
+0003:         	SIOB_C:   EQU   $03   ; Conector P2
+              	
+              	
+              	
+              	; ============================================================
+              	; Z80Mini - Demo de "Câmera" estilo Game Boy
+              	; ------------------------------------------------------------
+              	; Mundo virtual: 256x256 pixels (32x32 tiles de 8x8)
+              	; Tela física:   128x64 pixels (o LCD do Z80Mini)
+              	; Personagem:    círculo 8x8 que anda livre pelo mundo
+              	;
+              	; IDEIA CENTRAL:
+              	;   - O mundo inteiro mora na RAM como um MAPA DE TILES (1 byte
+              	;     por tile = 1024 bytes), não como um bitmap gigante.
+              	;   - A cada frame, calculamos qual "janela" 128x64 do mundo a
+              	;     câmera está enquadrando (camX, camY = canto superior
+              	;     esquerdo da janela, em pixels do mundo).
+              	;   - Só desenhamos os tiles que caem dentro dessa janela,
+              	;     "recortando" onde necessário.
+              	;   - Como a câmera pode parar em qualquer pixel (não só
+              	;     múltiplos de 8), os tiles quase sempre caem meio
+              	;     deslocados na tela -> precisamos de um blit com shift de
+              	;     bits entre bytes (mesma ideia do bug de largura não
+              	;     múltipla de 8 que você já resolveu no drawGraphic).
+              	;
+              	; Como o mundo é 256x256, TODAS as coordenadas (player, câmera,
+              	; tiles) cabem num único byte (0-255) - não precisa de conta em
+              	; 16 bits pra posição. É por isso que 256 foi escolhido.
+              	;
+              	; Os pontos marcados com TODO devem ser ligados às rotinas reais
+              	; do seu firmware (scanner de teclado, flush pro ST7920, etc).
+              	; ============================================================
+              	
+8000:         	    ORG $8000           ; ajuste para o endereço real do seu ROM/RAM
+              	
+              	; ---------------- Constantes ----------------
+0080:         	SCR_W       EQU 128
+0040:         	SCR_H       EQU 64
+0010:         	SCR_STRIDE  EQU SCR_W/8          ; 16 bytes por linha do framebuffer
+0400:         	FB_SIZE     EQU SCR_STRIDE*SCR_H ; 1024 bytes
+              	
+0008:         	TILE_SIZE   EQU 8
+0020:         	MAP_W       EQU 32              ; 32*8 = 256
+0020:         	MAP_H       EQU 32
+0400:         	MAP_SIZE    EQU MAP_W*MAP_H     ; 1024 bytes
+              	
+              	; a câmera tenta centralizar o player na tela
+003C:         	CAM_OFFX    EQU (SCR_W-TILE_SIZE)/2   ; 60
+001C:         	CAM_OFFY    EQU (SCR_H-TILE_SIZE)/2   ; 28
+0080:         	CAM_MAXX    EQU 256-SCR_W             ; 128  (limite direito da câmera)
+00C0:         	CAM_MAXY    EQU 256-SCR_H             ; 192  (limite inferior da câmera)
+00F8:         	PLAYER_MAXX EQU 256-TILE_SIZE         ; 248
+00F8:         	PLAYER_MAXY EQU 256-TILE_SIZE         ; 248
+              	
+F784:         	framebuf	equ $F784
+              	
+              	; ============================================================
+              	; PONTO DE ENTRADA
+              	; ============================================================
+8000:         	start:
+8000: CD1880  	    CALL BuildMap
+8003:         	main_loop:
+8003: CD0D82  	    CALL ReadInput          ; TODO: ligar ao scanner de teclado real
+8006: CD4E80  	    CALL UpdateCamera
+8009: CD7180  	    CALL ClearFB
+800C: CD7F80  	    CALL DrawVisibleTiles
+800F: CD1C81  	    CALL DrawPlayer
+8012: CDD282  	    CALL FlushFB            ; TODO: ligar à rotina real de LCD (ST7920)
+8015: C30380  	    JP main_loop
+              	
+              	; ============================================================
+              	; BuildMap - preenche a borda do mapa com parede (id=1)
+              	; ============================================================
+8018:         	BuildMap:
+8018: 010004  		LD BC, MAP_SIZE
+801B: 11EF82  		LD DE, map_data
+801E: 215387  		LD HL, mapa1
+8021: EDB0    		LDIR
+8023: C9      		RET
+              	
+              	
+              	
+              	
+8024: 21EF82  	    LD HL,map_data
+8027: 0620    	    LD B,MAP_W
+8029:         	bm_top:
+8029: 3601    	    LD (HL),1
+802B: 23      	    INC HL
+802C: 10FB    	    DJNZ bm_top
+              	
+802E: 21CF86  	    LD HL,map_data+(MAP_H-1)*MAP_W
+8031: 0620    	    LD B,MAP_W
+8033:         	bm_bottom:
+8033: 3601    	    LD (HL),1
+8035: 23      	    INC HL
+8036: 10FB    	    DJNZ bm_bottom
+              	
+8038: 21EF82  	    LD HL,map_data
+803B: 0620    	    LD B,MAP_H
+803D:         	bm_sides:
+803D: 3601    	    LD (HL),1
+803F: E5      	    PUSH HL
+8040: 111F00  	    LD DE,MAP_W-1
+8043: 19      	    ADD HL,DE
+8044: 3601    	    LD (HL),1
+8046: E1      	    POP HL
+8047: 112000  	    LD DE,MAP_W
+804A: 19      	    ADD HL,DE
+804B: 10F0    	    DJNZ bm_sides
+804D: C9      	    RET
+              	
+              	; ============================================================
+              	; UpdateCamera - centraliza a câmera no player, limitada às
+              	; bordas do mundo (0..CAM_MAXX / 0..CAM_MAXY)
+              	; ============================================================
+804E:         	UpdateCamera:
+804E: 3AD882  	    LD A,(playerX)
+8051: D63C    	    SUB CAM_OFFX
+8053: 3001    	    JR NC,cam_x_pos
+8055: AF      	    XOR A
+8056:         	cam_x_pos:
+8056: FE81    	    CP CAM_MAXX+1
+8058: 3802    	    JR C,cam_x_done
+805A: 3E80    	    LD A,CAM_MAXX
+805C:         	cam_x_done:
+805C: 32DA82  	    LD (camX),A
+              	
+805F: 3AD982  	    LD A,(playerY)
+8062: D61C    	    SUB CAM_OFFY
+8064: 3001    	    JR NC,cam_y_pos
+8066: AF      	    XOR A
+8067:         	cam_y_pos:
+8067: FEC1    	    CP CAM_MAXY+1
+8069: 3802    	    JR C,cam_y_done
+806B: 3EC0    	    LD A,CAM_MAXY
+806D:         	cam_y_done:
+806D: 32DB82  	    LD (camY),A
+8070: C9      	    RET
+              	
+              	; ============================================================
+              	; ClearFB - zera o framebuffer local
+              	; ============================================================
+8071:         	ClearFB:
+8071: 2184F7  	    LD HL,framebuf
+8074: 3600    	    LD (HL),0
+8076: 1185F7  	    LD DE,framebuf+1
+8079: 01FF03  	    LD BC,FB_SIZE-1
+807C: EDB0    	    LDIR
+807E: C9      	    RET
+              	
+              	; ============================================================
+              	; DrawVisibleTiles - percorre só os tiles que aparecem na
+              	; janela da câmera e chama DrawTile8x8 pra cada um
+              	; ============================================================
+807F:         	DrawVisibleTiles:
+807F: 3ADA82  	    LD A,(camX)
+8082: 47      	    LD B,A
+8083: CB3F    	    SRL A
+8085: CB3F    	    SRL A
+8087: CB3F    	    SRL A
+8089: 32DC82  	    LD (tx_start),A
+808C: 78      	    LD A,B
+808D: C67F    	    ADD A,SCR_W-1
+808F: CB3F    	    SRL A
+8091: CB3F    	    SRL A
+8093: CB3F    	    SRL A
+8095: 32DD82  	    LD (tx_end),A
+              	
+8098: 3ADB82  	    LD A,(camY)
+809B: 47      	    LD B,A
+809C: CB3F    	    SRL A
+809E: CB3F    	    SRL A
+80A0: CB3F    	    SRL A
+80A2: 32DE82  	    LD (ty_start),A
+80A5: 78      	    LD A,B
+80A6: C63F    	    ADD A,SCR_H-1
+80A8: CB3F    	    SRL A
+80AA: CB3F    	    SRL A
+80AC: CB3F    	    SRL A
+80AE: 32DF82  	    LD (ty_end),A
+              	
+80B1: 3ADE82  	    LD A,(ty_start)
+80B4: 32E182  	    LD (ty_cur),A
+80B7:         	dvt_row_loop:
+80B7: 3ADC82  	    LD A,(tx_start)
+80BA: 32E082  	    LD (tx_cur),A
+80BD:         	dvt_col_loop:
+              	    ; endereço no mapa = ty_cur*32 + tx_cur
+80BD: 3AE182  	    LD A,(ty_cur)
+80C0: 6F      	    LD L,A
+80C1: 2600    	    LD H,0
+80C3: 29      	    ADD HL,HL
+80C4: 29      	    ADD HL,HL
+80C5: 29      	    ADD HL,HL
+80C6: 29      	    ADD HL,HL
+80C7: 29      	    ADD HL,HL           ; *32
+80C8: 3AE082  	    LD A,(tx_cur)
+80CB: 5F      	    LD E,A
+80CC: 1600    	    LD D,0
+80CE: 19      	    ADD HL,DE
+80CF: 11EF82  	    LD DE,map_data
+80D2: 19      	    ADD HL,DE
+80D3: 7E      	    LD A,(HL)            ; A = id do tile
+              	
+              	    ; ponteiro do tile = tiles_table + id*2
+80D4: 6F      	    LD L,A
+80D5: 2600    	    LD H,0
+80D7: 29      	    ADD HL,HL
+80D8: 114787  	    LD DE,tiles_table
+80DB: 19      	    ADD HL,DE
+80DC: 5E      	    LD E,(HL)
+80DD: 23      	    INC HL
+80DE: 56      	    LD D,(HL)
+80DF: EB      	    EX DE,HL             ; HL = ponteiro real do tile
+              	
+              	    ; screenX = tx_cur*8 - camX
+80E0: 3AE082  	    LD A,(tx_cur)
+80E3: 87      	    ADD A,A
+80E4: 87      	    ADD A,A
+80E5: 87      	    ADD A,A
+80E6: 47      	    LD B,A
+80E7: 3ADA82  	    LD A,(camX)
+80EA: 4F      	    LD C,A
+80EB: 78      	    LD A,B
+80EC: 91      	    SUB C
+80ED: 5F      	    LD E,A               ; E = screenX (com sinal)
+              	
+              	    ; screenY = ty_cur*8 - camY
+80EE: 3AE182  	    LD A,(ty_cur)
+80F1: 87      	    ADD A,A
+80F2: 87      	    ADD A,A
+80F3: 87      	    ADD A,A
+80F4: 47      	    LD B,A
+80F5: 3ADB82  	    LD A,(camY)
+80F8: 4F      	    LD C,A
+80F9: 78      	    LD A,B
+80FA: 91      	    SUB C
+80FB: 57      	    LD D,A               ; D = screenY (com sinal)
+              	
+80FC: CD6381  	    CALL DrawTile8x8
+              	
+80FF: 3AE082  	    LD A,(tx_cur)
+8102: 3C      	    INC A
+8103: 32E082  	    LD (tx_cur),A
+8106: 47      	    LD B,A
+8107: 3ADD82  	    LD A,(tx_end)
+810A: B8      	    CP B
+810B: 30B0    	    JR NC,dvt_col_loop
+              	
+810D: 3AE182  	    LD A,(ty_cur)
+8110: 3C      	    INC A
+8111: 32E182  	    LD (ty_cur),A
+8114: 47      	    LD B,A
+8115: 3ADF82  	    LD A,(ty_end)
+8118: B8      	    CP B
+8119: 309C    	    JR NC,dvt_row_loop
+811B: C9      	    RET
+              	
+              	; ============================================================
+              	; DrawPlayer - desenha o círculo 8x8 na posição relativa à
+              	; câmera (a câmera é clampada, então o player sempre cabe
+              	; inteiro na tela)
+              	; ============================================================
+811C:         	DrawPlayer:
+811C: 3AD882  	    LD A,(playerX)
+811F: 47      	    LD B,A
+8120: 3ADA82  	    LD A,(camX)
+8123: 4F      	    LD C,A
+8124: 78      	    LD A,B
+8125: 91      	    SUB C
+8126: 5F      	    LD E,A
+8127: 3AD982  	    LD A,(playerY)
+812A: 47      	    LD B,A
+812B: 3ADB82  	    LD A,(camY)
+812E: 4F      	    LD C,A
+812F: 78      	    LD A,B
+8130: 91      	    SUB C
+8131: 57      	    LD D,A
+              	    
+              	    ;LD HL, sprite_player
+              	    ;CALL DrawTile8x8
+              	    ;RET
+              	    
+8132: 3AEE82  	    LD A, (diego)
+8135: FE00    	    CP 0
+8137: CC5581  	    CALL Z, p1
+813A: FE02    	    CP 2
+813C: CC5C81  	    CALL Z, p2
+              	    
+              	    
+813F: 3C      	    INC A
+8140: 32EE82  	    LD (diego), A
+8143: FE04    	    CP 4
+8145: CC4F81  	    CALL Z, p0
+              	    
+              	    
+8148: 2AEC82  		LD HL, (player)
+814B: CD6381  	    CALL DrawTile8x8
+814E: C9      	    RET
+              	    
+814F:         	p0:
+814F: 3E00    		LD A, 0
+8151: 32EE82  		LD (diego), A
+8154: C9      		ret
+              	
+8155:         	p1:
+8155: 212787  		LD HL, teste
+8158: 22EC82  		LD (player), HL
+815B: C9      		ret
+              	
+815C:         	p2:
+815C: 212F87  		LD HL, teste+8
+815F: 22EC82  		LD (player), HL
+8162: C9      		ret
+              	
+              	; ============================================================
+              	; DrawTile8x8 - desenha um tile/sprite 8x8 no framebuffer com
+              	; CLIPPING (corta o que sai da tela) e SHIFT horizontal de
+              	; sub-pixel (0-7 bits, pra quando a posição não é múltiplo de 8)
+              	;
+              	; Entrada: HL = ponteiro pros 8 bytes do tile
+              	;          D  = screenY (com sinal, tipicamente -7..63)
+              	;          E  = screenX (com sinal, tipicamente -7..127)
+              	;
+              	; Essa é a mesma ideia do ajuste de largura não-múltipla-de-8
+              	; que você já tinha no drawGraphic - se preferir, pode trocar
+              	; o corpo desta rotina por uma chamada pra ela.
+              	; ============================================================
+8163:         	DrawTile8x8:
+8163: 22E282  	    LD (dt_tileptr),HL
+8166: 7B      	    LD A,E
+8167: E607    	    AND $07
+8169: 32E482  	    LD (dt_shift),A
+816C: 7B      	    LD A,E
+816D: CB2F    	    SRA A
+816F: CB2F    	    SRA A
+8171: CB2F    	    SRA A
+8173: 32E582  	    LD (dt_bytex),A          ; byteX com sinal (-1..15)
+8176: 7A      	    LD A,D
+8177: 32E682  	    LD (dt_cury),A
+817A: 3E08    	    LD A,8
+817C: 32E782  	    LD (dt_rowcount),A
+              	
+817F:         	dt_next_row:
+817F: 3AE682  	    LD A,(dt_cury)
+8182: CB7F    	    BIT 7,A
+8184: 206E    	    JR NZ,dt_advance         ; Y negativo -> linha fora da tela
+8186: FE40    	    CP SCR_H
+8188: 306A    	    JR NC,dt_advance         ; Y >= 64 -> linha fora da tela
+              	
+              	    ; rowbase = framebuf + cury*16
+818A: 6F      	    LD L,A
+818B: 2600    	    LD H,0
+818D: 29      	    ADD HL,HL
+818E: 29      	    ADD HL,HL
+818F: 29      	    ADD HL,HL
+8190: 29      	    ADD HL,HL                ; *16
+8191: 1184F7  	    LD DE,framebuf
+8194: 19      	    ADD HL,DE
+8195: 22E882  	    LD (dt_rowbase),HL
+              	
+              	    ; ---- byte esquerdo (coluna byteX) ----
+8198: 3AE582  	    LD A,(dt_bytex)
+819B: FEFF    	    CP $FF
+819D: 2825    	    JR Z,dt_right_only        ; byteX == -1 -> só o byte da direita existe
+819F: FE10    	    CP SCR_STRIDE
+81A1: 3021    	    JR NC,dt_right_only
+81A3: 4F      	    LD C,A
+81A4: 2AE882  	    LD HL,(dt_rowbase)
+81A7: 0600    	    LD B,0
+81A9: 09      	    ADD HL,BC
+81AA: 22EA82  	    LD (dt_addr),HL
+81AD: 2AE282  	    LD HL,(dt_tileptr)
+81B0: 7E      	    LD A,(HL)
+81B1: 47      	    LD B,A                    ; B = byte original do tile
+81B2: 3AE482  	    LD A,(dt_shift)
+81B5: B7      	    OR A
+81B6: 2806    	    JR Z,dt_left_noshift
+81B8: 4F      	    LD C,A
+81B9:         	dt_left_shift_loop:
+81B9: CB38    	    SRL B
+81BB: 0D      	    DEC C
+81BC: 20FB    	    JR NZ,dt_left_shift_loop
+81BE:         	dt_left_noshift:
+81BE: 2AEA82  	    LD HL,(dt_addr)
+81C1: 7E      	    LD A,(HL)
+81C2: B0      	    OR B
+81C3: 77      	    LD (HL),A
+              	
+81C4:         	dt_right_only:
+              	    ; ---- byte direito (coluna byteX+1), só existe transbordo
+              	    ; se shift != 0 ----
+81C4: 3AE482  	    LD A,(dt_shift)
+81C7: B7      	    OR A
+81C8: 282A    	    JR Z,dt_advance
+81CA: 3AE582  	    LD A,(dt_bytex)
+81CD: 3C      	    INC A
+81CE: FE10    	    CP SCR_STRIDE
+81D0: 3022    	    JR NC,dt_advance
+81D2: 4F      	    LD C,A
+81D3: 2AE882  	    LD HL,(dt_rowbase)
+81D6: 0600    	    LD B,0
+81D8: 09      	    ADD HL,BC
+81D9: 22EA82  	    LD (dt_addr),HL
+81DC: 2AE282  	    LD HL,(dt_tileptr)
+81DF: 7E      	    LD A,(HL)
+81E0: 47      	    LD B,A
+81E1: 3AE482  	    LD A,(dt_shift)
+81E4: 4F      	    LD C,A
+81E5: 3E08    	    LD A,8
+81E7: 91      	    SUB C
+81E8: 4F      	    LD C,A                    ; C = 8-shift
+81E9:         	dt_right_shift_loop:
+81E9: CB20    	    SLA B
+81EB: 0D      	    DEC C
+81EC: 20FB    	    JR NZ,dt_right_shift_loop
+81EE: 2AEA82  	    LD HL,(dt_addr)
+81F1: 7E      	    LD A,(HL)
+81F2: B0      	    OR B
+81F3: 77      	    LD (HL),A
+              	
+81F4:         	dt_advance:
+81F4: 2AE282  	    LD HL,(dt_tileptr)
+81F7: 23      	    INC HL
+81F8: 22E282  	    LD (dt_tileptr),HL
+81FB: 3AE682  	    LD A,(dt_cury)
+81FE: 3C      	    INC A
+81FF: 32E682  	    LD (dt_cury),A
+8202: 3AE782  	    LD A,(dt_rowcount)
+8205: 3D      	    DEC A
+8206: 32E782  	    LD (dt_rowcount),A
+8209: C27F81  	    Jp NZ, dt_next_row
+820C: C9      	    RET
+              	
+              	; ============================================================
+              	; ReadInput - TODO: substituir pela leitura real do teclado
+              	; matricial do Z80Mini. Aqui só um placeholder lendo uma porta
+              	; fictícia com 4 bits (direita/esquerda/baixo/cima) pra deixar
+              	; o exemplo executável/testável.
+              	; ============================================================
+820D:         	ReadInput:
+820D: CD1801  		call keyboardA
+8210: DA1482  		jp c, ReadOk
+8213: C9      		ret
+              		
+8214:         	ReadOk:
+8214: F5      		PUSH AF
+8215: 3AD882  		LD A, (playerX)
+8218: 32D682  		LD (playerXLast), A
+821B: 3AD982  		LD A, (playerY)
+821E: 32D782  		LD (playerYLast), A
+8221: F1      		POP AF
+              	
+8222: FE64    	    cp 'd'
+8224: 2010    	    JR NZ,ri_no_right
+8226: 3AD882  	    LD A,(playerX)
+8229: FEF8    	    CP PLAYER_MAXX
+822B: 3009    	    JR NC,ri_no_right
+822D: 3C      	    INC A
+822E: 3C      	    INC A
+              	
+822F: 32D882  	    LD (playerX),A
+8232: CD7082  	    call CheckTile
+8235: C9      	    RET
+              	    
+8236:         	ri_no_right:
+8236: FE61    	    cp 'a'
+8238: 200F    	    JR NZ,ri_no_left
+823A: 3AD882  	    LD A,(playerX)
+823D: B7      	    OR A
+823E: 2809    	    JR Z,ri_no_left
+8240: 3D      	    DEC A
+8241: 3D      	    DEC A
+              	
+8242: 32D882  	    LD (playerX),A
+8245: CD7082  	    call CheckTile
+8248: C9      	    RET
+              	    
+8249:         	ri_no_left:
+8249: FE73    	    cp 's'
+824B: 2010    	    JR NZ,ri_no_down
+824D: 3AD982  	    LD A,(playerY)
+8250: FEF8    	    CP PLAYER_MAXY
+8252: 3009    	    JR NC,ri_no_down
+8254: 3C      	    INC A
+8255: 3C      	    INC A
+              	
+8256: 32D982  	    LD (playerY),A
+8259: CD7082  	    call CheckTile
+825C: C9      	    RET
+              	    
+825D:         	ri_no_down:
+825D: FE77    	    cp	'w'
+825F: 200E    	    JR NZ,ri_no_up
+8261: 3AD982  	    LD A,(playerY)
+8264: B7      	    OR A
+8265: 2808    	    JR Z,ri_no_up
+8267: 3D      	    DEC A
+8268: 3D      	    DEC A
+              	
+              	
+8269: 32D982  	    LD (playerY),A
+826C: CD7082  	    call CheckTile    
+826F:         	ri_no_up:
+826F: C9      	    RET
+              	
+              	
+              	; ============================================================
+              	; CheckTile - verifica qual tile está em (A = X, playerY = Y)
+              	; Retorna: Z = tile é 0 (pode passar), NZ = colisão
+              	; ============================================================
+8270:         	CheckTile:
+8270: CD2A01  		call serialCRLF
+8273: CD2A01  		call serialCRLF	
+              		
+8276: 3AD882  		LD A, (playerX)
+8279: 3C      		INC A
+827A: 3C      		INC A
+827B: 3C      		INC A
+827C: 3C      		INC A
+              		
+              	    ; tileX = B / 8
+827D: CB3F    	    SRL A
+827F: CB3F    	    SRL A
+8281: CB3F    	    SRL A
+8283: 4F      	    LD C,A                  ; C = tileX
+              	    
+              	    ; tileY = playerY / 8
+8284: 3AD982  	    LD A,(playerY)
+8287: 3C      	    INC A
+8288: 3C      	    INC A
+8289: 3C      	    INC A
+828A: 3C      	    INC A
+              	    
+828B: CB3F    	    SRL A
+828D: CB3F    	    SRL A
+828F: CB3F    	    SRL A
+8291: 47      	    LD B,A                  ; B = tileY
+              	    
+              	
+              	    
+              	    
+8292: C5      	    push bc   
+8293: 60      	    ld h, b
+8294: 69      	    ld l, c
+8295: CD3001  	    call serialHexHL
+8298: C1      	    pop bc
+              	    
+              	    
+              	    ; B = tileY
+              	    ; C = tileX
+              	    ; endereço = map_data + tileY*32 + tileX
+8299: 68      	    LD L,B          ; L = tileY, H já é 0
+829A: 2600    		LD H,0          ; HL = tileY * 1
+829C: 29      		ADD HL,HL       ; HL = tileY * 2
+829D: 29      		ADD HL,HL       ; HL = tileY * 4
+829E: 29      		ADD HL,HL       ; HL = tileY * 8
+829F: 29      		ADD HL,HL       ; HL = tileY * 16
+82A0: 29      		ADD HL,HL       ; HL = tileY * 32
+82A1: 0600    		LD B,0
+82A3: 09      		ADD HL,BC       ; HL = tileY*32 + tileX
+82A4: 11EF82  		LD DE,map_data
+82A7: 19      		ADD HL,DE       ; HL = &map_data[tileY*32 + tileX]
+              	    
+              	    
+82A8: E5      	    PUSH HL
+82A9: E5      	    PUSH HL
+82AA: CD2A01  	    call serialCRLF
+82AD: E1      	    POP HL
+82AE: CD3001  	    call serialHexHL
+82B1: E1      	    POP HL
+              	    
+              	    
+              	    ; carrega o tile
+82B2: 7E      	    LD A,(HL)
+82B3: F5      	    PUSH AF
+82B4: F5      	    PUSH AF
+82B5: CD2A01  	    call serialCRLF
+82B8: F1      	    POP AF
+82B9: CD2D01  	    call serialHexA
+82BC: F1      	    POP AF
+              	    
+82BD: FE04    	    CP 4 ; porta1
+82BF: CA0000  	    JP Z, 0
+              	    
+82C2: FE00    	    cp 0
+82C4: C8      	    RET Z
+82C5: 3AD682  	    LD A, (playerXLast)
+82C8: 32D882  	    LD (playerX), A
+82CB: 3AD782  	    LD A, (playerYLast)
+82CE: 32D982  	    LD (playerY), A  
+82D1: C9      	    RET
+              	    
+              	    
+              	; ============================================================
+              	; FlushFB - TODO: chamar aqui sua rotina real que envia o
+              	; framebuf (128x64, 1bpp, 16 bytes/linha) pro ST7920.
+              	; ============================================================
+82D2:         	FlushFB:
+82D2: CD5D01  		call plotToLCD
+82D5: C9      	    ret
+              	    
+              	    
+              	    
+              	; ============================================================
+              	; VARIÁVEIS
+              	; ============================================================
+82D6: 08      	playerXLast:    DB 8
+82D7: 08      	playerYLast:    DB 8
+82D8: 08      	playerX:    DB 8
+82D9: 08      	playerY:    DB 8
+82DA: 00      	camX:       DB 0
+82DB: 00      	camY:       DB 0
+              	
+82DC: 00      	tx_start:   DB 0
+82DD: 00      	tx_end:     DB 0
+82DE: 00      	ty_start:   DB 0
+82DF: 00      	ty_end:     DB 0
+82E0: 00      	tx_cur:     DB 0
+82E1: 00      	ty_cur:     DB 0
+              	
+              	; usadas pela rotina DrawTile8x8
+82E2: 0000    	dt_tileptr: DW 0
+82E4: 00      	dt_shift:   DB 0
+82E5: 00      	dt_bytex:   DB 0
+82E6: 00      	dt_cury:    DB 0
+82E7: 00      	dt_rowcount:DB 0
+82E8: 0000    	dt_rowbase: DW 0
+82EA: 0000    	dt_addr:    DW 0
+              	
+82EC: 0000    	player:		dw 0
+82EE: 00      	diego:		db 0
+              	
+              	; ============================================================
+              	; MAPA 32x32 (id do tile por posição). Preenchido em runtime
+              	; com paredes na borda e chão no meio.
+              	; ============================================================
+82EF:         	map_data:
+82EF: 00000000	    DEFS MAP_SIZE,0
+82F3: 00...   	
+              	    
+              	    
+              	    
+              	; ============================================================
+              	; GRÁFICOS (8 bytes = 8 linhas, 1 bit por pixel, MSB = esquerda)
+              	; ============================================================
+86EF:         	tile_empty:
+86EF: 00000000	    DB $00,$00,$00,$00,$00,$00,$00,$00
+86F3: 00000000	
+86F7:         	tile_floor:                     ; marcador de referência (pontinho)
+              	    ;DB $00, $12, $24, $48, $12, $24, $48, $00
+86F7: 00000000	    DB $00, $00, $00, $00, $00, $00, $00, $00
+86FB: 00000000	
+              	    
+86FF:         	tile_wall:
+86FF: FF81BDBD	    DB $FF, $81, $BD, $BD, $BD, $BD, $81, $FF
+8703: BDBD81FF	
+              	
+8707:         	sprite_player:                  ; círculo 8x8
+8707: 3C3C3C18	    DB $3C, $3C, $3C, $18, $FF, $BD, $24, $66
+870B: FFBD2466	
+              	    
+870F:         	bloco1:
+870F: FF4444FF		DB $FF, $44, $44, $FF, $12, $12, $FF, $49
+8713: 1212FF49	
+              		
+8717:         	bloco2:
+8717: 5AC33CBD		DB $5A, $C3, $3C, $BD, $BD, $3C, $C3, $5A
+871B: BD3CC35A	
+              		
+871F:         	porta1:
+871F: FF818181		DB $FF, $81, $81, $81, $85, $81, $81, $81	
+8723: 85818181	
+              	
+              	
+8727:         	teste:
+8727: 18241800		DB $18, $24, $18, $00, $7E, $99, $A5, $24, $18, $24, $18, $7E, $99, $99, $24, $24
+872B: 7E99A524	
+872F: 1824187E	
+8733: 99992424	
+              		
+8737:         	bomba:	
+8737: 003C4281		DB $00, $3C, $42, $81, $81, $81, $42, $3C, $00, $00, $18, $24, $42, $42, $24, $18
+873B: 8181423C	
+873F: 00001824	
+8743: 42422418	
+              	
+              	
+              	
+8747:         	tiles_table:
+              		; índice 0 = chão, 1 = parede, 2 = bloco1, 3=bloco2, 4=porta1, 5=teste
+8747: F786FF86	    DW tile_floor, tile_wall, bloco1, bloco2, porta1, teste
+874B: 0F871787	
+874F: 1F872787	
+              	
+8753: 01010101	mapa1:	db	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+8757: 01...   	
+8773: 01000000			db	1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+8777: 00000000	
+877B: 00000000	
+877F: 00000000	
+8783: 00000000	
+8787: 00000000	
+878B: 00000000	
+878F: 00000001	
+8793: 01000200			db	1, 0, 2, 0, 2, 0, 2, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+8797: 02000200	
+879B: 02000000	
+879F: 00000000	
+87A3: 00000000	
+87A7: 00000000	
+87AB: 00000000	
+87AF: 00000001	
+87B3: 01000000			db	1, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+87B7: 02000000	
+87BB: 00000005	
+87BF: 00000000	
+87C3: 00000000	
+87C7: 00000000	
+87CB: 00000000	
+87CF: 00000001	
+87D3: 01000000			db	1, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+87D7: 00000202	
+87DB: 02000000	
+87DF: 00000000	
+87E3: 00000000	
+87E7: 00000000	
+87EB: 00000000	
+87EF: 00000001	
+87F3: 01000000			db	1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+87F7: 00000000	
+87FB: 00000000	
+87FF: 00000000	
+8803: 00000000	
+8807: 00000000	
+880B: 00000000	
+880F: 00000001	
+8813: 01000000			db	1, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+8817: 00030000	
+881B: 00000000	
+881F: 00000000	
+8823: 00000000	
+8827: 00000000	
+882B: 00000000	
+882F: 00000001	
+8833: 01000000			db	1, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+8837: 00030000	
+883B: 00000000	
+883F: 00000000	
+8843: 00000000	
+8847: 00000000	
+884B: 00000000	
+884F: 00000001	
+8853: 01000000			db	1, 0, 0, 0, 3, 3, 3, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+8857: 03030300	
+885B: 02020202	
+885F: 00000000	
+8863: 00000000	
+8867: 00000000	
+886B: 00000000	
+886F: 00000001	
+8873: 01000000			db	1, 0, 0, 0, 0, 3, 0, 0, 0, 4, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+8877: 00030000	
+887B: 00040202	
+887F: 00000000	
+8883: 00000000	
+8887: 00000000	
+888B: 00000000	
+888F: 00000001	
+8893: 01000000			db	1, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+8897: 00000000	
+889B: 02020202	
+889F: 00000000	
+88A3: 00000000	
+88A7: 00000000	
+88AB: 00000000	
+88AF: 00000001	
+88B3: 01000000			db	1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+88B7: 00000000	
+88BB: 00000000	
+88BF: 00000000	
+88C3: 00000000	
+88C7: 00000000	
+88CB: 00000000	
+88CF: 00000001	
+88D3: 01000000			db	1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+88D7: 00000000	
+88DB: 00000000	
+88DF: 00000000	
+88E3: 00000000	
+88E7: 00000000	
+88EB: 00000000	
+88EF: 00000001	
+88F3: 01000000			db	1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+88F7: 00000000	
+88FB: 00000000	
+88FF: 00000000	
+8903: 00000000	
+8907: 00000000	
+890B: 00000000	
+890F: 00000001	
+8913: 01000000			db	1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+8917: 00000000	
+891B: 00000000	
+891F: 00000000	
+8923: 00000000	
+8927: 00000000	
+892B: 00000000	
+892F: 00000001	
+8933: 01000000			db	1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+8937: 00000000	
+893B: 00000000	
+893F: 00000000	
+8943: 00000000	
+8947: 00000000	
+894B: 00000000	
+894F: 00000001	
+8953: 01000000			db	1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+8957: 00000000	
+895B: 00000000	
+895F: 00000000	
+8963: 00000000	
+8967: 00000000	
+896B: 00000000	
+896F: 00000001	
+8973: 01000000			db	1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+8977: 00000000	
+897B: 00000000	
+897F: 00000000	
+8983: 00000000	
+8987: 00000000	
+898B: 00000000	
+898F: 00000001	
+8993: 01000000			db	1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+8997: 00000000	
+899B: 00000000	
+899F: 00000000	
+89A3: 00000000	
+89A7: 00000000	
+89AB: 00000000	
+89AF: 00000001	
+89B3: 01000000			db	1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+89B7: 00000000	
+89BB: 00000000	
+89BF: 00000000	
+89C3: 00000000	
+89C7: 00000000	
+89CB: 00000000	
+89CF: 00000001	
+89D3: 01000000			db	1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+89D7: 00000000	
+89DB: 00000000	
+89DF: 00000000	
+89E3: 00000000	
+89E7: 00000000	
+89EB: 00000000	
+89EF: 00000001	
+89F3: 01000000			db	1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+89F7: 00000000	
+89FB: 00000000	
+89FF: 00000000	
+8A03: 00000000	
+8A07: 00000000	
+8A0B: 00000000	
+8A0F: 00000001	
+8A13: 01000000			db	1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+8A17: 00000000	
+8A1B: 00000000	
+8A1F: 00000000	
+8A23: 00000000	
+8A27: 00000000	
+8A2B: 00000000	
+8A2F: 00000001	
+8A33: 01000000			db	1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+8A37: 00000000	
+8A3B: 00000000	
+8A3F: 00000000	
+8A43: 00000000	
+8A47: 00000000	
+8A4B: 00000000	
+8A4F: 00000001	
+8A53: 01000000			db	1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+8A57: 00000000	
+8A5B: 00000000	
+8A5F: 00000000	
+8A63: 00000000	
+8A67: 00000000	
+8A6B: 00000000	
+8A6F: 00000001	
+8A73: 01000000			db	1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+8A77: 00000000	
+8A7B: 00000000	
+8A7F: 00000000	
+8A83: 00000000	
+8A87: 00000000	
+8A8B: 00000000	
+8A8F: 00000001	
+8A93: 01000000			db	1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+8A97: 00000000	
+8A9B: 00000000	
+8A9F: 00000000	
+8AA3: 00000000	
+8AA7: 00000000	
+8AAB: 00000000	
+8AAF: 00000001	
+8AB3: 01000000			db	1, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+8AB7: 02000000	
+8ABB: 00000000	
+8ABF: 00000000	
+8AC3: 00000000	
+8AC7: 00000000	
+8ACB: 00000000	
+8ACF: 00000001	
+8AD3: 01000002			db	1, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+8AD7: 00000000	
+8ADB: 00000000	
+8ADF: 00000000	
+8AE3: 00000000	
+8AE7: 00000000	
+8AEB: 00000000	
+8AEF: 00000001	
+8AF3: 01000200			db	1, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+8AF7: 00000000	
+8AFB: 00000000	
+8AFF: 00000000	
+8B03: 00000000	
+8B07: 00000000	
+8B0B: 00000000	
+8B0F: 00000001	
+8B13: 01020000			db	1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1
+8B17: 00000000	
+8B1B: 00000000	
+8B1F: 00000000	
+8B23: 00000000	
+8B27: 00000000	
+8B2B: 00000000	
+8B2F: 00000001	
+8B33: 01010101			db	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+8B37: 01...   	
+              			
+              			
+              	;32x32 titles
+8B53: 00000000	mapa2:	db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+8B57: 00...   	
+8B73: 00000000			db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+8B77: 00...   	
+8B93: 00000000			db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+8B97: 00...   	
+8BB3: 00000000			db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+8BB7: 00...   	
+8BD3: 00000000			db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+8BD7: 00...   	
+8BF3: 00000000			db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+8BF7: 00...   	
+8C13: 00000000			db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+8C17: 00...   	
+8C33: 00000000			db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+8C37: 00...   	
+8C53: 00000000			db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+8C57: 00...   	
+8C73: 00000000			db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+8C77: 00...   	
+8C93: 00000000			db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+8C97: 00...   	
+8CB3: 00000000			db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+8CB7: 00...   	
+8CD3: 00000000			db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+8CD7: 00...   	
+8CF3: 00000000			db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+8CF7: 00...   	
+8D13: 00000000			db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+8D17: 00...   	
+8D33: 00000000			db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+8D37: 00...   	
+8D53: 00000000			db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+8D57: 00...   	
+8D73: 00000000			db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+8D77: 00...   	
+8D93: 00000000			db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+8D97: 00...   	
+8DB3: 00000000			db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+8DB7: 00...   	
+8DD3: 00000000			db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+8DD7: 00...   	
+8DF3: 00000000			db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+8DF7: 00...   	
+8E13: 00000000			db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+8E17: 00...   	
+8E33: 00000000			db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+8E37: 00...   	
+8E53: 00000000			db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+8E57: 00...   	
+8E73: 00000000			db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+8E77: 00...   	
+8E93: 00000000			db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+8E97: 00...   	
+8EB3: 00000000			db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+8EB7: 00...   	
+8ED3: 00000000			db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+8ED7: 00...   	
+8EF3: 00000000			db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+8EF7: 00...   	
+8F13: 00000000			db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+8F17: 00...   	
+8F33: 00000000			db	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+8F37: 00...   	
+              	
+
+
+; +++ segments +++
+
+#CODE          = $8000 = 32768,  size = $0F53 =  3923
+
+; +++ global symbols +++
+
+BKS                 = $0008 =     8          Z80MiniAPI.asm:88 (unused)
+BuildMap            = $8018 = 32792          Main.asm:72
+CAM_MAXX            = $0080 =   128          Main.asm:48
+CAM_MAXY            = $00C0 =   192          Main.asm:49
+CAM_OFFX            = $003C =    60          Main.asm:46
+CAM_OFFY            = $001C =    28          Main.asm:47
+CR                  = $000D =    13          Z80MiniAPI.asm:86 (unused)
+CheckTile           = $8270 = 33392          Main.asm:510
+ClearFB             = $8071 = 32881          Main.asm:141
+DEL                 = $007F =   127          Z80MiniAPI.asm:89 (unused)
+DrawPlayer          = $811C = 33052          Main.asm:262
+DrawTile8x8         = $8163 = 33123          Main.asm:327
+DrawVisibleTiles    = $807F = 32895          Main.asm:153
+ESC                 = $001B =    27          Z80MiniAPI.asm:90 (unused)
+FB_SIZE             = $0400 =  1024          Main.asm:38
+FF                  = $000C =    12          Z80MiniAPI.asm:93 (unused)
+FlushFB             = $82D2 = 33490          Main.asm:597
+GLCD_DATA           = $0071 =   113          Z80MiniAPI.asm:66 (unused)
+GLCD_INST           = $0070 =   112          Z80MiniAPI.asm:65 (unused)
+I2C_Close           = $0109 =   265          Z80MiniAPI.asm:5 (unused)
+I2C_Open            = $0106 =   262          Z80MiniAPI.asm:4 (unused)
+I2C_Read            = $010C =   268          Z80MiniAPI.asm:6 (unused)
+I2C_Write           = $010F =   271          Z80MiniAPI.asm:7 (unused)
+KEYBOARD            = $0040 =    64          Z80MiniAPI.asm:68 (unused)
+LF                  = $000A =    10          Z80MiniAPI.asm:87 (unused)
+MAP_H               = $0020 =    32          Main.asm:42
+MAP_SIZE            = $0400 =  1024          Main.asm:43
+MAP_W               = $0020 =    32          Main.asm:41
+NUL                 = $0000 =     0          Z80MiniAPI.asm:92 (unused)
+PLAYER_MAXX         = $00F8 =   248          Main.asm:50
+PLAYER_MAXY         = $00F8 =   248          Main.asm:51
+ReadInput           = $820D = 33293          Main.asm:439
+ReadOk              = $8214 = 33300          Main.asm:444
+SCR_H               = $0040 =    64          Main.asm:36
+SCR_STRIDE          = $0010 =    16          Main.asm:37
+SCR_W               = $0080 =   128          Main.asm:35
+SIOA_C              = $0002 =     2          Z80MiniAPI.asm:99 (unused)
+SIOA_D              = $0000 =     0          Z80MiniAPI.asm:98 (unused)
+SIOB_C              = $0003 =     3          Z80MiniAPI.asm:101 (unused)
+SIOB_D              = $0001 =     1          Z80MiniAPI.asm:100 (unused)
+SPACE               = $0020 =    32          Z80MiniAPI.asm:91 (unused)
+TILE_SIZE           = $0008 =     8          Main.asm:40
+UpdateCamera        = $804E = 32846          Main.asm:114
+_end                = $8F53 = 36691          Z80MiniAPI.asm:31 (unused)
+_size               = $0F53 =  3923          Z80MiniAPI.asm:31 (unused)
+_z80_               = $0001 =     1          Main.asm:1 (unused)
+autoLF              = $0196 =   406          Z80MiniAPI.asm:53 (unused)
+bloco1              = $870F = 34575          Main.asm:656
+bloco2              = $8717 = 34583          Main.asm:659
+bm_bottom           = $8033 = 32819          Main.asm:91
+bm_sides            = $803D = 32829          Main.asm:98
+bm_top              = $8029 = 32809          Main.asm:84
+bomba               = $8737 = 34615          Main.asm:669 (unused)
+camX                = $82DA = 33498          Main.asm:610
+camY                = $82DB = 33499          Main.asm:611
+cam_x_done          = $805C = 32860          Main.asm:123
+cam_x_pos           = $8056 = 32854          Main.asm:119
+cam_y_done          = $806D = 32877          Main.asm:134
+cam_y_pos           = $8067 = 32871          Main.asm:130
+checkCollisionPixel = $0299 =   665          Z80MiniAPI.asm:57 (unused)
+clearGBUF           = $013C =   316          Z80MiniAPI.asm:23 (unused)
+clearGrLCD          = $013F =   319          Z80MiniAPI.asm:24 (unused)
+clearPixel          = $0172 =   370          Z80MiniAPI.asm:41 (unused)
+clearTxtLCD         = $0142 =   322          Z80MiniAPI.asm:25 (unused)
+delay               = $0103 =   259          Z80MiniAPI.asm:3 (unused)
+delay500ms          = $0100 =   256          Z80MiniAPI.asm:2 (unused)
+diego               = $82EE = 33518          Main.asm:630
+displayCursor       = $0193 =   403          Z80MiniAPI.asm:52 (unused)
+drawBox             = $014B =   331          Z80MiniAPI.asm:28 (unused)
+drawCircle          = $0151 =   337          Z80MiniAPI.asm:30 (unused)
+drawGraphic         = $0178 =   376          Z80MiniAPI.asm:43 (unused)
+drawLine            = $014E =   334          Z80MiniAPI.asm:29 (unused)
+drawPixel           = $0154 =   340          Z80MiniAPI.asm:31 (unused)
+dt_addr             = $82EA = 33514          Main.asm:627
+dt_advance          = $81F4 = 33268          Main.asm:420
+dt_bytex            = $82E5 = 33509          Main.asm:623
+dt_cury             = $82E6 = 33510          Main.asm:624
+dt_left_noshift     = $81BE = 33214          Main.asm:382
+dt_left_shift_loop  = $81B9 = 33209          Main.asm:378
+dt_next_row         = $817F = 33151          Main.asm:342
+dt_right_only       = $81C4 = 33220          Main.asm:388
+dt_right_shift_loop = $81E9 = 33257          Main.asm:411
+dt_rowbase          = $82E8 = 33512          Main.asm:626
+dt_rowcount         = $82E7 = 33511          Main.asm:625
+dt_shift            = $82E4 = 33508          Main.asm:622
+dt_tileptr          = $82E2 = 33506          Main.asm:621
+dvt_col_loop        = $80BD = 32957          Main.asm:185
+dvt_row_loop        = $80B7 = 32951          Main.asm:182
+fillBox             = $0157 =   343          Z80MiniAPI.asm:32 (unused)
+fillCircle          = $015A =   346          Z80MiniAPI.asm:33 (unused)
+flipPixel           = $0175 =   373          Z80MiniAPI.asm:42 (unused)
+framebuf            = $F784 = 63364          Main.asm:53
+getCursor           = $0190 =   400          Z80MiniAPI.asm:51 (unused)
+initLCD             = $0139 =   313          Z80MiniAPI.asm:22 (unused)
+initTerminal        = $017E =   382          Z80MiniAPI.asm:45 (unused)
+invGraphic          = $017B =   379          Z80MiniAPI.asm:44 (unused)
+keyboardA           = $0118 =   280          Z80MiniAPI.asm:10
+keyboardIsEsc       = $0112 =   274          Z80MiniAPI.asm:8 (unused)
+keyboardWaitA       = $0115 =   277          Z80MiniAPI.asm:9 (unused)
+main_loop           = $8003 = 32771          Main.asm:60
+map_data            = $82EF = 33519          Main.asm:636
+mapa1               = $8753 = 34643          Main.asm:678
+mapa2               = $8B53 = 35667          Main.asm:713 (unused)
+p0                  = $814F = 33103          Main.asm:299
+p1                  = $8155 = 33109          Main.asm:304
+p2                  = $815C = 33116          Main.asm:309
+player              = $82EC = 33516          Main.asm:629
+playerX             = $82D8 = 33496          Main.asm:608
+playerXLast         = $82D6 = 33494          Main.asm:606
+playerY             = $82D9 = 33497          Main.asm:609
+playerYLast         = $82D7 = 33495          Main.asm:607
+plotAlways          = $019C =   412          Z80MiniAPI.asm:55 (unused)
+plotToLCD           = $015D =   349          Z80MiniAPI.asm:34
+porta1              = $871F = 34591          Main.asm:662
+printChars          = $0163 =   355          Z80MiniAPI.asm:36 (unused)
+printString         = $0160 =   352          Z80MiniAPI.asm:35 (unused)
+resetCollisionPixel = $0294 =   660          Z80MiniAPI.asm:56 (unused)
+ri_no_down          = $825D = 33373          Main.asm:490
+ri_no_left          = $8249 = 33353          Main.asm:477
+ri_no_right         = $8236 = 33334          Main.asm:464
+ri_no_up            = $826F = 33391          Main.asm:502
+sendCharToLCD       = $0181 =   385          Z80MiniAPI.asm:46 (unused)
+sendHLToLCD         = $018A =   394          Z80MiniAPI.asm:49 (unused)
+sendRegToLCD        = $0187 =   391          Z80MiniAPI.asm:48 (unused)
+sendStringToLCD     = $0184 =   388          Z80MiniAPI.asm:47 (unused)
+serialCRLF          = $012A =   298          Z80MiniAPI.asm:16
+serialHexA          = $012D =   301          Z80MiniAPI.asm:17
+serialHexHL         = $0130 =   304          Z80MiniAPI.asm:18
+serialInHexA        = $0133 =   307          Z80MiniAPI.asm:19 (unused)
+serialInHexHL       = $0136 =   310          Z80MiniAPI.asm:20 (unused)
+serialInputA        = $0124 =   292          Z80MiniAPI.asm:14 (unused)
+serialPrintA        = $0121 =   289          Z80MiniAPI.asm:13 (unused)
+serialPrintStr      = $0127 =   295          Z80MiniAPI.asm:15 (unused)
+setBufClear         = $016C =   364          Z80MiniAPI.asm:39 (unused)
+setBufNoClear       = $016F =   367          Z80MiniAPI.asm:40 (unused)
+setCursor           = $018D =   397          Z80MiniAPI.asm:50 (unused)
+setDefaultSerialA   = $011B =   283          Z80MiniAPI.asm:11 (unused)
+setDefaultSerialB   = $011E =   286          Z80MiniAPI.asm:12 (unused)
+setGrMode           = $0145 =   325          Z80MiniAPI.asm:26 (unused)
+setInt38            = $0166 =   358          Z80MiniAPI.asm:37 (unused)
+setTxtMode          = $0148 =   328          Z80MiniAPI.asm:27 (unused)
+setint66            = $0169 =   361          Z80MiniAPI.asm:38 (unused)
+sprite_player       = $8707 = 34567          Main.asm:653 (unused)
+start               = $8000 = 32768          Main.asm:58 (unused)
+teste               = $8727 = 34599          Main.asm:666
+tile_empty          = $86EF = 34543          Main.asm:644 (unused)
+tile_floor          = $86F7 = 34551          Main.asm:646
+tile_wall           = $86FF = 34559          Main.asm:650
+tiles_table         = $8747 = 34631          Main.asm:674
+tx_cur              = $82E0 = 33504          Main.asm:617
+tx_end              = $82DD = 33501          Main.asm:614
+tx_start            = $82DC = 33500          Main.asm:613
+ty_cur              = $82E1 = 33505          Main.asm:618
+ty_end              = $82DF = 33503          Main.asm:616
+ty_start            = $82DE = 33502          Main.asm:615
+underline           = $0199 =   409          Z80MiniAPI.asm:54 (unused)
+
+
+total time: 0.0287 sec.
+no errors

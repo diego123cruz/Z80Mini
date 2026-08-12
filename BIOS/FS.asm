@@ -27,6 +27,9 @@ FS_O_FLAGS: .EQU 13
 ; FS_DIR
 ; **********************************************************************
 FS_DIR:
+    LD A, 1
+    CALL plotAlways
+
     CALL CRLF
     LD HL, str_dir_hdr
     CALL PUTS
@@ -86,11 +89,17 @@ FS_DIR_INC:
     LD A, C
     OR A
     JR NZ, FS_DIR_CNT
+    
+    LD A, 0
+    call plotAlways
     LD HL, str_empty
     CALL PUTS
     RET
 FS_DIR_CNT:
     CALL HexOut
+
+    LD A, 0
+    call plotAlways
     LD HL, str_nfiles
     CALL PUTS
     RET

@@ -356,6 +356,18 @@ LISTLOOP:      PUSH DE             ;Preserve DE
             CALL Z, i2cPrintL32
             CP  $50
             CALL Z, i2cPrintL50
+            CP  $51
+            CALL Z, i2cPrintL51
+            CP  $52
+            CALL Z, i2cPrintL52
+            CP  $53
+            CALL Z, i2cPrintL53
+            CP  $54
+            CALL Z, i2cPrintL54
+            CP  $55
+            CALL Z, i2cPrintL55
+            CP  $56
+            CALL Z, i2cPrintL56
             CP  $57
             CALL Z, i2cPrintL57
             LD A, CR; enter
@@ -403,6 +415,42 @@ i2cPrintL50:
     LD   HL, I2C_LIST_50
     JP i2cPrintPuts
 
+i2cPrintL51:
+    PUSH AF
+    PUSH DE
+    LD   HL, I2C_LIST_51
+    JP i2cPrintPuts
+
+i2cPrintL52:
+    PUSH AF
+    PUSH DE
+    LD   HL, I2C_LIST_52
+    JP i2cPrintPuts
+
+i2cPrintL53:
+    PUSH AF
+    PUSH DE
+    LD   HL, I2C_LIST_53
+    JP i2cPrintPuts
+
+i2cPrintL54:
+    PUSH AF
+    PUSH DE
+    LD   HL, I2C_LIST_54
+    JP i2cPrintPuts
+
+i2cPrintL55:
+    PUSH AF
+    PUSH DE
+    LD   HL, I2C_LIST_55
+    JP i2cPrintPuts
+
+i2cPrintL56:
+    PUSH AF
+    PUSH DE
+    LD   HL, I2C_LIST_56
+    JP i2cPrintPuts
+
 i2cPrintL57:
     PUSH AF
     PUSH DE
@@ -421,7 +469,13 @@ I2C_LIST_07:    .DB " - ArduGame",0
 I2C_LIST_08:    .DB " - ArduBox",0
 I2C_LIST_32:    .DB " - RTC Ricoh r223",0
 I2C_LIST_50:    .DB " - EE Drive A",0
-I2C_LIST_57:    .DB " - EE Drive B",0
+I2C_LIST_51:    .DB " - EE Drive B",0
+I2C_LIST_52:    .DB " - EE Drive C",0
+I2C_LIST_53:    .DB " - EE Drive D",0
+I2C_LIST_54:    .DB " - EE Drive E",0
+I2C_LIST_56:    .DB " - EE Drive F",0
+I2C_LIST_57:    .DB " - EE Drive G",0
+I2C_LIST_55:    .DB " - EE Drive Z",0
 
 
 

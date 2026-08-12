@@ -1,0 +1,1785 @@
+              	; --------------------------------------
+              	; zasm: assemble "Main.asm"
+              	; date: 2026-08-12 12:54:38
+              	; --------------------------------------
+
+
+              	;#include "../../Z80MiniAPI.asm"
+              	
+              	
+              	; -------- Constantes gerais --------
+000D:         	CR          EQU  0DH
+000A:         	LF          EQU  0AH
+0008:         	BkS          EQU  08H
+007F:         	DEL         EQU  7FH
+001B:         	ESC         EQU  1BH
+0020:         	SPACE       EQU  20H
+0000:         	NUL         EQU  00H
+              	
+              	
+              	; ============================================================
+              	; MINI-ASSEMBLER DE LINHA - Z80Mini
+              	; ------------------------------------------------------------
+              	; Digite mnemonicos Z80 linha a linha (estilo Apple 1 / KIM-1).
+              	; Nao usa labels/forward refs: JR e DJNZ recebem o ENDERECO
+              	; ALVO ($nnnn) e o proprio codigo calcula o deslocamento.
+              	;
+              	; Cobertura desta v1:
+              	;   LD (todas as formas de 8/16 bits abaixo), ALU (ADD/ADC/SUB/
+              	;   SBC/AND/XOR/OR/CP reg8 e imediato), INC/DEC r/rp, ADD HL,rp,
+              	;   JP/JP cc/JP (HL), JR/JR cc, DJNZ, CALL/CALL cc, RET/RET cc,
+              	;   PUSH/POP, IN A,(n) / OUT (n),A, EX DE,HL / EX AF,AF' / EXX,
+              	;   HALT/NOP/DI/EI/DAA/CPL/SCF/CCF/RLCA/RRCA/RLA/RRA
+              	;
+              	; NAO implementado nesta v1 (fica facil de estender depois):
+              	;   instrucoes prefixadas CB (bit/set/res/rot em geral),
+              	;   ED (LD (nn),rp / LDIR / etc), e modos indexados IX/IY.
+              	;
+              	; IMPORTANTE: ajuste o bloco "I/O DO MONITOR" abaixo para
+              	; apontar para as rotinas reais da sua jump table em $0100.
+              	; Este arquivo NAO foi montado/testado num assembler real
+              	; (ambiente sem zasm) - revise a montagem antes de gravar na EEPROM.
+              	; ============================================================
+              	
+8000:         	        ORG     8000h
+              	
+              	; ---- I/O DO MONITOR (AJUSTE AQUI) ----
+0319:         	CONIN	EQU		$0319
+0447:         	CRLF	EQU		$0447
+              	
+              	; PUTCHAR: imprime o caractere em A
+042B:         	PUTCHAR EQU     $042B
+              	; PUTSTR: imprime string terminada em 0 apontada por HL
+0437:         	PUTSTR  EQU     $0437
+              	
+0028:         	LINEMAX EQU     40              ; tamanho maximo de uma linha digitada
+              	
+              	; ============================================================
+              	; PONTO DE ENTRADA
+              	; HL = endereco inicial de montagem (default $8000 se chamado direto)
+              	; ============================================================
+8000:         	ASMSTART:
+8000: 210090  	        LD      HL,9000h        ; endereco default; troque se quiser
+              	                                 ; pedir o endereco ao usuario aqui
+8003: 229588  	        LD      (CURADDR),HL
+8006:         	ASMLOOP:
+8006: CDB180  	        CALL    PRINTADDR       ; imprime "AAAA: " usando (CURADDR)
+              	
+8009: 11A088  	        LD      DE,LINEBUF
+800C: 0628    	        LD      B,LINEMAX
+800E: CD4F80  	        CALL    GETLINE         ; A = tamanho lido, LINEBUF = texto
+8011: B7      	        OR      A
+8012: 283A    	        JR      Z,ASMDONE       ; linha vazia -> sai do assembler
+              	
+8014: 4F      	        LD      C,A             ; C = tamanho da linha
+8015: CDE280  	        CALL    UPCASE_LINE     ; converte para maiusculas
+              	
+8018: 21A088  	        LD      HL,LINEBUF
+801B: CDF980  	        CALL    SKIPSPACES
+801E: CD0081  	        CALL    READMNEMONIC    ; DE=MNEBUF, A=tamanho do mnemonico
+8021: B7      	        OR      A
+8022: 28E2    	        JR      Z,ASMLOOP       ; linha so com espacos -> ignora (nao mexe em CURADDR)
+              	
+8024: 229788  	        LD      (LINEPTR),HL    ; salva o resto da linha ANTES de FINDMNEMONIC
+              	                                 ; reaproveitar HL para varrer a MNETAB
+8027: CD5A81  	        CALL    FINDMNEMONIC    ; procura em MNETAB
+802A: 381A    	        JR      C,ASMBADOP      ; nao achou -> erro
+              	
+              	        ; HL aponta para a entrada da tabela; IX = ponteiro pro handler
+802C: CD8281  	        CALL    CALLHANDLER     ; handler consome o resto da linha,
+              	                                 ; emite bytes em EMITBUF, retorna
+              	                                 ; B = quantidade de bytes emitidos
+              	                                 ; carry set = erro de sintaxe/operando
+802F: 3815    	        JR      C,ASMBADOP
+              	
+              	        ; grava os bytes emitidos a partir de CURADDR
+8031: 2A9588  	        LD      HL,(CURADDR)
+8034: 11D388  	        LD      DE,EMITBUF
+8037: 78      	        LD      A,B
+8038: B7      	        OR      A
+8039: 28CB    	        JR      Z,ASMLOOP       ; 0 bytes emitidos (nao deveria ocorrer)
+803B:         	EMITCOPY:
+803B: 1A      	        LD      A,(DE)
+803C: 77      	        LD      (HL),A
+803D: 23      	        INC     HL
+803E: 13      	        INC     DE
+803F: 10FA    	        DJNZ    EMITCOPY
+8041: 229588  	        LD      (CURADDR),HL    ; atualiza o endereco corrente (unico lugar que avanca)
+8044: 18C0    	        JR      ASMLOOP
+              	
+8046:         	ASMBADOP:
+8046: 21D788  	        LD      HL,MSGERR
+8049: CD3704  	        CALL    PUTSTR
+804C: 18B8    	        JR      ASMLOOP         ; nao mexe em CURADDR
+              	
+804E:         	ASMDONE:
+804E: C9      	        RET
+              	        
+              	        
+              	        
+              	        
+              	        
+              	        
+              	
+              	
+              	; GETLINE: le uma linha ate CR em (DE), tamanho max B, retorna
+              	;          tamanho lido em A. Deve ecoar os caracteres digitados
+              	;          e tratar backspace. Troque pelo endereco real da sua
+              	;          rotina de leitura de linha na jump table.
+              	
+              	; --- GETLINE: Lê linha para LINEBUF; eco local ---
+              	;     Termina em CR. Suporta BS/DEL para apagar.
+804F:         	GETLINE:
+804F: 626B    	            LD   HL, DE
+8051: 1600    	            LD 	 D, 0
+8053:         	GETLINE_LOOP:
+8053: CD1903  	            CALL CONIN
+8056: FE0D    	            CP   CR
+8058: 2850    	            JR   Z, GETLINE_DONE
+805A: FEF8    	            CP   $F8    ; ignora scroll up - GLCD
+805C: 28F5    	            JR   Z, GETLINE_LOOP
+805E: FEF7    	            CP   $F7    ; ignora scroll down - GLCD
+8060: 28F1    	            JR   Z, GETLINE_LOOP
+8062: FE0A    	            CP   LF
+8064: 28ED    	            JR   Z, GETLINE_LOOP    ; Ignora LF
+8066: FE1B    	            CP   ESC
+8068: 28E9    	            JR   Z, GETLINE_LOOP    ; Ignora
+806A: FEFF    	            CP   $FF ;capslock Ignora
+806C: CA5380  	            JP   Z, GETLINE_LOOP
+806F: FE08    	            CP   BkS
+8071: 281E    	            JR   Z, GETLINE_BS
+8073: FE7F    	            CP   DEL
+8075: 281A    	            JR   Z, GETLINE_BS
+8077: FEFA    	            CP   $FA ; AltGr
+8079: CA5380  	            JP   Z, GETLINE_LOOP
+807C: FEF9    	            CP   $F9 ; LUZ
+807E: CA5380  	            JP   Z, GETLINE_LOOP
+8081: 4F      	            LD   C, A
+8082: 78      	            LD   A, B
+8083: FE00    	            CP   0
+8085: 28CC    	            JR   Z, GETLINE_LOOP    ; Buffer cheio
+8087: 79      	            LD   A, C
+8088: 77      	            LD   (HL), A
+8089: 23      	            INC  HL
+808A: 05      	            DEC  B
+808B: 14      	            INC  D
+808C: CD2B04  	            CALL PUTCHAR             ; Eco
+808F: 18C2    	            JR   GETLINE_LOOP
+8091:         	GETLINE_BS:
+8091: 78      	            LD   A, B
+8092: FE4F    	            CP   79
+8094: 28BD    	            JR   Z, GETLINE_LOOP    ; Início: ignora BS
+8096: 2B      	            DEC  HL
+8097: 04      	            INC  B
+8098: 15      	            DEC  D
+8099: 3E08    	            LD   A, BkS
+809B: CD2B04  	            CALL PUTCHAR
+809E: 3E20    	            LD   A, SPACE
+80A0: CD2B04  	            CALL PUTCHAR
+80A3: 3E08    	            LD   A, BkS
+80A5: CD2B04  	            CALL PUTCHAR
+80A8: 18A9    	            JR   GETLINE_LOOP
+80AA:         	GETLINE_DONE:
+80AA: 3600    	            LD   (HL), NUL           ; Termina string
+80AC: CD4704  	            CALL CRLF
+80AF: 7A      	            LD A, D
+80B0: C9      	            RET   
+              	        
+              	        
+              	        
+              	        
+              	        
+              	        
+              	        
+              	        
+              	        
+              	
+              	; ------------------------------------------------------------
+80B1:         	PRINTADDR:
+80B1: 2A9588  	        LD      HL,(CURADDR)
+80B4: CDC280  	        CALL    PRINTHEX16
+80B7: 3E3A    	        LD      A,':'
+80B9: CD2B04  	        CALL    PUTCHAR
+80BC: 3E20    	        LD      A,' '
+80BE: CD2B04  	        CALL    PUTCHAR
+80C1: C9      	        RET
+              	
+              	; Imprime HL em hex, 4 digitos maiusculos
+80C2:         	PRINTHEX16:
+80C2: 7C      	        LD      A,H
+80C3: CDCB80  	        CALL    PRINTHEX8
+80C6: 7D      	        LD      A,L
+80C7: CDCB80  	        CALL    PRINTHEX8
+80CA: C9      	        RET
+80CB:         	PRINTHEX8:
+80CB: F5      	        PUSH    AF
+80CC: 1F      	        RRA
+80CD: 1F      	        RRA
+80CE: 1F      	        RRA
+80CF: 1F      	        RRA
+80D0: CDD480  	        CALL    PRINTNIBBLE
+80D3: F1      	        POP     AF
+80D4:         	PRINTNIBBLE:
+80D4: E60F    	        AND     0Fh
+80D6: FE0A    	        CP      0Ah
+80D8: 3802    	        JR      C,PN_DIGIT
+80DA: C607    	        ADD     A,'A'-'9'-1
+80DC:         	PN_DIGIT:
+80DC: C630    	        ADD     A,'0'
+80DE: CD2B04  	        CALL    PUTCHAR
+80E1: C9      	        RET
+              	
+              	; ------------------------------------------------------------
+              	; Converte LINEBUF (C bytes) para maiusculas
+80E2:         	UPCASE_LINE:
+80E2: 21A088  	        LD      HL,LINEBUF
+80E5: 41      	        LD      B,C
+80E6: 78      	        LD      A,B
+80E7: B7      	        OR      A
+80E8: C8      	        RET     Z
+80E9:         	UPC1:
+80E9: 7E      	        LD      A,(HL)
+80EA: FE61    	        CP      'a'
+80EC: 3807    	        JR      C,UPC2
+80EE: FE7B    	        CP      'z'+1
+80F0: 3003    	        JR      NC,UPC2
+80F2: D620    	        SUB     20h
+80F4: 77      	        LD      (HL),A
+80F5:         	UPC2:
+80F5: 23      	        INC     HL
+80F6: 10F1    	        DJNZ    UPC1
+80F8: C9      	        RET
+              	
+              	; Pula espacos a partir de (HL)
+80F9:         	SKIPSPACES:
+80F9: 7E      	        LD      A,(HL)
+80FA: FE20    	        CP      ' '
+80FC: C0      	        RET     NZ
+80FD: 23      	        INC     HL
+80FE: 18F9    	        JR      SKIPSPACES
+              	
+              	; Le o MNEMONICO a partir de (HL): igual READTOKEN mas tambem para
+              	; em '(' (sem consumir), para aceitar "OUT(10),A" sem espaco antes
+              	; do parenteses. Operandos continuam usando READTOKEN normal.
+              	; Nao usa B/C (varios chamadores guardam estado em B entre uma
+              	; chamada e outra - ex.: porta em OUT, condicao em JP/JR/CALL cc).
+8100:         	READMNEMONIC:
+8100: 11CA88  	        LD      DE,MNEBUF
+8103: AF      	        XOR     A
+8104: 329D88  	        LD      (TOKLEN),A      ; contador em memoria, nao em B
+8107:         	RM1:
+8107: 7E      	        LD      A,(HL)
+8108: B7      	        OR      A
+8109: 281E    	        JR      Z,RM_END
+810B: FE0D    	        CP      13
+810D: 281A    	        JR      Z,RM_END
+810F: FE20    	        CP      ' '
+8111: 2816    	        JR      Z,RM_END
+8113: FE2C    	        CP      ','
+8115: 2812    	        JR      Z,RM_END
+8117: FE28    	        CP      '('
+8119: 280E    	        JR      Z,RM_END
+811B: 12      	        LD      (DE),A
+811C: 13      	        INC     DE
+811D: 23      	        INC     HL
+811E: 3A9D88  	        LD      A,(TOKLEN)
+8121: 3C      	        INC     A
+8122: 329D88  	        LD      (TOKLEN),A
+8125: FE08    	        CP      8
+8127: 38DE    	        JR      C,RM1
+8129:         	RM_END:
+8129: AF      	        XOR     A
+812A: 12      	        LD      (DE),A
+812B: 3A9D88  	        LD      A,(TOKLEN)
+812E: C9      	        RET
+              	
+              	; Le um token (letras/digitos/$/(/)/+/-) a partir de (HL) ate achar
+              	; espaco, virgula ou CR/0. Copia para MNEBUF (max 8 chars), poe 0
+              	; no final. Retorna A = tamanho, HL aponta pro delimitador.
+              	; Nao usa B/C (mesmo motivo do READMNEMONIC acima).
+812F:         	READTOKEN:
+812F: 11CA88  	        LD      DE,MNEBUF
+8132: AF      	        XOR     A
+8133: 329D88  	        LD      (TOKLEN),A      ; contador em memoria, nao em B
+8136:         	RT1:
+8136: 7E      	        LD      A,(HL)
+8137: B7      	        OR      A
+8138: 281A    	        JR      Z,RT_END
+813A: FE0D    	        CP      13
+813C: 2816    	        JR      Z,RT_END
+813E: FE20    	        CP      ' '
+8140: 2812    	        JR      Z,RT_END
+8142: FE2C    	        CP      ','
+8144: 280E    	        JR      Z,RT_END
+8146: 12      	        LD      (DE),A
+8147: 13      	        INC     DE
+8148: 23      	        INC     HL
+8149: 3A9D88  	        LD      A,(TOKLEN)
+814C: 3C      	        INC     A
+814D: 329D88  	        LD      (TOKLEN),A
+8150: FE08    	        CP      8
+8152: 38E2    	        JR      C,RT1
+8154:         	RT_END:
+8154: AF      	        XOR     A
+8155: 12      	        LD      (DE),A
+8156: 3A9D88  	        LD      A,(TOKLEN)
+8159: C9      	        RET
+              	
+              	; ------------------------------------------------------------
+              	; Procura MNEBUF em MNETAB. Cada entrada: 4 bytes de nome
+              	; (preenchido com 0), 2 bytes ponteiro pro handler, 1 byte
+              	; parametro (ex: numero da operacao ALU / opcode fixo).
+              	; Retorna: HL = ponteiro pra entrada (nome), carry=1 se nao achou.
+815A:         	FINDMNEMONIC:
+815A: 21A087  	        LD      HL,MNETAB
+815D:         	FM1:
+815D: 7E      	        LD      A,(HL)
+815E: B7      	        OR      A
+815F: 281F    	        JR      Z,FM_NOTFOUND   ; entrada com nome vazio = fim da tabela
+8161: E5      	        PUSH    HL
+8162: 11CA88  	        LD      DE,MNEBUF
+8165: 0604    	        LD      B,4
+8167:         	FM2:
+8167: 1A      	        LD      A,(DE)
+8168: BE      	        CP      (HL)
+8169: 200B    	        JR      NZ,FM_NEXT
+816B: B7      	        OR      A
+816C: 2806    	        JR      Z,FM_MATCHCHK   ; bateu 0 nos dois -> confere resto
+816E: 23      	        INC     HL
+816F: 13      	        INC     DE
+8170: 10F5    	        DJNZ    FM2
+8172: 1809    	        JR      FM_MATCH        ; 4 chars bateram e nao houve 0 -> ok
+8174:         	FM_MATCHCHK:
+8174: 1807    	        JR      FM_MATCH
+8176:         	FM_NEXT:
+8176: E1      	        POP     HL
+8177: 110700  	        LD      DE,7            ; 4 (nome) + 2 (ptr) + 1 (param)
+817A: 19      	        ADD     HL,DE
+817B: 18E0    	        JR      FM1
+817D:         	FM_MATCH:
+817D: E1      	        POP     HL
+817E: B7      	        OR      A               ; carry = 0
+817F: C9      	        RET
+8180:         	FM_NOTFOUND:
+8180: 37      	        SCF
+8181: C9      	        RET
+              	
+              	; Chama o handler da entrada apontada por HL (nome de 4 bytes,
+              	; +4 = ponteiro do handler, +6 = byte de parametro).
+              	; O resto da linha (apos o mnemonico) e recuperado de LINEPTR,
+              	; que o ASMLOOP grava logo depois do READTOKEN do mnemonico
+              	; (antes de HL ser reaproveitado por FINDMNEMONIC).
+8182:         	CALLHANDLER:
+8182: E5      	        PUSH    HL
+8183: 110400  	        LD      DE,4
+8186: 19      	        ADD     HL,DE
+8187: 5E      	        LD      E,(HL)
+8188: 23      	        INC     HL
+8189: 56      	        LD      D,(HL)          ; DE = endereco do handler
+818A: 23      	        INC     HL
+818B: 4E      	        LD      C,(HL)          ; C = byte de parametro (ex: op ALU)
+818C: E1      	        POP     HL              ; (descarta o ponteiro da tabela)
+818D: 2A9788  	        LD      HL,(LINEPTR)    ; HL = resto da linha, apos o mnemonico
+8190: D5      	        PUSH    DE              ; empilha o ENDERECO DO HANDLER
+8191: C9      	        RET                     ; "salta" pro handler; o RET dele volta
+              	                                 ; pro chamador original de CALLHANDLER,
+              	                                 ; pois o proprio endereco de retorno da
+              	                                 ; CALL CALLHANDLER continua embaixo na pilha
+              	
+              	; ============================================================
+              	; HANDLERS
+              	; Convencao: entrada HL = ponto da linha logo apos o mnemonico
+              	; (ainda pode ter espacos antes do operando). C = parametro da
+              	; tabela. Saida: B = bytes emitidos em EMITBUF, carry=1 se erro.
+              	; Todos preservam a pilha (fazem RET normal).
+              	; ============================================================
+              	
+              	; ---- instrucoes sem operando, opcode fixo em C ----
+8192:         	H_SIMPLE:
+8192: 79      	        LD      A,C
+8193: 32D388  	        LD      (EMITBUF),A
+8196: 0601    	        LD      B,1
+8198: B7      	        OR      A
+8199: C9      	        RET
+              	
+              	; ---- HALT precisa ser tratado como H_SIMPLE tambem (opcode 76h) ----
+              	
+              	; ---- ALU: <MNE> A,r | <MNE> A,n | <MNE> r | <MNE> n ----
+              	; C = numero da operacao ALU (0=ADD 1=ADC 2=SUB 3=SBC 4=AND 5=XOR 6=OR 7=CP)
+819A:         	H_ALU:
+819A: CDF980  	        CALL    SKIPSPACES
+819D: CD2F81  	        CALL    READTOKEN       ; DE/MNEBUF = primeiro operando
+81A0: 3ACA88  	        LD      A,(MNEBUF)
+81A3: FE41    	        CP      'A'
+81A5: 200C    	        JR      NZ,ALU_NOTA     ; nao comecou com "A," -> e o unico operando
+81A7: 3ACB88  	        LD      A,(MNEBUF+1)
+81AA: B7      	        OR      A
+81AB: 2006    	        JR      NZ,ALU_NOTA     ; token era "A" mesmo (nao "AB" etc)
+              	        ; consumiu "A,"; le o operando real
+81AD: CDF980  	        CALL    SKIPSPACES
+81B0: CD2F81  	        CALL    READTOKEN
+81B3:         	ALU_NOTA:
+81B3: CD5985  	        CALL    CLASSIFY_R_OR_N
+81B6: 3823    	        JR      C,ALU_ERR
+81B8: 2812    	        JR      Z,ALU_ISREG
+              	        ; imediato: opcode = C6 + (op<<3), byte = A
+81BA: 47      	        LD      B,A             ; guarda imediato
+81BB: 79      	        LD      A,C
+81BC: 07      	        RLCA
+81BD: 07      	        RLCA
+81BE: 07      	        RLCA
+81BF: C6C6    	        ADD     A,0C6h
+81C1: 32D388  	        LD      (EMITBUF),A
+81C4: 78      	        LD      A,B
+81C5: 32D488  	        LD      (EMITBUF+1),A
+81C8: 0602    	        LD      B,2
+81CA: B7      	        OR      A
+81CB: C9      	        RET
+81CC:         	ALU_ISREG:
+              	        ; registrador em A (codigo 0-7)
+81CC: 47      	        LD      B,A
+81CD: 79      	        LD      A,C
+81CE: 07      	        RLCA
+81CF: 07      	        RLCA
+81D0: 07      	        RLCA
+81D1: C680    	        ADD     A,80h
+81D3: 80      	        ADD     A,B
+81D4: 32D388  	        LD      (EMITBUF),A
+81D7: 0601    	        LD      B,1
+81D9: B7      	        OR      A
+81DA: C9      	        RET
+81DB:         	ALU_ERR:
+81DB: 37      	        SCF
+81DC: C9      	        RET
+              	
+              	; ---- LD (a mais complexa) ----
+              	; Trata: LD r,r | LD r,n | LD rp,nn | LD (HL),n | LD A,(BC/DE/nn)
+              	;        LD (BC/DE/nn),A | LD HL,(nn) | LD (nn),HL | LD SP,HL
+81DD:         	H_LD:
+81DD: CDF980  	        CALL    SKIPSPACES
+81E0: CD2F81  	        CALL    READTOKEN       ; primeiro operando -> MNEBUF; HL fica no delimitador
+81E3: CDBF86  	        CALL    CLASSIFY_DEST   ; classifica destino: retorna tipo em A (preserva HL)
+              	                                 ; 0=reg8 1=reg16 2=(HL)ja incluso em reg8
+              	                                 ; 3=(BC) 4=(DE) 5=(nn)
+              	        ; guarda tipo/valor do destino
+81E6: 329988  	        LD      (LD_DSTTYPE),A
+81E9: ED439A88	        LD      (LD_DSTVAL),BC  ; BC = valor (reg code) ou endereco, conforme tipo
+              	
+              	        ; pula a virgula
+81ED: CD1787  	        CALL    SKIPTOCOMMA
+81F0: DAFC82  	        JP      C,LD_ERR
+81F3: CDF980  	        CALL    SKIPSPACES
+81F6: CD2F81  	        CALL    READTOKEN       ; segundo operando
+              	
+81F9: 3A9988  	        LD      A,(LD_DSTTYPE)
+81FC: FE00    	        CP      0
+81FE: CA1882  	        JP      Z,LD_DST_REG8
+8201: FE01    	        CP      1
+8203: CA5282  	        JP      Z,LD_DST_REG16
+8206: FE03    	        CP      3
+8208: CA9182  	        JP      Z,LD_DST_INDBC
+820B: FE04    	        CP      4
+820D: CAA782  	        JP      Z,LD_DST_INDDE
+8210: FE05    	        CP      5
+8212: CABD82  	        JP      Z,LD_DST_INDNN
+8215: C3FC82  	        JP      LD_ERR
+              	
+8218:         	LD_DST_REG8:
+              	        ; segundo operando: reg8, (HL) ja coberto por CLASSIFY_R_OR_N, ou imediato
+              	        ; NAO guardamos o destino em D antes desta chamada: CLASSIFY_R_OR_N
+              	        ; pode cair em PARSEDEC16FROM/PARSEHEX16FROM, que usam DE inteiro
+              	        ; como acumulador e destruiriam D. Relemos LD_DSTVAL da memoria
+              	        ; sempre que precisamos do destino, depois da chamada.
+8218: CD5985  	        CALL    CLASSIFY_R_OR_N
+821B: DAFC82  	        JP      C,LD_ERR
+821E: CA3582  	        JP      Z,LD_REG8_REG
+              	        ; imediato: 06 + (dst<<3), n   -- cobre tambem LD (HL),n
+8221: 47      	        LD      B,A             ; guarda o imediato
+8222: 3A9A88  	        LD      A,(LD_DSTVAL)   ; A = codigo do destino (relido)
+8225: 07      	        RLCA
+8226: 07      	        RLCA
+8227: 07      	        RLCA
+8228: C606    	        ADD     A,06h
+822A: 32D388  	        LD      (EMITBUF),A
+822D: 78      	        LD      A,B
+822E: 32D488  	        LD      (EMITBUF+1),A
+8231: 0602    	        LD      B,2
+8233: B7      	        OR      A
+8234: C9      	        RET
+8235:         	LD_REG8_REG:
+              	        ; A = codigo do reg fonte (0-7)
+              	        ; rejeita (HL),(HL) = 76h (isso e HALT)
+8235: 47      	        LD      B,A             ; B = fonte (guardado antes de reler o destino)
+8236: FE06    	        CP      6
+8238: 2008    	        JR      NZ,LD_R8R8_OK
+823A: 3A9A88  	        LD      A,(LD_DSTVAL)
+823D: FE06    	        CP      6
+823F: CAFC82  	        JP      Z,LD_ERR
+8242:         	LD_R8R8_OK:
+8242: 3A9A88  	        LD      A,(LD_DSTVAL)   ; A = destino (relido)
+8245: 07      	        RLCA
+8246: 07      	        RLCA
+8247: 07      	        RLCA
+8248: C640    	        ADD     A,40h
+824A: 80      	        ADD     A,B
+824B: 32D388  	        LD      (EMITBUF),A
+824E: 0601    	        LD      B,1
+8250: B7      	        OR      A
+8251: C9      	        RET
+              	
+8252:         	LD_DST_REG16:
+              	        ; destino e BC/DE/HL/SP. Se for "SP,HL" -> F9. Senao espera imediato de 16 bits.
+8252: 3A9A88  	        LD      A,(LD_DSTVAL)   ; codigo do par (0=BC 1=DE 2=HL 3=SP)
+8255: FE03    	        CP      3
+8257: 2020    	        JR      NZ,LD_R16_IMM
+              	        ; destino SP: unico operando valido aqui e "HL"
+8259: 3ACA88  	        LD      A,(MNEBUF)
+825C: FE48    	        CP      'H'
+825E: C2FC82  	        JP      NZ,LD_ERR
+8261: 3ACB88  	        LD      A,(MNEBUF+1)
+8264: FE4C    	        CP      'L'
+8266: C2FC82  	        JP      NZ,LD_ERR
+8269: 3ACC88  	        LD      A,(MNEBUF+2)
+826C: B7      	        OR      A
+826D: C2FC82  	        JP      NZ,LD_ERR
+8270: 3EF9    	        LD      A,0F9h
+8272: 32D388  	        LD      (EMITBUF),A
+8275: 0601    	        LD      B,1
+8277: B7      	        OR      A
+8278: C9      	        RET
+8279:         	LD_R16_IMM:
+8279: CD7986  	        CALL    CLASSIFY_IMM16  ; exige token comecando com $ ou digito
+827C: 387E    	        JR      C,LD_ERR
+827E: 3A9A88  	        LD      A,(LD_DSTVAL)
+8281: 07      	        RLCA
+8282: 07      	        RLCA
+8283: 07      	        RLCA
+8284: 07      	        RLCA
+8285: C601    	        ADD     A,01h
+8287: 32D388  	        LD      (EMITBUF),A
+828A: 22D488  	        LD      (EMITBUF+1),HL  ; HL = valor imediato (lo,hi ja na ordem certa)
+828D: 0603    	        LD      B,3
+828F: B7      	        OR      A
+8290: C9      	        RET
+              	
+8291:         	LD_DST_INDBC:
+              	        ; (BC),A
+8291: 3ACA88  	        LD      A,(MNEBUF)
+8294: FE41    	        CP      'A'
+8296: 2064    	        JR      NZ,LD_ERR
+8298: 3ACB88  	        LD      A,(MNEBUF+1)
+829B: B7      	        OR      A
+829C: 205E    	        JR      NZ,LD_ERR
+829E: 3E02    	        LD      A,02h
+82A0: 32D388  	        LD      (EMITBUF),A
+82A3: 0601    	        LD      B,1
+82A5: B7      	        OR      A
+82A6: C9      	        RET
+              	
+82A7:         	LD_DST_INDDE:
+82A7: 3ACA88  	        LD      A,(MNEBUF)
+82AA: FE41    	        CP      'A'
+82AC: 204E    	        JR      NZ,LD_ERR
+82AE: 3ACB88  	        LD      A,(MNEBUF+1)
+82B1: B7      	        OR      A
+82B2: 2048    	        JR      NZ,LD_ERR
+82B4: 3E12    	        LD      A,12h
+82B6: 32D388  	        LD      (EMITBUF),A
+82B9: 0601    	        LD      B,1
+82BB: B7      	        OR      A
+82BC: C9      	        RET
+              	
+82BD:         	LD_DST_INDNN:
+              	        ; (nn),A  ou  (nn),HL
+82BD: 3ACA88  	        LD      A,(MNEBUF)
+82C0: FE41    	        CP      'A'
+82C2: 2015    	        JR      NZ,LD_INDNN_HL
+82C4: 3ACB88  	        LD      A,(MNEBUF+1)
+82C7: B7      	        OR      A
+82C8: 200F    	        JR      NZ,LD_INDNN_HL
+82CA: 3E32    	        LD      A,32h
+82CC: 32D388  	        LD      (EMITBUF),A
+82CF: 2A9A88  	        LD      HL,(LD_DSTVAL)
+82D2: 22D488  	        LD      (EMITBUF+1),HL
+82D5: 0603    	        LD      B,3
+82D7: B7      	        OR      A
+82D8: C9      	        RET
+82D9:         	LD_INDNN_HL:
+82D9: 3ACA88  	        LD      A,(MNEBUF)
+82DC: FE48    	        CP      'H'
+82DE: 201C    	        JR      NZ,LD_ERR
+82E0: 3ACB88  	        LD      A,(MNEBUF+1)
+82E3: FE4C    	        CP      'L'
+82E5: 2015    	        JR      NZ,LD_ERR
+82E7: 3ACC88  	        LD      A,(MNEBUF+2)
+82EA: B7      	        OR      A
+82EB: 200F    	        JR      NZ,LD_ERR
+82ED: 3E22    	        LD      A,22h
+82EF: 32D388  	        LD      (EMITBUF),A
+82F2: 2A9A88  	        LD      HL,(LD_DSTVAL)
+82F5: 22D488  	        LD      (EMITBUF+1),HL
+82F8: 0603    	        LD      B,3
+82FA: B7      	        OR      A
+82FB: C9      	        RET
+              	
+82FC:         	LD_ERR:
+82FC: 37      	        SCF
+82FD: C9      	        RET
+              	
+              	; ---- INC/DEC r | INC/DEC rp ----  (C: bit0 = 0 INC / 1 DEC)
+82FE:         	H_INCDEC:
+82FE: CDF980  	        CALL    SKIPSPACES
+8301: CD2F81  	        CALL    READTOKEN
+8304: CD5985  	        CALL    CLASSIFY_R_OR_N
+8307: 381C    	        JR      C,INCDEC_TRY16
+8309: 201A    	        JR      NZ,INCDEC_TRY16 ; Z=1 quer dizer "era registrador" (ver CLASSIFY_R_OR_N)
+              	        ; reg8, codigo em A
+830B: 47      	        LD      B,A
+830C: CB41    	        BIT     0,C
+830E: 2008    	        JR      NZ,INCDEC_D8
+8310: 78      	        LD      A,B
+8311: 07      	        RLCA
+8312: 07      	        RLCA
+8313: 07      	        RLCA
+8314: C604    	        ADD     A,04h
+8316: 1806    	        JR      INCDEC_EMIT1
+8318:         	INCDEC_D8:
+8318: 78      	        LD      A,B
+8319: 07      	        RLCA
+831A: 07      	        RLCA
+831B: 07      	        RLCA
+831C: C605    	        ADD     A,05h
+831E:         	INCDEC_EMIT1:
+831E: 32D388  	        LD      (EMITBUF),A
+8321: 0601    	        LD      B,1
+8323: B7      	        OR      A
+8324: C9      	        RET
+8325:         	INCDEC_TRY16:
+8325: CDCA85  	        CALL    CLASSIFY_REG16
+8328: 3819    	        JR      C,INCDEC_ERR
+832A: CB41    	        BIT     0,C
+832C: 2008    	        JR      NZ,INCDEC_D16
+832E: 07      	        RLCA
+832F: 07      	        RLCA
+8330: 07      	        RLCA
+8331: 07      	        RLCA
+8332: C603    	        ADD     A,03h
+8334: 1806    	        JR      INCDEC_EMIT1B
+8336:         	INCDEC_D16:
+8336: 07      	        RLCA
+8337: 07      	        RLCA
+8338: 07      	        RLCA
+8339: 07      	        RLCA
+833A: C60B    	        ADD     A,0Bh
+833C:         	INCDEC_EMIT1B:
+833C: 32D388  	        LD      (EMITBUF),A
+833F: 0601    	        LD      B,1
+8341: B7      	        OR      A
+8342: C9      	        RET
+8343:         	INCDEC_ERR:
+8343: 37      	        SCF
+8344: C9      	        RET
+              	
+              	; ---- ADD HL,rp ----
+8345:         	H_ADDHL:
+8345: CDF980  	        CALL    SKIPSPACES
+8348: CD2F81  	        CALL    READTOKEN       ; espera "HL"
+834B: 3ACA88  	        LD      A,(MNEBUF)
+834E: FE48    	        CP      'H'
+8350: 2024    	        JR      NZ,ADDHL_ERR
+8352: 3ACB88  	        LD      A,(MNEBUF+1)
+8355: FE4C    	        CP      'L'
+8357: 201D    	        JR      NZ,ADDHL_ERR
+8359: CD1787  	        CALL    SKIPTOCOMMA
+835C: 3818    	        JR      C,ADDHL_ERR
+835E: CDF980  	        CALL    SKIPSPACES
+8361: CD2F81  	        CALL    READTOKEN
+8364: CDCA85  	        CALL    CLASSIFY_REG16
+8367: 380D    	        JR      C,ADDHL_ERR
+8369: 07      	        RLCA
+836A: 07      	        RLCA
+836B: 07      	        RLCA
+836C: 07      	        RLCA
+836D: C609    	        ADD     A,09h
+836F: 32D388  	        LD      (EMITBUF),A
+8372: 0601    	        LD      B,1
+8374: B7      	        OR      A
+8375: C9      	        RET
+8376:         	ADDHL_ERR:
+8376: 37      	        SCF
+8377: C9      	        RET
+              	
+              	; ---- PUSH/POP rp2 ----  (C: bit0 = 0 PUSH / 1 POP)
+8378:         	H_PUSHPOP:
+8378: CDF980  	        CALL    SKIPSPACES
+837B: CD2F81  	        CALL    READTOKEN
+837E: CDEB85  	        CALL    CLASSIFY_REG16AF ; BC/DE/HL/AF -> A=codigo 0-3
+8381: 3815    	        JR      C,PP_ERR
+8383: 07      	        RLCA
+8384: 07      	        RLCA
+8385: 07      	        RLCA
+8386: 07      	        RLCA
+8387: CB41    	        BIT     0,C
+8389: 2004    	        JR      NZ,PP_POP
+838B: C6C5    	        ADD     A,0C5h
+838D: 1802    	        JR      PP_EMIT
+838F:         	PP_POP:
+838F: C6C1    	        ADD     A,0C1h
+8391:         	PP_EMIT:
+8391: 32D388  	        LD      (EMITBUF),A
+8394: 0601    	        LD      B,1
+8396: B7      	        OR      A
+8397: C9      	        RET
+8398:         	PP_ERR:
+8398: 37      	        SCF
+8399: C9      	        RET
+              	
+              	; ---- JP nn | JP cc,nn | JP (HL) ----
+839A:         	H_JP:
+839A: CDF980  	        CALL    SKIPSPACES
+839D: CD2F81  	        CALL    READTOKEN
+83A0: 3ACA88  	        LD      A,(MNEBUF)
+83A3: FE28    	        CP      '('
+83A5: 2017    	        JR      NZ,JP_NOTIND
+83A7: 3ACB88  	        LD      A,(MNEBUF+1)
+83AA: FE48    	        CP      'H'
+83AC: 2047    	        JR      NZ,JP_ERR
+83AE: 3ACC88  	        LD      A,(MNEBUF+2)
+83B1: FE4C    	        CP      'L'
+83B3: 2040    	        JR      NZ,JP_ERR
+83B5: 3EE9    	        LD      A,0E9h
+83B7: 32D388  	        LD      (EMITBUF),A
+83BA: 0601    	        LD      B,1
+83BC: B7      	        OR      A
+83BD: C9      	        RET
+83BE:         	JP_NOTIND:
+83BE: CD0C86  	        CALL    CLASSIFY_COND3  ; tenta como condicao (NZ/Z/NC/C/PO/PE/P/M)
+83C1: 3821    	        JR      C,JP_UNCOND
+              	        ; era condicao; A = codigo 0-7; consome virgula e le endereco
+83C3: 47      	        LD      B,A
+83C4: CD1787  	        CALL    SKIPTOCOMMA
+83C7: 382C    	        JR      C,JP_ERR
+83C9: CDF980  	        CALL    SKIPSPACES
+83CC: CD2F81  	        CALL    READTOKEN
+83CF: CD7986  	        CALL    CLASSIFY_IMM16
+83D2: 3821    	        JR      C,JP_ERR
+83D4: 78      	        LD      A,B
+83D5: 07      	        RLCA
+83D6: 07      	        RLCA
+83D7: 07      	        RLCA
+83D8: C6C2    	        ADD     A,0C2h
+83DA: 32D388  	        LD      (EMITBUF),A
+83DD: 22D488  	        LD      (EMITBUF+1),HL
+83E0: 0603    	        LD      B,3
+83E2: B7      	        OR      A
+83E3: C9      	        RET
+83E4:         	JP_UNCOND:
+83E4: CD7986  	        CALL    CLASSIFY_IMM16  ; token ja lido esta em MNEBUF (via HL apontado? reclassifica)
+83E7: 380C    	        JR      C,JP_ERR
+83E9: 3EC3    	        LD      A,0C3h
+83EB: 32D388  	        LD      (EMITBUF),A
+83EE: 22D488  	        LD      (EMITBUF+1),HL
+83F1: 0603    	        LD      B,3
+83F3: B7      	        OR      A
+83F4: C9      	        RET
+83F5:         	JP_ERR:
+83F5: 37      	        SCF
+83F6: C9      	        RET
+              	
+              	; ---- JR e | JR cc,e ----  (e = endereco alvo; calcula deslocamento)
+              	; ---- DJNZ e ----  (mesmo calculo, sem condicao)
+              	; C = 0 -> JR simples/cc ; C = 1 -> DJNZ
+83F7:         	H_JR:
+83F7: CDF980  	        CALL    SKIPSPACES
+83FA: CD2F81  	        CALL    READTOKEN
+83FD: CB41    	        BIT     0,C
+83FF: 2043    	        JR      NZ,JR_DJNZ
+8401: CD6E86  	        CALL    CLASSIFY_COND2 ; NZ/Z/NC/C -> A=0-3 ; carry=erro
+8404: 3828    	        JR      C,JR_UNCOND
+8406: 47      	        LD      B,A
+8407: CD1787  	        CALL    SKIPTOCOMMA
+840A: 384E    	        JR      C,JR_ERR
+840C: CDF980  	        CALL    SKIPSPACES
+840F: CD2F81  	        CALL    READTOKEN
+8412: CD7986  	        CALL    CLASSIFY_IMM16
+8415: 3843    	        JR      C,JR_ERR
+8417: CD5C84  	        CALL    JR_CALCOFFSET   ; HL(alvo) -> A=offset, carry=fora de alcance
+841A: 383E    	        JR      C,JR_ERR
+841C: 4F      	        LD      C,A
+841D: 78      	        LD      A,B
+841E: 07      	        RLCA
+841F: 07      	        RLCA
+8420: 07      	        RLCA
+8421: C620    	        ADD     A,20h
+8423: 32D388  	        LD      (EMITBUF),A
+8426: 79      	        LD      A,C
+8427: 32D488  	        LD      (EMITBUF+1),A
+842A: 0602    	        LD      B,2
+842C: B7      	        OR      A
+842D: C9      	        RET
+842E:         	JR_UNCOND:
+842E: CD7986  	        CALL    CLASSIFY_IMM16
+8431: 3827    	        JR      C,JR_ERR
+8433: CD5C84  	        CALL    JR_CALCOFFSET
+8436: 3822    	        JR      C,JR_ERR
+8438: 32D488  	        LD      (EMITBUF+1),A
+843B: 3E18    	        LD      A,18h
+843D: 32D388  	        LD      (EMITBUF),A
+8440: 0602    	        LD      B,2
+8442: B7      	        OR      A
+8443: C9      	        RET
+8444:         	JR_DJNZ:
+8444: CD7986  	        CALL    CLASSIFY_IMM16
+8447: 3811    	        JR      C,JR_ERR
+8449: CD5C84  	        CALL    JR_CALCOFFSET
+844C: 380C    	        JR      C,JR_ERR
+844E: 32D488  	        LD      (EMITBUF+1),A
+8451: 3E10    	        LD      A,10h
+8453: 32D388  	        LD      (EMITBUF),A
+8456: 0602    	        LD      B,2
+8458: B7      	        OR      A
+8459: C9      	        RET
+845A:         	JR_ERR:
+845A: 37      	        SCF
+845B: C9      	        RET
+              	
+              	; entra com HL = endereco alvo (imediato), calcula deslocamento
+              	; relativo a (CURADDR)+2. Retorna A=offset (signed), carry=1 se
+              	; fora do intervalo -128..127
+845C:         	JR_CALCOFFSET:
+845C: E5      	        PUSH    HL
+845D: ED5B9588	        LD      DE,(CURADDR)
+8461: 13      	        INC     DE
+8462: 13      	        INC     DE
+8463: E1      	        POP     HL
+8464: B7      	        OR      A
+8465: ED52    	        SBC     HL,DE           ; HL = alvo - (PC+2)
+8467: 7C      	        LD      A,H
+              	        ; precisa ser 00 (positivo pequeno) ou FF (negativo pequeno)
+8468: FE00    	        CP      0
+846A: 2806    	        JR      Z,JRC_OK
+846C: FEFF    	        CP      0FFh
+846E: 2802    	        JR      Z,JRC_OK
+8470: 37      	        SCF
+8471: C9      	        RET
+8472:         	JRC_OK:
+8472: 7D      	        LD      A,L
+8473: B7      	        OR      A
+8474: C9      	        RET
+              	
+              	; ---- CALL nn | CALL cc,nn ----
+8475:         	H_CALL:
+8475: CDF980  	        CALL    SKIPSPACES
+8478: CD2F81  	        CALL    READTOKEN
+847B: CD0C86  	        CALL    CLASSIFY_COND3
+847E: 3821    	        JR      C,CALL_UNCOND
+8480: 47      	        LD      B,A
+8481: CD1787  	        CALL    SKIPTOCOMMA
+8484: 382C    	        JR      C,CALL_ERR
+8486: CDF980  	        CALL    SKIPSPACES
+8489: CD2F81  	        CALL    READTOKEN
+848C: CD7986  	        CALL    CLASSIFY_IMM16
+848F: 3821    	        JR      C,CALL_ERR
+8491: 78      	        LD      A,B
+8492: 07      	        RLCA
+8493: 07      	        RLCA
+8494: 07      	        RLCA
+8495: C6C4    	        ADD     A,0C4h
+8497: 32D388  	        LD      (EMITBUF),A
+849A: 22D488  	        LD      (EMITBUF+1),HL
+849D: 0603    	        LD      B,3
+849F: B7      	        OR      A
+84A0: C9      	        RET
+84A1:         	CALL_UNCOND:
+84A1: CD7986  	        CALL    CLASSIFY_IMM16
+84A4: 380C    	        JR      C,CALL_ERR
+84A6: 3ECD    	        LD      A,0CDh
+84A8: 32D388  	        LD      (EMITBUF),A
+84AB: 22D488  	        LD      (EMITBUF+1),HL
+84AE: 0603    	        LD      B,3
+84B0: B7      	        OR      A
+84B1: C9      	        RET
+84B2:         	CALL_ERR:
+84B2: 37      	        SCF
+84B3: C9      	        RET
+              	
+              	; ---- RET | RET cc ----
+84B4:         	H_RET:
+84B4: CDF980  	        CALL    SKIPSPACES
+84B7: CD2F81  	        CALL    READTOKEN
+84BA: 3ACA88  	        LD      A,(MNEBUF)
+84BD: B7      	        OR      A
+84BE: 2811    	        JR      Z,RET_PLAIN     ; linha sem operando -> RET simples
+84C0: CD0C86  	        CALL    CLASSIFY_COND3
+84C3: 3815    	        JR      C,RET_ERR
+84C5: 07      	        RLCA
+84C6: 07      	        RLCA
+84C7: 07      	        RLCA
+84C8: C6C0    	        ADD     A,0C0h
+84CA: 32D388  	        LD      (EMITBUF),A
+84CD: 0601    	        LD      B,1
+84CF: B7      	        OR      A
+84D0: C9      	        RET
+84D1:         	RET_PLAIN:
+84D1: 3EC9    	        LD      A,0C9h
+84D3: 32D388  	        LD      (EMITBUF),A
+84D6: 0601    	        LD      B,1
+84D8: B7      	        OR      A
+84D9: C9      	        RET
+84DA:         	RET_ERR:
+84DA: 37      	        SCF
+84DB: C9      	        RET
+              	
+              	; ---- IN A,(n) ----
+84DC:         	H_IN:
+84DC: CDF980  	        CALL    SKIPSPACES
+84DF: CD2F81  	        CALL    READTOKEN       ; "A"
+84E2: 3ACA88  	        LD      A,(MNEBUF)
+84E5: FE41    	        CP      'A'
+84E7: 201C    	        JR      NZ,IN_ERR
+84E9: CD1787  	        CALL    SKIPTOCOMMA
+84EC: 3817    	        JR      C,IN_ERR
+84EE: CDF980  	        CALL    SKIPSPACES
+84F1: CD2F81  	        CALL    READTOKEN       ; "(n)"
+84F4: CD9D86  	        CALL    CLASSIFY_INDN   ; espera "(" imm8 ")"
+84F7: 380C    	        JR      C,IN_ERR
+84F9: 32D488  	        LD      (EMITBUF+1),A
+84FC: 3EDB    	        LD      A,0DBh
+84FE: 32D388  	        LD      (EMITBUF),A
+8501: 0602    	        LD      B,2
+8503: B7      	        OR      A
+8504: C9      	        RET
+8505:         	IN_ERR:
+8505: 37      	        SCF
+8506: C9      	        RET
+              	
+              	; ---- OUT (n),A ----
+8507:         	H_OUT:
+8507: CDF980  	        CALL    SKIPSPACES
+850A: CD2F81  	        CALL    READTOKEN       ; "(n)"
+850D: CD9D86  	        CALL    CLASSIFY_INDN
+8510: 3820    	        JR      C,OUT_ERR
+8512: 47      	        LD      B,A             ; guarda n
+8513: CD1787  	        CALL    SKIPTOCOMMA
+8516: 381A    	        JR      C,OUT_ERR
+8518: CDF980  	        CALL    SKIPSPACES
+851B: CD2F81  	        CALL    READTOKEN       ; "A"
+851E: 3ACA88  	        LD      A,(MNEBUF)
+8521: FE41    	        CP      'A'
+8523: 200D    	        JR      NZ,OUT_ERR
+8525: 3ED3    	        LD      A,0D3h
+8527: 32D388  	        LD      (EMITBUF),A
+852A: 78      	        LD      A,B
+852B: 32D488  	        LD      (EMITBUF+1),A
+852E: 0602    	        LD      B,2
+8530: B7      	        OR      A
+8531: C9      	        RET
+8532:         	OUT_ERR:
+8532: 37      	        SCF
+8533: C9      	        RET
+              	
+              	; ---- EX DE,HL | EX AF,AF' | EXX (EXX cai em H_SIMPLE) ----
+8534:         	H_EX:
+8534: CDF980  	        CALL    SKIPSPACES
+8537: CD2F81  	        CALL    READTOKEN
+853A: 3ACA88  	        LD      A,(MNEBUF)
+853D: FE44    	        CP      'D'
+853F: 2009    	        JR      NZ,EX_TRYAF
+8541: 3EEB    	        LD      A,0EBh
+8543: 32D388  	        LD      (EMITBUF),A
+8546: 0601    	        LD      B,1
+8548: B7      	        OR      A
+8549: C9      	        RET
+854A:         	EX_TRYAF:
+854A: FE41    	        CP      'A'
+854C: 2009    	        JR      NZ,EX_ERR
+854E: 3E08    	        LD      A,08h
+8550: 32D388  	        LD      (EMITBUF),A
+8553: 0601    	        LD      B,1
+8555: B7      	        OR      A
+8556: C9      	        RET
+8557:         	EX_ERR:
+8557: 37      	        SCF
+8558: C9      	        RET
+              	
+              	; ============================================================
+              	; CLASSIFICADORES DE OPERANDO
+              	; Todos assumem que o token a classificar ja esta em MNEBUF
+              	; (preenchido pela ultima chamada a READTOKEN), exceto quando
+              	; dito o contrario.
+              	; ============================================================
+              	
+              	; Registrador de 8 bits ou (HL) -> A = codigo 0-7, Z=1
+              	; Numero/$hex -> A = valor de 8 bits, Z=0
+              	; Erro (nao reconhecido) -> carry=1
+8559:         	CLASSIFY_R_OR_N:
+8559: 3ACA88  	        LD      A,(MNEBUF)
+855C: B7      	        OR      A
+855D: 2836    	        JR      Z,CRN_ERR
+855F: FE28    	        CP      '('
+8561: 2810    	        JR      Z,CRN_INDHL
+8563: 3ACB88  	        LD      A,(MNEBUF+1)
+8566: B7      	        OR      A
+8567: 2023    	        JR      NZ,CRN_NUM      ; mais de 1 char -> numero
+              	        ; um unico caractere: pode ser registrador
+8569: 3ACA88  	        LD      A,(MNEBUF)
+856C: CD9785  	        CALL    REGCHAR2CODE    ; A = codigo do registrador (0-7)
+856F: 381B    	        JR      C,CRN_NUM
+8571: BF      	        CP      A               ; Z=1, sem alterar o valor de A
+8572: C9      	        RET
+8573:         	CRN_INDHL:
+8573: 3ACB88  	        LD      A,(MNEBUF+1)
+8576: FE48    	        CP      'H'
+8578: 201B    	        JR      NZ,CRN_ERR
+857A: 3ACC88  	        LD      A,(MNEBUF+2)
+857D: FE4C    	        CP      'L'
+857F: 2014    	        JR      NZ,CRN_ERR
+8581: 3ACD88  	        LD      A,(MNEBUF+3)
+8584: FE29    	        CP      ')'
+8586: 200D    	        JR      NZ,CRN_ERR
+8588: 3E06    	        LD      A,6             ; codigo de (HL) no campo reg8
+858A: BF      	        CP      A               ; Z=1, sem alterar A
+858B: C9      	        RET
+858C:         	CRN_NUM:
+858C: CD8A86  	        CALL    PARSENUM8       ; MNEBUF -> A = valor, carry=1 se erro
+858F: D8      	        RET     C               ; erro: sai com carry=1
+8590: 47      	        LD      B,A             ; guarda o valor (mesmo se for 0)
+8591: AF      	        XOR     A               ; A=0, carry=0, Z=1
+8592: 3C      	        INC     A               ; A=1, Z=0 (INC nao mexe no carry) -> Z=0,carry=0 garantidos
+8593: 78      	        LD      A,B             ; restaura o valor em A; LD nao afeta flags
+8594: C9      	        RET                     ; sai com A=valor, Z=0, carry=0 (mesmo se valor=0)
+8595:         	CRN_ERR:
+8595: 37      	        SCF
+8596: C9      	        RET
+              	
+              	; Converte caractere de registrador simples em codigo 0-7.
+              	; B=000 C=001 D=010 E=011 H=100 L=101 A=111 ; erro -> carry=1
+8597:         	REGCHAR2CODE:
+8597: FE42    	        CP      'B'
+8599: 2003    	        JR      NZ,RC1
+859B: 3E00    	        LD      A,0
+859D: C9      	        RET
+859E: FE43    	RC1:    CP      'C'
+85A0: 2003    	        JR      NZ,RC2
+85A2: 3E01    	        LD      A,1
+85A4: C9      	        RET
+85A5: FE44    	RC2:    CP      'D'
+85A7: 2003    	        JR      NZ,RC3
+85A9: 3E02    	        LD      A,2
+85AB: C9      	        RET
+85AC: FE45    	RC3:    CP      'E'
+85AE: 2003    	        JR      NZ,RC4
+85B0: 3E03    	        LD      A,3
+85B2: C9      	        RET
+85B3: FE48    	RC4:    CP      'H'
+85B5: 2003    	        JR      NZ,RC5
+85B7: 3E04    	        LD      A,4
+85B9: C9      	        RET
+85BA: FE4C    	RC5:    CP      'L'
+85BC: 2003    	        JR      NZ,RC6
+85BE: 3E05    	        LD      A,5
+85C0: C9      	        RET
+85C1: FE41    	RC6:    CP      'A'
+85C3: 2003    	        JR      NZ,RC_ERR
+85C5: 3E07    	        LD      A,7
+85C7: C9      	        RET
+85C8:         	RC_ERR:
+85C8: 37      	        SCF
+85C9: C9      	        RET
+              	
+              	; Classifica MNEBUF como par de 16 bits: BC/DE/HL/SP -> A=0-3
+85CA:         	CLASSIFY_REG16:
+85CA: 3ACA88  	        LD      A,(MNEBUF)
+85CD: FE42    	        CP      'B'
+85CF: 2003    	        JR      NZ,C16_DE
+85D1: 3E00    	        LD      A,0
+85D3: C9      	        RET
+85D4:         	C16_DE:
+85D4: FE44    	        CP      'D'
+85D6: 2003    	        JR      NZ,C16_HL
+85D8: 3E01    	        LD      A,1
+85DA: C9      	        RET
+85DB:         	C16_HL:
+85DB: FE48    	        CP      'H'
+85DD: 2003    	        JR      NZ,C16_SP
+85DF: 3E02    	        LD      A,2
+85E1: C9      	        RET
+85E2:         	C16_SP:
+85E2: FE53    	        CP      'S'
+85E4: 2003    	        JR      NZ,C16_ERR
+85E6: 3E03    	        LD      A,3
+85E8: C9      	        RET
+85E9:         	C16_ERR:
+85E9: 37      	        SCF
+85EA: C9      	        RET
+              	
+              	; Classifica MNEBUF como BC/DE/HL/AF (para PUSH/POP) -> A=0-3
+85EB:         	CLASSIFY_REG16AF:
+85EB: 3ACA88  	        LD      A,(MNEBUF)
+85EE: FE42    	        CP      'B'
+85F0: 2003    	        JR      NZ,C16A_DE
+85F2: 3E00    	        LD      A,0
+85F4: C9      	        RET
+85F5:         	C16A_DE:
+85F5: FE44    	        CP      'D'
+85F7: 2003    	        JR      NZ,C16A_HL
+85F9: 3E01    	        LD      A,1
+85FB: C9      	        RET
+85FC:         	C16A_HL:
+85FC: FE48    	        CP      'H'
+85FE: 2003    	        JR      NZ,C16A_AF
+8600: 3E02    	        LD      A,2
+8602: C9      	        RET
+8603:         	C16A_AF:
+8603: FE41    	        CP      'A'
+8605: 2003    	        JR      NZ,C16A_ERR
+8607: 3E03    	        LD      A,3
+8609: C9      	        RET
+860A:         	C16A_ERR:
+860A: 37      	        SCF
+860B: C9      	        RET
+              	
+              	; Classifica MNEBUF (2 letras) como condicao de 3 bits (JP/CALL/RET)
+              	; NZ=0 Z=1 NC=2 C=3 PO=4 PE=5 P=6 M=7
+860C:         	CLASSIFY_COND3:
+860C: 3ACA88  	        LD      A,(MNEBUF)
+860F: FE4E    	        CP      'N'
+8611: 2812    	        JR      Z,CC3_N
+8613: FE5A    	        CP      'Z'
+8615: 281B    	        JR      Z,CC3_Z
+8617: FE43    	        CP      'C'
+8619: 2820    	        JR      Z,CC3_C
+861B: FE50    	        CP      'P'
+861D: 2825    	        JR      Z,CC3_P
+861F: FE4D    	        CP      'M'
+8621: 2831    	        JR      Z,CC3_M
+8623: 1847    	        JR      CC3_ERR
+8625:         	CC3_N:
+8625: 3ACB88  	        LD      A,(MNEBUF+1)
+8628: FE5A    	        CP      'Z'
+862A: 2831    	        JR      Z,CC3_RET0
+862C: FE43    	        CP      'C'
+862E: 2830    	        JR      Z,CC3_RET2
+8630: 183A    	        JR      CC3_ERR
+8632:         	CC3_Z:
+8632: 3ACB88  	        LD      A,(MNEBUF+1)
+8635: B7      	        OR      A
+8636: 2034    	        JR      NZ,CC3_ERR
+8638: 3E01    	        LD      A,1
+863A: C9      	        RET
+863B:         	CC3_C:
+863B: 3ACB88  	        LD      A,(MNEBUF+1)
+863E: B7      	        OR      A
+863F: 202B    	        JR      NZ,CC3_ERR
+8641: 3E03    	        LD      A,3
+8643: C9      	        RET
+8644:         	CC3_P:
+8644: 3ACB88  	        LD      A,(MNEBUF+1)
+8647: FE4F    	        CP      'O'
+8649: 2818    	        JR      Z,CC3_RET4
+864B: FE45    	        CP      'E'
+864D: 2817    	        JR      Z,CC3_RET5
+864F: B7      	        OR      A
+8650: 2817    	        JR      Z,CC3_RET6
+8652: 1818    	        JR      CC3_ERR
+8654:         	CC3_M:
+8654: 3ACB88  	        LD      A,(MNEBUF+1)
+8657: B7      	        OR      A
+8658: 2012    	        JR      NZ,CC3_ERR
+865A: 3E07    	        LD      A,7
+865C: C9      	        RET
+865D:         	CC3_RET0:
+865D: 3E00    	        LD      A,0
+865F: C9      	        RET
+8660:         	CC3_RET2:
+8660: 3E02    	        LD      A,2
+8662: C9      	        RET
+8663:         	CC3_RET4:
+8663: 3E04    	        LD      A,4
+8665: C9      	        RET
+8666:         	CC3_RET5:
+8666: 3E05    	        LD      A,5
+8668: C9      	        RET
+8669:         	CC3_RET6:
+8669: 3E06    	        LD      A,6
+866B: C9      	        RET
+866C:         	CC3_ERR:
+866C: 37      	        SCF
+866D: C9      	        RET
+              	
+              	; Classifica MNEBUF como condicao de 2 bits (so para JR): NZ/Z/NC/C
+866E:         	CLASSIFY_COND2:
+866E: CD0C86  	        CALL    CLASSIFY_COND3
+8671: D8      	        RET     C
+8672: FE04    	        CP      4
+8674: 3001    	        JR      NC,C2_ERR       ; PO/PE/P/M nao valem em JR
+8676: C9      	        RET
+8677:         	C2_ERR:
+8677: 37      	        SCF
+8678: C9      	        RET
+              	
+              	; Le MNEBUF como imediato de 16 bits ($nnnn ou decimal) -> HL=valor
+8679:         	CLASSIFY_IMM16:
+8679: 21CA88  	        LD      HL,MNEBUF
+867C: 7E      	        LD      A,(HL)
+867D: FE24    	        CP      '$'
+867F: 2804    	        JR      Z,I16_HEX
+8681: CD5287  	        CALL    PARSEDEC16
+8684: C9      	        RET
+8685:         	I16_HEX:
+8685: 23      	        INC     HL
+8686: CD2B87  	        CALL    PARSEHEX16
+8689: C9      	        RET
+              	
+              	; Le MNEBUF como imediato de 8 bits ($nn ou decimal) -> A=valor
+868A:         	PARSENUM8:
+868A: 21CA88  	        LD      HL,MNEBUF
+868D: 7E      	        LD      A,(HL)
+868E: FE24    	        CP      '$'
+8690: 2805    	        JR      Z,PN8_HEX
+8692: CD5287  	        CALL    PARSEDEC16
+8695: 7D      	        LD      A,L
+8696: C9      	        RET
+8697:         	PN8_HEX:
+8697: 23      	        INC     HL
+8698: CD2B87  	        CALL    PARSEHEX16
+869B: 7D      	        LD      A,L
+869C: C9      	        RET
+              	
+              	; Classifica MNEBUF no formato "(n)" ou "($nn)" -> A = valor 8 bits
+              	; Preserva o HL do chamador (nao e usado como saida aqui, so A).
+869D:         	CLASSIFY_INDN:
+869D: 3ACA88  	        LD      A,(MNEBUF)
+86A0: FE28    	        CP      '('
+86A2: 2019    	        JR      NZ,CIN_ERR
+86A4: E5      	        PUSH    HL              ; salva o ponteiro real da linha
+86A5: 3ACB88  	        LD      A,(MNEBUF+1)
+86A8: FE24    	        CP      '$'
+86AA: 2008    	        JR      NZ,CIN_DEC2
+86AC: 21CC88  	        LD      HL,MNEBUF+2
+86AF: CD2D87  	        CALL    PARSEHEX16FROM  ; HL=valor, carry=erro (nao mexe em BC/DE globais)
+86B2: 1806    	        JR      CIN_DONE
+86B4:         	CIN_DEC2:
+86B4: 21CB88  	        LD      HL,MNEBUF+1
+86B7: CD5487  	        CALL    PARSEDEC16FROM
+86BA:         	CIN_DONE:
+86BA: 7D      	        LD      A,L             ; A = valor (LD nao mexe em carry)
+86BB: E1      	        POP     HL              ; restaura o ponteiro real da linha (POP nao mexe em carry)
+86BC: C9      	        RET
+86BD:         	CIN_ERR:
+86BD: 37      	        SCF
+86BE: C9      	        RET
+              	
+              	; Classifica destino de LD: retorna A=tipo, BC=valor
+              	;  0 = reg8 (BC=codigo 0-7)      3 = (BC)
+              	;  1 = reg16 (BC=codigo 0-3)     4 = (DE)
+              	;                                 5 = (nn) (BC=endereco)
+86BF:         	CLASSIFY_DEST:
+86BF: 3ACB88  	        LD      A,(MNEBUF+1)
+86C2: B7      	        OR      A
+86C3: 200D    	        JR      NZ,CD_MULTI
+86C5: 3ACA88  	        LD      A,(MNEBUF)
+86C8: CD9785  	        CALL    REGCHAR2CODE
+86CB: 3848    	        JR      C,CD_ERR
+86CD: 4F      	        LD      C,A
+86CE: 0600    	        LD      B,0
+86D0: AF      	        XOR     A               ; tipo 0
+86D1: C9      	        RET
+86D2:         	CD_MULTI:
+86D2: 3ACA88  	        LD      A,(MNEBUF)
+86D5: FE28    	        CP      '('
+86D7: 280B    	        JR      Z,CD_IND
+              	        ; BC/DE/HL/SP como par de 16 bits
+86D9: CDCA85  	        CALL    CLASSIFY_REG16
+86DC: 3837    	        JR      C,CD_ERR
+86DE: 4F      	        LD      C,A
+86DF: 0600    	        LD      B,0
+86E1: 3E01    	        LD      A,1
+86E3: C9      	        RET
+86E4:         	CD_IND:
+86E4: 3ACB88  	        LD      A,(MNEBUF+1)
+86E7: FE42    	        CP      'B'
+86E9: 2007    	        JR      NZ,CD_IND_DE
+86EB: 0E00    	        LD      C,0
+86ED: 0600    	        LD      B,0
+86EF: 3E03    	        LD      A,3
+86F1: C9      	        RET
+86F2:         	CD_IND_DE:
+86F2: FE44    	        CP      'D'
+86F4: 2007    	        JR      NZ,CD_IND_NN
+86F6: 0E00    	        LD      C,0
+86F8: 0600    	        LD      B,0
+86FA: 3E04    	        LD      A,4
+86FC: C9      	        RET
+86FD:         	CD_IND_NN:
+              	        ; "(nn)" ou "($nnnn)"
+86FD: E5      	        PUSH    HL
+86FE: 21CB88  	        LD      HL,MNEBUF+1
+8701: 7E      	        LD      A,(HL)
+8702: FE24    	        CP      '$'
+8704: 2006    	        JR      NZ,CD_NN_DEC
+8706: 23      	        INC     HL
+8707: CD2D87  	        CALL    PARSEHEX16FROM
+870A: 1803    	        JR      CD_NN_DONE
+870C:         	CD_NN_DEC:
+870C: CD5487  	        CALL    PARSEDEC16FROM
+870F:         	CD_NN_DONE:
+870F: 44      	        LD      B,H
+8710: 4D      	        LD      C,L
+8711: E1      	        POP     HL
+8712: 3E05    	        LD      A,5
+8714: C9      	        RET
+8715:         	CD_ERR:
+8715: 37      	        SCF
+8716: C9      	        RET
+              	
+              	; ------------------------------------------------------------
+              	; Avanca HL (ponteiro da linha, recebido em HL) ate depois de uma
+              	; ',', ignorando o que vier antes dela. carry=1 se nao achou
+              	; virgula antes do fim da linha. Chamar logo apos READTOKEN do
+              	; operando anterior, com HL ainda apontando pro delimitador.
+8717:         	SKIPTOCOMMA:
+8717:         	STC1:
+8717: 7E      	        LD      A,(HL)
+8718: B7      	        OR      A
+8719: 280E    	        JR      Z,STC_ERR
+871B: FE0D    	        CP      13
+871D: 280A    	        JR      Z,STC_ERR
+871F: FE2C    	        CP      ','
+8721: 2803    	        JR      Z,STC_OK
+8723: 23      	        INC     HL
+8724: 18F1    	        JR      STC1
+8726:         	STC_OK:
+8726: 23      	        INC     HL
+8727: B7      	        OR      A
+8728: C9      	        RET
+8729:         	STC_ERR:
+8729: 37      	        SCF
+872A: C9      	        RET
+              	
+              	; ------------------------------------------------------------
+              	; PARSEHEX16 / PARSEDEC16: interpretam digitos a partir de (HL)
+              	; ate um nao-digito, retornam valor em HL. Variante *FROM idem
+              	; mas nao mexe em MNEBUF (usadas de dentro de CLASSIFY_INDN/DEST).
+              	; Nao usam BC (varios chamadores mantem B/C vivos - ex.: codigo
+              	; de condicao em JP cc/CALL cc/JR cc - durante esta chamada).
+              	; O PUSH/POP HL de guarda de ponteiro fica balanceado dentro de
+              	; cada iteracao, entao nao depende de nada empilhado pelo chamador.
+872B:         	PARSEHEX16:
+872B: 1800    	        JR      PARSEHEX16FROM
+872D:         	PARSEHEX16FROM:
+872D: 110000  	        LD      DE,0            ; DE = acumulador
+8730:         	PH16_1:
+8730: 7E      	        LD      A,(HL)
+8731: CD8287  	        CALL    ISHEXDIGIT
+8734: 3819    	        JR      C,PH16_DONE
+8736: CD9687  	        CALL    HEXVAL          ; A = valor do digito (0-15)
+8739: 329C88  	        LD      (DIGITTMP),A
+873C: E5      	        PUSH    HL              ; guarda o ponteiro de leitura
+873D: EB      	        EX      DE,HL           ; HL = acumulador atual
+873E: 29      	        ADD     HL,HL
+873F: 29      	        ADD     HL,HL
+8740: 29      	        ADD     HL,HL
+8741: 29      	        ADD     HL,HL           ; HL = acumulador*16
+8742: 3A9C88  	        LD      A,(DIGITTMP)
+8745: 85      	        ADD     A,L
+8746: 6F      	        LD      L,A
+8747: 3001    	        JR      NC,PH16_NOCARRY
+8749: 24      	        INC     H
+874A:         	PH16_NOCARRY:
+874A: EB      	        EX      DE,HL           ; DE = novo acumulador
+874B: E1      	        POP     HL              ; restaura o ponteiro
+874C: 23      	        INC     HL
+874D: 18E1    	        JR      PH16_1
+874F:         	PH16_DONE:
+874F: EB      	        EX      DE,HL           ; HL = valor final
+8750: B7      	        OR      A               ; forca carry=0 (sucesso); nao mexe em HL
+8751: C9      	        RET
+              	
+8752:         	PARSEDEC16:
+8752: 1800    	        JR      PARSEDEC16FROM
+8754:         	PARSEDEC16FROM:
+8754: 110000  	        LD      DE,0            ; DE = acumulador
+8757:         	PD16_1:
+8757: 7E      	        LD      A,(HL)
+8758: FE30    	        CP      '0'
+875A: 3823    	        JR      C,PD16_DONE
+875C: FE3A    	        CP      '9'+1
+875E: 301F    	        JR      NC,PD16_DONE
+8760: D630    	        SUB     '0'             ; A = digito (0-9)
+8762: 329C88  	        LD      (DIGITTMP),A
+8765: E5      	        PUSH    HL              ; guarda o ponteiro de leitura
+8766: EB      	        EX      DE,HL           ; HL = acumulador atual
+8767: 29      	        ADD     HL,HL           ; HL = ac*2
+8768: 229E88  	        LD      (ACCTMP),HL     ; guarda ac*2
+876B: 29      	        ADD     HL,HL           ; HL = ac*4
+876C: 29      	        ADD     HL,HL           ; HL = ac*8
+876D: ED5B9E88	        LD      DE,(ACCTMP)
+8771: 19      	        ADD     HL,DE           ; HL = ac*8 + ac*2 = ac*10
+8772: 3A9C88  	        LD      A,(DIGITTMP)
+8775: 85      	        ADD     A,L
+8776: 6F      	        LD      L,A
+8777: 3001    	        JR      NC,PD16_NOCARRY
+8779: 24      	        INC     H
+877A:         	PD16_NOCARRY:
+877A: EB      	        EX      DE,HL           ; DE = novo acumulador
+877B: E1      	        POP     HL              ; restaura o ponteiro
+877C: 23      	        INC     HL
+877D: 18D8    	        JR      PD16_1
+877F:         	PD16_DONE:
+877F: EB      	        EX      DE,HL           ; HL = valor final
+8780: B7      	        OR      A               ; forca carry=0 (sucesso); nao mexe em HL
+8781: C9      	        RET
+              	
+8782:         	ISHEXDIGIT:
+8782: FE30    	        CP      '0'
+8784: 380E    	        JR      C,IHD_NO
+8786: FE3A    	        CP      '9'+1
+8788: 3808    	        JR      C,IHD_YES
+878A: FE41    	        CP      'A'
+878C: 3806    	        JR      C,IHD_NO
+878E: FE47    	        CP      'F'+1
+8790: 3002    	        JR      NC,IHD_NO
+8792:         	IHD_YES:
+8792: B7      	        OR      A
+8793: C9      	        RET
+8794:         	IHD_NO:
+8794: 37      	        SCF
+8795: C9      	        RET
+              	
+8796:         	HEXVAL:
+8796: FE3A    	        CP      '9'+1
+8798: 3803    	        JR      C,HV_NUM
+879A: D637    	        SUB     'A'-10
+879C: C9      	        RET
+879D:         	HV_NUM:
+879D: D630    	        SUB     '0'
+879F: C9      	        RET
+              	
+              	; ============================================================
+              	; TABELA DE MNEMONICOS
+              	; formato: 4 bytes nome (padded com 0), 2 bytes ptr handler,
+              	;          1 byte parametro
+              	; ============================================================
+              	; cada entrada ocupa 3 linhas: nome(4) / ponteiro do handler(2) / parametro(1)
+87A0:         	MNETAB:
+87A0: 4C440000	        DB      "LD",0,0
+87A4: DD81    	        DW      H_LD
+87A6: 00      	        DB      0
+87A7: 41444400	        DB      "ADD",0
+87AB: 9A81    	        DW      H_ALU
+87AD: 00      	        DB      0               ; ADD A,x  (ADD HL,rp tratado a parte, ver nota no H_ALU)
+87AE: 41444300	        DB      "ADC",0
+87B2: 9A81    	        DW      H_ALU
+87B4: 01      	        DB      1
+87B5: 53554200	        DB      "SUB",0
+87B9: 9A81    	        DW      H_ALU
+87BB: 02      	        DB      2
+87BC: 53424300	        DB      "SBC",0
+87C0: 9A81    	        DW      H_ALU
+87C2: 03      	        DB      3
+87C3: 414E4400	        DB      "AND",0
+87C7: 9A81    	        DW      H_ALU
+87C9: 04      	        DB      4
+87CA: 584F5200	        DB      "XOR",0
+87CE: 9A81    	        DW      H_ALU
+87D0: 05      	        DB      5
+87D1: 4F520000	        DB      "OR",0,0
+87D5: 9A81    	        DW      H_ALU
+87D7: 06      	        DB      6
+87D8: 43500000	        DB      "CP",0,0
+87DC: 9A81    	        DW      H_ALU
+87DE: 07      	        DB      7
+87DF: 494E4300	        DB      "INC",0
+87E3: FE82    	        DW      H_INCDEC
+87E5: 00      	        DB      0
+87E6: 44454300	        DB      "DEC",0
+87EA: FE82    	        DW      H_INCDEC
+87EC: 01      	        DB      1
+87ED: 4A500000	        DB      "JP",0,0
+87F1: 9A83    	        DW      H_JP
+87F3: 00      	        DB      0
+87F4: 4A520000	        DB      "JR",0,0
+87F8: F783    	        DW      H_JR
+87FA: 00      	        DB      0
+87FB: 444A4E5A	        DB      "DJNZ"
+87FF: F783    	        DW      H_JR
+8801: 01      	        DB      1
+8802: 43414C4C	        DB      "CALL"
+8806: 7584    	        DW      H_CALL
+8808: 00      	        DB      0
+8809: 52455400	        DB      "RET",0
+880D: B484    	        DW      H_RET
+880F: 00      	        DB      0
+8810: 50555348	        DB      "PUSH"
+8814: 7883    	        DW      H_PUSHPOP
+8816: 00      	        DB      0
+8817: 504F5000	        DB      "POP",0
+881B: 7883    	        DW      H_PUSHPOP
+881D: 01      	        DB      1
+881E: 494E0000	        DB      "IN",0,0
+8822: DC84    	        DW      H_IN
+8824: 00      	        DB      0
+8825: 4F555400	        DB      "OUT",0
+8829: 0785    	        DW      H_OUT
+882B: 00      	        DB      0
+882C: 45580000	        DB      "EX",0,0
+8830: 3485    	        DW      H_EX
+8832: 00      	        DB      0
+8833: 45585800	        DB      "EXX",0
+8837: 9281    	        DW      H_SIMPLE
+8839: D9      	        DB      0D9h
+883A: 48414C54	        DB      "HALT"
+883E: 9281    	        DW      H_SIMPLE
+8840: 76      	        DB      76h
+8841: 4E4F5000	        DB      "NOP",0
+8845: 9281    	        DW      H_SIMPLE
+8847: 00      	        DB      00h
+8848: 44490000	        DB      "DI",0,0
+884C: 9281    	        DW      H_SIMPLE
+884E: F3      	        DB      0F3h
+884F: 45490000	        DB      "EI",0,0
+8853: 9281    	        DW      H_SIMPLE
+8855: FB      	        DB      0FBh
+8856: 44414100	        DB      "DAA",0
+885A: 9281    	        DW      H_SIMPLE
+885C: 27      	        DB      27h
+885D: 43504C00	        DB      "CPL",0
+8861: 9281    	        DW      H_SIMPLE
+8863: 2F      	        DB      2Fh
+8864: 53434600	        DB      "SCF",0
+8868: 9281    	        DW      H_SIMPLE
+886A: 37      	        DB      37h
+886B: 43434600	        DB      "CCF",0
+886F: 9281    	        DW      H_SIMPLE
+8871: 3F      	        DB      3Fh
+8872: 524C4341	        DB      "RLCA"
+8876: 9281    	        DW      H_SIMPLE
+8878: 07      	        DB      07h
+8879: 52524341	        DB      "RRCA"
+887D: 9281    	        DW      H_SIMPLE
+887F: 0F      	        DB      0Fh
+8880: 524C4100	        DB      "RLA",0
+8884: 9281    	        DW      H_SIMPLE
+8886: 17      	        DB      17h
+8887: 52524100	        DB      "RRA",0
+888B: 9281    	        DW      H_SIMPLE
+888D: 1F      	        DB      1Fh
+888E: 00000000	        DB      0,0,0,0
+8892: 0000    	        DW      0
+8894: 00      	        DB      0               ; fim da tabela
+              	
+              	; ============================================================
+              	; VARIAVEIS
+              	; ============================================================
+8895: 0000    	CURADDR:  DW    0
+8897: 0000    	LINEPTR:  DW    0
+8899: 00      	LD_DSTTYPE: DB  0
+889A: 0000    	LD_DSTVAL:  DW  0
+889C: 00      	DIGITTMP: DB    0
+889D: 00      	TOKLEN:   DB    0
+889E: 0000    	ACCTMP:   DW    0
+              	
+88A0: FFFFFFFF	LINEBUF:  DS    LINEMAX+2
+88A4: FF...   	
+88CA: FFFFFFFF	MNEBUF:   DS    9
+88CE: FF...   	
+88D3: FFFFFFFF	EMITBUF:  DS    4
+              	
+88D7: 3F0D0A00	MSGERR:   DB    "?",13,10,0
+              	
+              	        END     ASMSTART
+
+
+; +++ segments +++
+
+#CODE          = $8000 = 32768,  size = $08DB =  2267
+
+; +++ global symbols +++
+
+ACCTMP           = $889E = 34974          Main.asm:1575
+ADDHL_ERR        = $8376 = 33654          Main.asm:702
+ALU_ERR          = $81DB = 33243          Main.asm:445
+ALU_ISREG        = $81CC = 33228          Main.asm:432
+ALU_NOTA         = $81B3 = 33203          Main.asm:415
+ASMBADOP         = $8046 = 32838          Main.asm:104
+ASMDONE          = $804E = 32846          Main.asm:109
+ASMLOOP          = $8006 = 32774          Main.asm:59
+ASMSTART         = $8000 = 32768          Main.asm:55 (unused)
+BkS              = $0008 =     8          Main.asm:7
+C16A_AF          = $8603 = 34307          Main.asm:1127
+C16A_DE          = $85F5 = 34293          Main.asm:1117
+C16A_ERR         = $860A = 34314          Main.asm:1132
+C16A_HL          = $85FC = 34300          Main.asm:1122
+C16_DE           = $85D4 = 34260          Main.asm:1091
+C16_ERR          = $85E9 = 34281          Main.asm:1106
+C16_HL           = $85DB = 34267          Main.asm:1096
+C16_SP           = $85E2 = 34274          Main.asm:1101
+C2_ERR           = $8677 = 34423          Main.asm:1211
+CALLHANDLER      = $8182 = 33154          Main.asm:366
+CALL_ERR         = $84B2 = 33970          Main.asm:896
+CALL_UNCOND      = $84A1 = 33953          Main.asm:887
+CC3_C            = $863B = 34363          Main.asm:1164
+CC3_ERR          = $866C = 34412          Main.asm:1200
+CC3_M            = $8654 = 34388          Main.asm:1179
+CC3_N            = $8625 = 34341          Main.asm:1151
+CC3_P            = $8644 = 34372          Main.asm:1170
+CC3_RET0         = $865D = 34397          Main.asm:1185
+CC3_RET2         = $8660 = 34400          Main.asm:1188
+CC3_RET4         = $8663 = 34403          Main.asm:1191
+CC3_RET5         = $8666 = 34406          Main.asm:1194
+CC3_RET6         = $8669 = 34409          Main.asm:1197
+CC3_Z            = $8632 = 34354          Main.asm:1158
+CD_ERR           = $8715 = 34581          Main.asm:1326
+CD_IND           = $86E4 = 34532          Main.asm:1293
+CD_IND_DE        = $86F2 = 34546          Main.asm:1301
+CD_IND_NN        = $86FD = 34557          Main.asm:1308
+CD_MULTI         = $86D2 = 34514          Main.asm:1282
+CD_NN_DEC        = $870C = 34572          Main.asm:1318
+CD_NN_DONE       = $870F = 34575          Main.asm:1320
+CIN_DEC2         = $86B4 = 34484          Main.asm:1256
+CIN_DONE         = $86BA = 34490          Main.asm:1259
+CIN_ERR          = $86BD = 34493          Main.asm:1263
+CLASSIFY_COND2   = $866E = 34414          Main.asm:1205
+CLASSIFY_COND3   = $860C = 34316          Main.asm:1138
+CLASSIFY_DEST    = $86BF = 34495          Main.asm:1271
+CLASSIFY_IMM16   = $8679 = 34425          Main.asm:1216
+CLASSIFY_INDN    = $869D = 34461          Main.asm:1245
+CLASSIFY_REG16   = $85CA = 34250          Main.asm:1085
+CLASSIFY_REG16AF = $85EB = 34283          Main.asm:1111
+CLASSIFY_R_OR_N  = $8559 = 34137          Main.asm:1009
+CONIN            = $0319 =   793          Main.asm:41
+CR               = $000D =    13          Main.asm:5
+CRLF             = $0447 =  1095          Main.asm:42
+CRN_ERR          = $8595 = 34197          Main.asm:1045
+CRN_INDHL        = $8573 = 34163          Main.asm:1024
+CRN_NUM          = $858C = 34188          Main.asm:1037
+CURADDR          = $8895 = 34965          Main.asm:1569
+DEL              = $007F =   127          Main.asm:8
+DIGITTMP         = $889C = 34972          Main.asm:1573
+EMITBUF          = $88D3 = 35027          Main.asm:1579
+EMITCOPY         = $803B = 32827          Main.asm:95
+ESC              = $001B =    27          Main.asm:9
+EX_ERR           = $8557 = 34135          Main.asm:995
+EX_TRYAF         = $854A = 34122          Main.asm:987
+FINDMNEMONIC     = $815A = 33114          Main.asm:327
+FM1              = $815D = 33117          Main.asm:329
+FM2              = $8167 = 33127          Main.asm:336
+FM_MATCH         = $817D = 33149          Main.asm:353
+FM_MATCHCHK      = $8174 = 33140          Main.asm:346
+FM_NEXT          = $8176 = 33142          Main.asm:348
+FM_NOTFOUND      = $8180 = 33152          Main.asm:357
+GETLINE          = $804F = 32847          Main.asm:126
+GETLINE_BS       = $8091 = 32913          Main.asm:162
+GETLINE_DONE     = $80AA = 32938          Main.asm:176
+GETLINE_LOOP     = $8053 = 32851          Main.asm:129
+HEXVAL           = $8796 = 34710          Main.asm:1444
+HV_NUM           = $879D = 34717          Main.asm:1449
+H_ADDHL          = $8345 = 33605          Main.asm:678 (unused)
+H_ALU            = $819A = 33178          Main.asm:403
+H_CALL           = $8475 = 33909          Main.asm:865
+H_EX             = $8534 = 34100          Main.asm:976
+H_IN             = $84DC = 34012          Main.asm:928
+H_INCDEC         = $82FE = 33534          Main.asm:624
+H_JP             = $839A = 33690          Main.asm:732
+H_JR             = $83F7 = 33783          Main.asm:786
+H_LD             = $81DD = 33245          Main.asm:452
+H_OUT            = $8507 = 34055          Main.asm:951
+H_PUSHPOP        = $8378 = 33656          Main.asm:707
+H_RET            = $84B4 = 33972          Main.asm:901
+H_SIMPLE         = $8192 = 33170          Main.asm:392
+I16_HEX          = $8685 = 34437          Main.asm:1223
+IHD_NO           = $8794 = 34708          Main.asm:1440
+IHD_YES          = $8792 = 34706          Main.asm:1437
+INCDEC_D16       = $8336 = 33590          Main.asm:662
+INCDEC_D8        = $8318 = 33560          Main.asm:640
+INCDEC_EMIT1     = $831E = 33566          Main.asm:646
+INCDEC_EMIT1B    = $833C = 33596          Main.asm:668
+INCDEC_ERR       = $8343 = 33603          Main.asm:673
+INCDEC_TRY16     = $8325 = 33573          Main.asm:651
+IN_ERR           = $8505 = 34053          Main.asm:946
+ISHEXDIGIT       = $8782 = 34690          Main.asm:1428
+JP_ERR           = $83F5 = 33781          Main.asm:779
+JP_NOTIND        = $83BE = 33726          Main.asm:749
+JP_UNCOND        = $83E4 = 33764          Main.asm:770
+JRC_OK           = $8472 = 33906          Main.asm:859
+JR_CALCOFFSET    = $845C = 33884          Main.asm:843
+JR_DJNZ          = $8444 = 33860          Main.asm:825
+JR_ERR           = $845A = 33882          Main.asm:836
+JR_UNCOND        = $842E = 33838          Main.asm:814
+LD_DSTTYPE       = $8899 = 34969          Main.asm:1571
+LD_DSTVAL        = $889A = 34970          Main.asm:1572
+LD_DST_INDBC     = $8291 = 33425          Main.asm:559
+LD_DST_INDDE     = $82A7 = 33447          Main.asm:573
+LD_DST_INDNN     = $82BD = 33469          Main.asm:586
+LD_DST_REG16     = $8252 = 33362          Main.asm:524
+LD_DST_REG8      = $8218 = 33304          Main.asm:481
+LD_ERR           = $82FC = 33532          Main.asm:619
+LD_INDNN_HL      = $82D9 = 33497          Main.asm:601
+LD_R16_IMM       = $8279 = 33401          Main.asm:544
+LD_R8R8_OK       = $8242 = 33346          Main.asm:512
+LD_REG8_REG      = $8235 = 33333          Main.asm:503
+LF               = $000A =    10          Main.asm:6
+LINEBUF          = $88A0 = 34976          Main.asm:1577
+LINEMAX          = $0028 =    40          Main.asm:49
+LINEPTR          = $8897 = 34967          Main.asm:1570
+MNEBUF           = $88CA = 35018          Main.asm:1578
+MNETAB           = $87A0 = 34720          Main.asm:1459
+MSGERR           = $88D7 = 35031          Main.asm:1581
+NUL              = $0000 =     0          Main.asm:11
+OUT_ERR          = $8532 = 34098          Main.asm:971
+PARSEDEC16       = $8752 = 34642          Main.asm:1393
+PARSEDEC16FROM   = $8754 = 34644          Main.asm:1395
+PARSEHEX16       = $872B = 34603          Main.asm:1362
+PARSEHEX16FROM   = $872D = 34605          Main.asm:1364
+PARSENUM8        = $868A = 34442          Main.asm:1229
+PD16_1           = $8757 = 34647          Main.asm:1397
+PD16_DONE        = $877F = 34687          Main.asm:1423
+PD16_NOCARRY     = $877A = 34682          Main.asm:1418
+PH16_1           = $8730 = 34608          Main.asm:1366
+PH16_DONE        = $874F = 34639          Main.asm:1388
+PH16_NOCARRY     = $874A = 34634          Main.asm:1383
+PN8_HEX          = $8697 = 34455          Main.asm:1237
+PN_DIGIT         = $80DC = 32988          Main.asm:221
+PP_EMIT          = $8391 = 33681          Main.asm:722
+PP_ERR           = $8398 = 33688          Main.asm:727
+PP_POP           = $838F = 33679          Main.asm:720
+PRINTADDR        = $80B1 = 32945          Main.asm:192
+PRINTHEX16       = $80C2 = 32962          Main.asm:202
+PRINTHEX8        = $80CB = 32971          Main.asm:208
+PRINTNIBBLE      = $80D4 = 32980          Main.asm:216
+PUTCHAR          = $042B =  1067          Main.asm:45
+PUTSTR           = $0437 =  1079          Main.asm:47
+RC1              = $859E = 34206          Main.asm:1056
+RC2              = $85A5 = 34213          Main.asm:1060
+RC3              = $85AC = 34220          Main.asm:1064
+RC4              = $85B3 = 34227          Main.asm:1068
+RC5              = $85BA = 34234          Main.asm:1072
+RC6              = $85C1 = 34241          Main.asm:1076
+RC_ERR           = $85C8 = 34248          Main.asm:1080
+READMNEMONIC     = $8100 = 33024          Main.asm:260
+READTOKEN        = $812F = 33071          Main.asm:294
+REGCHAR2CODE     = $8597 = 34199          Main.asm:1051
+RET_ERR          = $84DA = 34010          Main.asm:923
+RET_PLAIN        = $84D1 = 34001          Main.asm:917
+RM1              = $8107 = 33031          Main.asm:264
+RM_END           = $8129 = 33065          Main.asm:284
+RT1              = $8136 = 33078          Main.asm:298
+RT_END           = $8154 = 33108          Main.asm:316
+SKIPSPACES       = $80F9 = 33017          Main.asm:248
+SKIPTOCOMMA      = $8717 = 34583          Main.asm:1335
+SPACE            = $0020 =    32          Main.asm:10
+STC1             = $8717 = 34583          Main.asm:1336
+STC_ERR          = $8729 = 34601          Main.asm:1350
+STC_OK           = $8726 = 34598          Main.asm:1346
+TOKLEN           = $889D = 34973          Main.asm:1574
+UPC1             = $80E9 = 33001          Main.asm:234
+UPC2             = $80F5 = 33013          Main.asm:242
+UPCASE_LINE      = $80E2 = 32994          Main.asm:228
+_end             = $88DB = 35035          Main.asm:38 (unused)
+_size            = $08DB =  2267          Main.asm:38 (unused)
+_z80_            = $0001 =     1          Main.asm:1 (unused)
+
+
+total time: 0.0277 sec.
+no errors

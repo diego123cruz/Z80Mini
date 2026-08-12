@@ -119,6 +119,18 @@ CMD_TABLE:
             DW   CHANGE_DRIVE_A
             DB   "B:",    NUL
             DW   CHANGE_DRIVE_B
+            DB   "C:",    NUL
+            DW   CHANGE_DRIVE_C
+            DB   "D:",    NUL
+            DW   CHANGE_DRIVE_D
+            DB   "E:",    NUL
+            DW   CHANGE_DRIVE_E
+            DB   "F:",    NUL
+            DW   CHANGE_DRIVE_F
+            DB   "G:",    NUL
+            DW   CHANGE_DRIVE_G
+            DB   "Z:",    NUL
+            DW   CHANGE_DRIVE_Z
             DB   "I2C", NUL
             DW   I2C_CMD
 
@@ -140,6 +152,56 @@ CHANGE_DRIVE_B:
     LD A, EEDRIVE_B
     LD (I2CA_BLOCK), A
     RET
+
+; ============================================================
+;  CHANGE_DRIVE_C  -  Altera drive para device C - EEDRIVE_C
+; ============================================================
+CHANGE_DRIVE_C:
+    LD A, EEDRIVE_C
+    LD (I2CA_BLOCK), A
+    RET
+
+; ============================================================
+;  CHANGE_DRIVE_D  -  Altera drive para device D - EEDRIVE_D
+; ============================================================
+CHANGE_DRIVE_D:
+    LD A, EEDRIVE_D
+    LD (I2CA_BLOCK), A
+    RET
+
+; ============================================================
+;  CHANGE_DRIVE_E  -  Altera drive para device E - EEDRIVE_E
+; ============================================================
+CHANGE_DRIVE_E:
+    LD A, EEDRIVE_E
+    LD (I2CA_BLOCK), A
+    RET
+
+; ============================================================
+;  CHANGE_DRIVE_F  -  Altera drive para device F - EEDRIVE_F
+; ============================================================
+CHANGE_DRIVE_F:
+    LD A, EEDRIVE_F
+    LD (I2CA_BLOCK), A
+    RET
+
+; ============================================================
+;  CHANGE_DRIVE_G  -  Altera drive para device G - EEDRIVE_G
+; ============================================================
+CHANGE_DRIVE_G:
+    LD A, EEDRIVE_G
+    LD (I2CA_BLOCK), A
+    RET
+
+
+; ============================================================
+;  CHANGE_DRIVE_Z  -  Altera drive para device Z - EEDRIVE_Z
+; ============================================================
+CHANGE_DRIVE_Z:
+    LD A, EEDRIVE_Z
+    LD (I2CA_BLOCK), A
+    RET
+
 
 ; ============================================================
 ;  LOAD_HEX_CMD  -  Carrega intel hex pela porta serial
@@ -527,10 +589,10 @@ GETLINE_BS:
             INC  B
             LD   A, BkS
             CALL PUTCHAR
-            LD   A, SPACE
-            CALL PUTCHAR
-            LD   A, BkS
-            CALL PUTCHAR
+            ;LD   A, SPACE
+            ;CALL PUTCHAR
+            ;LD   A, BkS
+            ;CALL PUTCHAR
             JR   GETLINE_LOOP
 GETLINE_DONE:
             LD   (HL), NUL           ; Termina string
@@ -895,7 +957,7 @@ I2C_BAD_SYNTAX:
 
 MSG_I2C_NOACK:
     DB "I2C: sem ACK do device.", CR, NUL
-    
+
 MSG_PROMPT:
             DB   CR, LF, "> ", NUL
 

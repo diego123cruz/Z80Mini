@@ -129,8 +129,14 @@ SIOB_C		        .EQU	$03 ; Conector P2
 ; I2C SETTINGS
 ; -----------------------------------------------------------------------------
 TIMEOUT:        .EQU    10000      ; Timeout loop counter
-EEDRIVE_A       .EQU    $A0        ; Drive A
-EEDRIVE_B       .EQU    $AE        ; Drive B
+EEDRIVE_A       .EQU    $A0        ; 50h - Drive A ----|
+EEDRIVE_B       .EQU    $A2        ; 51h - Drive B     |___ EEPROM Disk 128kb (4x 32Kb) - AT24C256
+EEDRIVE_C       .EQU    $A4        ; 52h - Drive C     |      With Write protect by jumpers
+EEDRIVE_D       .EQU    $A6        ; 53h - Drive D ----|
+EEDRIVE_E       .EQU    $A8        ; 54h - Drive E
+EEDRIVE_F       .EQU    $AC        ; 56h - Drive F
+EEDRIVE_G       .EQU    $AE        ; 57h - Drive G
+EEDRIVE_Z       .EQU    $AA        ; 55h - Drive Z - onboard eeprom (32Kb - AT24C256)
 
 ; -----------------------------------------------------------------------------
 ; PORTS
@@ -379,16 +385,46 @@ showCurrentDriver:
     JR Z, showDriveA
     CP EEDRIVE_B  ; Drive B
     JR Z, showDriveB
+    CP EEDRIVE_C  ; Drive C
+    JR Z, showDriveC
+    CP EEDRIVE_D  ; Drive D
+    JR Z, showDriveD
+    CP EEDRIVE_E  ; Drive E
+    JR Z, showDriveE
+    CP EEDRIVE_F  ; Drive F
+    JR Z, showDriveF
+    CP EEDRIVE_G  ; Drive G
+    JR Z, showDriveG
+    CP EEDRIVE_Z  ; Drive Z
+    JR Z, showDriveZ
     RET
+
 showDriveA:
     LD A, 'A'
-    CALL sendCharToLCD
     JR showCursor
 showDriveB:
     LD A, 'B'
-    CALL sendCharToLCD
+    JR showCursor
+showDriveC:
+    LD A, 'C'
+    JR showCursor
+showDriveD:
+    LD A, 'D'
+    JR showCursor
+showDriveE:
+    LD A, 'E'
+    JR showCursor
+showDriveF:
+    LD A, 'F'
+    JR showCursor
+showDriveG:
+    LD A, 'G'
+    JR showCursor
+showDriveZ:
+    LD A, 'Z'
     JR showCursor
 showCursor:
+    CALL sendCharToLCD
     LD A, ':'
     CALL sendCharToLCD
     RET
@@ -556,6 +592,6 @@ FS_INFOTMP: .DB $00         ; 1b: temp para FS_INFO (paginas livres)
 PG_BUF:     .DS $FF
 
 ; pixel collision
-DRAW_PIXEL_COLLISION .db $00 ; 0 - reset, 1 - set
+DRAW_PIXEL_COLLISION: .DB $00 ; 0 - reset, 1 - set
 I2C_ADDR7:  DS 1
 I2C_STATE:  DS 1   ; 0=fechado, 1=aberto p/ write, 2=aberto p/ read

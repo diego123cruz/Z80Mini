@@ -53,8 +53,8 @@ displayCursor       equ     0x0193  ;   Exibir Cursor. Entrada: A = 0, Ativar cu
 autoLF              equ     0x0196  ;   Avanço de linha automático quando o cursor atinge o final da linha (Terminal). Entrada: A = 0, Avanço de linha automático; A = diferente de zero, Sem avanço de linha automático. Padrao LIGADO.
 underline           equ     0x0199  ;   Exibir sublinhado no caractere (Terminal). O estado inicial é sem sublinhado. Chamar esta rotina irá ALTERAR/DESLIGAR o sinalizador de sublinhado.
 plotAlways          equ     0x019C  ;   Quando sendCharToLCD é chamado, Atualiza GLCD ou não. Se Desativado plotToLCD deve ser chamado atualizar o GLCD. Entrada: A=0, Plotar sempre; A>0, Não plotar. O padrão é Plotar sempre.
-resetCollisionPixel equ     0x0294  ;   Limpa flag de colisao
-checkCollisionPixel equ     0x0299  ;   Check se um pixel ja estava ligado quando tenta ligar. JP Z, SEM_COLISAO. JP NZ, COLISAO.
+resetCollisionPixel equ     0x019F  ;   Limpa flag de colisao
+checkCollisionPixel equ     0x01A2  ;   Check se um pixel ja estava ligado quando tenta ligar. JP Z, SEM_COLISAO. JP NZ, COLISAO.
 I2C_OpenRead        equ     0x1929  ;   I2C Open Read  (On entry: A = Device address)
 I2C_OpenWrite       equ     0x192E  ;   I2C Open Write (On entry: A = Device address)
 

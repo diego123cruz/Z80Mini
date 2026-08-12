@@ -1,0 +1,931 @@
+              	; --------------------------------------
+              	; zasm: assemble "Main.asm"
+              	; date: 2026-08-09 21:44:16
+              	; --------------------------------------
+
+
+              	;#include "../../Z80MiniAPI.asm"
+              	
+              	; =============================================================================
+              	; EDMINI.ASM - Editor de texto estilo ED.COM (CP/M) para o Z80Mini
+              	; -----------------------------------------------------------------------------
+              	; Roda em RAM a partir de 0x8000 (tecla LUZ do Z80Mini faz CALL 8000H).
+              	; Monta com zasm.
+              	;
+              	; ESTILO: como o ED.COM original do CP/M, este é um editor ORIENTADO A LINHA,
+              	; não um editor de tela cheia (full-screen). Comandos de uma letra digitados
+              	; num prompt "*", texto do buffer aparece no terminal do GLCD com scroll
+              	; automático (autoLF). Isso combina bem com uma tela pequena de 128x64.
+              	;
+              	; COMANDOS (digite no prompt "*" e pressione ENTER):
+              	;   I        - Insere linha(s) ANTES da linha atual
+              	;   A        - Adiciona linha(s) DEPOIS da linha atual
+              	;                (em I/A, digite uma linha por ENTER; ENTER em branco termina;
+              	;                 ESC cancela a entrada da linha atual)
+              	;   D        - Apaga a linha atual
+              	;   N        - Vai para a próxima linha (e mostra)
+              	;   P        - Vai para a linha anterior (e mostra)
+              	;   G<num>   - Vai para a linha <num>, ex: G10
+              	;   L        - Lista o buffer inteiro (pausa a cada algumas linhas)
+              	;   W        - Envia o buffer inteiro pela serial (para capturar/salvar
+              	;              num terminal externo, já que a API não expõe um FS aqui)
+              	;   H ou ?   - Mostra a ajuda
+              	;   E        - Sai do editor (volta para o monitor)
+              	;
+              	; LIMITAÇÕES (mantido simples de propósito):
+              	;   - Números de linha são de 1 byte (1-255 linhas no máximo)
+              	;   - Sem undo, sem busca/substituição, sem numeração automática de reflow
+              	;   - "Salvar" = enviar pela serial (W); não grava em EEPROM/FS. Se você tiver
+              	;     rotinas de sistema de arquivos, é só trocar CMD_WRITE por chamadas a elas.
+              	;   - Backspace: mandamos BKS,SPACE,BKS para o terminal para apagar visualmente
+              	;     mesmo que o driver não trate BKS sozinho. Ajuste se seu driver já tratar.
+              	;   - O programa NÃO mexe no SP (mantém a pilha que o monitor já preparou),
+              	;     assim "E"/RET volta corretamente para quem deu CALL 8000H.
+              	;
+              	; AJUSTES: mude MAXLINE e BUFSIZE conforme a RAM livre acima do programa.
+              	; =============================================================================
+              	
+8000:         	    ORG 8000h
+              	
+              	; -----------------------------------------------------------------------------
+              	; API do Z80Mini (ver BIOS/Programas/Z80MiniAPI.asm)
+              	; -----------------------------------------------------------------------------
+0112:         	keyboardIsEsc:    EQU 0112h
+0115:         	keyboardWaitA:    EQU 0115h
+0118:         	keyboardA:        EQU 0118h
+0121:         	serialPrintA:     EQU 0121h
+012A:         	serialCRLF:       EQU 012Ah
+017E:         	initTerminal:     EQU 017Eh
+0181:         	CoresendCharToLCD:    EQU 0181h
+0196:         	autoLF:           EQU 0196h
+              	
+000D:         	CR:    EQU 0Dh
+000A:         	LF:    EQU 0Ah
+0008:         	BKS:   EQU 08h
+007F:         	DEL:   EQU 7Fh
+001B:         	ESC:   EQU 1Bh
+0020:         	SPACE: EQU 20h
+0000:         	NUL:   EQU 00h
+              	
+              	; -----------------------------------------------------------------------------
+              	; Configuração (ajuste conforme a RAM livre do seu Z80Mini)
+              	; -----------------------------------------------------------------------------
+003C:         	MAXLINE:  EQU 60      ; tamanho máximo de uma linha de texto digitada
+1000:         	BUFSIZE:  EQU 4096    ; tamanho da área de armazenamento do texto
+0006:         	PAGESIZE: EQU 6        ; linhas mostradas por "página" no comando L
+              	
+              	; =============================================================================
+              	; PONTO DE ENTRADA
+              	; =============================================================================
+8000:         	START:
+8000: CD7E01  	    CALL initTerminal
+8003: AF      	    XOR A
+8004: CD9601  	    CALL autoLF             ; A=0 -> quebra de linha automática ligada
+              	
+8007: CD9981  	    CALL CMD_HELP            ; mostra banner/ajuda ao abrir
+              	
+800A:         	MAINLOOP:
+800A: CD3283  	    CALL PRINT_PROMPT
+800D: CDD082  	    CALL READ_LINE
+8010: DA0A80  	    JP C, MAINLOOP            ; ESC no prompt -> ignora, volta a perguntar
+8013: 3A6585  	    LD A, (LINEBUF)
+8016: B7      	    OR A
+8017: CA0A80  	    JP Z, MAINLOOP             ; linha vazia -> ignora
+801A: CD2080  	    CALL EXEC_CMD
+801D: C30A80  	    JP MAINLOOP
+              	
+              	; =============================================================================
+              	; DESPACHO DE COMANDOS
+              	; =============================================================================
+              	; Lê o primeiro caractere de LINEBUF+1 e chama a rotina correspondente.
+8020:         	EXEC_CMD:
+8020: 3A6685  	    LD A, (LINEBUF+1)
+8023: CD5683  	    CALL UPCASE
+8026: FE49    	    CP 'I'
+8028: CA6380  	    JP Z, CMD_INSERT
+802B: FE41    	    CP 'A'
+802D: CA9C80  	    JP Z, CMD_APPEND
+8030: FE44    	    CP 'D'
+8032: CAAC80  	    JP Z, CMD_DELETE
+8035: FE4E    	    CP 'N'
+8037: CACA80  	    JP Z, CMD_NEXT
+803A: FE50    	    CP 'P'
+803C: CAEB80  	    JP Z, CMD_PREV
+803F: FE47    	    CP 'G'
+8041: CA0381  	    JP Z, CMD_GOTO
+8044: FE4C    	    CP 'L'
+8046: CA2081  	    JP Z, CMD_LIST
+8049: FE57    	    CP 'W'
+804B: CA6981  	    JP Z, CMD_WRITE
+804E: FE48    	    CP 'H'
+8050: CA9981  	    JP Z, CMD_HELP
+8053: FE3F    	    CP '?'
+8055: CA9981  	    JP Z, CMD_HELP
+8058: FE45    	    CP 'E'
+805A: CAA081  	    JP Z, CMD_EXIT
+805D: 21B483  	    LD HL, MSG_UNKNOWN
+8060: C34F83  	    JP PRINT_MSG
+              	
+              	; -----------------------------------------------------------------------------
+8063:         	CMD_INSERT:
+8063: 3A5485  	    LD A, (LINECOUNT)
+8066: B7      	    OR A
+8067: CA7080  	    JP Z, CI_ATSTART
+806A: 3A5385  	    LD A, (CURLINE)
+806D: C37280  	    JP CI_GOTIN
+8070:         	CI_ATSTART:
+8070: 3E01    	    LD A, 1
+8072:         	CI_GOTIN:
+8072: 325785  	    LD (INS_POS), A
+8075: 219E84  	    LD HL, MSG_INSERT_HELP
+8078: CD4683  	    CALL PRINT_STR
+807B:         	CI_LOOP:
+807B: CDD082  	    CALL READ_LINE
+807E: DA9B80  	    JP C, CI_END               ; ESC termina
+8081: 3A6585  	    LD A, (LINEBUF)
+8084: B7      	    OR A
+8085: CA9B80  	    JP Z, CI_END                ; linha vazia termina
+8088: 3A5785  	    LD A, (INS_POS)
+808B: CD3082  	    CALL ADD_LINE_AT
+808E: 215785  	    LD HL, INS_POS
+8091: 34      	    INC (HL)
+8092: 3A5785  	    LD A, (INS_POS)
+8095: 325385  	    LD (CURLINE), A
+8098: C37B80  	    JP CI_LOOP
+809B:         	CI_END:
+809B: C9      	    RET
+              	
+              	; -----------------------------------------------------------------------------
+809C:         	CMD_APPEND:
+809C: 3A5385  	    LD A, (CURLINE)
+809F: 3C      	    INC A
+80A0: 325785  	    LD (INS_POS), A
+80A3: 219E84  	    LD HL, MSG_INSERT_HELP
+80A6: CD4683  	    CALL PRINT_STR
+80A9: C37B80  	    JP CI_LOOP
+              	
+              	; -----------------------------------------------------------------------------
+80AC:         	CMD_DELETE:
+80AC: 3A5485  	    LD A, (LINECOUNT)
+80AF: B7      	    OR A
+80B0: CAC480  	    JP Z, CX_EMPTY
+80B3: 3A5385  	    LD A, (CURLINE)
+80B6: CDCA81  	    CALL DELETE_LINE
+80B9: 3A5485  	    LD A, (LINECOUNT)
+80BC: B7      	    OR A
+80BD: C8      	    RET Z
+80BE: 3A5385  	    LD A, (CURLINE)
+80C1: C3A282  	    JP DISPLAY_LINE
+80C4:         	CX_EMPTY:
+80C4: 21D283  	    LD HL, MSG_EMPTY
+80C7: C34F83  	    JP PRINT_MSG
+              	
+              	; -----------------------------------------------------------------------------
+80CA:         	CMD_NEXT:
+80CA: 3A5485  	    LD A, (LINECOUNT)
+80CD: B7      	    OR A
+80CE: CAC480  	    JP Z, CX_EMPTY
+80D1: 215485  	    LD HL, LINECOUNT
+80D4: 3A5385  	    LD A, (CURLINE)
+80D7: BE      	    CP (HL)
+80D8: CAE580  	    JP Z, CN_ATEND
+80DB: 215385  	    LD HL, CURLINE
+80DE: 34      	    INC (HL)
+80DF: 3A5385  	    LD A, (CURLINE)
+80E2: C3A282  	    JP DISPLAY_LINE
+80E5:         	CN_ATEND:
+80E5: 211484  	    LD HL, MSG_LASTLINE
+80E8: C34F83  	    JP PRINT_MSG
+              	
+              	; -----------------------------------------------------------------------------
+80EB:         	CMD_PREV:
+80EB: 3A5385  	    LD A, (CURLINE)
+80EE: FE02    	    CP 2
+80F0: DAFD80  	    JP C, CP_ATSTART
+80F3: 215385  	    LD HL, CURLINE
+80F6: 35      	    DEC (HL)
+80F7: 3A5385  	    LD A, (CURLINE)
+80FA: C3A282  	    JP DISPLAY_LINE
+80FD:         	CP_ATSTART:
+80FD: 212E84  	    LD HL, MSG_FIRSTLINE
+8100: C34F83  	    JP PRINT_MSG
+              	
+              	; -----------------------------------------------------------------------------
+8103:         	CMD_GOTO:
+8103: 216785  	    LD HL, LINEBUF+2           ; pula o 'G'; PARSE_NUMBER ainda pula espaços
+8106: CD8E83  	    CALL PARSE_NUMBER
+8109: B7      	    OR A
+810A: CA1A81  	    JP Z, CG_ERR
+810D: CDA781  	    CALL FIND_LINE               ; entrada A=alvo; saída D=alvo preservado
+8110: DA1A81  	    JP C, CG_ERR
+8113: 7A      	    LD A, D
+8114: 325385  	    LD (CURLINE), A
+8117: C3A282  	    JP DISPLAY_LINE
+811A:         	CG_ERR:
+811A: 21E183  	    LD HL, MSG_NOLINE
+811D: C34F83  	    JP PRINT_MSG
+              	
+              	; -----------------------------------------------------------------------------
+8120:         	CMD_LIST:
+8120: 3A5485  	    LD A, (LINECOUNT)
+8123: B7      	    OR A
+8124: CAC480  	    JP Z, CX_EMPTY
+8127: 325885  	    LD (LIST_TOTAL), A
+812A: 3E01    	    LD A, 1
+812C: 325985  	    LD (LIST_CUR), A
+812F: AF      	    XOR A
+8130: 325A85  	    LD (LIST_PAGE), A
+8133:         	CL_LOOP:
+8133: 3A5985  	    LD A, (LIST_CUR)
+8136: 57      	    LD D, A
+8137: 3A5885  	    LD A, (LIST_TOTAL)
+813A: BA      	    CP D
+813B: DA6881  	    JP C, CL_END
+813E: 7A      	    LD A, D
+813F: CDA282  	    CALL DISPLAY_LINE
+8142: 215985  	    LD HL, LIST_CUR
+8145: 34      	    INC (HL)
+8146: 215A85  	    LD HL, LIST_PAGE
+8149: 34      	    INC (HL)
+814A: 7E      	    LD A, (HL)
+814B: FE06    	    CP PAGESIZE
+814D: DA3381  	    JP C, CL_LOOP
+8150: 214A84  	    LD HL, MSG_MORE
+8153: CD4683  	    CALL PRINT_STR
+8156: CD1501  	    CALL keyboardWaitA
+8159: CD3B83  	    CALL LCD_NEWLINE
+815C: FE1B    	    CP ESC
+815E: CA6881  	    JP Z, CL_END
+8161: AF      	    XOR A
+8162: 325A85  	    LD (LIST_PAGE), A
+8165: C33381  	    JP CL_LOOP
+8168:         	CL_END:
+8168: C9      	    RET
+              	
+              	; -----------------------------------------------------------------------------
+              	; Envia o buffer inteiro pela serial, uma linha de texto por linha,
+              	; para ser capturado/salvo por um terminal externo.
+8169:         	CMD_WRITE:
+8169: 3A5485  	    LD A, (LINECOUNT)
+816C: B7      	    OR A
+816D: CAC480  	    JP Z, CX_EMPTY
+8170: 216284  	    LD HL, MSG_SENDING
+8173: CD4F83  	    CALL PRINT_MSG
+8176: 21A385  	    LD HL, BUFSTART
+8179: 3A5485  	    LD A, (LINECOUNT)
+817C: 47      	    LD B, A
+817D:         	CW_LOOP:
+817D: 7E      	    LD A, (HL)
+817E: 4F      	    LD C, A
+817F: 23      	    INC HL
+8180: 79      	    LD A, C
+8181: B7      	    OR A
+8182: CA8E81  	    JP Z, CW_EOL
+8185:         	CW_CHAR:
+8185: 7E      	    LD A, (HL)
+8186: CD2101  	    CALL serialPrintA
+8189: 23      	    INC HL
+818A: 0D      	    DEC C
+818B: C28581  	    JP NZ, CW_CHAR
+818E:         	CW_EOL:
+818E: CD2A01  	    CALL serialCRLF
+8191: 10EA    	    DJNZ CW_LOOP
+8193: 217C84  	    LD HL, MSG_DONE
+8196: C34F83  	    JP PRINT_MSG
+              	
+              	; -----------------------------------------------------------------------------
+8199:         	CMD_HELP:
+8199: 21D284  	    LD HL, MSG_HELP
+819C: CD4683  	    CALL PRINT_STR
+819F: C9      	    RET
+              	
+              	; -----------------------------------------------------------------------------
+81A0:         	CMD_EXIT:
+81A0: 218884  	    LD HL, MSG_BYE
+81A3: CD4F83  	    CALL PRINT_MSG
+81A6: C9      	    RET                         ; volta para quem deu CALL 8000H (ex.: monitor)
+              	
+              	; =============================================================================
+              	; MOTOR DO BUFFER DE TEXTO
+              	; -----------------------------------------------------------------------------
+              	; Cada linha é gravada como: [tamanho:1 byte][texto:tamanho bytes], uma após
+              	; a outra, sem separador, a partir de BUFSTART. BUFPTR aponta para o primeiro
+              	; byte livre. LINECOUNT = total de linhas. CURLINE = linha atual (1-based).
+              	; =============================================================================
+              	
+              	; Entrada: A = número da linha desejada (1-based)
+              	; Saída:   HL = endereço do byte de tamanho do registro daquela linha,
+              	;          (ou, se A = LINECOUNT+1, HL = BUFPTR, útil para inserir no fim)
+              	;          D  = número da linha alvo (preservado, útil para quem chamou)
+              	;          Carry=1 se A é inválido (0, ou maior que LINECOUNT+1)
+81A7:         	FIND_LINE:
+81A7: B7      	    OR A
+81A8: CAC881  	    JP Z, FL_INVALID
+81AB: 57      	    LD D, A
+81AC: 3A5485  	    LD A, (LINECOUNT)
+81AF: 3C      	    INC A
+81B0: BA      	    CP D
+81B1: DAC881  	    JP C, FL_INVALID            ; D > LINECOUNT+1
+81B4: 21A385  	    LD HL, BUFSTART
+81B7: 1E01    	    LD E, 1
+81B9:         	FL_LOOP:
+81B9: 7B      	    LD A, E
+81BA: BA      	    CP D
+81BB: 2809    	    JR Z, FL_FOUND
+81BD: 7E      	    LD A, (HL)
+81BE: 4F      	    LD C, A
+81BF: 0600    	    LD B, 0
+81C1: 03      	    INC BC
+81C2: 09      	    ADD HL, BC
+81C3: 1C      	    INC E
+81C4: 18F3    	    JR FL_LOOP
+81C6:         	FL_FOUND:
+81C6: B7      	    OR A                          ; garante Carry=0
+81C7: C9      	    RET
+81C8:         	FL_INVALID:
+81C8: 37      	    SCF
+81C9: C9      	    RET
+              	
+              	; -----------------------------------------------------------------------------
+              	; Entrada: A = número da linha a apagar
+81CA:         	DELETE_LINE:
+81CA: CDA781  	    CALL FIND_LINE
+81CD: D8      	    RET C
+81CE: 3A5485  	    LD A, (LINECOUNT)
+81D1: BA      	    CP D
+81D2: DA2A82  	    JP C, DL_INVALID             ; D > LINECOUNT -> linha não existe de fato
+81D5: 225B85  	    LD (T_DEST), HL
+81D8: 7E      	    LD A, (HL)
+81D9: 5F      	    LD E, A
+81DA: 1600    	    LD D, 0
+81DC: 13      	    INC DE
+81DD: ED536185	    LD (T_SIZE), DE               ; tamanho do registro (1+tamanho do texto)
+81E1: 2A5B85  	    LD HL, (T_DEST)
+81E4: 19      	    ADD HL, DE
+81E5: 225F85  	    LD (T_SRC), HL                 ; início do próximo registro
+81E8: 2A5585  	    LD HL, (BUFPTR)
+81EB: ED5B5F85	    LD DE, (T_SRC)
+81EF: B7      	    OR A
+81F0: ED52    	    SBC HL, DE
+81F2: 226385  	    LD (T_COUNT), HL                ; bytes que sobraram depois da linha removida
+81F5: 7C      	    LD A, H
+81F6: B5      	    OR L
+81F7: 280D    	    JR Z, DL_SKIPMOVE
+81F9: 2A5F85  	    LD HL, (T_SRC)
+81FC: ED5B5B85	    LD DE, (T_DEST)
+8200: ED4B6385	    LD BC, (T_COUNT)
+8204: EDB0    	    LDIR                              ; desloca o resto do buffer para trás
+8206:         	DL_SKIPMOVE:
+8206: 2A5585  	    LD HL, (BUFPTR)
+8209: ED5B6185	    LD DE, (T_SIZE)
+820D: B7      	    OR A
+820E: ED52    	    SBC HL, DE
+8210: 225585  	    LD (BUFPTR), HL
+8213: 215485  	    LD HL, LINECOUNT
+8216: 35      	    DEC (HL)
+8217: 3A5385  	    LD A, (CURLINE)
+821A: 215485  	    LD HL, LINECOUNT
+821D: BE      	    CP (HL)
+821E: 3804    	    JR C, DL_KEEPCUR
+8220: 7E      	    LD A, (HL)
+8221: 325385  	    LD (CURLINE), A                  ; se CURLINE ficou > LINECOUNT, recua
+8224:         	DL_KEEPCUR:
+8224: 210484  	    LD HL, MSG_DELETED
+8227: C34F83  	    JP PRINT_MSG
+822A:         	DL_INVALID:
+822A: 21E183  	    LD HL, MSG_NOLINE
+822D: C34F83  	    JP PRINT_MSG
+              	
+              	; -----------------------------------------------------------------------------
+              	; Entrada: A = posição (número de linha, 1..LINECOUNT+1) onde a nova linha
+              	;          deve ficar. LINEBUF = [tamanho][texto] da nova linha (já lida).
+8230:         	ADD_LINE_AT:
+8230: CDA781  	    CALL FIND_LINE
+8233: D8      	    RET C
+8234: 225D85  	    LD (T_DEST_INS), HL
+8237: 3A6585  	    LD A, (LINEBUF)
+823A: 5F      	    LD E, A
+823B: 1600    	    LD D, 0
+823D: 13      	    INC DE
+823E: ED536185	    LD (T_SIZE), DE                  ; tamanho do novo registro
+8242: 2A5585  	    LD HL, (BUFPTR)
+8245: 19      	    ADD HL, DE
+8246: 11A395  	    LD DE, BUFEND
+8249: B7      	    OR A
+824A: ED52    	    SBC HL, DE
+824C: D29282  	    JP NC, AL_FULL                    ; não cabe no buffer
+824F: 2A5585  	    LD HL, (BUFPTR)
+8252: ED5B5D85	    LD DE, (T_DEST_INS)
+8256: B7      	    OR A
+8257: ED52    	    SBC HL, DE
+8259: 226385  	    LD (T_COUNT), HL                   ; bytes existentes que precisam abrir espaço
+825C: 7C      	    LD A, H
+825D: B5      	    OR L
+825E: 2815    	    JR Z, AL_NOSHIFT
+8260: 2A5585  	    LD HL, (BUFPTR)
+8263: ED4B6185	    LD BC, (T_SIZE)
+8267: 09      	    ADD HL, BC
+8268: 2B      	    DEC HL
+8269: 54      	    LD D, H
+826A: 5D      	    LD E, L                              ; DE = último byte de destino
+826B: 2A5585  	    LD HL, (BUFPTR)
+826E: 2B      	    DEC HL                                ; HL = último byte de origem
+826F: ED4B6385	    LD BC, (T_COUNT)
+8273: EDB8    	    LDDR                                   ; abre espaço, copiando de trás pra frente
+8275:         	AL_NOSHIFT:
+8275: 216585  	    LD HL, LINEBUF
+8278: ED5B5D85	    LD DE, (T_DEST_INS)
+827C: ED4B6185	    LD BC, (T_SIZE)
+8280: EDB0    	    LDIR                                    ; grava a nova linha no espaço aberto
+8282: 2A5585  	    LD HL, (BUFPTR)
+8285: ED5B6185	    LD DE, (T_SIZE)
+8289: 19      	    ADD HL, DE
+828A: 225585  	    LD (BUFPTR), HL
+828D: 215485  	    LD HL, LINECOUNT
+8290: 34      	    INC (HL)
+8291: C9      	    RET
+8292:         	AL_FULL:
+8292: 21F483  	    LD HL, MSG_FULL
+8295: C34F83  	    JP PRINT_MSG
+              	    
+              	    
+8298:         	sendCharToLCD:
+8298: C5      	    push bc
+8299: D5      	    push de
+829A: E5      	    push hl
+829B: CD8101  	    CALL CoresendCharToLCD
+829E: E1      	    pop hl
+829F: D1      	    pop de
+82A0: C1      	    pop bc
+82A1: C9      	    ret
+              	
+              	; -----------------------------------------------------------------------------
+              	; Entrada: A = número da linha a exibir. Mostra "NNN: texto".
+82A2:         	DISPLAY_LINE:
+82A2: F5      	    PUSH AF
+82A3: CDA781  	    CALL FIND_LINE
+82A6: DAC982  	    JP C, DSP_ERR
+82A9: F1      	    POP AF
+82AA: CD5F83  	    CALL PRINT_DEC
+82AD: 3E3A    	    LD A, ':'
+82AF: CD9882  	    CALL sendCharToLCD
+82B2: 3E20    	    LD A, SPACE
+82B4: CD9882  	    CALL sendCharToLCD
+82B7: 7E      	    LD A, (HL)
+82B8: 47      	    LD B, A
+82B9: 23      	    INC HL
+82BA: 78      	    LD A, B
+82BB: B7      	    OR A
+82BC: 2807    	    JR Z, DSP_NL
+82BE:         	DSP_PRINTCH:
+82BE: 7E      	    LD A, (HL)
+82BF: CD9882  	    CALL sendCharToLCD
+82C2: 23      	    INC HL
+82C3: 10F9    	    DJNZ DSP_PRINTCH
+82C5:         	DSP_NL:
+82C5: CD3B83  	    CALL LCD_NEWLINE
+82C8: C9      	    RET
+82C9:         	DSP_ERR:
+82C9: F1      	    POP AF
+82CA: 21E183  	    LD HL, MSG_NOLINE
+82CD: C34F83  	    JP PRINT_MSG
+              	
+              	; =============================================================================
+              	; ENTRADA DE LINHA PELO TECLADO
+              	; =============================================================================
+              	; Lê uma linha do teclado para LINEBUF: [tamanho][texto...][NUL].
+              	; Ecoa cada caractere no LCD. BKS/DEL apaga o último caractere (envia
+              	; BKS,SPACE,BKS para garantir que apague visualmente). ESC cancela a linha.
+              	; Saída: B = tamanho da linha lida. Carry=1 se cancelado com ESC.
+82D0:         	READ_LINE:
+82D0: 216685  	    LD HL, LINEBUF+1
+82D3: 0600    	    LD B, 0
+82D5:         	RL_LOOP:
+82D5: CD1501  	    CALL keyboardWaitA
+82D8: 5F      	    LD E, A
+82D9: FE1B    	    CP ESC
+82DB: 284B    	    JR Z, RL_ABORT
+82DD: FE0D    	    CP CR
+82DF: 2835    	    JR Z, RL_DONE
+82E1: FE08    	    CP BKS
+82E3: 281A    	    JR Z, RL_BACK
+82E5: FE7F    	    CP DEL
+82E7: 2816    	    JR Z, RL_BACK
+82E9: FE20    	    CP SPACE
+82EB: 38E8    	    JR C, RL_LOOP                 ; ignora controles não tratados
+82ED: FE7F    	    CP 7Fh
+82EF: 30E4    	    JR NC, RL_LOOP                  ; ignora teclas especiais (0x7F-0xFF)
+82F1: 78      	    LD A, B
+82F2: FE3C    	    CP MAXLINE
+82F4: 28DF    	    JR Z, RL_LOOP                    ; linha cheia, ignora tecla
+82F6: 73      	    LD (HL), E
+82F7: 23      	    INC HL
+82F8: 04      	    INC B
+82F9: 7B      	    LD A, E
+82FA: CD9882  	    CALL sendCharToLCD
+82FD: 18D6    	    JR RL_LOOP
+82FF:         	RL_BACK:
+82FF: 78      	    LD A, B
+8300: B7      	    OR A
+8301: 28D2    	    JR Z, RL_LOOP
+8303: 05      	    DEC B
+8304: 2B      	    DEC HL
+8305: 3E08    	    LD A, BKS
+8307: CD9882  	    CALL sendCharToLCD
+830A: 3E20    	    LD A, SPACE
+830C: CD9882  	    CALL sendCharToLCD
+830F: 3E08    	    LD A, BKS
+8311: CD9882  	    CALL sendCharToLCD
+8314: 18BF    	    JR RL_LOOP
+8316:         	RL_DONE:
+8316: 78      	    LD A, B
+8317: 326585  	    LD (LINEBUF), A
+831A: 216685  	    LD HL, LINEBUF+1
+831D: 1600    	    LD D, 0
+831F: 58      	    LD E, B
+8320: 19      	    ADD HL, DE
+8321: AF      	    XOR A
+8322: 77      	    LD (HL), A                       ; termina com NUL (facilita PARSE_NUMBER)
+8323: CD3B83  	    CALL LCD_NEWLINE
+8326: B7      	    OR A
+8327: C9      	    RET
+8328:         	RL_ABORT:
+8328: AF      	    XOR A
+8329: 326585  	    LD (LINEBUF), A
+832C: 47      	    LD B, A
+832D: CD3B83  	    CALL LCD_NEWLINE
+8330: 37      	    SCF
+8331: C9      	    RET
+              	
+              	; =============================================================================
+              	; UTILITÁRIOS
+              	; =============================================================================
+8332:         	PRINT_PROMPT:
+8332: CD3B83  	    CALL LCD_NEWLINE
+8335: 3E2A    	    LD A, '*'
+8337: CD9882  	    CALL sendCharToLCD
+833A: C9      	    RET
+              	
+833B:         	LCD_NEWLINE:
+833B: 3E0D    	    LD A, CR
+833D: CD9882  	    CALL sendCharToLCD
+8340: 3E0A    	    LD A, LF
+8342: CD9882  	    CALL sendCharToLCD
+8345: C9      	    RET
+              	
+              	; Imprime string terminada em NUL apontada por HL
+8346:         	PRINT_STR:
+8346: 7E      	    LD A, (HL)
+8347: B7      	    OR A
+8348: C8      	    RET Z
+8349: CD9882  	    CALL sendCharToLCD
+834C: 23      	    INC HL
+834D: 18F7    	    JR PRINT_STR
+              	
+              	; Imprime string terminada em NUL e adiciona uma quebra de linha
+834F:         	PRINT_MSG:
+834F: CD4683  	    CALL PRINT_STR
+8352: CD3B83  	    CALL LCD_NEWLINE
+8355: C9      	    RET
+              	
+              	; Converte A para maiúscula (a-z -> A-Z)
+8356:         	UPCASE:
+8356: FE61    	    CP 'a'
+8358: D8      	    RET C
+8359: FE7B    	    CP 'z'+1
+835B: D0      	    RET NC
+835C: D620    	    SUB 20h
+835E: C9      	    RET
+              	
+              	; Imprime A (0-255) em decimal, sem zeros à esquerda
+835F:         	PRINT_DEC:
+835F: 5F      	    LD E, A
+8360: 0600    	    LD B, 0
+8362: 0E64    	    LD C, 100
+8364: CD7383  	    CALL PD_PLACE
+8367: 0E0A    	    LD C, 10
+8369: CD7383  	    CALL PD_PLACE
+836C: 7B      	    LD A, E
+836D: C630    	    ADD A, '0'
+836F: CD9882  	    CALL sendCharToLCD
+8372: C9      	    RET
+8373:         	PD_PLACE:
+8373: 1600    	    LD D, 0
+8375:         	PD_PLACE_LOOP:
+8375: 7B      	    LD A, E
+8376: B9      	    CP C
+8377: 3805    	    JR C, PD_PLACE_DONE
+8379: 91      	    SUB C
+837A: 5F      	    LD E, A
+837B: 14      	    INC D
+837C: 18F7    	    JR PD_PLACE_LOOP
+837E:         	PD_PLACE_DONE:
+837E: 7A      	    LD A, D
+837F: B7      	    OR A
+8380: 2003    	    JR NZ, PD_PLACE_PRINT
+8382: 78      	    LD A, B
+8383: B7      	    OR A
+8384: C8      	    RET Z                            ; suprime zero à esquerda
+8385:         	PD_PLACE_PRINT:
+8385: 7A      	    LD A, D
+8386: C630    	    ADD A, '0'
+8388: CD9882  	    CALL sendCharToLCD
+838B: 0601    	    LD B, 1
+838D: C9      	    RET
+              	
+              	; Entrada: HL = ponteiro para texto ASCII (termina em NUL, CR ou não-dígito)
+              	; Saída:   A = valor decimal (0-255), pula espaços iniciais
+838E:         	PARSE_NUMBER:
+838E: AF      	    XOR A
+838F: 4F      	    LD C, A
+8390:         	PN_SKIPSPACE:
+8390: 7E      	    LD A, (HL)
+8391: FE20    	    CP SPACE
+8393: 2003    	    JR NZ, PN_DIGITS
+8395: 23      	    INC HL
+8396: 18F8    	    JR PN_SKIPSPACE
+8398:         	PN_DIGITS:
+8398: 7E      	    LD A, (HL)
+8399: B7      	    OR A
+839A: 2816    	    JR Z, PN_DONE
+839C: FE30    	    CP '0'
+839E: 3812    	    JR C, PN_DONE
+83A0: FE3A    	    CP '9'+1
+83A2: 300E    	    JR NC, PN_DONE
+83A4: D630    	    SUB '0'
+83A6: 47      	    LD B, A
+83A7: 79      	    LD A, C
+83A8: 87      	    ADD A, A
+83A9: 57      	    LD D, A
+83AA: 87      	    ADD A, A
+83AB: 87      	    ADD A, A
+83AC: 82      	    ADD A, D
+83AD: 80      	    ADD A, B
+83AE: 4F      	    LD C, A
+83AF: 23      	    INC HL
+83B0: 18E6    	    JR PN_DIGITS
+83B2:         	PN_DONE:
+83B2: 79      	    LD A, C
+83B3: C9      	    RET
+              	
+              	; =============================================================================
+              	; MENSAGENS
+              	; =============================================================================
+83B4: 436F6D61	MSG_UNKNOWN:      DB "Comando invalido. H = ajuda", CR, LF, 0
+83B8: 6E646F20	
+83BC: 696E7661	
+83C0: 6C69646F	
+83C4: 2E204820	
+83C8: 3D20616A	
+83CC: 7564610D	
+83D0: 0A00    	
+83D2: 42756666	MSG_EMPTY:        DB "Buffer vazio", CR, LF, 0
+83D6: 65722076	
+83DA: 617A696F	
+83DE: 0D0A00  	
+83E1: 4C696E68	MSG_NOLINE:       DB "Linha nao existe", CR, LF, 0
+83E5: 61206E61	
+83E9: 6F206578	
+83ED: 69737465	
+83F1: 0D0A00  	
+83F4: 42756666	MSG_FULL:         DB "Buffer cheio!", CR, LF, 0
+83F8: 65722063	
+83FC: 6865696F	
+8400: 210D0A00	
+8404: 4C696E68	MSG_DELETED:      DB "Linha apagada", CR, LF, 0
+8408: 61206170	
+840C: 61676164	
+8410: 610D0A00	
+8414: 4A612065	MSG_LASTLINE:     DB "Ja esta na ultima linha", CR, LF, 0
+8418: 73746120	
+841C: 6E612075	
+8420: 6C74696D	
+8424: 61206C69	
+8428: 6E68610D	
+842C: 0A00    	
+842E: 4A612065	MSG_FIRSTLINE:    DB "Ja esta na primeira linha", CR, LF, 0
+8432: 73746120	
+8436: 6E612070	
+843A: 72696D65	
+843E: 69726120	
+8442: 6C696E68	
+8446: 610D0A00	
+844A: 2D2D6D61	MSG_MORE:         DB "--mais-- (ESC p/ parar)", 0
+844E: 69732D2D	
+8452: 20284553	
+8456: 4320702F	
+845A: 20706172	
+845E: 61722900	
+8462: 456E7669	MSG_SENDING:      DB "Enviando pela serial...", CR, LF, 0
+8466: 616E646F	
+846A: 2070656C	
+846E: 61207365	
+8472: 7269616C	
+8476: 2E2E2E0D	
+847A: 0A00    	
+847C: 436F6E63	MSG_DONE:         DB "Concluido", CR, LF, 0
+8480: 6C756964	
+8484: 6F0D0A00	
+8488: 5361696E	MSG_BYE:          DB "Saindo do editor...", CR, LF, 0
+848C: 646F2064	
+8490: 6F206564	
+8494: 69746F72	
+8498: 2E2E2E0D	
+849C: 0A00    	
+849E: 44696769	MSG_INSERT_HELP:  DB "Digite o texto (ENTER vazio termina, ESC cancela)", CR, LF, 0
+84A2: 7465206F	
+84A6: 20746578	
+84AA: 746F2028	
+84AE: 454E5445	
+84B2: 52207661	
+84B6: 7A696F20	
+84BA: 7465726D	
+84BE: 696E612C	
+84C2: 20455343	
+84C6: 2063616E	
+84CA: 63656C61	
+84CE: 290D0A00	
+84D2:         	MSG_HELP:
+84D2: 45444D49	    DB "EDMINI - editor de linha", CR, LF
+84D6: 4E49202D	
+84DA: 20656469	
+84DE: 746F7220	
+84E2: 6465206C	
+84E6: 696E6861	
+84EA: 0D0A    	
+84EC: 493D496E	    DB "I=Insere A=Adiciona D=Apaga", CR, LF
+84F0: 73657265	
+84F4: 20413D41	
+84F8: 64696369	
+84FC: 6F6E6120	
+8500: 443D4170	
+8504: 6167610D	
+8508: 0A      	
+8509: 4E3D5072	    DB "N=Prox P=Ant G<n>=Ir p/ linha", CR, LF
+850D: 6F782050	
+8511: 3D416E74	
+8515: 20473C6E	
+8519: 3E3D4972	
+851D: 20702F20	
+8521: 6C696E68	
+8525: 610D0A  	
+8528: 4C3D4C69	    DB "L=Lista W=Envia p/ serial", CR, LF
+852C: 73746120	
+8530: 573D456E	
+8534: 76696120	
+8538: 702F2073	
+853C: 65726961	
+8540: 6C0D0A  	
+8543: 453D5361	    DB "E=Sai H=Ajuda", CR, LF, 0
+8547: 6920483D	
+854B: 416A7564	
+854F: 610D0A00	
+              	
+              	; =============================================================================
+              	; VARIÁVEIS
+              	; =============================================================================
+8553: 00      	CURLINE:      DB 0
+8554: 00      	LINECOUNT:    DB 0
+8555: A385    	BUFPTR:       DW BUFSTART
+8557: 00      	INS_POS:      DB 0
+8558: 00      	LIST_TOTAL:   DB 0
+8559: 00      	LIST_CUR:     DB 0
+855A: 00      	LIST_PAGE:    DB 0
+855B: 0000    	T_DEST:       DW 0
+855D: 0000    	T_DEST_INS:   DW 0
+855F: 0000    	T_SRC:        DW 0
+8561: 0000    	T_SIZE:       DW 0
+8563: 0000    	T_COUNT:      DW 0
+              	
+8565: FFFFFFFF	LINEBUF:      DS 2+MAXLINE     ; [tamanho][texto...][NUL]
+8569: FF...   	
+              	
+              	; =============================================================================
+              	; ÁREA DE ARMAZENAMENTO DO TEXTO
+              	; =============================================================================
+85A3:         	BUFSTART:
+85A3: FFFFFFFF	    DS BUFSIZE
+85A7: FF...   	
+95A3:         	BUFEND:
+
+
+; +++ segments +++
+
+#CODE          = $8000 = 32768,  size = $15A3 =  5539
+
+; +++ global symbols +++
+
+ADD_LINE_AT       = $8230 = 33328          Main.asm:396
+AL_FULL           = $8292 = 33426          Main.asm:441
+AL_NOSHIFT        = $8275 = 33397          Main.asm:429
+BKS               = $0008 =     8          Main.asm:58
+BUFEND            = $95A3 = 38307          Main.asm:710
+BUFPTR            = $8555 = 34133          Main.asm:692
+BUFSIZE           = $1000 =  4096          Main.asm:68
+BUFSTART          = $85A3 = 34211          Main.asm:708
+CG_ERR            = $811A = 33050          Main.asm:218
+CI_ATSTART        = $8070 = 32880          Main.asm:130
+CI_END            = $809B = 32923          Main.asm:149
+CI_GOTIN          = $8072 = 32882          Main.asm:132
+CI_LOOP           = $807B = 32891          Main.asm:136
+CL_END            = $8168 = 33128          Main.asm:256
+CL_LOOP           = $8133 = 33075          Main.asm:232
+CMD_APPEND        = $809C = 32924          Main.asm:153
+CMD_DELETE        = $80AC = 32940          Main.asm:162
+CMD_EXIT          = $81A0 = 33184          Main.asm:297
+CMD_GOTO          = $8103 = 33027          Main.asm:208
+CMD_HELP          = $8199 = 33177          Main.asm:291
+CMD_INSERT        = $8063 = 32867          Main.asm:124
+CMD_LIST          = $8120 = 33056          Main.asm:223
+CMD_NEXT          = $80CA = 32970          Main.asm:178
+CMD_PREV          = $80EB = 33003          Main.asm:195
+CMD_WRITE         = $8169 = 33129          Main.asm:262
+CN_ATEND          = $80E5 = 32997          Main.asm:190
+CP_ATSTART        = $80FD = 33021          Main.asm:203
+CR                = $000D =    13          Main.asm:56
+CURLINE           = $8553 = 34131          Main.asm:690
+CW_CHAR           = $8185 = 33157          Main.asm:278
+CW_EOL            = $818E = 33166          Main.asm:284
+CW_LOOP           = $817D = 33149          Main.asm:271
+CX_EMPTY          = $80C4 = 32964          Main.asm:173
+CoresendCharToLCD = $0181 =   385          Main.asm:53
+DEL               = $007F =   127          Main.asm:59
+DELETE_LINE       = $81CA = 33226          Main.asm:345
+DISPLAY_LINE      = $82A2 = 33442          Main.asm:458
+DL_INVALID        = $822A = 33322          Main.asm:389
+DL_KEEPCUR        = $8224 = 33316          Main.asm:386
+DL_SKIPMOVE       = $8206 = 33286          Main.asm:372
+DSP_ERR           = $82C9 = 33481          Main.asm:482
+DSP_NL            = $82C5 = 33477          Main.asm:479
+DSP_PRINTCH       = $82BE = 33470          Main.asm:474
+ESC               = $001B =    27          Main.asm:60
+EXEC_CMD          = $8020 = 32800          Main.asm:95
+FIND_LINE         = $81A7 = 33191          Main.asm:315
+FL_FOUND          = $81C6 = 33222          Main.asm:336
+FL_INVALID        = $81C8 = 33224          Main.asm:339
+FL_LOOP           = $81B9 = 33209          Main.asm:325
+INS_POS           = $8557 = 34135          Main.asm:693
+LCD_NEWLINE       = $833B = 33595          Main.asm:563
+LF                = $000A =    10          Main.asm:57
+LINEBUF           = $8565 = 34149          Main.asm:703
+LINECOUNT         = $8554 = 34132          Main.asm:691
+LIST_CUR          = $8559 = 34137          Main.asm:695
+LIST_PAGE         = $855A = 34138          Main.asm:696
+LIST_TOTAL        = $8558 = 34136          Main.asm:694
+MAINLOOP          = $800A = 32778          Main.asm:81
+MAXLINE           = $003C =    60          Main.asm:67
+MSG_BYE           = $8488 = 33928          Main.asm:678
+MSG_DELETED       = $8404 = 33796          Main.asm:672
+MSG_DONE          = $847C = 33916          Main.asm:677
+MSG_EMPTY         = $83D2 = 33746          Main.asm:669
+MSG_FIRSTLINE     = $842E = 33838          Main.asm:674
+MSG_FULL          = $83F4 = 33780          Main.asm:671
+MSG_HELP          = $84D2 = 34002          Main.asm:680
+MSG_INSERT_HELP   = $849E = 33950          Main.asm:679
+MSG_LASTLINE      = $8414 = 33812          Main.asm:673
+MSG_MORE          = $844A = 33866          Main.asm:675
+MSG_NOLINE        = $83E1 = 33761          Main.asm:670
+MSG_SENDING       = $8462 = 33890          Main.asm:676
+MSG_UNKNOWN       = $83B4 = 33716          Main.asm:668
+NUL               = $0000 =     0          Main.asm:62 (unused)
+PAGESIZE          = $0006 =     6          Main.asm:69
+PARSE_NUMBER      = $838E = 33678          Main.asm:632
+PD_PLACE          = $8373 = 33651          Main.asm:606
+PD_PLACE_DONE     = $837E = 33662          Main.asm:616
+PD_PLACE_LOOP     = $8375 = 33653          Main.asm:608
+PD_PLACE_PRINT    = $8385 = 33669          Main.asm:623
+PN_DIGITS         = $8398 = 33688          Main.asm:641
+PN_DONE           = $83B2 = 33714          Main.asm:661
+PN_SKIPSPACE      = $8390 = 33680          Main.asm:635
+PRINT_DEC         = $835F = 33631          Main.asm:595
+PRINT_MSG         = $834F = 33615          Main.asm:580
+PRINT_PROMPT      = $8332 = 33586          Main.asm:557
+PRINT_STR         = $8346 = 33606          Main.asm:571
+READ_LINE         = $82D0 = 33488          Main.asm:494
+RL_ABORT          = $8328 = 33576          Main.asm:546
+RL_BACK           = $82FF = 33535          Main.asm:521
+RL_DONE           = $8316 = 33558          Main.asm:534
+RL_LOOP           = $82D5 = 33493          Main.asm:497
+SPACE             = $0020 =    32          Main.asm:61
+START             = $8000 = 32768          Main.asm:74 (unused)
+T_COUNT           = $8563 = 34147          Main.asm:701
+T_DEST            = $855B = 34139          Main.asm:697
+T_DEST_INS        = $855D = 34141          Main.asm:698
+T_SIZE            = $8561 = 34145          Main.asm:700
+T_SRC             = $855F = 34143          Main.asm:699
+UPCASE            = $8356 = 33622          Main.asm:586
+_end              = $95A3 = 38307          Main.asm:42 (unused)
+_size             = $15A3 =  5539          Main.asm:42 (unused)
+_z80_             = $0001 =     1          Main.asm:1 (unused)
+autoLF            = $0196 =   406          Main.asm:54
+initTerminal      = $017E =   382          Main.asm:52
+keyboardA         = $0118 =   280          Main.asm:49 (unused)
+keyboardIsEsc     = $0112 =   274          Main.asm:47 (unused)
+keyboardWaitA     = $0115 =   277          Main.asm:48
+sendCharToLCD     = $8298 = 33432          Main.asm:446
+serialCRLF        = $012A =   298          Main.asm:51
+serialPrintA      = $0121 =   289          Main.asm:50
+
+
+total time: 0.0361 sec.
+no errors
