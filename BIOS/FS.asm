@@ -1,25 +1,25 @@
 
 ; --- Constantes ---
-FS_SIG:     .EQU $A5
-FS_PG_BMP:  .EQU $00
-FS_PG_DIR:  .EQU $01
+FS_SIG:     .EQU $A5        ; Assinatura da EEPROM formatada
+FS_PG_BMP:  .EQU $00        ; Número da página do bitmap
+FS_PG_DIR:  .EQU $01        ; Número da página do diretório
 FS_PG_DATA: .EQU $02        ; primeira pagina de dados
-FS_MAXFILES:.EQU 8
-FS_ENTRY_SZ:.EQU 32
-FS_NAME_SZ: .EQU 8
-FS_DATAPG:  .EQU 255        ; bytes uteis por pagina
+FS_MAXFILES:.EQU 8          ; Máximo de arquivos
+FS_ENTRY_SZ:.EQU 32         ; Bytes por entrada do diretório
+FS_NAME_SZ: .EQU 8          ; Bytes do nome
+FS_DATAPG:  .EQU 255        ; Bytes uteis por pagina
 
-FS_FLAG_FREE: .EQU $FF
-FS_FLAG_USED: .EQU $01
+FS_FLAG_FREE: .EQU $FF      ; Slot do diretório livre
+FS_FLAG_USED: .EQU $01      ; Slot do diretório usado
 
 ; Offsets na entrada
-FS_O_NAME:  .EQU 0
-FS_O_FSTPG: .EQU 8
-FS_O_SIZEH: .EQU 9
-FS_O_SIZEL: .EQU 10
-FS_O_RADRH: .EQU 11
-FS_O_RADRL: .EQU 12
-FS_O_FLAGS: .EQU 13
+FS_O_NAME:  .EQU 0          ; Nome (8 bytes)
+FS_O_FSTPG: .EQU 8          ; Primeira página de dados
+FS_O_SIZEH: .EQU 9          ; Tamanho hi
+FS_O_SIZEL: .EQU 10         ; Tamanho lo
+FS_O_RADRH: .EQU 11         ; Load RAM hi
+FS_O_RADRL: .EQU 12         ; Load RAM lo
+FS_O_FLAGS: .EQU 13         ; Flags ($FF=livre, $01=usado)
 
 
 
