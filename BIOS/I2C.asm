@@ -485,7 +485,50 @@ I2C_LIST_55:    .DB " - EE Drive Z",0
 
 
 
-
+; Fill a block I2C memory
+;   On entry: DE = First address in I2C memory
+;             L = BYTE to Fill
+;             BC = Number of bytes to be copied
+;             SCL = unknown, SDA = unknown
+;   On exit:  If successfully A = 0 and Z flagged
+;             If unsuccessfully A = Error and NZ flagged
+;             IX IY preserved
+; pages.
+I2C_MemFill:  PUSH BC
+            LD   BC,TIMEOUT     ;Timeout loop counter
+I2C_MemFillRepeat:    
+            LD   A, (I2CA_BLOCK)   ;I2C address to write to
+            CALL I2C_Open       ;Open for write
+            JR   Z,I2C_MemFillReady       ;If open okay then skip on
+            DEC  BC
+            LD   A,B
+            OR   C              ;Timeout?
+            JR   NZ,I2C_MemFillRepeat     ;No, so go try again
+            POP  BC
+            LD   A,ERR_TOUT     ;Error code
+            OR   A              ;Error, so NZ flagged
+            RET                 ;Return with error
+; Device opened okay
+I2C_MemFillReady:     POP  BC             ;Restore byte counter
+I2C_MemFillBlock:     LD   A,D            ;Address (hi) in I2C memory
+            CALL I2C_Write      ;Write address
+            LD   A,E            ;Address (lo) in I2C memory
+            CALL I2C_Write      ;Write address
+I2C_MemFillWrite:     LD   A, L         ;Get data byte to fill
+            CALL I2C_Write      ;Read byte from I2C memory
+            INC  DE             ;Increment I2C memory pointer
+            DEC  BC             ;Decrement byte counter
+            LD   A,B
+            OR   C              ;Finished?
+            JR   Z,I2C_MemFillStore       ;Yes, so go store this page
+            LD   A,E            ;Get address in I2C memory (lo byte)
+            AND  63             ;64 byte page boundary?
+            JR   NZ,I2C_MemFillWrite      ;No, so go write another byte
+I2C_MemFillStore:     CALL I2C_Stop       ;Generate I2C stop
+            LD   A,B
+            OR   C              ;Finished?
+            JR   NZ,I2C_MemFill   ;No, so go write some more
+            RET  
 
 
 

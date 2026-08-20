@@ -6,20 +6,209 @@ FS_PG_DIR:  .EQU $01        ; Número da página do diretório
 FS_PG_DATA: .EQU $02        ; primeira pagina de dados
 FS_MAXFILES:.EQU 8          ; Máximo de arquivos
 FS_ENTRY_SZ:.EQU 32         ; Bytes por entrada do diretório
-FS_NAME_SZ: .EQU 8          ; Bytes do nome
+FS_NAME_SZ: .EQU 16         ; Bytes do nome
 FS_DATAPG:  .EQU 255        ; Bytes uteis por pagina
 
 FS_FLAG_FREE: .EQU $FF      ; Slot do diretório livre
-FS_FLAG_USED: .EQU $01      ; Slot do diretório usado
+FS_FLAG_USED: .EQU $01      ; Slot do diretório usado - File
+FS_FLAG_USED_FOLDER: .EQU $02      ; Slot do diretório usado - Folder
 
 ; Offsets na entrada
-FS_O_NAME:  .EQU 0          ; Nome (8 bytes)
-FS_O_FSTPG: .EQU 8          ; Primeira página de dados
-FS_O_SIZEH: .EQU 9          ; Tamanho hi
-FS_O_SIZEL: .EQU 10         ; Tamanho lo
-FS_O_RADRH: .EQU 11         ; Load RAM hi
-FS_O_RADRL: .EQU 12         ; Load RAM lo
-FS_O_FLAGS: .EQU 13         ; Flags ($FF=livre, $01=usado)
+FS_O_NAME:  .EQU 0          ; Nome (16 bytes)
+FS_O_FSTPG: .EQU 16         ; Primeira página de dados
+FS_O_SIZEH: .EQU 17         ; Tamanho hi
+FS_O_SIZEL: .EQU 18         ; Tamanho lo
+FS_O_RADRH: .EQU 19         ; Load RAM hi
+FS_O_RADRL: .EQU 20         ; Load RAM lo
+FS_O_FLAGS: .EQU 21         ; Flags ($FF=livre, $01=usado por arquivo, $02=usado por pasta)
+
+
+
+
+
+
+; **********************************************************************
+; **********************************************************************
+; FS_INFO - Espaco usado/livre da EEPROM
+;   Le bitmap, conta paginas, imprime barra e valores
+; **********************************************************************
+FS_INFO:
+    CALL CRLF
+    LD HL, str_info_hdr
+    CALL PUTS
+
+    ; Le 16 bytes do bitmap (bytes 1..16 da pagina 0)
+    LD DE, $0001
+    LD HL, PG_BUF
+    LD BC, 16
+    CALL I2C_MemRd
+    JP NZ, FS_ERR_I2C
+
+    ; Conta paginas livres (bits=1) → C
+    LD HL, PG_BUF
+    LD B, 16
+    LD C, 0
+FS_INF_CNT:
+    LD A, (HL)
+    INC HL
+    LD D, 8
+FS_INF_BIT:
+    RRCA
+    JR NC, FS_INF_NB
+    INC C
+FS_INF_NB:
+    DEC D
+    JR NZ, FS_INF_BIT
+    DJNZ FS_INF_CNT
+
+    ; C = pags livres (0..126)
+    ; paginas usadas = 126 - C → salva em E
+    LD A, 126
+    SUB C
+    LD E, A                 ; E = paginas usadas
+
+    ; === Linha 1: barra visual ===
+    ; Formato: "[##########..........] UUh/7Eh pags"
+    ; Barra de 19 chars: cada char = ~6.6 pags
+    ; chars_usados = E * 19 / 126
+    ;   = E / 6  (aproximacao boa o suficiente para barra)
+    LD A, E
+    LD B, 0                 ; B = chars usados
+FS_INF_DIV6:
+    CP 6
+    JR C, FS_INF_DIV6_DONE
+    SUB 6
+    INC B
+    JR FS_INF_DIV6
+FS_INF_DIV6_DONE:
+    ; B = chars usados (0..21, clamp a 20)
+    LD A, B
+    CP 21
+    JR C, FS_INF_CLAMP
+    LD B, 19
+FS_INF_CLAMP:
+
+    LD A, '['
+    RST $08
+
+    ; Imprime B x '#' (usado)
+    LD A, B
+    OR A
+    JR Z, FS_INF_NO_HASH
+    PUSH BC
+    LD B, A
+FS_INF_HASH:
+    LD A, '#'
+    RST $08
+    DJNZ FS_INF_HASH
+    POP BC
+
+FS_INF_NO_HASH:
+    ; Imprime (20-B) x '.' (livre)
+    LD A, 19
+    SUB B
+    JR Z, FS_INF_NO_DOT
+    LD B, A
+FS_INF_DOT:
+    LD A, '.'
+    RST $08
+    DJNZ FS_INF_DOT
+FS_INF_NO_DOT:
+
+    LD A, ']'
+    RST $08
+    LD A, ' '
+    RST $08
+
+    ; Imprime "UUh/7Eh pags"
+    LD A, E                 ; A = usadas
+    CALL HexOut
+    LD A, 'h'
+    RST $08
+    LD A, '/'
+    RST $08
+    LD A, $7E               ; 126
+    CALL HexOut
+    LD A, 'h'
+    RST $08
+    LD HL, str_inf_pags
+    CALL PUTS
+
+    ; === Linha 2: Usadas ===
+    LD HL, str_inf_used
+    CALL PUTS
+    LD A, E
+    CALL HexOut
+    LD A, 'h'
+    RST $08
+    LD HL, str_inf_pags_nl
+    CALL PUTS
+    CALL CRLF
+    LD A, ' '
+    RST $08
+
+    ; Bytes usados aprox: E * 255  (E = paginas usadas)
+    ; Salva C (paginas livres) em RAM antes do loop destruir C
+    LD A, C
+    LD (FS_INFOTMP), A      ; salva pags livres
+
+    LD HL, 0
+    LD A, E
+    OR A
+    JR Z, FS_INF_BYTES_DONE_U
+FS_INF_BYTES_USED:
+    LD BC, FS_DATAPG        ; C destruido aqui - mas ja salvamos
+    ADD HL, BC
+    DEC E
+    JR NZ, FS_INF_BYTES_USED
+FS_INF_BYTES_DONE_U:
+    LD A, H
+    CALL HexOut
+    LD A, L
+    CALL HexOut
+    LD A, 'h'
+    RST $08
+    LD HL, str_inf_bytes_nl
+    CALL PUTS
+
+    ; Recupera paginas livres
+    LD A, (FS_INFOTMP)
+    LD C, A                 ; C = paginas livres restaurado
+
+    ; === Linha 3: Livres ===
+    LD HL, str_inf_free
+    CALL PUTS
+    LD A, C
+    CALL HexOut
+    LD A, 'h'
+    RST $08
+    LD HL, str_inf_pags_nl
+    CALL PUTS
+    CALL CRLF
+    LD A, ' '
+    RST $08
+
+    ; Bytes livres aprox: C * 255
+    LD HL, 0
+    LD A, C
+    OR A
+    JR Z, FS_INF_BYTES_DONE_F
+    LD E, C
+FS_INF_BYTES_FREE:
+    LD BC, FS_DATAPG
+    ADD HL, BC
+    DEC E
+    JR NZ, FS_INF_BYTES_FREE
+FS_INF_BYTES_DONE_F:
+    LD A, H
+    CALL HexOut
+    LD A, L
+    CALL HexOut
+    LD A, 'h'
+    RST $08
+    LD HL, str_inf_bytes_nl
+    CALL PUTS
+    RET
 
 
 
@@ -27,12 +216,28 @@ FS_O_FLAGS: .EQU 13         ; Flags ($FF=livre, $01=usado)
 ; FS_DIR
 ; **********************************************************************
 FS_DIR:
+    CALL CRLF
+    LD A, '['
+    RST $08
+    LD B, FS_NAME_SZ + 1
+    LD HL, FS_DIR_NAME
+FS_S_DIR:
+    LD A, (HL)
+    CP 0
+    JP Z, FS_S_DIR_F
+    INC HL
+    RST $08
+    djnz FS_S_DIR
+FS_S_DIR_F:
+    LD A, ']'
+    RST $08
+
     LD A, 1
     CALL plotAlways
 
     CALL CRLF
-    LD HL, str_dir_hdr
-    CALL PUTS
+    ;LD HL, str_dir_hdr
+    ;CALL PUTS
     XOR A
     LD (FS_CUR), A
     LD B, FS_MAXFILES
@@ -42,10 +247,16 @@ FS_DIR_LOOP:
     CALL FS_RD_ENTRY
     JP NZ, FS_ERR_I2C_POP
     LD A, (FS_WRKBUF + FS_O_FLAGS)
-    CP FS_FLAG_USED
-    JR NZ, FS_DIR_SKIP
+    CP FS_FLAG_FREE
+    JR Z, FS_DIR_SKIP
     LD HL, FS_WRKBUF + FS_O_NAME
     LD B, FS_NAME_SZ
+    ; sinaliza pasta '+'
+    LD A, (FS_WRKBUF + FS_O_FLAGS)
+    CP FS_FLAG_USED
+    JR Z, FS_DIR_NM
+    LD A, '+'
+    RST $08
 FS_DIR_NM:
     LD A, (HL)
     OR A
@@ -60,22 +271,23 @@ FS_DIR_PAD:
     INC HL
     DJNZ FS_DIR_PAD
 FS_DIR_AFT:
-    LD A, ' '
-    RST $08
-    LD A, (FS_WRKBUF + FS_O_SIZEH)
-    CALL HexOut
-    LD A, (FS_WRKBUF + FS_O_SIZEL)
-    CALL HexOut
-    LD A, ' '
-    RST $08
-    LD A, (FS_WRKBUF + FS_O_RADRH)
-    CALL HexOut
-    LD A, (FS_WRKBUF + FS_O_RADRL)
-    CALL HexOut
-    LD A, ' '
-    RST $08
-    LD A, (FS_WRKBUF + FS_O_FSTPG)
-    CALL HexOut
+    ;LD A, ' '
+    ;RST $08
+    ;LD A, (FS_WRKBUF + FS_O_SIZEH)
+    ;CALL HexOut
+    ;LD A, (FS_WRKBUF + FS_O_SIZEL)
+    ;CALL HexOut
+    ;LD A, ' '
+    ;RST $08
+    ;LD A, (FS_WRKBUF + FS_O_RADRH)
+    ;CALL HexOut
+    ;LD A, (FS_WRKBUF + FS_O_RADRL)
+    ;CALL HexOut
+    ;LD A, ' '
+    ;RST $08
+    ;LD A, (FS_WRKBUF + FS_O_FSTPG)
+    ;CALL HexOut
+    CALL CRLF
     POP BC
     INC C
     JP FS_DIR_INC
@@ -92,10 +304,14 @@ FS_DIR_INC:
     
     LD A, 0
     call plotAlways
+    CALL CRLF
     LD HL, str_empty
     CALL PUTS
     RET
 FS_DIR_CNT:
+    PUSH AF
+    CALL CRLF
+    POP AF
     CALL HexOut
 
     LD A, 0
@@ -104,8 +320,51 @@ FS_DIR_CNT:
     CALL PUTS
     RET
 
+
 ; **********************************************************************
-; FS_LOAD_CMD
+; FS_CD  cd name (entra na pasta)
+;        cd ~ (volta para home)
+; **********************************************************************
+FS_CD:
+    CALL FS_COPY_NAME_FROM_BUFFER
+    JP C, FS_ABORT
+    LD A, (FS_NAMBUF)
+    CP '~' ; home
+    JR Z, FS_DO_CD_HOME
+
+    CALL CRLF
+    CALL FS_FIND_FOLDER_NAME
+    JP Z, FS_DO_CD
+    LD HL, str_notfound
+    CALL PUTS
+    RET
+
+FS_DO_CD:
+    LD A, (FS_WRKBUF + FS_O_FSTPG)
+    LD (FS_DIR_CUR), A
+
+    LD B, FS_NAME_SZ + 1
+    LD HL, FS_DIR_NAME
+    LD DE, FS_WRKBUF + FS_O_NAME
+    CALL M_C_DIR
+    CALL CRLF
+    RET
+
+FS_DO_CD_HOME:
+    LD A, $01
+    LD (FS_DIR_CUR), A
+
+    LD B, FS_NAME_SZ + 1
+    LD HL, FS_DIR_NAME
+    LD DE, FOLDER_HOME
+    CALL M_C_DIR
+    RET
+
+
+
+
+; **********************************************************************
+; FS_LOAD_CMD name
 ; **********************************************************************
 FS_LOAD_CMD:
     CALL FS_COPY_NAME_FROM_BUFFER
@@ -203,6 +462,157 @@ FS_DL_RD:
 FS_DL_DONE:
     XOR A
     RET
+
+ 
+
+; **********************************************************************
+; FS_MKDIR
+; 
+; mkdir name
+; **********************************************************************
+FS_MKDIR:
+    CALL FS_COPY_NAME_FROM_BUFFER
+    JP C, FS_ABORT
+    
+    CALL CRLF
+
+    ; Nome ja existe?
+    CALL FS_FIND_NAME
+    JP Z, FS_EXISTS_F
+    CALL FS_FIND_FREE
+    JP NZ, FS_ERR_FULL
+    JP FS_MKD_DO
+
+FS_EXISTS_F:
+    CALL FS_ERR_FOLDER_EXIST
+    RET
+
+FS_MKD_DO:
+    LD A, (FS_CUR)
+    LD (FS_SLOTBK), A
+
+    ; Zera e monta FS_WRKBUF
+    LD HL, FS_WRKBUF
+    LD B, FS_ENTRY_SZ
+    XOR A
+FS_MKD_CLR:
+    LD (HL), A
+    INC HL
+    DJNZ FS_MKD_CLR
+    ; Monta nome FS_NAMBUF -> FS_WRKBUF
+    LD HL, FS_NAMBUF
+    LD IX, FS_WRKBUF
+    LD B, FS_NAME_SZ
+FS_MKD_NM:
+    LD A, (HL)
+    LD (IX+0), A
+    INC IX
+    INC HL
+    DJNZ FS_MKD_NM
+
+    LD HL, $00FF ; Size 256 (Tamanho da pasta sempre eh 256)
+    LD A, H
+    LD (FS_WRKBUF + FS_O_SIZEH), A
+    LD A, L
+    LD (FS_WRKBUF + FS_O_SIZEL), A
+    LD HL, $0000 ; Ram nao precisa entao 0000
+    LD A, H
+    LD (FS_WRKBUF + FS_O_RADRH), A
+    LD A, L
+    LD (FS_WRKBUF + FS_O_RADRL), A
+    LD A, FS_FLAG_USED_FOLDER   ; Flag de uso para pasta
+    LD (FS_WRKBUF + FS_O_FLAGS), A
+
+    ; Aloca primeira pagina
+    CALL FS_ALLOC_PG
+    JP Z, FS_ERR_NOSPACE
+    LD (FS_WRKBUF + FS_O_FSTPG), A
+    LD (FS_CURPG), A
+
+    LD L, $FF ; fill byte
+    LD BC, $00FF ; size bytes
+    LD A, (FS_CURPG)
+    LD E, 0
+    LD D, A
+    CALL I2C_MemFill
+    JP NZ, FS_ERR_I2C
+FS_MKD_DONE:
+    LD A, (FS_SLOTBK)
+    LD (FS_CUR), A
+    CALL FS_WR_ENTRY
+    JP NZ, FS_ERR_I2C
+    LD HL, str_created_folder
+    CALL PUTS
+    RET
+
+
+; **********************************************************************
+; FS_RMDIR
+; 
+; rmdir name 
+;   OBS: Só deixa remover diretorio vazio
+; **********************************************************************
+FS_RMDIR:
+    CALL FS_COPY_NAME_FROM_BUFFER
+    JP C, FS_ABORT
+    CALL CRLF
+    CALL FS_FIND_FOLDER_NAME
+    JP Z, FS_DO_RMDIR
+    LD HL, str_notfound
+    CALL PUTS
+    RET
+
+; (FS_CUR=idx, FS_WRKBUF=entrada)
+FS_DO_RMDIR:
+    ; pega a pagina da pasta
+    LD A, (FS_WRKBUF + FS_O_FSTPG)
+
+    ; le a pasta (256 bytes) para o buffer 
+    LD D, A     ; from i2c addrr
+    LD E, $00
+    LD HL, PG_BUF ; to buffer
+    LD BC, $ff ; size
+    CALL I2C_MemRd
+    JP NZ, FS_ERR_I2C
+
+    ; le entradas e verifica vazias
+    XOR A
+    LD (FS_CUR), A
+    LD B, FS_MAXFILES
+    LD IX, PG_BUF 
+    LD DE, $0000
+FS_RMDIR_LP:
+    LD A, (FS_CUR)
+    RLCA
+    RLCA
+    RLCA
+    RLCA
+    RLCA
+
+    LD IX, PG_BUF
+
+    LD E, A
+    ADD IX, DE
+
+    LD A, (IX + FS_O_FLAGS)
+
+    CP FS_FLAG_FREE
+    JP NZ, NOT_EMPTY
+    
+    LD A, (FS_CUR)
+    INC A
+    LD (FS_CUR), A
+
+    DJNZ FS_RMDIR_LP
+    CALL FS_FIND_FOLDER_NAME
+    JP FS_ER_FOUND
+
+NOT_EMPTY:
+    LD HL, str_not_empty_folder
+    CALL PUTS
+    RET
+
+
 
 
 ; **********************************************************************
@@ -453,8 +863,17 @@ FS_FMT_3:
     JP NZ, FS_ERR_I2C
     LD HL, str_ok
     CALL PUTS
+
+    CALL FS_DO_CD_HOME ; volta para home
     RET
 
+
+CHECK_DISK_FORMAT:
+    CALL FS_CHK_SIG
+    RET Z
+    LD HL, str_notfmt
+    CALL PUTS
+    RET
 
 ; **********************************************************************
 ; FS_CHK_SIG - Z=formatada NZ=nao
@@ -541,7 +960,8 @@ FS_RD_ENTRY:
     RLCA
     RLCA                    ; A = FS_CUR * 32
     LD E, A
-    LD D, $01
+    LD A, (FS_DIR_CUR)
+    LD D, A ; $01
     LD HL, FS_WRKBUF
     LD BC, FS_ENTRY_SZ
     CALL I2C_MemRd
@@ -564,7 +984,8 @@ FS_WR_ENTRY:
     RLCA
     RLCA
     LD E, A
-    LD D, $01
+    LD A, (FS_DIR_CUR)
+    LD D, A ; $01
     LD HL, FS_WRKBUF
     LD BC, FS_ENTRY_SZ
     CALL I2C_MemWr
@@ -1029,6 +1450,57 @@ FS_FN_ERR:
     RET
 
 
+
+
+; FS_FIND_FOLDER_NAME: Busca FS_NAMBUF no diretorio
+;   On exit: Z=encontrado (FS_CUR=idx, FS_WRKBUF=entrada)
+;            NZ=nao encontrado
+FS_FIND_FOLDER_NAME:
+    XOR A
+    LD (FS_CUR), A
+    LD B, FS_MAXFILES
+FS_FFN_LP:
+    PUSH BC
+    CALL FS_RD_ENTRY
+    JP NZ, FS_FFN_ERR
+    LD A, (FS_WRKBUF + FS_O_FLAGS)
+    CP FS_FLAG_USED_FOLDER
+    JR NZ, FS_FFN_NXT
+    LD HL, FS_NAMBUF
+    LD DE, FS_WRKBUF + FS_O_NAME
+    LD C, FS_NAME_SZ
+FS_FFN_CMP:
+    LD   A, (HL)
+    LD   B, A
+    LD   A, (DE)
+    CP   B
+    JP  NZ, FS_FFN_NXT
+    INC HL
+    INC DE
+    DEC C
+    JR NZ, FS_FFN_CMP
+    POP BC
+    XOR A
+    RET
+FS_FFN_NXT:
+    LD A, (FS_CUR)
+    INC A
+    LD (FS_CUR), A
+    POP BC
+    DJNZ FS_FFN_LP
+    LD A, 1
+    OR A
+    RET
+FS_FFN_ERR:
+    POP BC
+    LD A, ERR_TOUT
+    OR A
+    RET
+
+
+
+
+
 ; **********************************************************************
 ; Handlers de erro comuns
 ; **********************************************************************
@@ -1053,7 +1525,10 @@ FS_ABORT:
     LD HL, str_abort
     CALL PUTS
     RET
-
+FS_ERR_FOLDER_EXIST:
+    LD HL, str_dir_hasFolder
+    CALL PUTS
+    RET
 
 ; **********************************************************************
 ; STRINGS
@@ -1063,7 +1538,7 @@ str_empty:
     .DB CR, 0
 
 str_nfiles:
-    .TEXT " arquivo(s)"
+    .TEXT " item(s)"
     .DB CR, 0
 
 str_i2cerr:
@@ -1123,3 +1598,35 @@ str_notfmt:
 str_dir_hdr:
     .TEXT "NAME-SIZE-LOAD-1aPAG"
     .DB CR, 0
+
+str_dir_hasFolder:
+    .TEXT "Pasta ja existe!"
+    .DB CR, 0
+
+str_created_folder:
+    .TEXT "Pasta criada"
+    .DB CR, 0
+
+str_not_empty_folder:
+    .TEXT "Pasta nao esta vazia!"
+    .DB CR, 0
+
+
+str_info_hdr:
+    .TEXT "=== EEPROM Space ==="
+    .DB CR, LF, 0
+str_inf_pags:
+    .TEXT " pags"
+    .DB CR, LF, 0
+str_inf_used:
+    .TEXT "Usado: "
+    .DB 0
+str_inf_free:
+    .TEXT "Livre: "
+    .DB 0
+str_inf_pags_nl:
+    .TEXT " pags."
+    .DB 0
+str_inf_bytes_nl:
+    .TEXT " bytes aprox"
+    .DB CR, LF, 0

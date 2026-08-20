@@ -133,8 +133,19 @@ CMD_TABLE:
             DW   CHANGE_DRIVE_Z
             DB   "I2C", NUL
             DW   I2C_CMD
+            DB   "MKDIR", NUL
+            DW   FS_MKDIR
+            DB   "RMDIR", NUL
+            DW   FS_RMDIR
+            DB   "CD", NUL
+            DW   FS_CD
+            DB   "FDISK", NUL
+            DW   FS_INFO
 
             DB   NUL                 ; fim da tabela
+
+
+
 
 
 ; ============================================================
@@ -143,6 +154,7 @@ CMD_TABLE:
 CHANGE_DRIVE_A:
     LD A, EEDRIVE_A
     LD (I2CA_BLOCK), A
+    CALL CHECK_DISK_FORMAT
     RET
 
 ; ============================================================
@@ -151,6 +163,7 @@ CHANGE_DRIVE_A:
 CHANGE_DRIVE_B:
     LD A, EEDRIVE_B
     LD (I2CA_BLOCK), A
+    CALL CHECK_DISK_FORMAT
     RET
 
 ; ============================================================
@@ -159,6 +172,7 @@ CHANGE_DRIVE_B:
 CHANGE_DRIVE_C:
     LD A, EEDRIVE_C
     LD (I2CA_BLOCK), A
+    CALL CHECK_DISK_FORMAT
     RET
 
 ; ============================================================
@@ -167,6 +181,7 @@ CHANGE_DRIVE_C:
 CHANGE_DRIVE_D:
     LD A, EEDRIVE_D
     LD (I2CA_BLOCK), A
+    CALL CHECK_DISK_FORMAT
     RET
 
 ; ============================================================
@@ -175,6 +190,7 @@ CHANGE_DRIVE_D:
 CHANGE_DRIVE_E:
     LD A, EEDRIVE_E
     LD (I2CA_BLOCK), A
+    CALL CHECK_DISK_FORMAT
     RET
 
 ; ============================================================
@@ -183,6 +199,7 @@ CHANGE_DRIVE_E:
 CHANGE_DRIVE_F:
     LD A, EEDRIVE_F
     LD (I2CA_BLOCK), A
+    CALL CHECK_DISK_FORMAT
     RET
 
 ; ============================================================
@@ -191,6 +208,7 @@ CHANGE_DRIVE_F:
 CHANGE_DRIVE_G:
     LD A, EEDRIVE_G
     LD (I2CA_BLOCK), A
+    CALL CHECK_DISK_FORMAT
     RET
 
 
@@ -200,6 +218,7 @@ CHANGE_DRIVE_G:
 CHANGE_DRIVE_Z:
     LD A, EEDRIVE_Z
     LD (I2CA_BLOCK), A
+    CALL CHECK_DISK_FORMAT
     RET
 
 
@@ -533,6 +552,21 @@ HELP_CMD:
             CALL sendStringToLCD
 
             LD   DE, MSG_HELP_L21
+            CALL sendStringToLCD
+
+            LD   DE, MSG_HELP_L22
+            CALL sendStringToLCD
+
+            LD   DE, MSG_HELP_L23
+            CALL sendStringToLCD
+
+            LD   DE, MSG_HELP_L24
+            CALL sendStringToLCD
+
+            LD   DE, MSG_HELP_L25
+            CALL sendStringToLCD
+
+            LD   DE, MSG_HELP_L26
             CALL sendStringToLCD
             RET
 
@@ -998,3 +1032,8 @@ MSG_HELP_L18:   DB   " LOAD - Load file", CR
 MSG_HELP_L19:   DB   " BASIC - Cold basic", CR
 MSG_HELP_L20:   DB   " WBASIC - Warm basic", CR
 MSG_HELP_L21:   DB   " I2C aa [Wdd][Rnn]..", CR
+MSG_HELP_L22:   DB   " MKDIR folderName", CR
+MSG_HELP_L23:   DB   " RMDIR folderName", CR
+MSG_HELP_L24:   DB   " CD folderName", CR
+MSG_HELP_L25:   DB   " CD ~  Back to Home", CR
+MSG_HELP_L26:   DB   " FDISK InfoDsk I2C", CR

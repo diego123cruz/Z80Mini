@@ -335,10 +335,16 @@ INICIO:
     LD BC, $0606
     LD (MEN_CURSR), BC   
 
-    ;CALL FS_CHK_SIG
-    ;JP Z, INICIO1
-    ;LD HL, str_notfmt
-    ;CALL PUTS
+
+    LD A, $01
+    LD (FS_DIR_CUR), A ; default folder - HOME
+
+    CALL M_C_DIR_C
+
+    CALL FS_CHK_SIG
+    JP Z, INICIO1
+    LD HL, str_notfmt
+    CALL PUTS
 INICIO1:
 
     LD SP, SYSTEM_SP
@@ -377,6 +383,24 @@ MAIN_LOOP:
     CALL PARSE_CMD           ; Interpreta e executa
 
     JP      MAIN_LOOP
+
+
+M_C_DIR_C:
+    LD B, FS_NAME_SZ + 1
+    LD HL, FS_DIR_NAME
+    LD DE, FOLDER_HOME
+M_C_DIR:
+    LD A, (DE)
+    CP 0
+    JR Z, M_C_DIR_F
+    LD (HL), A
+    INC HL
+    INC DE
+    djnz M_C_DIR
+M_C_DIR_F:
+    XOR A
+    LD (HL), A
+    RET
 
 
 showCurrentDriver:
@@ -512,8 +536,9 @@ LoopBC:    DEC  BC             ;[6]     [4]
 
 
 WELLCOME: .db CR, LF, "Z80 Mini Iniciado", CR, LF, 00H
-WELLCOME_LCD: .db "Z80 Mini - Monitor v1", CR, 00H
+WELLCOME_LCD: .db "Z80 Mini - Mon BIOS", CR, 00H
 
+FOLDER_HOME: .db "HOME", 00H
 
 #include "MSBASIC.asm"
 
@@ -580,7 +605,7 @@ I2C_DD              .DB    $00   ; 1 byte - data
 ; FS
 FS_CUR:     .DB $00         ; 1b: entrada corrente do dir
 FS_WRKBUF:  .DS $20         ; 32b: buffer entrada dir
-FS_NAMBUF:  .DS $0A         ; 9b: nome digitado
+FS_NAMBUF:  .DS $0F         ; 9b: nome digitado
 FS_TMP1:    .DB $00         ; 1b: uso geral
 FS_TMPSZ:   .DW $0000       ; 2b: tamanho restante
 FS_TMPRAM:  .DW $0000       ; 2b: ponteiro RAM atual
@@ -595,3 +620,6 @@ PG_BUF:     .DS $FF
 DRAW_PIXEL_COLLISION: .DB $00 ; 0 - reset, 1 - set
 I2C_ADDR7:  DS 1
 I2C_STATE:  DS 1   ; 0=fechado, 1=aberto p/ write, 2=aberto p/ read
+
+FS_DIR_CUR:     .DB     $01 ; pasta atual 01 - Home (Fixo)
+FS_DIR_NAME:    .DS     $11 ; Nome da pasta atual
