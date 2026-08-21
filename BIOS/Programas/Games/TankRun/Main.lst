@@ -1,6 +1,6 @@
               	; --------------------------------------
               	; zasm: assemble "Main.asm"
-              	; date: 2026-06-11 23:24:48
+              	; date: 2026-08-20 22:17:12
               	; --------------------------------------
 
 
@@ -47,7 +47,7 @@
 016F:         	setBufNoClear       equ     0x016F  ;   Configura para não limpar o buffer após a saída para o LCD.
 0172:         	clearPixel          equ     0x0172  ;   Limpa um pixel X Y.  Input B = column/X (0-127), C = row/Y (0-63)    Destroy HL
 0175:         	flipPixel           equ     0x0175  ;   Inverte um pixel X Y.  Input B = column/X (0-127), C = row/Y (0-63)    Destroy HL
-0178:         	drawGraphic         equ     0x0178  ;   Desenha no buffer. Entrada: A = número ASCII ou se A=0 Então  HL = Endereço dos dados gráficos. B = largura do gráfico em pixels (1-128). C = altura do gráfico em pixels (1-64). Destroy: ALL
+0178:         	drawGraphic         equ     0x0178  ;   Desenha no buffer. Entrada: A = número ASCII ou se A=0 Então  HL = Endereço dos dados gráficos. B = (MULTIPLO DE 8) largura do gráfico em pixels (1-128). C = altura do gráfico em pixels (1-64). Destroy: ALL
 017B:         	invGraphic          equ     0x017B  ;   Altera a flag de desenho inverso. (não inverte grafico atual) Destroy A
 017E:         	initTerminal        equ     0x017E  ;   Inicializa o Terminal GLCD. Cursor 0,0 e limpa buffer.
 0181:         	sendCharToLCD       equ     0x0181  ;   Envia ou manipula caracteres ASCII para a tela GLCD (Terminal). Entrada: A = caractere ASCII a ser enviado para a tela GLCD. A = somente cursor desenhado.
@@ -60,10 +60,35 @@
 0196:         	autoLF              equ     0x0196  ;   Avanço de linha automático quando o cursor atinge o final da linha (Terminal). Entrada: A = 0, Avanço de linha automático; A = diferente de zero, Sem avanço de linha automático. Padrao LIGADO.
 0199:         	underline           equ     0x0199  ;   Exibir sublinhado no caractere (Terminal). O estado inicial é sem sublinhado. Chamar esta rotina irá ALTERAR/DESLIGAR o sinalizador de sublinhado.
 019C:         	plotAlways          equ     0x019C  ;   Quando sendCharToLCD é chamado, Atualiza GLCD ou não. Se Desativado plotToLCD deve ser chamado atualizar o GLCD. Entrada: A=0, Plotar sempre; A>0, Não plotar. O padrão é Plotar sempre.
-0294:         	resetCollisionPixel equ     0x0294  ;   Limpa flag de colisao
-0299:         	checkCollisionPixel equ     0x0299  ;   Check se um pixel ja estava ligado quando tenta ligar. JP Z, SEM_COLISAO. JP NZ, COLISAO.
+019F:         	resetCollisionPixel equ     0x019F  ;   Limpa flag de colisao
+01A2:         	checkCollisionPixel equ     0x01A2  ;   Check se um pixel ja estava ligado quando tenta ligar. JP Z, SEM_COLISAO. JP NZ, COLISAO.
+01A5:         	I2C_OpenRead        equ     0x01A5  ;   I2C Open Read  (On entry: A = Device address)
+01A8:         	I2C_OpenWrite       equ     0x01A8  ;   I2C Open Write (On entry: A = Device address)
               	
               	
+              	
+              	; -----------------------------------------------------------------------------
+              	; PORTS
+              	; -----------------------------------------------------------------------------
+0070:         	GLCD_INST           .EQU    $70
+0071:         	GLCD_DATA           .EQU    $71
+              	
+0040:         	KEYBOARD		    .EQU	$40
+              	
+              	; ============================================================
+              	; KEYMAPS
+              	; ============================================================
+              	
+              	;	$FF - Capsloock
+              	;	$FE - Shift left
+              	;	$FD - Ctrl left
+              	;	$FC - Windows
+              	;	$FB - Alt left
+              	;	$FA - Alt Gr    (Load intel hex - Serial A)
+              	;	$F9 - LUZ   (CALL 8000H)
+              	;	$F8 - Shift Right   (Display Scroll UP)
+              	;	$F7 - Ctrl Right    (Display Scroll DOWN)
+              	;	$F6 - Fn
               	
               	; -------- Constantes gerais --------
 000D:         	CR:       EQU   0DH
@@ -155,7 +180,7 @@
               	    
               	
               	    ; DRAW PLAYER
-8067: CD9402  	    call resetCollisionPixel
+8067: CD9F01  	    call resetCollisionPixel
               	    ; set cursor
 806A: 3A0482  	    LD A, (player_x)
 806D: 47      	    ld b, a
@@ -169,7 +194,7 @@
 807A: 212D82  	    LD HL, player
 807D: CD7801  	    call drawGraphic
               	    
-8080: CD9902  	    CALL checkCollisionPixel
+8080: CDA201  	    CALL checkCollisionPixel
 8083: C4C680  	    CALL NZ, check_collision_object
               	
               	
@@ -495,22 +520,27 @@
 
 ; +++ global symbols +++
 
-BKS               = $0008 =     8          Z80MiniAPI.asm:64 (unused)
-CR                = $000D =    13          Z80MiniAPI.asm:62
-DEL               = $007F =   127          Z80MiniAPI.asm:65 (unused)
-ESC               = $001B =    27          Z80MiniAPI.asm:66
-FF                = $000C =    12          Z80MiniAPI.asm:69 (unused)
+BKS               = $0008 =     8          Z80MiniAPI.asm:89 (unused)
+CR                = $000D =    13          Z80MiniAPI.asm:87
+DEL               = $007F =   127          Z80MiniAPI.asm:90 (unused)
+ESC               = $001B =    27          Z80MiniAPI.asm:91
+FF                = $000C =    12          Z80MiniAPI.asm:94 (unused)
+GLCD_DATA         = $0071 =   113          Z80MiniAPI.asm:67 (unused)
+GLCD_INST         = $0070 =   112          Z80MiniAPI.asm:66 (unused)
 I2C_Close         = $0109 =   265          Z80MiniAPI.asm:5 (unused)
 I2C_Open          = $0106 =   262          Z80MiniAPI.asm:4 (unused)
+I2C_OpenRead      = $01A5 =   421          Z80MiniAPI.asm:58 (unused)
+I2C_OpenWrite     = $01A8 =   424          Z80MiniAPI.asm:59 (unused)
 I2C_Read          = $010C =   268          Z80MiniAPI.asm:6 (unused)
 I2C_Write         = $010F =   271          Z80MiniAPI.asm:7 (unused)
-LF                = $000A =    10          Z80MiniAPI.asm:63 (unused)
-NUL               = $0000 =     0          Z80MiniAPI.asm:68 (unused)
-SIOA_C            = $0002 =     2          Z80MiniAPI.asm:75 (unused)
-SIOA_D            = $0000 =     0          Z80MiniAPI.asm:74 (unused)
-SIOB_C            = $0003 =     3          Z80MiniAPI.asm:77 (unused)
-SIOB_D            = $0001 =     1          Z80MiniAPI.asm:76 (unused)
-SPACE             = $0020 =    32          Z80MiniAPI.asm:67 (unused)
+KEYBOARD          = $0040 =    64          Z80MiniAPI.asm:69 (unused)
+LF                = $000A =    10          Z80MiniAPI.asm:88 (unused)
+NUL               = $0000 =     0          Z80MiniAPI.asm:93 (unused)
+SIOA_C            = $0002 =     2          Z80MiniAPI.asm:100 (unused)
+SIOA_D            = $0000 =     0          Z80MiniAPI.asm:99 (unused)
+SIOB_C            = $0003 =     3          Z80MiniAPI.asm:102 (unused)
+SIOB_D            = $0001 =     1          Z80MiniAPI.asm:101 (unused)
+SPACE             = $0020 =    32          Z80MiniAPI.asm:92 (unused)
 TRY_DOWN          = $81A8 = 33192          Main.asm:292
 TRY_LEFT          = $81B3 = 33203          Main.asm:300
 TRY_RIGHT         = $81BE = 33214          Main.asm:308
@@ -525,7 +555,7 @@ box2_x            = $8202 = 33282          Main.asm:385
 box2_y            = $8203 = 33283          Main.asm:386
 box_x             = $8200 = 33280          Main.asm:382
 box_y             = $8201 = 33281          Main.asm:383
-checkCollisionPixel = $0299 =   665          Z80MiniAPI.asm:57
+checkCollisionPixel = $01A2 =   418          Z80MiniAPI.asm:57
 check_collision_object = $80C6 = 32966          Main.asm:146
 check_collision_object_end = $8102 = 33026          Main.asm:182
 clearGBUF         = $013C =   316          Z80MiniAPI.asm:23
@@ -577,7 +607,7 @@ prng16            = $81DF = 33247          Main.asm:341
 randomHL          = $81C9 = 33225          Main.asm:323
 res_box           = $8150 = 33104          Main.asm:231
 res_box2          = $8178 = 33144          Main.asm:256
-resetCollisionPixel = $0294 =   660          Z80MiniAPI.asm:56
+resetCollisionPixel = $019F =   415          Z80MiniAPI.asm:56
 seed1             = $81F9 = 33273          Main.asm:374
 seed2             = $81FB = 33275          Main.asm:375
 sendCharToLCD     = $0181 =   385          Z80MiniAPI.asm:46 (unused)
@@ -606,5 +636,5 @@ update_box        = $8130 = 33072          Main.asm:213
 update_box2       = $8158 = 33112          Main.asm:238
 
 
-total time: 0.0179 sec.
+total time: 0.1550 sec.
 no errors

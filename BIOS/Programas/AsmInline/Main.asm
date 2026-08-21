@@ -1,10 +1,10 @@
-;#include "../Z80MiniAPI.asm"
+#include "../Z80MiniAPI.asm"
 
 
 ; -------- Constantes gerais --------
 CR          EQU  0DH
 LF          EQU  0AH
-BkS          EQU  08H
+BkS         EQU  08H
 DEL         EQU  7FH
 ESC         EQU  1BH
 SPACE       EQU  20H
@@ -35,16 +35,7 @@ NUL         EQU  00H
 ; (ambiente sem zasm) - revise a montagem antes de gravar na EEPROM.
 ; ============================================================
 
-        ORG     8000h
-
-; ---- I/O DO MONITOR (AJUSTE AQUI) ----
-CONIN	EQU		$0319
-CRLF	EQU		$0447
-
-; PUTCHAR: imprime o caractere em A
-PUTCHAR EQU     $042B
-; PUTSTR: imprime string terminada em 0 apontada por HL
-PUTSTR  EQU     $0437
+	ORG     8000h
 
 LINEMAX EQU     40              ; tamanho maximo de uma linha digitada
 
@@ -110,10 +101,49 @@ ASMDONE:
         RET
         
         
+CRLF:
+	LD   A, CR
+	CALL PUTCHAR
+	RET   
         
-        
-        
-        
+CONIN:
+	PUSH BC
+	PUSH DE
+	PUSH HL
+	CALL keyboardWaitA
+	POP HL
+	POP DE
+	POP BC
+	RET
+
+
+PUTCHAR:
+CONOUT:
+	PUSH AF
+	PUSH BC
+	PUSH DE
+	PUSH HL
+	CALL sendCharToLCD
+	POP HL
+	POP DE
+	POP BC
+	POP AF
+	RET
+
+
+PUTSTR:
+	PUSH AF
+	PUSH BC
+	PUSH DE
+	PUSH HL
+	LD DE, HL
+	LD A, NUL
+	CALL sendStringToLCD
+	POP HL
+	POP DE
+	POP BC
+	POP AF
+	RET
 
 
 ; GETLINE: le uma linha ate CR em (DE), tamanho max B, retorna

@@ -97,8 +97,8 @@
 ;       plotAlways          equ     0x019C  ;   Quando sendCharToLCD é chamado, Atualiza GLCD ou não. Se Desativado plotToLCD deve ser chamado atualizar o GLCD. Entrada: A=0, Plotar sempre; A>0, Não plotar. O padrão é Plotar sempre.
 ;       resetCollisionPixel equ     0x0294  ;   Limpa flag de colisao
 ;       checkCollisionPixel equ     0x0299  ;   Check se um pixel ja estava ligado quando tenta ligar. JP Z, SEM_COLISAO. JP NZ, COLISAO.
-;       I2C_OpenRead        equ     0x1929  ;   I2C Open Read  (On entry: A = Device address)
-;       I2C_OpenWrite       equ     0x192E  ;   I2C Open Write (On entry: A = Device address)
+;       I2C_OpenRead        equ     0x01A5  ;   I2C Open Read  (On entry: A = Device address)
+;       I2C_OpenWrite       equ     0x01A8  ;   I2C Open Write (On entry: A = Device address)
 
 ; -----------------------------------------------------------------------------
 ; H_Delay CONFIG
@@ -248,6 +248,8 @@ RST18   JP CHKKEY
     JP plotAlways
     JP resetCollisionPixel
     JP checkCollisionPixel
+    JP I2C_OpenRead
+    JP I2C_OpenWrite
 
 
 SET_INT38:
