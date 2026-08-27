@@ -535,6 +535,15 @@ FS_MKD_NM:
     LD E, 0
     LD D, A
     CALL I2C_MemFill
+
+    ; fix del pasta vazia quando nao criou nenhum arquivo
+    LD L, $00 ; fill byte - zera primeiro byte do nome
+    LD BC, $0001 ; size bytes
+    LD A, (FS_CURPG)
+    LD E, 0
+    LD D, A
+    CALL I2C_MemFill
+
     JP NZ, FS_ERR_I2C
 FS_MKD_DONE:
     LD A, (FS_SLOTBK)

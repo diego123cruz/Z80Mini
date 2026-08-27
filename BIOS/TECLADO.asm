@@ -215,6 +215,21 @@ SCAN_COL:
     IN      A, (KEYBOARD)       ; Lê linhas
     CPL                         ; Pull-up: inverte (pressionado = 1)
     
+    ; LED CAPSLOCK
+    PUSH AF
+    LD A, (MEN_CAPSL)
+    CP 0 ; capslock 0=ON
+    JR NZ, SCAN_COLSHIFT
+    LD A, $F0
+    OUT     (KEYBOARD), A
+    NOP
+    NOP
+SCAN_COLSHIFT:
+    XOR A
+    OUT     (KEYBOARD), A
+    POP AF
+    ; LED CAPSLOCK FIM
+
     ; SHIFT
     PUSH AF
     LD A, D

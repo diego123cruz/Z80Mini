@@ -89,7 +89,11 @@ CMD_TABLE:
             DW   IN_CMD
             DB   "JUMP",    NUL
             DW   GO_CMD
+            DB   "G",    NUL
+            DW   GO_CMD
             DB   "CALL",    NUL
+            DW   CALL_CMD
+            DB   "C",    NUL
             DW   CALL_CMD
             DB   "H",    NUL
             DW   HELP_CMD
@@ -1018,8 +1022,8 @@ MSG_HELP_L4:    DB   " WRITE xxxx", CR
 MSG_HELP_L5:    DB   " EDIT xxxx", CR
 MSG_HELP_L6:    DB   " OUT pp dd", CR
 MSG_HELP_L7:    DB   " IN  pp", CR
-MSG_HELP_L8:    DB   " JUMP xxxx", CR
-MSG_HELP_L9:    DB   " CALL xxxx", CR
+MSG_HELP_L8:    DB   " G/JUMP xxxx", CR
+MSG_HELP_L9:    DB   " C/CALL xxxx", CR
 MSG_HELP_L10:   DB   " . (no EDIT)", CR
 MSG_HELP_L11:   DB   " IHEX - Load Serial", CR
 MSG_HELP_L12:   DB   " I2CLIST - List Devs", CR
