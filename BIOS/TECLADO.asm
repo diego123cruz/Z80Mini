@@ -27,6 +27,11 @@ GRET:
 	RET
 
 
+
+LCD_SCROLL_CONIN:
+    CALL PUTCHAR
+    JP CONIN_K
+
 ;   CONIN: Lê um teclado → A
 ;       On exit: A = KEY
 ;       BC DE HL preserved
@@ -35,7 +40,18 @@ CONIN:
     PUSH BC
     PUSH DE
     PUSH HL
+CONIN_K:
     CALL readKeyboarWaitPressA
+    CP   $F8    ; ignora scroll up - GLCD
+    JR   Z, LCD_SCROLL_CONIN
+    CP   $F7    ; ignora scroll down - GLCD
+    JR   Z, LCD_SCROLL_CONIN
+    CP   LF
+    JR   Z, CONIN_K    ; Ignora LF
+    CP   ESC
+    JR   Z, CONIN_K    ; Ignora
+    CP   $FF ;capslock Ignora
+    JP   Z, CONIN_K
     POP HL
     POP DE
     POP BC
@@ -119,14 +135,10 @@ CAPSLOCK:
     JP Z, CAPSLOCK_OFF
     XOR A
     LD (MEN_CAPSL), A
-    LD BC, $0603
-    LD (MEN_CURSR), BC
     JP CAPSLOCK_OK
 CAPSLOCK_OFF:
     LD A, 1
     LD (MEN_CAPSL), A
-    LD BC, $0606
-    LD (MEN_CURSR), BC
 CAPSLOCK_OK:
     LD DE, $0064 ; 100ms
     CALL H_Delay

@@ -334,9 +334,6 @@ INICIO:
 
     LD A, 1 ;capslock OFF
     LD (MEN_CAPSL), A
-    LD BC, $0606
-    LD (MEN_CURSR), BC   
-
 
     LD A, $01
     LD (FS_DIR_CUR), A ; default folder - HOME
@@ -585,7 +582,6 @@ GETCH:  DW  0000H       ; Serial
 MEN_SHIFT: DB 00H
 MEN_CAPSL: DB 00H
 KEY_PRESS: DB 00H
-MEN_CURSR: DW 0606H
 
 ; COMANDOS
 LINEBUF:    DS 80          ; Buffer de linha de comando

@@ -4419,14 +4419,12 @@ EESAVE:
 
 diego:
         LD a, 1
-        OUT($10),A
-        JP PRNTOK
+        OUT($C0),A
+        RET
 
 cruz:
         CALL GETINT
-        LD A, E
-        OUT($10), A 
+        OUT($C0), A 
         RET
-        JP PRNTOK
 
 ;.end
