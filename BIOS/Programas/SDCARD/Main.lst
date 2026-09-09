@@ -1,0 +1,854 @@
+              	; --------------------------------------
+              	; zasm: assemble "Main.asm"
+              	; date: 2026-08-24 01:05:24
+              	; --------------------------------------
+
+
+              	#include "../Z80MiniAPI.asm"
+              	;   API Z80Mini:
+0100:         	delay500ms          equ     0x0100  ;   Delay 500ms
+0103:         	delay               equ     0x0103  ;   On entry: DE = Delay time in milliseconds
+0106:         	I2C_Open            equ     0x0106  ;   On entry: A = Device address (bit zero is read flag)
+0109:         	I2C_Close           equ     0x0109  ;   Close
+010C:         	I2C_Read            equ     0x010C  ;   On exit: If successful A = data byte and Z flagged
+010F:         	I2C_Write           equ     0x010F  ;   On entry: A = Data byte, or Address byte (bit zero is read flag)
+0112:         	keyboardIsEsc       equ     0x0112  ;   Verifica se ESC foi precionada. On exit: If press A = CTRLC and NZ flagged
+0115:         	keyboardWaitA       equ     0x0115  ;   Aguarda tecla, letra em A. (BC DE HL preserved)
+0118:         	keyboardA           equ     0x0118  ;   Lê teclado, Se tecla Carry=1. Letra em A. (BC DE HL preserved)
+011B:         	setDefaultSerialA   equ     0x011B  ;   Seta terminal padrao porta A, Quando reinicia volta para A.
+011E:         	setDefaultSerialB   equ     0x011E  ;   Seta terminal padrao porta B (P2), Quando reinicia volta para A.
+0121:         	serialPrintA        equ     0x0121  ;   Imprime char in A no terminal setado.
+0124:         	serialInputA        equ     0x0124  ;   Aguarda receber char no terminal setado. Retorno em A.
+0127:         	serialPrintStr      equ     0x0127  ;   Imprime string (HL) terminado em 0 no terminal setado. MAX 128 chars. MODIFIES : A,B,C
+012A:         	serialCRLF          equ     0x012A  ;   Imprime CR e LF no terminal setado.
+012D:         	serialHexA          equ     0x012D  ;   Imprime byte em A no formato HEX, no terminal setado. Ex: 'D' = 44
+0130:         	serialHexHL         equ     0x0130  ;   Imprime HL como 4 digitos hexadecimais, no terminal setado. Ex: HL=$80FF -> imprime "80FF"
+0133:         	serialInHexA        equ     0x0133  ;   Pegar 2 caracteres ASCII (0-9 A-F), do terminal setado e converte em um byte em A. SEM ECHO
+0136:         	serialInHexHL       equ     0x0136  ;   Pegar 4 caracteres ASCII (0-9 A-F), do terminal setado e converte em HL. SEM ECHO
+              	
+0139:         	initLCD             equ     0x0139  ;   Inicializa GLCD
+013C:         	clearGBUF           equ     0x013C  ;   Limpa buffer da memoria de grafico. Precisa do plotToLCD para refletir no lcd.
+013F:         	clearGrLCD          equ     0x013F  ;   Limpa memoria grafico do GLCD. Sem o plotToLCD.
+0142:         	clearTxtLCD         equ     0x0142  ;   Limpar caracteres do LCD
+0145:         	setGrMode           equ     0x0145  ;   Seta modo Grafico. 128x64
+0148:         	setTxtMode          equ     0x0148  ;   Seta mode Text. 16x4 equivalente
+014B:         	drawBox             equ     0x014B  ;   Desenha caixa. Entradas: BC = X0,Y0 - DE = X1,Y1    Destroys: HL
+014E:         	drawLine            equ     0x014E  ;   Desenha linha.  Entradas: BC = X0,Y0 - DE = X1,Y1
+0151:         	drawCircle          equ     0x0151  ;   Desenha circulo. Entradas BC = xm,ym (Ponro do Meio) - E = radius
+0154:         	drawPixel           equ     0x0154  ;   Desenha um pixel em X Y.  Entrada B = column/X (0-127), C = row/Y (0-63)   Destroys: HL
+0157:         	fillBox             equ     0x0157  ;   Desenha caixa preenchida. Entradas: BC = X0,Y0 - DE = X1,Y1    Destroys: HL
+015A:         	fillCircle          equ     0x015A  ;   Desenha circulo preenchido. Entradas BC = xm,ym (Ponro do Meio) - E = radius
+015D:         	plotToLCD           equ     0x015D  ;   Rotina principal de desenho. Move GBUF para o LCD e limpa o buffer ou não (setBufClear, setBufNoClear).  Destroys: ALL
+0160:         	printString         equ     0x0160  ;   Imprimir texto ASCII em uma determinada linha. Entradas: A = 0 a 3 Número da linha. .db "String" na próxima linha, terminar com 0
+0163:         	printChars          equ     0x0163  ;   (Ver detalhes) Imprimir caracteres na posição X,Y. Entrada B = coluna/X (0-7), C = linha/Y (0-3). HL = Endereço inicial do texto a ser exibido, termina com 0
+0166:         	setInt38            equ     0x0166  ;   Seta vetor de interrupcao int38. Entradas HL = RST38_ADDR
+0169:         	setint66            equ     0x0169  ;   Seta vetor de interrupcao int66. Entradas HL = RST66_ADDR
+016C:         	setBufClear         equ     0x016C  ;   Configura limpeza do buffer após a saída para o LCD e vai para clearGBUF.
+016F:         	setBufNoClear       equ     0x016F  ;   Configura para não limpar o buffer após a saída para o LCD.
+0172:         	clearPixel          equ     0x0172  ;   Limpa um pixel X Y.  Input B = column/X (0-127), C = row/Y (0-63)    Destroy HL
+0175:         	flipPixel           equ     0x0175  ;   Inverte um pixel X Y.  Input B = column/X (0-127), C = row/Y (0-63)    Destroy HL
+0178:         	drawGraphic         equ     0x0178  ;   Desenha no buffer. Entrada: A = número ASCII ou se A=0 Então  HL = Endereço dos dados gráficos. B = (MULTIPLO DE 8) largura do gráfico em pixels (1-128). C = altura do gráfico em pixels (1-64). Destroy: ALL
+017B:         	invGraphic          equ     0x017B  ;   Altera a flag de desenho inverso. (não inverte grafico atual) Destroy A
+017E:         	initTerminal        equ     0x017E  ;   Inicializa o Terminal GLCD. Cursor 0,0 e limpa buffer.
+0181:         	sendCharToLCD       equ     0x0181  ;   Envia ou manipula caracteres ASCII para a tela GLCD (Terminal). Entrada: A = caractere ASCII a ser enviado para a tela GLCD. A = somente cursor desenhado.
+0184:         	sendStringToLCD     equ     0x0184  ;   Imprime string no terminal GLCD. DE = inicio da string. A = caractere para parar a impressão. A impressão para e retorna quando um CR é impresso. Destroy ALL
+0187:         	sendRegToLCD        equ     0x0187  ;   Imprime byte em A no formato HEX, no GLCD. Ex: 'D' = 44
+018A:         	sendHLToLCD         equ     0x018A  ;   Imprime HL como 4 digitos hexadecimais, no GLCD. Ex: HL=$80FF -> imprime "80FF"
+018D:         	setCursor           equ     0x018D  ;   Define a posição do cursor gráfico. Entradas: BC = X,Y onde X = 0..127, Y = 0..63   Destroy A
+0190:         	getCursor           equ     0x0190  ;   Obter a posição do cursor. Saídas: BC = X,Y onde X = 0..127, Y = 0..63
+0193:         	displayCursor       equ     0x0193  ;   Exibir Cursor. Entrada: A = 0, Ativar cursor, A = diferente de zero, Desativar cursor.
+0196:         	autoLF              equ     0x0196  ;   Avanço de linha automático quando o cursor atinge o final da linha (Terminal). Entrada: A = 0, Avanço de linha automático; A = diferente de zero, Sem avanço de linha automático. Padrao LIGADO.
+0199:         	underline           equ     0x0199  ;   Exibir sublinhado no caractere (Terminal). O estado inicial é sem sublinhado. Chamar esta rotina irá ALTERAR/DESLIGAR o sinalizador de sublinhado.
+019C:         	plotAlways          equ     0x019C  ;   Quando sendCharToLCD é chamado, Atualiza GLCD ou não. Se Desativado plotToLCD deve ser chamado atualizar o GLCD. Entrada: A=0, Plotar sempre; A>0, Não plotar. O padrão é Plotar sempre.
+019F:         	resetCollisionPixel equ     0x019F  ;   Limpa flag de colisao
+01A2:         	checkCollisionPixel equ     0x01A2  ;   Check se um pixel ja estava ligado quando tenta ligar. JP Z, SEM_COLISAO. JP NZ, COLISAO.
+01A5:         	I2C_OpenRead        equ     0x01A5  ;   I2C Open Read  (On entry: A = Device address)
+01A8:         	I2C_OpenWrite       equ     0x01A8  ;   I2C Open Write (On entry: A = Device address)
+              	
+              	
+              	
+              	; -----------------------------------------------------------------------------
+              	; PORTS
+              	; -----------------------------------------------------------------------------
+0070:         	GLCD_INST           .EQU    $70
+0071:         	GLCD_DATA           .EQU    $71
+              	
+0040:         	KEYBOARD		    .EQU	$40
+              	
+              	; ============================================================
+              	; KEYMAPS
+              	; ============================================================
+              	
+              	;	$FF - Capsloock
+              	;	$FE - Shift left
+              	;	$FD - Ctrl left
+              	;	$FC - Windows
+              	;	$FB - Alt left
+              	;	$FA - Alt Gr    (Load intel hex - Serial A)
+              	;	$F9 - LUZ   (CALL 8000H)
+              	;	$F8 - Shift Right   (Display Scroll UP)
+              	;	$F7 - Ctrl Right    (Display Scroll DOWN)
+              	;	$F6 - Fn
+              	
+              	; -------- Constantes gerais --------
+000D:         	CR:       EQU   0DH
+000A:         	LF:       EQU   0AH
+0008:         	BKS:      EQU   08H
+007F:         	DEL:      EQU   7FH
+001B:         	ESC:      EQU   1BH
+0020:         	SPACE:    EQU   20H
+0000:         	NUL:      EQU   00H
+000C:         	FF:       EQU   0CH                 ; Form Feed -> Limpa lcd
+              	
+              	; -----------------------------------------------------------------------------
+              	; SIO/2 - SERIAL
+              	; -----------------------------------------------------------------------------
+0000:         	SIOA_D:   EQU   $00
+0002:         	SIOA_C:   EQU   $02
+0001:         	SIOB_D:   EQU   $01   ; Conector P2
+0003:         	SIOB_C:   EQU   $03   ; Conector P2
+              	
+              	
+              	
+              	
+              	; =========================================================
+              	; TESTE_SDCARD.ASM
+              	; Teste de inicializacao SPI do modulo SD Card no Z80Mini
+              	; Porta $C0 (bit-bang SPI, somente escrita) + entrada $C0 (MISO)
+              	; Roda na RAM a partir de $8000
+              	;
+              	; Mapeamento assumido (mesmo do driver ST7735/MAX7219):
+              	;   OUT $C0:  bit0=SCK  bit1=MOSI  bit2=CS
+              	;   IN  $C0:  bit0=MISO (com pull-up externo confirmado no hardware)
+              	;
+              	; Status confirmado:
+              	;   CMD0 -> R1=$01 (cartao entrou em modo SPI, idle)   OK
+              	;   CMD8 -> timeout ($FF)  -> cartao nao suporta CMD8,
+              	;           tratado como SDv1 (comportamento esperado)
+              	;
+              	; Esta versao adiciona:
+              	;   - loop de ACMD41 (CMD55+CMD41, sem HCS ja que e' SDv1)
+              	;     ate o cartao sair do estado idle (R1 = $00)
+              	;   - CMD58 (READ_OCR) apos inicializar, so' para conferir
+              	;
+              	; Compilar:  zasm --z80 -w -u --bin TESTE_SDCARD.ASM
+              	; Rodar a partir de $8000 no monitor do Z80Mini (G8000)
+              	; =========================================================
+              	
+              	
+              	
+00C0:         	PORTC0  EQU   $C0
+9000:         	BUFFER  EQU   $9000            ; buffer de 512 bytes p/ o setor lido (fora da area de codigo)
+              	
+              	; ---- mascaras da SAIDA $C0 (ajustar se necessario) ----
+0001:         	M_SCK   EQU   $01
+0002:         	M_MOSI  EQU   $02
+0004:         	M_CS    EQU   $04
+              	
+              	; ---- mascara da ENTRADA $C0 (ajustar se necessario) ----
+0001:         	M_MISO  EQU   $01
+              	
+8000:         	        ORG   $8000
+              	
+8000:         	START:
+8000: 215282  	        LD    HL,MSGTITLE
+8003: CDA981  	        CALL  PRINT
+              	
+              	        ; ---- estado inicial: CS=1 (inativo), MOSI=1, SCK=0 ----
+8006: 3E06    	        LD    A,M_CS|M_MOSI
+8008: 322D82  	        LD    (OUTSTATE),A
+800B: D3C0    	        OUT   (PORTC0),A
+              	
+              	        ; ---- 0) delay p/ VDD do cartao estabilizar ----
+800D: 116400  	        LD    DE,100          ; 100ms
+8010: CD0301  	        CALL  delay
+              	
+              	        ; ---- 1) power-up: >=74 clocks com CS=1 MOSI=1 ----
+8013: 0650    	        LD    B,80
+8015:         	PULOOP:
+8015: CD1C82  	        CALL  SCKPULSE
+8018: 10FB    	        DJNZ  PULOOP
+              	
+              	        ; ---- 2) CMD0: GO_IDLE_STATE ----
+801A: 216C82  	        LD    HL,MSGCMD0
+801D: CDA981  	        CALL  PRINT
+              	
+8020: CD8081  	        CALL  CSLOW
+8023: 212E82  	        LD    HL,CMD0
+8026: CDB981  	        CALL  SENDCMD
+8029: CDC381  	        CALL  READR1
+              	
+802C: 210483  	        LD    HL,MSGR1
+802F: CDA981  	        CALL  PRINT
+8032: CD9981  	        CALL  HEXOUT
+8035: CDA381  	        CALL  TXCRLF
+              	
+8038: CD8B81  	        CALL  CSHIGH
+              	
+              	        ; ---- 3) ACMD41: inicializacao (CMD55 + CMD41, sem HCS = SDv1) ----
+803B: 218E82  	        LD    HL,MSGACMD41
+803E: CDA981  	        CALL  PRINT
+              	
+8041: DD210000	        LD    IX,0             ; contador de tentativas (16 bits, nao usa B)
+8045:         	ACMD41LOOP:
+8045: CD8081  	        CALL  CSLOW
+              	
+8048: 213A82  	        LD    HL,CMD55
+804B: CDB981  	        CALL  SENDCMD
+804E: CDC381  	        CALL  READR1           ; A = R1 do CMD55
+              	
+8051: 4F      	        LD    C,A               ; guarda R1 do CMD55 em C
+8052: DD7C    	        LD    A,IXH
+8054: B7      	        OR    A
+8055: 2013    	        JR    NZ,SKIPPRINT55    ; so' imprime detalhado na 1a "volta" de IX
+8057: DD7D    	        LD    A,IXL
+8059: FE0F    	        CP    15
+805B: 300D    	        JR    NC,SKIPPRINT55
+              	
+805D: 210B83  	        LD    HL,MSGCMD55R1
+8060: CDA981  	        CALL  PRINT
+8063: 79      	        LD    A,C
+8064: CD9981  	        CALL  HEXOUT
+8067: 3E20    	        LD    A,' '
+8069: CF      	        RST   $08
+806A:         	SKIPPRINT55:
+              	
+806A: 214082  	        LD    HL,CMD41
+806D: CDB981  	        CALL  SENDCMD
+8070: CDC381  	        CALL  READR1           ; A = R1 do ACMD41
+              	
+8073: 4F      	        LD    C,A               ; guarda R1 do ACMD41
+8074: DD7C    	        LD    A,IXH
+8076: B7      	        OR    A
+8077: 2013    	        JR    NZ,SKIPPRINT41
+8079: DD7D    	        LD    A,IXL
+807B: FE0F    	        CP    15
+807D: 300D    	        JR    NC,SKIPPRINT41
+              	
+807F: 211883  	        LD    HL,MSGCMD41R1
+8082: CDA981  	        CALL  PRINT
+8085: 79      	        LD    A,C
+8086: CD9981  	        CALL  HEXOUT
+8089: CDA381  	        CALL  TXCRLF
+808C:         	SKIPPRINT41:
+              	
+808C: CD8B81  	        CALL  CSHIGH
+              	
+808F: 79      	        LD    A,C               ; R1 do ACMD41 de volta em A
+8090: B7      	        OR    A
+8091: 2817    	        JR    Z,ACMD41OK       ; R1=0 -> cartao pronto
+              	
+8093: 110500  	        LD    DE,5              ; pequeno delay entre tentativas (5ms)
+8096: CD0301  	        CALL  delay
+              	
+8099: DD23    	        INC   IX
+809B: DD7C    	        LD    A,IXH
+809D: FE04    	        CP    4                 ; ~ate 1024 tentativas (IX 16 bits)
+809F: 38A4    	        JR    C,ACMD41LOOP
+              	
+80A1: 21D082  	        LD    HL,MSGACMD41TO
+80A4: CDA981  	        CALL  PRINT
+80A7: C37981  	        JP    ENDTEST
+              	
+80AA:         	ACMD41OK:
+80AA: 21B382  	        LD    HL,MSGACMD41OK
+80AD: CDA981  	        CALL  PRINT
+              	
+              	        ; ---- 4) CMD58: READ_OCR (so' para conferir) ----
+80B0: CD8081  	        CALL  CSLOW
+80B3: 214682  	        LD    HL,CMD58
+80B6: CDB981  	        CALL  SENDCMD
+80B9: CDC381  	        CALL  READR1
+              	
+80BC: 210483  	        LD    HL,MSGR1
+80BF: CDA981  	        CALL  PRINT
+80C2: CD9981  	        CALL  HEXOUT
+80C5: CDA381  	        CALL  TXCRLF
+              	
+80C8: 21FD82  	        LD    HL,MSGOCR
+80CB: CDA981  	        CALL  PRINT
+80CE: 0604    	        LD    B,4
+80D0:         	OCRLOOP:
+80D0: C5      	        PUSH  BC
+80D1: CDF681  	        CALL  SPIRECV
+80D4: CD9981  	        CALL  HEXOUT
+80D7: 3E20    	        LD    A,' '
+80D9: CF      	        RST   $08
+80DA: C1      	        POP   BC
+80DB: 10F3    	        DJNZ  OCRLOOP
+80DD: CDA381  	        CALL  TXCRLF
+80E0: CD8B81  	        CALL  CSHIGH
+              	
+              	        ; ---- 5) CMD17: READ_SINGLE_BLOCK (le o bloco 0) ----
+              	        ; cartao e' SDSC (CCS=0 no OCR) -> endereco em BYTES, nao em blocos
+              	        ; bloco 0 -> endereco = 0
+80E3: 213383  	        LD    HL,MSGCMD17
+80E6: CDA981  	        CALL  PRINT
+              	
+80E9: CD8081  	        CALL  CSLOW
+80EC: 214C82  	        LD    HL,CMD17
+80EF: CDB981  	        CALL  SENDCMD
+80F2: CDC381  	        CALL  READR1
+              	
+80F5: 210483  	        LD    HL,MSGR1
+80F8: CDA981  	        CALL  PRINT
+80FB: CD9981  	        CALL  HEXOUT
+80FE: CDA381  	        CALL  TXCRLF
+              	
+8101: B7      	        OR    A
+8102: 206C    	        JR    NZ,CMD17ERR      ; R1 != 0 -> comando rejeitado
+              	
+              	        ; ---- espera o token de inicio de dados ($FE) ----
+8104: DD210000	        LD    IX,0
+8108:         	WAITTOKEN:
+8108: CDF681  	        CALL  SPIRECV
+810B: FEFE    	        CP    $FE
+810D: 2810    	        JR    Z,GOTTOKEN
+810F: DD23    	        INC   IX
+8111: DD7C    	        LD    A,IXH
+8113: FE20    	        CP    $20              ; timeout generoso (~8000 tentativas)
+8115: 38F1    	        JR    C,WAITTOKEN
+              	
+8117: 216883  	        LD    HL,MSGTOKENTO
+811A: CDA981  	        CALL  PRINT
+811D: 184C    	        JR    CMD17DONE
+              	
+811F:         	GOTTOKEN:
+              	        ; ---- le os 512 bytes de dados para o buffer ----
+811F: 210090  	        LD    HL,BUFFER
+8122: 010002  	        LD    BC,512
+8125:         	READLOOP:
+8125: CDF681  	        CALL  SPIRECV
+8128: 77      	        LD    (HL),A
+8129: 23      	        INC   HL
+812A: 0B      	        DEC   BC
+812B: 78      	        LD    A,B
+812C: B1      	        OR    C
+812D: 20F6    	        JR    NZ,READLOOP
+              	
+              	        ; ---- le e descarta o CRC16 (2 bytes) ----
+812F: CDF681  	        CALL  SPIRECV
+8132: CDF681  	        CALL  SPIRECV
+              	
+8135: 219083  	        LD    HL,MSGDATAOK
+8138: CDA981  	        CALL  PRINT
+              	
+              	        ; ---- mostra os primeiros 16 bytes em hex ----
+813B: 210090  	        LD    HL,BUFFER
+813E: 0610    	        LD    B,16
+8140:         	DUMPLOOP:
+8140: C5      	        PUSH  BC
+8141: 7E      	        LD    A,(HL)
+8142: CD9981  	        CALL  HEXOUT
+8145: 3E20    	        LD    A,' '
+8147: CF      	        RST   $08
+8148: 23      	        INC   HL
+8149: C1      	        POP   BC
+814A: 10F4    	        DJNZ  DUMPLOOP
+814C: CDA381  	        CALL  TXCRLF
+              	
+              	        ; ---- confere assinatura de boot 0x55 0xAA (offset 510-511) ----
+814F: 21FE91  	        LD    HL,BUFFER+510
+8152: 7E      	        LD    A,(HL)
+8153: FE55    	        CP    $55
+8155: 200E    	        JR    NZ,NOSIG
+8157: 23      	        INC   HL
+8158: 7E      	        LD    A,(HL)
+8159: FEAA    	        CP    $AA
+815B: 2008    	        JR    NZ,NOSIG
+              	
+815D: 21B683  	        LD    HL,MSGBOOTSIG
+8160: CDA981  	        CALL  PRINT
+8163: 1806    	        JR    CMD17DONE
+              	
+8165:         	NOSIG:
+8165: 21DC83  	        LD    HL,MSGNOBOOTSIG
+8168: CDA981  	        CALL  PRINT
+              	
+816B:         	CMD17DONE:
+816B: CD8B81  	        CALL  CSHIGH
+816E: 1809    	        JR    ENDTEST
+              	
+8170:         	CMD17ERR:
+8170: 214D83  	        LD    HL,MSGCMD17ERR
+8173: CDA981  	        CALL  PRINT
+8176: CD8B81  	        CALL  CSHIGH
+              	
+8179:         	ENDTEST:
+8179: 212483  	        LD    HL,MSGBYE
+817C: CDA981  	        CALL  PRINT
+817F: C9      	        RET
+              	
+              	; ---------------------------------------------------------
+              	; CSLOW / CSHIGH - controla CS mantendo os demais bits de OUTSTATE
+              	; ---------------------------------------------------------
+8180:         	CSLOW:
+8180: 3A2D82  	        LD    A,(OUTSTATE)
+8183: E6FB    	        AND   ~M_CS & $FF
+8185: 322D82  	        LD    (OUTSTATE),A
+8188: D3C0    	        OUT   (PORTC0),A
+818A: C9      	        RET
+              	
+818B:         	CSHIGH:
+818B: 3A2D82  	        LD    A,(OUTSTATE)
+818E: F604    	        OR    M_CS
+8190: 322D82  	        LD    (OUTSTATE),A
+8193: D3C0    	        OUT   (PORTC0),A
+8195: CD1C82  	        CALL  SCKPULSE
+8198: C9      	        RET
+              	
+8199:         	HEXOUT:
+8199: C5      		push bc
+819A: D5      		push de
+819B: E5      		push hl
+819C: CD8701  		call sendRegToLCD
+819F: E1      		pop hl
+81A0: D1      		pop de
+81A1: C1      		pop bc
+81A2: C9      		ret
+              	
+81A3:         	TXCRLF:
+81A3: F5      		push af
+81A4: 3E0D    		ld a, 13
+81A6: CF      		rst $08
+81A7: F1      		pop af
+81A8: C9      		ret
+              	
+              	
+              	
+81A9:         	PRINT:
+81A9: F5      		push af
+81AA: C5      		push bc 
+81AB: D5      		push de
+81AC: E5      		push hl
+81AD: E5      		push hl
+81AE: D1      		pop de
+81AF: 3E00    		LD A, 0
+81B1: CD8401  		call sendStringToLCD
+81B4: E1      		pop hl
+81B5: D1      		pop de
+81B6: C1      		pop bc
+81B7: F1      		pop af
+81B8: C9      		ret
+              	
+              	
+              	
+              	
+              	
+              	
+              	; ---------------------------------------------------------
+              	; SENDCMD - envia comando SD de 6 bytes apontado por HL
+              	; ---------------------------------------------------------
+81B9:         	SENDCMD:
+81B9: 0606    	        LD    B,6
+81BB:         	SCLOOP:
+81BB: 7E      	        LD    A,(HL)
+81BC: CDCE81  	        CALL  SPISEND
+81BF: 23      	        INC   HL
+81C0: 10F9    	        DJNZ  SCLOOP
+81C2: C9      	        RET
+              	
+              	; ---------------------------------------------------------
+              	; READR1 - espera resposta R1 (bit7=0), timeout em B
+              	; retorna valor em A
+              	; ---------------------------------------------------------
+81C3:         	READR1:
+81C3: 06FF    	        LD    B,$FF
+81C5:         	RR1LOOP:
+81C5: CDF681  	        CALL  SPIRECV
+81C8: CB7F    	        BIT   7,A
+81CA: C8      	        RET   Z
+81CB: 10F8    	        DJNZ  RR1LOOP
+81CD: C9      	        RET                    ; timeout: retorna ultimo valor lido ($FF = sem resposta)
+              	
+              	; ---------------------------------------------------------
+              	; SPISEND - envia byte A via bit-bang (MSB first)
+              	; NOPs adicionados para desacelerar o clock (fase de init)
+              	; ---------------------------------------------------------
+81CE:         	SPISEND:
+81CE: C5      	        PUSH  BC
+81CF: 4F      	        LD    C,A
+81D0: 0608    	        LD    B,8
+81D2:         	SSLOOP:
+81D2: 3A2D82  	        LD    A,(OUTSTATE)
+81D5: E6FD    	        AND   ~M_MOSI & $FF
+81D7: CB01    	        RLC   C
+81D9: 3002    	        JR    NC,SSNOBIT
+81DB: F602    	        OR    M_MOSI
+81DD:         	SSNOBIT:
+81DD: D3C0    	        OUT   (PORTC0),A       ; MOSI valido, SCK=0
+81DF: 00      	        NOP
+81E0: 00      	        NOP
+81E1: F601    	        OR    M_SCK
+81E3: D3C0    	        OUT   (PORTC0),A       ; sobe SCK (dado e' amostrado)
+81E5: 00      	        NOP
+81E6: 00      	        NOP
+81E7: E6FE    	        AND   ~M_SCK & $FF
+81E9: D3C0    	        OUT   (PORTC0),A       ; desce SCK
+81EB: 00      	        NOP
+81EC: 00      	        NOP
+81ED: 10E3    	        DJNZ  SSLOOP
+81EF: 3A2D82  	        LD    A,(OUTSTATE)
+81F2: D3C0    	        OUT   (PORTC0),A       ; restaura estado (MOSI=1, CS mantido)
+81F4: C1      	        POP   BC
+81F5: C9      	        RET
+              	
+              	; ---------------------------------------------------------
+              	; SPIRECV - le um byte via bit-bang (MSB first), MOSI=1 (0xFF)
+              	; NOPs adicionados para desacelerar o clock (fase de init)
+              	; retorna byte em A
+              	; ---------------------------------------------------------
+81F6:         	SPIRECV:
+81F6: C5      	        PUSH  BC
+81F7: 1600    	        LD    D,0
+81F9: 0608    	        LD    B,8
+81FB:         	SRLOOP:
+81FB: 3A2D82  	        LD    A,(OUTSTATE)
+81FE: F601    	        OR    M_SCK
+8200: D3C0    	        OUT   (PORTC0),A       ; sobe SCK
+8202: 00      	        NOP
+8203: 00      	        NOP
+8204: DBC0    	        IN    A,(PORTC0)
+8206: E601    	        AND   M_MISO
+8208: 2803    	        JR    Z,SRZERO
+820A: 37      	        SCF
+820B: 1801    	        JR    SRSHIFT
+820D:         	SRZERO:
+820D: B7      	        OR    A
+820E:         	SRSHIFT:
+820E: CB12    	        RL    D
+8210: 3A2D82  	        LD    A,(OUTSTATE)
+8213: D3C0    	        OUT   (PORTC0),A       ; desce SCK
+8215: 00      	        NOP
+8216: 00      	        NOP
+8217: 10E2    	        DJNZ  SRLOOP
+8219: 7A      	        LD    A,D
+821A: C1      	        POP   BC
+821B: C9      	        RET
+              	
+              	; ---------------------------------------------------------
+              	; SCKPULSE - um pulso de clock com o estado atual de saida
+              	; NOPs adicionados para desacelerar o clock (fase de init)
+              	; ---------------------------------------------------------
+821C:         	SCKPULSE:
+821C: 3A2D82  	        LD    A,(OUTSTATE)
+821F: F601    	        OR    M_SCK
+8221: D3C0    	        OUT   (PORTC0),A
+8223: 00      	        NOP
+8224: 00      	        NOP
+8225: 3A2D82  	        LD    A,(OUTSTATE)
+8228: D3C0    	        OUT   (PORTC0),A
+822A: 00      	        NOP
+822B: 00      	        NOP
+822C: C9      	        RET
+              	
+              	; ---------------------------------------------------------
+              	; Dados
+              	; ---------------------------------------------------------
+822D: 00      	OUTSTATE: DEFB  0
+              	
+822E: 40000000	CMD0:   DEFB  $40,$00,$00,$00,$00,$95   ; GO_IDLE_STATE (CRC valido)
+8232: 0095    	
+8234: 48000001	CMD8:   DEFB  $48,$00,$00,$01,$AA,$87   ; SEND_IF_COND (nao usado neste teste)
+8238: AA87    	
+823A: 77000000	CMD55:  DEFB  $77,$00,$00,$00,$00,$01   ; APP_CMD (prefixo do ACMD)
+823E: 0001    	
+8240: 69400000	CMD41:  DEFB  $69,$40,$00,$00,$00,$01   ; SD_SEND_OP_COND, HCS=1 (assume SDv2/SDHC)
+8244: 0001    	
+8246: 7A000000	CMD58:  DEFB  $7A,$00,$00,$00,$00,$01   ; READ_OCR
+824A: 0001    	
+824C: 51000000	CMD17:  DEFB  $51,$00,$00,$00,$00,$01   ; READ_SINGLE_BLOCK, endereco=0 (bloco 0, SDSC)
+8250: 0001    	
+              	
+8252:         	MSGTITLE:
+8252: 54657374	        DEFM  "Teste SD Card - init SPI"
+8256: 65205344	
+825A: 20436172	
+825E: 64202D20	
+8262: 696E6974	
+8266: 20535049	
+826A: 0D00    	        DEFB  13,0
+826C:         	MSGCMD0:
+826C: 456E7669	        DEFM  "Enviando CMD0 (GO_IDLE_STATE)..."
+8270: 616E646F	
+8274: 20434D44	
+8278: 30202847	
+827C: 4F5F4944	
+8280: 4C455F53	
+8284: 54415445	
+8288: 292E2E2E	
+828C: 0D00    	        DEFB  13,0
+828E:         	MSGACMD41:
+828E: 456E7669	        DEFM  "Enviando ACMD41 ate sair do idle..."
+8292: 616E646F	
+8296: 2041434D	
+829A: 44343120	
+829E: 61746520	
+82A2: 73616972	
+82A6: 20646F20	
+82AA: 69646C65	
+82AE: 2E2E2E  	
+82B1: 0D00    	        DEFB  13,0
+82B3:         	MSGACMD41OK:
+82B3: 43617274	        DEFM  "Cartao inicializado! (R1=0)"
+82B7: 616F2069	
+82BB: 6E696369	
+82BF: 616C697A	
+82C3: 61646F21	
+82C7: 20285231	
+82CB: 3D3029  	
+82CE: 0D00    	        DEFB  13,0
+82D0:         	MSGACMD41TO:
+82D0: 54696D65	        DEFM  "Timeout no ACMD41 (cartao nao saiu do idle)"
+82D4: 6F757420	
+82D8: 6E6F2041	
+82DC: 434D4434	
+82E0: 31202863	
+82E4: 61727461	
+82E8: 6F206E61	
+82EC: 6F207361	
+82F0: 69752064	
+82F4: 6F206964	
+82F8: 6C6529  	
+82FB: 0D00    	        DEFB  13,0
+82FD:         	MSGOCR:
+82FD: 4F435220	        DEFM  "OCR = "
+8301: 3D20    	
+8303: 00      	        DEFB  0
+8304:         	MSGR1:
+8304: 5231203D	        DEFM  "R1 = $"
+8308: 2024    	
+830A: 00      	        DEFB  0
+830B:         	MSGCMD55R1:
+830B: 2020434D	        DEFM  "  CMD55 R1=$"
+830F: 44353520	
+8313: 52313D24	
+8317: 00      	        DEFB  0
+8318:         	MSGCMD41R1:
+8318: 20434D44	        DEFM  " CMD41 R1=$"
+831C: 34312052	
+8320: 313D24  	
+8323: 00      	        DEFB  0
+8324:         	MSGBYE:
+8324: 46696D20	        DEFM  "Fim do teste."
+8328: 646F2074	
+832C: 65737465	
+8330: 2E      	
+8331: 0D00    	        DEFB  13,0
+8333:         	MSGCMD17:
+8333: 4C656E64	        DEFM  "Lendo bloco 0 (CMD17)..."
+8337: 6F20626C	
+833B: 6F636F20	
+833F: 30202843	
+8343: 4D443137	
+8347: 292E2E2E	
+834B: 0D00    	        DEFB  13,0
+834D:         	MSGCMD17ERR:
+834D: 434D4431	        DEFM  "CMD17 rejeitado (R1 != 0)"
+8351: 37207265	
+8355: 6A656974	
+8359: 61646F20	
+835D: 28523120	
+8361: 213D2030	
+8365: 29      	
+8366: 0D00    	        DEFB  13,0
+8368:         	MSGTOKENTO:
+8368: 54696D65	        DEFM  "Timeout esperando token de dados ($FE)"
+836C: 6F757420	
+8370: 65737065	
+8374: 72616E64	
+8378: 6F20746F	
+837C: 6B656E20	
+8380: 64652064	
+8384: 61646F73	
+8388: 20282446	
+838C: 4529    	
+838E: 0D00    	        DEFB  13,0
+8390:         	MSGDATAOK:
+8390: 35313220	        DEFM  "512 bytes lidos! Primeiros 16 bytes:"
+8394: 62797465	
+8398: 73206C69	
+839C: 646F7321	
+83A0: 20507269	
+83A4: 6D656972	
+83A8: 6F732031	
+83AC: 36206279	
+83B0: 7465733A	
+83B4: 0D00    	        DEFB  13,0
+83B6:         	MSGBOOTSIG:
+83B6: 41737369	        DEFM  "Assinatura de boot 55 AA encontrada!"
+83BA: 6E617475	
+83BE: 72612064	
+83C2: 6520626F	
+83C6: 6F742035	
+83CA: 35204141	
+83CE: 20656E63	
+83D2: 6F6E7472	
+83D6: 61646121	
+83DA: 0D00    	        DEFB  13,0
+83DC:         	MSGNOBOOTSIG:
+83DC: 53656D20	        DEFM  "Sem assinatura 55 AA (bloco 0 pode nao ser boot sector)"
+83E0: 61737369	
+83E4: 6E617475	
+83E8: 72612035	
+83EC: 35204141	
+83F0: 2028626C	
+83F4: 6F636F20	
+83F8: 3020706F	
+83FC: 6465206E	
+8400: 616F2073	
+8404: 65722062	
+8408: 6F6F7420	
+840C: 73656374	
+8410: 6F7229  	
+8413: 0D00    	        DEFB  13,0
+              	
+              	        END
+
+
+; +++ segments +++
+
+#CODE          = $8000 = 32768,  size = $0415 =  1045
+
+; +++ global symbols +++
+
+ACMD41LOOP          = $8045 = 32837          Main.asm:83
+ACMD41OK            = $80AA = 32938          Main.asm:143
+BKS                 = $0008 =     8          Z80MiniAPI.asm:89 (unused)
+BUFFER              = $9000 = 36864          Main.asm:31
+CMD0                = $822E = 33326          Main.asm:440
+CMD17               = $824C = 33356          Main.asm:445
+CMD17DONE           = $816B = 33131          Main.asm:258
+CMD17ERR            = $8170 = 33136          Main.asm:262
+CMD41               = $8240 = 33344          Main.asm:443
+CMD55               = $823A = 33338          Main.asm:442
+CMD58               = $8246 = 33350          Main.asm:444
+CMD8                = $8234 = 33332          Main.asm:441 (unused)
+CR                  = $000D =    13          Z80MiniAPI.asm:87 (unused)
+CSHIGH              = $818B = 33163          Main.asm:282
+CSLOW               = $8180 = 33152          Main.asm:275
+DEL                 = $007F =   127          Z80MiniAPI.asm:90 (unused)
+DUMPLOOP            = $8140 = 33088          Main.asm:229
+ENDTEST             = $8179 = 33145          Main.asm:267
+ESC                 = $001B =    27          Z80MiniAPI.asm:91 (unused)
+FF                  = $000C =    12          Z80MiniAPI.asm:94 (unused)
+GLCD_DATA           = $0071 =   113          Z80MiniAPI.asm:67 (unused)
+GLCD_INST           = $0070 =   112          Z80MiniAPI.asm:66 (unused)
+GOTTOKEN            = $811F = 33055          Main.asm:206
+HEXOUT              = $8199 = 33177          Main.asm:290
+I2C_Close           = $0109 =   265          Z80MiniAPI.asm:5 (unused)
+I2C_Open            = $0106 =   262          Z80MiniAPI.asm:4 (unused)
+I2C_OpenRead        = $01A5 =   421          Z80MiniAPI.asm:58 (unused)
+I2C_OpenWrite       = $01A8 =   424          Z80MiniAPI.asm:59 (unused)
+I2C_Read            = $010C =   268          Z80MiniAPI.asm:6 (unused)
+I2C_Write           = $010F =   271          Z80MiniAPI.asm:7 (unused)
+KEYBOARD            = $0040 =    64          Z80MiniAPI.asm:69 (unused)
+LF                  = $000A =    10          Z80MiniAPI.asm:88 (unused)
+MSGACMD41           = $828E = 33422          Main.asm:453
+MSGACMD41OK         = $82B3 = 33459          Main.asm:456
+MSGACMD41TO         = $82D0 = 33488          Main.asm:459
+MSGBOOTSIG          = $83B6 = 33718          Main.asm:489
+MSGBYE              = $8324 = 33572          Main.asm:474
+MSGCMD0             = $826C = 33388          Main.asm:450
+MSGCMD17            = $8333 = 33587          Main.asm:477
+MSGCMD17ERR         = $834D = 33613          Main.asm:480
+MSGCMD41R1          = $8318 = 33560          Main.asm:471
+MSGCMD55R1          = $830B = 33547          Main.asm:468
+MSGDATAOK           = $8390 = 33680          Main.asm:486
+MSGNOBOOTSIG        = $83DC = 33756          Main.asm:492
+MSGOCR              = $82FD = 33533          Main.asm:462
+MSGR1               = $8304 = 33540          Main.asm:465
+MSGTITLE            = $8252 = 33362          Main.asm:447
+MSGTOKENTO          = $8368 = 33640          Main.asm:483
+M_CS                = $0004 =     4          Main.asm:36
+M_MISO              = $0001 =     1          Main.asm:39
+M_MOSI              = $0002 =     2          Main.asm:35
+M_SCK               = $0001 =     1          Main.asm:34
+NOSIG               = $8165 = 33125          Main.asm:254
+NUL                 = $0000 =     0          Z80MiniAPI.asm:93 (unused)
+OCRLOOP             = $80D0 = 32976          Main.asm:161
+OUTSTATE            = $822D = 33325          Main.asm:438
+PORTC0              = $00C0 =   192          Main.asm:30
+PRINT               = $81A9 = 33193          Main.asm:309
+PULOOP              = $8015 = 32789          Main.asm:58
+READLOOP            = $8125 = 33061          Main.asm:210
+READR1              = $81C3 = 33219          Main.asm:345
+RR1LOOP             = $81C5 = 33221          Main.asm:347
+SCKPULSE            = $821C = 33308          Main.asm:423
+SCLOOP              = $81BB = 33211          Main.asm:334
+SENDCMD             = $81B9 = 33209          Main.asm:332
+SIOA_C              = $0002 =     2          Z80MiniAPI.asm:100 (unused)
+SIOA_D              = $0000 =     0          Z80MiniAPI.asm:99 (unused)
+SIOB_C              = $0003 =     3          Z80MiniAPI.asm:102 (unused)
+SIOB_D              = $0001 =     1          Z80MiniAPI.asm:101 (unused)
+SKIPPRINT41         = $808C = 32908          Main.asm:123
+SKIPPRINT55         = $806A = 32874          Main.asm:104
+SPACE               = $0020 =    32          Z80MiniAPI.asm:92 (unused)
+SPIRECV             = $81F6 = 33270          Main.asm:391
+SPISEND             = $81CE = 33230          Main.asm:358
+SRLOOP              = $81FB = 33275          Main.asm:395
+SRSHIFT             = $820E = 33294          Main.asm:408
+SRZERO              = $820D = 33293          Main.asm:406
+SSLOOP              = $81D2 = 33234          Main.asm:362
+SSNOBIT             = $81DD = 33245          Main.asm:368
+START               = $8000 = 32768          Main.asm:43 (unused)
+TXCRLF              = $81A3 = 33187          Main.asm:300
+WAITTOKEN           = $8108 = 33032          Main.asm:193
+_end                = $8415 = 33813          Z80MiniAPI.asm:40 (unused)
+_size               = $0415 =  1045          Z80MiniAPI.asm:40 (unused)
+_z80_               = $0001 =     1          Main.asm:1 (unused)
+autoLF              = $0196 =   406          Z80MiniAPI.asm:53 (unused)
+checkCollisionPixel = $01A2 =   418          Z80MiniAPI.asm:57 (unused)
+clearGBUF           = $013C =   316          Z80MiniAPI.asm:23 (unused)
+clearGrLCD          = $013F =   319          Z80MiniAPI.asm:24 (unused)
+clearPixel          = $0172 =   370          Z80MiniAPI.asm:41 (unused)
+clearTxtLCD         = $0142 =   322          Z80MiniAPI.asm:25 (unused)
+delay               = $0103 =   259          Z80MiniAPI.asm:3
+delay500ms          = $0100 =   256          Z80MiniAPI.asm:2 (unused)
+displayCursor       = $0193 =   403          Z80MiniAPI.asm:52 (unused)
+drawBox             = $014B =   331          Z80MiniAPI.asm:28 (unused)
+drawCircle          = $0151 =   337          Z80MiniAPI.asm:30 (unused)
+drawGraphic         = $0178 =   376          Z80MiniAPI.asm:43 (unused)
+drawLine            = $014E =   334          Z80MiniAPI.asm:29 (unused)
+drawPixel           = $0154 =   340          Z80MiniAPI.asm:31 (unused)
+fillBox             = $0157 =   343          Z80MiniAPI.asm:32 (unused)
+fillCircle          = $015A =   346          Z80MiniAPI.asm:33 (unused)
+flipPixel           = $0175 =   373          Z80MiniAPI.asm:42 (unused)
+getCursor           = $0190 =   400          Z80MiniAPI.asm:51 (unused)
+initLCD             = $0139 =   313          Z80MiniAPI.asm:22 (unused)
+initTerminal        = $017E =   382          Z80MiniAPI.asm:45 (unused)
+invGraphic          = $017B =   379          Z80MiniAPI.asm:44 (unused)
+keyboardA           = $0118 =   280          Z80MiniAPI.asm:10 (unused)
+keyboardIsEsc       = $0112 =   274          Z80MiniAPI.asm:8 (unused)
+keyboardWaitA       = $0115 =   277          Z80MiniAPI.asm:9 (unused)
+plotAlways          = $019C =   412          Z80MiniAPI.asm:55 (unused)
+plotToLCD           = $015D =   349          Z80MiniAPI.asm:34 (unused)
+printChars          = $0163 =   355          Z80MiniAPI.asm:36 (unused)
+printString         = $0160 =   352          Z80MiniAPI.asm:35 (unused)
+resetCollisionPixel = $019F =   415          Z80MiniAPI.asm:56 (unused)
+sendCharToLCD       = $0181 =   385          Z80MiniAPI.asm:46 (unused)
+sendHLToLCD         = $018A =   394          Z80MiniAPI.asm:49 (unused)
+sendRegToLCD        = $0187 =   391          Z80MiniAPI.asm:48
+sendStringToLCD     = $0184 =   388          Z80MiniAPI.asm:47
+serialCRLF          = $012A =   298          Z80MiniAPI.asm:16 (unused)
+serialHexA          = $012D =   301          Z80MiniAPI.asm:17 (unused)
+serialHexHL         = $0130 =   304          Z80MiniAPI.asm:18 (unused)
+serialInHexA        = $0133 =   307          Z80MiniAPI.asm:19 (unused)
+serialInHexHL       = $0136 =   310          Z80MiniAPI.asm:20 (unused)
+serialInputA        = $0124 =   292          Z80MiniAPI.asm:14 (unused)
+serialPrintA        = $0121 =   289          Z80MiniAPI.asm:13 (unused)
+serialPrintStr      = $0127 =   295          Z80MiniAPI.asm:15 (unused)
+setBufClear         = $016C =   364          Z80MiniAPI.asm:39 (unused)
+setBufNoClear       = $016F =   367          Z80MiniAPI.asm:40 (unused)
+setCursor           = $018D =   397          Z80MiniAPI.asm:50 (unused)
+setDefaultSerialA   = $011B =   283          Z80MiniAPI.asm:11 (unused)
+setDefaultSerialB   = $011E =   286          Z80MiniAPI.asm:12 (unused)
+setGrMode           = $0145 =   325          Z80MiniAPI.asm:26 (unused)
+setInt38            = $0166 =   358          Z80MiniAPI.asm:37 (unused)
+setTxtMode          = $0148 =   328          Z80MiniAPI.asm:27 (unused)
+setint66            = $0169 =   361          Z80MiniAPI.asm:38 (unused)
+underline           = $0199 =   409          Z80MiniAPI.asm:54 (unused)
+
+
+total time: 0.0083 sec.
+no errors

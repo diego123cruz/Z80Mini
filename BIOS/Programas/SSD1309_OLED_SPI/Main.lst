@@ -1,0 +1,547 @@
+              	; --------------------------------------
+              	; zasm: assemble "Main.asm"
+              	; date: 2026-08-24 01:24:28
+              	; --------------------------------------
+
+
+              	#include "../Z80MiniAPI.asm"
+              	;   API Z80Mini:
+0100:         	delay500ms          equ     0x0100  ;   Delay 500ms
+0103:         	delay               equ     0x0103  ;   On entry: DE = Delay time in milliseconds
+0106:         	I2C_Open            equ     0x0106  ;   On entry: A = Device address (bit zero is read flag)
+0109:         	I2C_Close           equ     0x0109  ;   Close
+010C:         	I2C_Read            equ     0x010C  ;   On exit: If successful A = data byte and Z flagged
+010F:         	I2C_Write           equ     0x010F  ;   On entry: A = Data byte, or Address byte (bit zero is read flag)
+0112:         	keyboardIsEsc       equ     0x0112  ;   Verifica se ESC foi precionada. On exit: If press A = CTRLC and NZ flagged
+0115:         	keyboardWaitA       equ     0x0115  ;   Aguarda tecla, letra em A. (BC DE HL preserved)
+0118:         	keyboardA           equ     0x0118  ;   Lê teclado, Se tecla Carry=1. Letra em A. (BC DE HL preserved)
+011B:         	setDefaultSerialA   equ     0x011B  ;   Seta terminal padrao porta A, Quando reinicia volta para A.
+011E:         	setDefaultSerialB   equ     0x011E  ;   Seta terminal padrao porta B (P2), Quando reinicia volta para A.
+0121:         	serialPrintA        equ     0x0121  ;   Imprime char in A no terminal setado.
+0124:         	serialInputA        equ     0x0124  ;   Aguarda receber char no terminal setado. Retorno em A.
+0127:         	serialPrintStr      equ     0x0127  ;   Imprime string (HL) terminado em 0 no terminal setado. MAX 128 chars. MODIFIES : A,B,C
+012A:         	serialCRLF          equ     0x012A  ;   Imprime CR e LF no terminal setado.
+012D:         	serialHexA          equ     0x012D  ;   Imprime byte em A no formato HEX, no terminal setado. Ex: 'D' = 44
+0130:         	serialHexHL         equ     0x0130  ;   Imprime HL como 4 digitos hexadecimais, no terminal setado. Ex: HL=$80FF -> imprime "80FF"
+0133:         	serialInHexA        equ     0x0133  ;   Pegar 2 caracteres ASCII (0-9 A-F), do terminal setado e converte em um byte em A. SEM ECHO
+0136:         	serialInHexHL       equ     0x0136  ;   Pegar 4 caracteres ASCII (0-9 A-F), do terminal setado e converte em HL. SEM ECHO
+              	
+0139:         	initLCD             equ     0x0139  ;   Inicializa GLCD
+013C:         	clearGBUF           equ     0x013C  ;   Limpa buffer da memoria de grafico. Precisa do plotToLCD para refletir no lcd.
+013F:         	clearGrLCD          equ     0x013F  ;   Limpa memoria grafico do GLCD. Sem o plotToLCD.
+0142:         	clearTxtLCD         equ     0x0142  ;   Limpar caracteres do LCD
+0145:         	setGrMode           equ     0x0145  ;   Seta modo Grafico. 128x64
+0148:         	setTxtMode          equ     0x0148  ;   Seta mode Text. 16x4 equivalente
+014B:         	drawBox             equ     0x014B  ;   Desenha caixa. Entradas: BC = X0,Y0 - DE = X1,Y1    Destroys: HL
+014E:         	drawLine            equ     0x014E  ;   Desenha linha.  Entradas: BC = X0,Y0 - DE = X1,Y1
+0151:         	drawCircle          equ     0x0151  ;   Desenha circulo. Entradas BC = xm,ym (Ponro do Meio) - E = radius
+0154:         	drawPixel           equ     0x0154  ;   Desenha um pixel em X Y.  Entrada B = column/X (0-127), C = row/Y (0-63)   Destroys: HL
+0157:         	fillBox             equ     0x0157  ;   Desenha caixa preenchida. Entradas: BC = X0,Y0 - DE = X1,Y1    Destroys: HL
+015A:         	fillCircle          equ     0x015A  ;   Desenha circulo preenchido. Entradas BC = xm,ym (Ponro do Meio) - E = radius
+015D:         	plotToLCD           equ     0x015D  ;   Rotina principal de desenho. Move GBUF para o LCD e limpa o buffer ou não (setBufClear, setBufNoClear).  Destroys: ALL
+0160:         	printString         equ     0x0160  ;   Imprimir texto ASCII em uma determinada linha. Entradas: A = 0 a 3 Número da linha. .db "String" na próxima linha, terminar com 0
+0163:         	printChars          equ     0x0163  ;   (Ver detalhes) Imprimir caracteres na posição X,Y. Entrada B = coluna/X (0-7), C = linha/Y (0-3). HL = Endereço inicial do texto a ser exibido, termina com 0
+0166:         	setInt38            equ     0x0166  ;   Seta vetor de interrupcao int38. Entradas HL = RST38_ADDR
+0169:         	setint66            equ     0x0169  ;   Seta vetor de interrupcao int66. Entradas HL = RST66_ADDR
+016C:         	setBufClear         equ     0x016C  ;   Configura limpeza do buffer após a saída para o LCD e vai para clearGBUF.
+016F:         	setBufNoClear       equ     0x016F  ;   Configura para não limpar o buffer após a saída para o LCD.
+0172:         	clearPixel          equ     0x0172  ;   Limpa um pixel X Y.  Input B = column/X (0-127), C = row/Y (0-63)    Destroy HL
+0175:         	flipPixel           equ     0x0175  ;   Inverte um pixel X Y.  Input B = column/X (0-127), C = row/Y (0-63)    Destroy HL
+0178:         	drawGraphic         equ     0x0178  ;   Desenha no buffer. Entrada: A = número ASCII ou se A=0 Então  HL = Endereço dos dados gráficos. B = (MULTIPLO DE 8) largura do gráfico em pixels (1-128). C = altura do gráfico em pixels (1-64). Destroy: ALL
+017B:         	invGraphic          equ     0x017B  ;   Altera a flag de desenho inverso. (não inverte grafico atual) Destroy A
+017E:         	initTerminal        equ     0x017E  ;   Inicializa o Terminal GLCD. Cursor 0,0 e limpa buffer.
+0181:         	sendCharToLCD       equ     0x0181  ;   Envia ou manipula caracteres ASCII para a tela GLCD (Terminal). Entrada: A = caractere ASCII a ser enviado para a tela GLCD. A = somente cursor desenhado.
+0184:         	sendStringToLCD     equ     0x0184  ;   Imprime string no terminal GLCD. DE = inicio da string. A = caractere para parar a impressão. A impressão para e retorna quando um CR é impresso. Destroy ALL
+0187:         	sendRegToLCD        equ     0x0187  ;   Imprime byte em A no formato HEX, no GLCD. Ex: 'D' = 44
+018A:         	sendHLToLCD         equ     0x018A  ;   Imprime HL como 4 digitos hexadecimais, no GLCD. Ex: HL=$80FF -> imprime "80FF"
+018D:         	setCursor           equ     0x018D  ;   Define a posição do cursor gráfico. Entradas: BC = X,Y onde X = 0..127, Y = 0..63   Destroy A
+0190:         	getCursor           equ     0x0190  ;   Obter a posição do cursor. Saídas: BC = X,Y onde X = 0..127, Y = 0..63
+0193:         	displayCursor       equ     0x0193  ;   Exibir Cursor. Entrada: A = 0, Ativar cursor, A = diferente de zero, Desativar cursor.
+0196:         	autoLF              equ     0x0196  ;   Avanço de linha automático quando o cursor atinge o final da linha (Terminal). Entrada: A = 0, Avanço de linha automático; A = diferente de zero, Sem avanço de linha automático. Padrao LIGADO.
+0199:         	underline           equ     0x0199  ;   Exibir sublinhado no caractere (Terminal). O estado inicial é sem sublinhado. Chamar esta rotina irá ALTERAR/DESLIGAR o sinalizador de sublinhado.
+019C:         	plotAlways          equ     0x019C  ;   Quando sendCharToLCD é chamado, Atualiza GLCD ou não. Se Desativado plotToLCD deve ser chamado atualizar o GLCD. Entrada: A=0, Plotar sempre; A>0, Não plotar. O padrão é Plotar sempre.
+019F:         	resetCollisionPixel equ     0x019F  ;   Limpa flag de colisao
+01A2:         	checkCollisionPixel equ     0x01A2  ;   Check se um pixel ja estava ligado quando tenta ligar. JP Z, SEM_COLISAO. JP NZ, COLISAO.
+01A5:         	I2C_OpenRead        equ     0x01A5  ;   I2C Open Read  (On entry: A = Device address)
+01A8:         	I2C_OpenWrite       equ     0x01A8  ;   I2C Open Write (On entry: A = Device address)
+              	
+              	
+              	
+              	; -----------------------------------------------------------------------------
+              	; PORTS
+              	; -----------------------------------------------------------------------------
+0070:         	GLCD_INST           .EQU    $70
+0071:         	GLCD_DATA           .EQU    $71
+              	
+0040:         	KEYBOARD		    .EQU	$40
+              	
+              	; ============================================================
+              	; KEYMAPS
+              	; ============================================================
+              	
+              	;	$FF - Capsloock
+              	;	$FE - Shift left
+              	;	$FD - Ctrl left
+              	;	$FC - Windows
+              	;	$FB - Alt left
+              	;	$FA - Alt Gr    (Load intel hex - Serial A)
+              	;	$F9 - LUZ   (CALL 8000H)
+              	;	$F8 - Shift Right   (Display Scroll UP)
+              	;	$F7 - Ctrl Right    (Display Scroll DOWN)
+              	;	$F6 - Fn
+              	
+              	; -------- Constantes gerais --------
+000D:         	CR:       EQU   0DH
+000A:         	LF:       EQU   0AH
+0008:         	BKS:      EQU   08H
+007F:         	DEL:      EQU   7FH
+001B:         	ESC:      EQU   1BH
+0020:         	SPACE:    EQU   20H
+0000:         	NUL:      EQU   00H
+000C:         	FF:       EQU   0CH                 ; Form Feed -> Limpa lcd
+              	
+              	; -----------------------------------------------------------------------------
+              	; SIO/2 - SERIAL
+              	; -----------------------------------------------------------------------------
+0000:         	SIOA_D:   EQU   $00
+0002:         	SIOA_C:   EQU   $02
+0001:         	SIOB_D:   EQU   $01   ; Conector P2
+0003:         	SIOB_C:   EQU   $03   ; Conector P2
+              	
+              	
+              	; ============================================================
+              	;  SSD1309_TEXT.asm - Driver SSD1309 (128x64) + texto na tela
+              	;                      "Z80Mini", Z80Mini, SPI bit-bang
+              	;
+              	;  Porta $C0 (saida):
+              	;     bit0 = SCK
+              	;     bit1 = MOSI
+              	;     bit2 = CS    (ativo em nivel baixo)
+              	;     bit3 = DC    (0 = comando, 1 = dado)
+              	;     bit4 = RES   (ativo em nivel baixo)
+              	;
+              	;  Montar:  zasm --z80 -w -u --bin SSD1309_TEXT.asm
+              	;  Rodar:   G 8000
+              	; ============================================================
+              	
+8000:         	        org     $8000
+              	
+00C0:         	PORT_OUT    equ $C0
+              	
+0000:         	BIT_SCK     equ 0
+0001:         	BIT_MOSI    equ 1
+0002:         	BIT_CS      equ 2
+0003:         	BIT_DC      equ 3
+0004:         	BIT_RES     equ 4
+              	
+0001:         	M_SCK       equ (1 << BIT_SCK)
+0002:         	M_MOSI      equ (1 << BIT_MOSI)
+0004:         	M_CS        equ (1 << BIT_CS)
+0008:         	M_DC        equ (1 << BIT_DC)
+0010:         	M_RES       equ (1 << BIT_RES)
+              	
+              	; ------------------------------------------------------------
+              	; PONTO DE ENTRADA
+              	; ------------------------------------------------------------
+8000:         	START:
+8000: CD1C80  	        call    OLED_RESET
+8003: CD4180  	        call    OLED_INIT
+8006: CD6480  	        call    OLED_CLEAR
+              	
+8009: 211480  	        ld      hl, MSG
+800C: 1603    	        ld      d, 3            ; pagina 3 (meio da tela, linhas 24-31)
+800E: 1E2C    	        ld      e, 44           ; coluna inicial (centraliza ~7 chars x 6px=42)
+8010: CD9880  	        call    OLED_DRAWSTR
+8013: C9      	        ret
+              	
+8014: 5A38304D	MSG:    db      "Z80Mini", 0
+8018: 696E6900	
+              	
+              	; ------------------------------------------------------------
+              	; OLED_RESET
+              	; ------------------------------------------------------------
+801C:         	OLED_RESET:
+801C: 3E14    	        ld      a, M_CS | M_RES
+801E: 326781  	        ld      (SHADOW), a
+8021: D3C0    	        out     (PORT_OUT), a
+8023: CD5C81  	        call    DELAY_MS1
+              	
+8026: 3A6781  	        ld      a, (SHADOW)
+8029: E6EF    	        and     $FF ^ M_RES
+802B: 326781  	        ld      (SHADOW), a
+802E: D3C0    	        out     (PORT_OUT), a
+8030: CD5C81  	        call    DELAY_MS1
+              	
+8033: 3A6781  	        ld      a, (SHADOW)
+8036: F610    	        or      M_RES
+8038: 326781  	        ld      (SHADOW), a
+803B: D3C0    	        out     (PORT_OUT), a
+803D: CD5C81  	        call    DELAY_MS1
+8040: C9      	        ret
+              	
+              	; ------------------------------------------------------------
+              	; OLED_INIT
+              	; ------------------------------------------------------------
+8041:         	OLED_INIT:
+8041: 214E80  	        ld      hl, INIT_SEQ
+8044:         	INIT_LOOP:
+8044: 7E      	        ld      a, (hl)
+8045: FEFF    	        cp      $FF
+8047: C8      	        ret     z
+8048: CD0781  	        call    OLED_CMD
+804B: 23      	        inc     hl
+804C: 18F6    	        jr      INIT_LOOP
+              	
+804E:         	INIT_SEQ:
+804E: AE      	        db      $AE
+804F: D5A0    	        db      $D5, $A0
+8051: A83F    	        db      $A8, $3F
+8053: D300    	        db      $D3, $00
+8055: 40      	        db      $40
+8056: A1      	        db      $A1
+8057: C8      	        db      $C8
+8058: DA12    	        db      $DA, $12
+805A: 81DF    	        db      $81, $DF
+805C: D982    	        db      $D9, $82
+805E: DB34    	        db      $DB, $34
+8060: A4      	        db      $A4
+8061: A6      	        db      $A6
+8062: AF      	        db      $AF
+8063: FF      	        db      $FF
+              	
+              	; ------------------------------------------------------------
+              	; OLED_CLEAR - zera as 8 paginas x 128 colunas
+              	; ------------------------------------------------------------
+8064:         	OLED_CLEAR:
+8064: 0608    	        ld      b, 8
+8066: 0E00    	        ld      c, 0
+8068:         	CLR_PAGE:
+8068: C5      	        push    bc
+8069: 79      	        ld      a, c
+806A: 1E00    	        ld      e, 0
+806C: CD7E80  	        call    OLED_SET_POS
+806F: 0680    	        ld      b, 128
+8071:         	CLR_COL:
+8071: C5      	        push    bc
+8072: AF      	        xor     a
+8073: CD1781  	        call    OLED_DATA
+8076: C1      	        pop     bc
+8077: 10F8    	        djnz    CLR_COL
+8079: C1      	        pop     bc
+807A: 0C      	        inc     c
+807B: 10EB    	        djnz    CLR_PAGE
+807D: C9      	        ret
+              	
+              	; ------------------------------------------------------------
+              	; OLED_SET_POS - posiciona pagina e coluna
+              	; entrada: A = pagina (0-7), E = coluna (0-127)
+              	; ------------------------------------------------------------
+807E:         	OLED_SET_POS:
+807E: F5      	        push    af
+807F: F6B0    	        or      $B0                     ; set page
+8081: CD0781  	        call    OLED_CMD
+8084: 7B      	        ld      a, e
+8085: E60F    	        and     $0F                     ; column low nibble
+8087: CD0781  	        call    OLED_CMD
+808A: 7B      	        ld      a, e
+808B: 0F      	        rrca
+808C: 0F      	        rrca
+808D: 0F      	        rrca
+808E: 0F      	        rrca
+808F: E60F    	        and     $0F
+8091: F610    	        or      $10                     ; column high nibble
+8093: CD0781  	        call    OLED_CMD
+8096: F1      	        pop     af
+8097: C9      	        ret
+              	
+              	; ------------------------------------------------------------
+              	; OLED_DRAWSTR - desenha string terminada em 0
+              	; entrada: HL = ponteiro string, D = pagina, E = coluna inicial
+              	; ------------------------------------------------------------
+8098:         	OLED_DRAWSTR:
+8098: 7E      	        ld      a, (hl)
+8099: B7      	        or      a
+809A: C8      	        ret     z
+809B: E5      	        push    hl
+809C: CDA780  	        call    OLED_DRAWCHAR
+809F: E1      	        pop     hl
+80A0: 23      	        inc     hl
+80A1: 7B      	        ld      a, e
+80A2: C606    	        add     a, 6                    ; 5 colunas de glifo + 1 de espaco
+80A4: 5F      	        ld      e, a
+80A5: 18F1    	        jr      OLED_DRAWSTR
+              	
+              	; ------------------------------------------------------------
+              	; OLED_DRAWCHAR - desenha um caractere (5x7) na posicao D,E
+              	; entrada: A = caractere, D = pagina, E = coluna
+              	; ------------------------------------------------------------
+80A7:         	OLED_DRAWCHAR:
+80A7: D5      	        push    de
+80A8: CDC180  	        call    GET_GLYPH               ; retorna HL = ponteiro p/ 5 bytes
+80AB: D1      	        pop     de
+80AC: E5      	        push    hl
+80AD: 7A      	        ld      a, d
+80AE: CD7E80  	        call    OLED_SET_POS
+80B1: E1      	        pop     hl
+              	
+80B2: 0605    	        ld      b, 5
+80B4:         	DC_LOOP:
+80B4: 7E      	        ld      a, (hl)
+80B5: CD1781  	        call    OLED_DATA
+80B8: 23      	        inc     hl
+80B9: 10F9    	        djnz    DC_LOOP
+              	
+80BB: 3E00    	        ld      a, 0
+80BD: CD1781  	        call    OLED_DATA               ; coluna de espaco entre caracteres
+80C0: C9      	        ret
+              	
+              	; ------------------------------------------------------------
+              	; GET_GLYPH - busca glifo do caractere em A na FONT_TABLE
+              	; saida: HL = ponteiro para 5 bytes do glifo (BLANK se nao achar)
+              	; ------------------------------------------------------------
+80C1:         	GET_GLYPH:
+80C1: F5      	        push    af
+80C2: 21DD80  	        ld      hl, FONT_TABLE
+80C5:         	GG_LOOP:
+80C5: 7E      	        ld      a, (hl)
+80C6: FEFF    	        cp      $FF
+80C8: 280E    	        jr      z, GG_NOTFOUND
+80CA: F1      	        pop     af
+80CB: F5      	        push    af
+80CC: BE      	        cp      (hl)
+80CD: 2806    	        jr      z, GG_FOUND
+80CF: 110600  	        ld      de, 6
+80D2: 19      	        add     hl, de
+80D3: 18F0    	        jr      GG_LOOP
+80D5:         	GG_FOUND:
+80D5: 23      	        inc     hl
+80D6: F1      	        pop     af
+80D7: C9      	        ret
+80D8:         	GG_NOTFOUND:
+80D8: F1      	        pop     af
+80D9: 210281  	        ld      hl, BLANK_GLYPH
+80DC: C9      	        ret
+              	
+              	; Fonte 5x7, formato coluna (bit0 = topo, bit6 = base), 1 byte por coluna
+80DD:         	FONT_TABLE:
+80DD: 5A615149	        db      'Z', $61, $51, $49, $45, $43
+80E1: 4543    	
+80E3: 38364949	        db      '8', $36, $49, $49, $49, $36
+80E7: 4936    	
+80E9: 303E5149	        db      '0', $3E, $51, $49, $45, $3E
+80ED: 453E    	
+80EF: 4D7F020C	        db      'M', $7F, $02, $0C, $02, $7F
+80F3: 027F    	
+80F5: 6900447D	        db      'i', $00, $44, $7D, $40, $00
+80F9: 4000    	
+80FB: 6E7C0804	        db      'n', $7C, $08, $04, $04, $78
+80FF: 0478    	
+8101: FF      	        db      $FF
+              	
+8102:         	BLANK_GLYPH:
+8102: 00000000	        db      $00, $00, $00, $00, $00
+8106: 00      	
+              	
+              	; ------------------------------------------------------------
+              	; OLED_CMD / OLED_DATA / SPI_SEND
+              	; ------------------------------------------------------------
+8107:         	OLED_CMD:
+8107: F5      	        push    af
+8108: 3A6781  	        ld      a, (SHADOW)
+810B: E6F7    	        and     $FF ^ M_DC
+810D: 326781  	        ld      (SHADOW), a
+8110: D3C0    	        out     (PORT_OUT), a
+8112: F1      	        pop     af
+8113: CD2781  	        call    SPI_SEND
+8116: C9      	        ret
+              	
+8117:         	OLED_DATA:
+8117: F5      	        push    af
+8118: 3A6781  	        ld      a, (SHADOW)
+811B: F608    	        or      M_DC
+811D: 326781  	        ld      (SHADOW), a
+8120: D3C0    	        out     (PORT_OUT), a
+8122: F1      	        pop     af
+8123: CD2781  	        call    SPI_SEND
+8126: C9      	        ret
+              	
+8127:         	SPI_SEND:
+8127: C5      	        push    bc
+8128: 4F      	        ld      c, a
+              	
+8129: 3A6781  	        ld      a, (SHADOW)
+812C: E6FB    	        and     $FF ^ M_CS
+812E: 326781  	        ld      (SHADOW), a
+8131: D3C0    	        out     (PORT_OUT), a
+              	
+8133: 0608    	        ld      b, 8
+8135:         	SPI_BITLOOP:
+8135: 3A6781  	        ld      a, (SHADOW)
+8138: E6FC    	        and     $FF ^ (M_MOSI | M_SCK)
+813A: CB01    	        rlc     c
+813C: 3002    	        jr      nc, SPI_BIT0
+813E: F602    	        or      M_MOSI
+8140:         	SPI_BIT0:
+8140: 326781  	        ld      (SHADOW), a
+8143: D3C0    	        out     (PORT_OUT), a
+              	
+8145: F601    	        or      M_SCK
+8147: 326781  	        ld      (SHADOW), a
+814A: D3C0    	        out     (PORT_OUT), a
+              	
+814C: 10E7    	        djnz    SPI_BITLOOP
+              	
+814E: 3A6781  	        ld      a, (SHADOW)
+8151: E6FE    	        and     $FF ^ M_SCK
+8153: F604    	        or      M_CS
+8155: 326781  	        ld      (SHADOW), a
+8158: D3C0    	        out     (PORT_OUT), a
+              	
+815A: C1      	        pop     bc
+815B: C9      	        ret
+              	
+              	; ------------------------------------------------------------
+              	; DELAY_MS1
+              	; ------------------------------------------------------------
+815C:         	DELAY_MS1:
+815C: C5      	        push    bc
+815D: 01B004  	        ld      bc, 1200
+8160:         	DLY_LOOP:
+8160: 0B      	        dec     bc
+8161: 78      	        ld      a, b
+8162: B1      	        or      c
+8163: 20FB    	        jr      nz, DLY_LOOP
+8165: C1      	        pop     bc
+8166: C9      	        ret
+              	
+              	; ------------------------------------------------------------
+              	; VARIAVEIS
+              	; ------------------------------------------------------------
+8167: 00      	SHADOW: db      0
+              	
+              	        end
+
+
+; +++ segments +++
+
+#CODE          = $8000 = 32768,  size = $0168 =   360
+
+; +++ global symbols +++
+
+BIT_CS              = $0002 =     2          Main.asm:23
+BIT_DC              = $0003 =     3          Main.asm:24
+BIT_MOSI            = $0001 =     1          Main.asm:22
+BIT_RES             = $0004 =     4          Main.asm:25
+BIT_SCK             = $0000 =     0          Main.asm:21
+BKS                 = $0008 =     8          Z80MiniAPI.asm:89 (unused)
+BLANK_GLYPH         = $8102 = 33026          Main.asm:224
+CLR_COL             = $8071 = 32881          Main.asm:113
+CLR_PAGE            = $8068 = 32872          Main.asm:107
+CR                  = $000D =    13          Z80MiniAPI.asm:87 (unused)
+DC_LOOP             = $80B4 = 32948          Main.asm:177
+DEL                 = $007F =   127          Z80MiniAPI.asm:90 (unused)
+DELAY_MS1           = $815C = 33116          Main.asm:288
+DLY_LOOP            = $8160 = 33120          Main.asm:291
+ESC                 = $001B =    27          Z80MiniAPI.asm:91 (unused)
+FF                  = $000C =    12          Z80MiniAPI.asm:94 (unused)
+FONT_TABLE          = $80DD = 32989          Main.asm:215
+GET_GLYPH           = $80C1 = 32961          Main.asm:191
+GG_FOUND            = $80D5 = 32981          Main.asm:205
+GG_LOOP             = $80C5 = 32965          Main.asm:194
+GG_NOTFOUND         = $80D8 = 32984          Main.asm:209
+GLCD_DATA           = $0071 =   113          Z80MiniAPI.asm:67 (unused)
+GLCD_INST           = $0070 =   112          Z80MiniAPI.asm:66 (unused)
+I2C_Close           = $0109 =   265          Z80MiniAPI.asm:5 (unused)
+I2C_Open            = $0106 =   262          Z80MiniAPI.asm:4 (unused)
+I2C_OpenRead        = $01A5 =   421          Z80MiniAPI.asm:58 (unused)
+I2C_OpenWrite       = $01A8 =   424          Z80MiniAPI.asm:59 (unused)
+I2C_Read            = $010C =   268          Z80MiniAPI.asm:6 (unused)
+I2C_Write           = $010F =   271          Z80MiniAPI.asm:7 (unused)
+INIT_LOOP           = $8044 = 32836          Main.asm:76
+INIT_SEQ            = $804E = 32846          Main.asm:84
+KEYBOARD            = $0040 =    64          Z80MiniAPI.asm:69 (unused)
+LF                  = $000A =    10          Z80MiniAPI.asm:88 (unused)
+MSG                 = $8014 = 32788          Main.asm:47
+M_CS                = $0004 =     4          Main.asm:29
+M_DC                = $0008 =     8          Main.asm:30
+M_MOSI              = $0002 =     2          Main.asm:28
+M_RES               = $0010 =    16          Main.asm:31
+M_SCK               = $0001 =     1          Main.asm:27
+NUL                 = $0000 =     0          Z80MiniAPI.asm:93 (unused)
+OLED_CLEAR          = $8064 = 32868          Main.asm:104
+OLED_CMD            = $8107 = 33031          Main.asm:230
+OLED_DATA           = $8117 = 33047          Main.asm:240
+OLED_DRAWCHAR       = $80A7 = 32935          Main.asm:167
+OLED_DRAWSTR        = $8098 = 32920          Main.asm:150
+OLED_INIT           = $8041 = 32833          Main.asm:74
+OLED_RESET          = $801C = 32796          Main.asm:52
+OLED_SET_POS        = $807E = 32894          Main.asm:128
+PORT_OUT            = $00C0 =   192          Main.asm:19
+SHADOW              = $8167 = 33127          Main.asm:302
+SIOA_C              = $0002 =     2          Z80MiniAPI.asm:100 (unused)
+SIOA_D              = $0000 =     0          Z80MiniAPI.asm:99 (unused)
+SIOB_C              = $0003 =     3          Z80MiniAPI.asm:102 (unused)
+SIOB_D              = $0001 =     1          Z80MiniAPI.asm:101 (unused)
+SPACE               = $0020 =    32          Z80MiniAPI.asm:92 (unused)
+SPI_BIT0            = $8140 = 33088          Main.asm:266
+SPI_BITLOOP         = $8135 = 33077          Main.asm:260
+SPI_SEND            = $8127 = 33063          Main.asm:250
+START               = $8000 = 32768          Main.asm:36 (unused)
+_end                = $8168 = 33128          Z80MiniAPI.asm:16 (unused)
+_size               = $0168 =   360          Z80MiniAPI.asm:16 (unused)
+_z80_               = $0001 =     1          Main.asm:1 (unused)
+autoLF              = $0196 =   406          Z80MiniAPI.asm:53 (unused)
+checkCollisionPixel = $01A2 =   418          Z80MiniAPI.asm:57 (unused)
+clearGBUF           = $013C =   316          Z80MiniAPI.asm:23 (unused)
+clearGrLCD          = $013F =   319          Z80MiniAPI.asm:24 (unused)
+clearPixel          = $0172 =   370          Z80MiniAPI.asm:41 (unused)
+clearTxtLCD         = $0142 =   322          Z80MiniAPI.asm:25 (unused)
+delay               = $0103 =   259          Z80MiniAPI.asm:3 (unused)
+delay500ms          = $0100 =   256          Z80MiniAPI.asm:2 (unused)
+displayCursor       = $0193 =   403          Z80MiniAPI.asm:52 (unused)
+drawBox             = $014B =   331          Z80MiniAPI.asm:28 (unused)
+drawCircle          = $0151 =   337          Z80MiniAPI.asm:30 (unused)
+drawGraphic         = $0178 =   376          Z80MiniAPI.asm:43 (unused)
+drawLine            = $014E =   334          Z80MiniAPI.asm:29 (unused)
+drawPixel           = $0154 =   340          Z80MiniAPI.asm:31 (unused)
+fillBox             = $0157 =   343          Z80MiniAPI.asm:32 (unused)
+fillCircle          = $015A =   346          Z80MiniAPI.asm:33 (unused)
+flipPixel           = $0175 =   373          Z80MiniAPI.asm:42 (unused)
+getCursor           = $0190 =   400          Z80MiniAPI.asm:51 (unused)
+initLCD             = $0139 =   313          Z80MiniAPI.asm:22 (unused)
+initTerminal        = $017E =   382          Z80MiniAPI.asm:45 (unused)
+invGraphic          = $017B =   379          Z80MiniAPI.asm:44 (unused)
+keyboardA           = $0118 =   280          Z80MiniAPI.asm:10 (unused)
+keyboardIsEsc       = $0112 =   274          Z80MiniAPI.asm:8 (unused)
+keyboardWaitA       = $0115 =   277          Z80MiniAPI.asm:9 (unused)
+plotAlways          = $019C =   412          Z80MiniAPI.asm:55 (unused)
+plotToLCD           = $015D =   349          Z80MiniAPI.asm:34 (unused)
+printChars          = $0163 =   355          Z80MiniAPI.asm:36 (unused)
+printString         = $0160 =   352          Z80MiniAPI.asm:35 (unused)
+resetCollisionPixel = $019F =   415          Z80MiniAPI.asm:56 (unused)
+sendCharToLCD       = $0181 =   385          Z80MiniAPI.asm:46 (unused)
+sendHLToLCD         = $018A =   394          Z80MiniAPI.asm:49 (unused)
+sendRegToLCD        = $0187 =   391          Z80MiniAPI.asm:48 (unused)
+sendStringToLCD     = $0184 =   388          Z80MiniAPI.asm:47 (unused)
+serialCRLF          = $012A =   298          Z80MiniAPI.asm:16 (unused)
+serialHexA          = $012D =   301          Z80MiniAPI.asm:17 (unused)
+serialHexHL         = $0130 =   304          Z80MiniAPI.asm:18 (unused)
+serialInHexA        = $0133 =   307          Z80MiniAPI.asm:19 (unused)
+serialInHexHL       = $0136 =   310          Z80MiniAPI.asm:20 (unused)
+serialInputA        = $0124 =   292          Z80MiniAPI.asm:14 (unused)
+serialPrintA        = $0121 =   289          Z80MiniAPI.asm:13 (unused)
+serialPrintStr      = $0127 =   295          Z80MiniAPI.asm:15 (unused)
+setBufClear         = $016C =   364          Z80MiniAPI.asm:39 (unused)
+setBufNoClear       = $016F =   367          Z80MiniAPI.asm:40 (unused)
+setCursor           = $018D =   397          Z80MiniAPI.asm:50 (unused)
+setDefaultSerialA   = $011B =   283          Z80MiniAPI.asm:11 (unused)
+setDefaultSerialB   = $011E =   286          Z80MiniAPI.asm:12 (unused)
+setGrMode           = $0145 =   325          Z80MiniAPI.asm:26 (unused)
+setInt38            = $0166 =   358          Z80MiniAPI.asm:37 (unused)
+setTxtMode          = $0148 =   328          Z80MiniAPI.asm:27 (unused)
+setint66            = $0169 =   361          Z80MiniAPI.asm:38 (unused)
+underline           = $0199 =   409          Z80MiniAPI.asm:54 (unused)
+
+
+total time: 0.0137 sec.
+no errors
