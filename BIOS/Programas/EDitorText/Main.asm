@@ -1,4 +1,4 @@
-;#include "../Z80MiniAPI.asm"
+#include "../Z80MiniAPI.asm"
 
 ; =============================================================================
 ; EDMINI.ASM - Editor de texto estilo ED.COM (CP/M) para o Z80Mini
@@ -41,18 +41,6 @@
 
     ORG 8000h
 
-; -----------------------------------------------------------------------------
-; API do Z80Mini (ver BIOS/Programas/Z80MiniAPI.asm)
-; -----------------------------------------------------------------------------
-keyboardIsEsc:    EQU 0112h
-keyboardWaitA:    EQU 0115h
-keyboardA:        EQU 0118h
-serialPrintA:     EQU 0121h
-serialCRLF:       EQU 012Ah
-initTerminal:     EQU 017Eh
-CoresendCharToLCD:    EQU 0181h
-autoLF:           EQU 0196h
-
 CR:    EQU 0Dh
 LF:    EQU 0Ah
 BKS:   EQU 08h
@@ -66,7 +54,7 @@ NUL:   EQU 00h
 ; -----------------------------------------------------------------------------
 MAXLINE:  EQU 60      ; tamanho máximo de uma linha de texto digitada
 BUFSIZE:  EQU 4096    ; tamanho da área de armazenamento do texto
-PAGESIZE: EQU 6        ; linhas mostradas por "página" no comando L
+PAGESIZE: EQU 10      ; linhas mostradas por "página" no comando L
 
 ; =============================================================================
 ; PONTO DE ENTRADA
@@ -117,6 +105,8 @@ EXEC_CMD:
     JP Z, CMD_HELP
     CP 'E'
     JP Z, CMD_EXIT
+    CP 'C'
+    JP Z, CMD_CLEAR
     LD HL, MSG_UNKNOWN
     JP PRINT_MSG
 
@@ -131,8 +121,8 @@ CI_ATSTART:
     LD A, 1
 CI_GOTIN:
     LD (INS_POS), A
-    LD HL, MSG_INSERT_HELP
-    CALL PRINT_STR
+    ;LD HL, MSG_INSERT_HELP
+    ;CALL PRINT_STR
 CI_LOOP:
     CALL READ_LINE
     JP C, CI_END               ; ESC termina
@@ -141,10 +131,14 @@ CI_LOOP:
     JP Z, CI_END                ; linha vazia termina
     LD A, (INS_POS)
     CALL ADD_LINE_AT
+    JP C, CI_END                 ; buffer cheio ou posição inválida - aborta
+    LD A, (INS_POS)
+    LD (CURLINE), A               ; CURLINE = linha que acabou de ser inserida
+    LD A, (LINECOUNT)
+    CP 255
+    JP Z, CI_END                   ; atingiu o maximo de 255 linhas - encerra
     LD HL, INS_POS
     INC (HL)
-    LD A, (INS_POS)
-    LD (CURLINE), A
     JP CI_LOOP
 CI_END:
     RET
@@ -154,8 +148,8 @@ CMD_APPEND:
     LD A, (CURLINE)
     INC A
     LD (INS_POS), A
-    LD HL, MSG_INSERT_HELP
-    CALL PRINT_STR
+    ;LD HL, MSG_INSERT_HELP
+    ;CALL PRINT_STR
     JP CI_LOOP
 
 ; -----------------------------------------------------------------------------
@@ -208,6 +202,7 @@ CP_ATSTART:
 CMD_GOTO:
     LD HL, LINEBUF+2           ; pula o 'G'; PARSE_NUMBER ainda pula espaços
     CALL PARSE_NUMBER
+    JP C, CG_ERR                ; número > 255 (estouro) - inválido
     OR A
     JP Z, CG_ERR
     CALL FIND_LINE               ; entrada A=alvo; saída D=alvo preservado
@@ -245,7 +240,7 @@ CL_LOOP:
     CP PAGESIZE
     JP C, CL_LOOP
     LD HL, MSG_MORE
-    CALL PRINT_STR
+    CALL PRINT_MSG
     CALL keyboardWaitA
     CALL LCD_NEWLINE
     CP ESC
@@ -258,11 +253,16 @@ CL_END:
 
 ; -----------------------------------------------------------------------------
 ; Envia o buffer inteiro pela serial, uma linha de texto por linha,
-; para ser capturado/salvo por um terminal externo.
+; para ser capturado/salvo por um terminal externo. Troca temporariamente
+; o canal serial padrão para a impressora térmica (Serial B) e restaura
+; o canal original (Serial A) ao final, mesmo em caso de erro.
 CMD_WRITE:
     LD A, (LINECOUNT)
     OR A
     JP Z, CX_EMPTY
+
+    CALL setDefaultSerialB ; impressora termica
+
     LD HL, MSG_SENDING
     CALL PRINT_MSG
     LD HL, BUFSTART
@@ -284,13 +284,16 @@ CW_CHAR:
 CW_EOL:
     CALL serialCRLF
     DJNZ CW_LOOP
+
+    CALL setDefaultSerialA  ; restaura o canal serial padrão (Serial A)
+
     LD HL, MSG_DONE
     JP PRINT_MSG
 
 ; -----------------------------------------------------------------------------
 CMD_HELP:
     LD HL, MSG_HELP
-    CALL PRINT_STR
+    CALL PRINT_MSG
     RET
 
 ; -----------------------------------------------------------------------------
@@ -298,6 +301,40 @@ CMD_EXIT:
     LD HL, MSG_BYE
     CALL PRINT_MSG
     RET                         ; volta para quem deu CALL 8000H (ex.: monitor)
+
+;------------------------------------------------------------------------------
+
+; =============================================================================
+CMD_CLEAR:
+    LD A, (LINECOUNT)
+    OR A
+    JP Z, CC_EMPTY              ; se já está vazio, avisa e sai
+    
+    LD HL, MSG_CLEAR_CONFIRM
+    CALL PRINT_MSG
+    
+    CALL keyboardWaitA
+    CALL UPCASE
+    CP 'S'                       ; 'S' de "Sim"
+    JR NZ, CC_ABORT
+    
+    ; Limpa o buffer
+    XOR A
+    LD (CURLINE), A
+    LD (LINECOUNT), A
+    LD HL, BUFSTART
+    LD (BUFPTR), HL
+    
+    LD HL, MSG_CLEARED
+    JP PRINT_MSG
+    
+CC_ABORT:
+    LD HL, MSG_CLEAR_CANCEL
+    JP PRINT_MSG
+    
+CC_EMPTY:
+    LD HL, MSG_EMPTY
+    JP PRINT_MSG
 
 ; =============================================================================
 ; MOTOR DO BUFFER DE TEXTO
@@ -393,9 +430,16 @@ DL_INVALID:
 ; -----------------------------------------------------------------------------
 ; Entrada: A = posição (número de linha, 1..LINECOUNT+1) onde a nova linha
 ;          deve ficar. LINEBUF = [tamanho][texto] da nova linha (já lida).
+; Saída:   Carry=1 se a inserção falhou (posição inválida ou buffer cheio);
+;          nesse caso já foi impressa uma mensagem de erro.
 ADD_LINE_AT:
     CALL FIND_LINE
-    RET C
+    JR NC, AL_POSOK
+    LD HL, MSG_MAXLINES          ; ex.: CURLINE estourou 255 (byte) ao incrementar
+    CALL PRINT_MSG
+    SCF
+    RET
+AL_POSOK:
     LD (T_DEST_INS), HL
     LD A, (LINEBUF)
     LD E, A
@@ -437,21 +481,13 @@ AL_NOSHIFT:
     LD (BUFPTR), HL
     LD HL, LINECOUNT
     INC (HL)
+    OR A                                    ; garante Carry=0 (sucesso)
     RET
 AL_FULL:
     LD HL, MSG_FULL
-    JP PRINT_MSG
-    
-    
-sendCharToLCD:
-    push bc
-    push de
-    push hl
-    CALL CoresendCharToLCD
-    pop hl
-    pop de
-    pop bc
-    ret
+    CALL PRINT_MSG
+    SCF
+    RET
 
 ; -----------------------------------------------------------------------------
 ; Entrada: A = número da linha a exibir. Mostra "NNN: texto".
@@ -462,9 +498,9 @@ DISPLAY_LINE:
     POP AF
     CALL PRINT_DEC
     LD A, ':'
-    CALL sendCharToLCD
+    RST 8
     LD A, SPACE
-    CALL sendCharToLCD
+    RST 8
     LD A, (HL)
     LD B, A
     INC HL
@@ -473,7 +509,7 @@ DISPLAY_LINE:
     JR Z, DSP_NL
 DSP_PRINTCH:
     LD A, (HL)
-    CALL sendCharToLCD
+    RST 8
     INC HL
     DJNZ DSP_PRINTCH
 DSP_NL:
@@ -516,7 +552,7 @@ RL_LOOP:
     INC HL
     INC B
     LD A, E
-    CALL sendCharToLCD
+    RST 8
     JR RL_LOOP
 RL_BACK:
     LD A, B
@@ -525,11 +561,7 @@ RL_BACK:
     DEC B
     DEC HL
     LD A, BKS
-    CALL sendCharToLCD
-    LD A, SPACE
-    CALL sendCharToLCD
-    LD A, BKS
-    CALL sendCharToLCD
+    RST 8
     JR RL_LOOP
 RL_DONE:
     LD A, B
@@ -557,29 +589,37 @@ RL_ABORT:
 PRINT_PROMPT:
     CALL LCD_NEWLINE
     LD A, '*'
-    CALL sendCharToLCD
+    RST 8
     RET
 
 LCD_NEWLINE:
     LD A, CR
-    CALL sendCharToLCD
+    RST 8
     LD A, LF
-    CALL sendCharToLCD
+    RST 8
     RET
+
 
 ; Imprime string terminada em NUL apontada por HL
 PRINT_STR:
     LD A, (HL)
     OR A
     RET Z
-    CALL sendCharToLCD
+    RST 8
     INC HL
     JR PRINT_STR
-
+    
 ; Imprime string terminada em NUL e adiciona uma quebra de linha
 PRINT_MSG:
+	LD A,1
+	CALL plotAlways
+
     CALL PRINT_STR
     CALL LCD_NEWLINE
+    
+    LD A,0
+	CALL plotAlways
+	CALL plotToLCD
     RET
 
 ; Converte A para maiúscula (a-z -> A-Z)
@@ -601,7 +641,7 @@ PRINT_DEC:
     CALL PD_PLACE
     LD A, E
     ADD A, '0'
-    CALL sendCharToLCD
+    RST 8
     RET
 PD_PLACE:
     LD D, 0
@@ -623,12 +663,13 @@ PD_PLACE_DONE:
 PD_PLACE_PRINT:
     LD A, D
     ADD A, '0'
-    CALL sendCharToLCD
+    RST 8
     LD B, 1
     RET
 
 ; Entrada: HL = ponteiro para texto ASCII (termina em NUL, CR ou não-dígito)
 ; Saída:   A = valor decimal (0-255), pula espaços iniciais
+;          Carry=1 se o número digitado estourou 255 (inválido)
 PARSE_NUMBER:
     XOR A
     LD C, A
@@ -649,17 +690,24 @@ PN_DIGITS:
     SUB '0'
     LD B, A
     LD A, C
+    CP 26                    ; se C>=26, C*10 já estouraria 255 (26*10=260)
+    JR NC, PN_OVERFLOW
     ADD A, A
     LD D, A
     ADD A, A
     ADD A, A
     ADD A, D
     ADD A, B
+    JR C, PN_OVERFLOW         ; estourou 255 na soma final
     LD C, A
     INC HL
     JR PN_DIGITS
 PN_DONE:
     LD A, C
+    OR A                      ; garante Carry=0
+    RET
+PN_OVERFLOW:
+    SCF
     RET
 
 ; =============================================================================
@@ -669,6 +717,7 @@ MSG_UNKNOWN:      DB "Comando invalido. H = ajuda", CR, LF, 0
 MSG_EMPTY:        DB "Buffer vazio", CR, LF, 0
 MSG_NOLINE:       DB "Linha nao existe", CR, LF, 0
 MSG_FULL:         DB "Buffer cheio!", CR, LF, 0
+MSG_MAXLINES:     DB "Limite de 255 linhas atingido", CR, LF, 0
 MSG_DELETED:      DB "Linha apagada", CR, LF, 0
 MSG_LASTLINE:     DB "Ja esta na ultima linha", CR, LF, 0
 MSG_FIRSTLINE:    DB "Ja esta na primeira linha", CR, LF, 0
@@ -677,12 +726,20 @@ MSG_SENDING:      DB "Enviando pela serial...", CR, LF, 0
 MSG_DONE:         DB "Concluido", CR, LF, 0
 MSG_BYE:          DB "Saindo do editor...", CR, LF, 0
 MSG_INSERT_HELP:  DB "Digite o texto (ENTER vazio termina, ESC cancela)", CR, LF, 0
+MSG_CLEAR_CONFIRM:  DB "Limpar tudo? (S/N) ", 0
+MSG_CLEARED:        DB "Buffer limpo", CR, LF, 0
+MSG_CLEAR_CANCEL:   DB "Cancelado", CR, LF, 0
+
 MSG_HELP:
-    DB "EDMINI - editor de linha", CR, LF
-    DB "I=Insere A=Adiciona D=Apaga", CR, LF
-    DB "N=Prox P=Ant G<n>=Ir p/ linha", CR, LF
-    DB "L=Lista W=Envia p/ serial", CR, LF
-    DB "E=Sai H=Ajuda", CR, LF, 0
+    DB " --- EDMINI ---", CR, LF
+    DB "I=Insere antes linha", CR, LF
+	DB "A=Adiciona depois", CR, LF
+	DB "D=Apaga linha", CR, LF
+    DB "N=Prox P=Ant ", CR, LF
+    DB "G<n>=Ir p/ linha", CR, LF
+    DB "L=Lista W=Print serialB", CR, LF
+    DB "C=Limpar ", CR, LF
+    DB "E=Sair H=Ajuda", 0
 
 ; =============================================================================
 ; VARIÁVEIS
