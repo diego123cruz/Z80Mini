@@ -277,39 +277,38 @@ INT_DEFAULT:
 
 
 ; ============================================================
-; KEYMAPS
+; KEYMAPS  (índice = coluna*8 + linha)
 ; ============================================================
+;   $FF - Capslock          (tratado internamente, não é retornado)
+;   $FE - Shift left        (modificador, não é retornado)
+;   $FD - Ctrl left         (modificador, não é retornado)
+;   $FC - Windows           (não é retornado)
+;   $FB - Alt left          (não é retornado)
+;   $FA - Alt Gr    (Load intel hex - Serial A)
+;   $F9 - LUZ       (CALL 8000H)
+;   $F8 - Shift Right   (Display Scroll UP)
+;   $F7 - Ctrl Right    (Display Scroll DOWN)
+;   $F6 - Fn                (não é retornado)
+;
 
-;	$FF - Capslock
-;	$FE - Shift left
-;	$FD - Ctrl left
-;	$FC - Windows
-;	$FB - Alt left
-;	$FA - Alt Gr    (Load intel hex - Serial A)
-;	$F9 - LUZ   (CALL 8000H)
-;	$F8 - Shift Right   (Display Scroll UP)
-;	$F7 - Ctrl Right    (Display Scroll DOWN)
-;	$F6 - Fn
-;	$F5 - 
-;	$F4 - 
 
 KEYMAP_NORMAL:
     DB  $1B,  $09,  $FF,  $FE,  $FD,  $FC,  $FB,  $20
     DB   '1', 'q',  'a',  '\',  $00,  $FA,  $F6,  $F9
     DB   '3', 'e',  'd',  'x',  ',',  'l',  'o',  '9'
-    DB   '4', 'r',  'f',  'c',  '.',  'ç',  'p',  '0'
+    DB   '4', 'r',  'f',  'c',  '.',  'c',  'p',  '0'
     DB   '6', 'y',  'h',  'b',  $F8,  $F7,  0x0D, 0x08
-    DB   '5', 't',  'g',  'v',  ';',  '~', 	'`',  '-'
+    DB   '5', 't',  'g',  'v',  ';',  '~',  '`',  '-'
     DB   '7', 'u',  'j',  'n',  '/',  ']',  '[',  '='
     DB   '2', 'w',  's',  'z',  'm',  'k',  'i',  '8'
-    
+
 KEYMAP_SHIFT:
     DB  $1B,  $09,  $FF,  $FE,  $FD,  $FC,  $FB,  $20
     DB   '!', 'Q',  'A',  '|',  $00,  $FA,  $F6,  $F9
     DB   '#', 'E',  'D',  'X',  '<',  'L',  'O',  '('
-    DB   '$', 'R',  'F',  'C',  '>',  'Ç',  'P',  ')'
-    DB   '¨', 'Y',  'H',  'B',  $F8,  $F7,  0x0D, 0x08
-    DB   '%', 'T',  'G',  'V',  ':',  '^', 	$22,  '_'
+    DB   '$', 'R',  'F',  'C',  '>',  'C',  'P',  ')'
+    DB   $22, 'Y',  'H',  'B',  $F8,  $F7,  0x0D, 0x08
+    DB   '%', 'T',  'G',  'V',  ':',  '^',  $22,  '_'
     DB   '&', 'U',  'J',  'N',  '?',  '}',  '{',  '+'
     DB   '@', 'W',  'S',  'Z',  'M',  'K',  'I',  '*'
 
@@ -317,9 +316,9 @@ KEYMAP_CAPSLOCK:
     DB  $1B,  $09,  $FF,  $FE,  $FD,  $FC,  $FB,  $20
     DB   '1', 'Q',  'A',  '\',  $00,  $FA,  $F6,  $F9
     DB   '3', 'E',  'D',  'X',  ',',  'L',  'O',  '9'
-    DB   '4', 'R',  'F',  'C',  '.',  'Ç',  'P',  '0'
+    DB   '4', 'R',  'F',  'C',  '.',  'C',  'P',  '0'
     DB   '6', 'Y',  'H',  'B',  $F8,  $F7,  0x0D, 0x08
-    DB   '5', 'T',  'G',  'V',  ';',  '~', 	'`',  '-'
+    DB   '5', 'T',  'G',  'V',  ';',  '~',  '`',  '-'
     DB   '7', 'U',  'J',  'N',  '/',  ']',  '[',  '='
     DB   '2', 'W',  'S',  'Z',  'M',  'K',  'I',  '8'
 
@@ -331,9 +330,6 @@ INICIO:
     ; Set defult I2C device addess: 24LC256 (Copy from/to Mem)
     LD A, EEDRIVE_A
     LD (I2CA_BLOCK), A     
-
-    LD A, 1 ;capslock OFF
-    LD (MEN_CAPSL), A
 
     LD A, $01
     LD (FS_DIR_CUR), A ; default folder - HOME
@@ -350,6 +346,8 @@ INICIO1:
 
     LD DE, $0064 ; 100ms
     CALL H_Delay
+
+    call KBD_INIT
 
     ;Init Serial
     CALL initSerial
@@ -371,6 +369,7 @@ INICIO1:
     ; set cursor ON
     LD A, 0
     LD (CURSOR_ON), A
+ 
     ; send cursor
     CALL sendStringToLCD
 
@@ -400,6 +399,7 @@ M_C_DIR_F:
     XOR A
     LD (HL), A
     RET
+
 
 
 showCurrentDriver:
@@ -579,9 +579,13 @@ PUTCH:  DW  0000H       ; Serial
 GETCH:  DW  0000H       ; Serial
 
 ; TECLADO
-MEN_SHIFT: DB 00H
-MEN_CAPSL: DB 00H
-KEY_PRESS: DB 00H
+KEY_PRESS:  .db 0
+CAPS_ON:    .db 0               ; 1 = Capslock ligado
+KEY_HELD:   .db 0               ; != 0 se havia tecla no último estado
+KEY_CUR:    .db 0,0,0,0,0,0,0,0 ; leitura atual
+KEY_CHK:    .db 0,0,0,0,0,0,0,0 ; leitura de confirmação (debounce)
+KEY_PREV:   .db 0,0,0,0,0,0,0,0 ; último estado estável
+KEY_BUF:    .db 0               ; tecla guardada pelo CHKKEY (0 = vazio)
 
 ; COMANDOS
 LINEBUF:    DS 80          ; Buffer de linha de comando

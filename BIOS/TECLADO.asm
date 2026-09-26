@@ -4,27 +4,53 @@ DB_INNER    EQU     240         ; iterações DJNZ internas
 
 ; -----------------------------------------------------------------------------
 ;   Check break key (Basic)
-;       On exit: If press A = CTRLC and NZ flagged
+;       Informa se há tecla, SEM consumir: a tecla fica em KEY_BUF e
+;       a próxima leitura (GETINP -> readKeyboarPressA) a devolve.
+;       Esc é guardado como CTRLC, pois o BASIC só reconhece Ctrl+C.
+;       On exit: Z  e A = 0        -> nenhuma tecla
+;                NZ e A = CTRLC    -> Esc ou Ctrl+C
+;                NZ e A = tecla    -> outra tecla
 ;       BC DE HL preserved
 ; -----------------------------------------------------------------------------
 CHKKEY:
-    LD      A, 0xFE             ; Máscara: bit 0 baixo = col 0
-    OUT     (KEYBOARD), A       ; Ativa coluna B
-    NOP                         ; ~270 ns de estabilização
-    NOP
-    NOP
-    NOP
-    IN      A, (KEYBOARD)       ; Lê linhas
-    CPL                         ; Pull-up: inverte (pressionado = 1)
-    CP 1
-    jp nz, GRET
-	LD  A, CTRLC
-	CP	0
-	RET
-GRET:
-	LD  A, 0
-	CP 0
-	RET
+    LD      A, (KEY_BUF)        ; já tem tecla guardada?
+    OR      A
+    JR      NZ, CK_HAVE
+
+    PUSH    BC
+    PUSH    DE
+    PUSH    HL
+    CALL    readKeyboarPressA   ; Carry=1 e A=tecla nova
+    POP     HL                  ; POP não altera flags
+    POP     DE
+    POP     BC
+    JR      NC, CK_NONE
+
+    CP      $1B                 ; Esc vira Ctrl+C para o BASIC
+    JR      NZ, CK_STORE
+    LD      A, CTRLC
+CK_STORE:
+    LD      (KEY_BUF), A        ; guarda para o GETINP ler
+
+CK_HAVE:
+    CP      $1B                 ; Esc
+    JR      Z, CK_BREAK
+    CP      CTRLC               ; Ctrl+C ($03)
+    JR      Z, CK_BREAK
+    OR      A                   ; NZ (A != 0)
+    RET
+
+CK_BREAK:
+    LD      A, CTRLC
+    OR      A                   ; NZ
+    RET
+
+CK_NONE:
+    XOR     A                   ; A = 0, Z
+    RET
+
+
+
 
 
 
@@ -74,230 +100,314 @@ CONIN_NOT_LOOP:
     RET
 
 
-readKeyboarPressA;
-    XOR A
-    LD (MEN_SHIFT), A ; reset shift
-    CALL    SCAN_MATRIX
-    RET      NC
-    CALl GetKeycode
-    CALL checkShiftKey
-    LD A, (KEY_PRESS)
-    SCF  ; Carry = 1
-    RET
+
+; ============================================================
+; KBD_INIT  -  chamar uma vez no boot
+; ============================================================
+KBD_INIT:
+    XOR     A
+    LD      (KEY_BUF), A
+    LD      (CAPS_ON), A
+    LD      (KEY_HELD), A
+    LD      HL, KEY_PREV
+    LD      B, 8
+KI_CLR:
+    LD      (HL), A
+    INC     HL
+    DJNZ    KI_CLR
+    JP      KBD_IDLE            ; porta em repouso, LED apagado
 
 
-
-; A = col*8 + row  (0x00 – 0x3F)
-GetKeycode:
-    ; --- Tecla confirmada: calcula keycode ---
-    ; col*8 + row  (0x00 – 0x3F)
-    LD      A, B                ; B = coluna
-    ADD     A, A                ; ×2
-    ADD     A, A                ; ×4
-    ADD     A, A                ; ×8
-    ADD     A, C                ; + linha (C) = keycode
-    RET
-
-
-; Verifica se shift e recupera ascii
-;   Salva tecla em KEY_PRESS
-checkShiftKey:
-    ; Verifica Shift
-    LD E, A
-    LD HL, KEYMAP_NORMAL
-    LD A, (MEN_SHIFT)
-    CP 1
-    JP NZ, NO_SHIFT
-    LD HL, KEYMAP_SHIFT
-    CALL DO_LOOKUP
-    LD (KEY_PRESS), A
-    RET
-NO_SHIFT:
-    CALL 	DO_LOOKUP	; pega tecla
-    LD (KEY_PRESS), A
-    CP $FF ;capslook?
-    JP Z, CAPSLOCK
-    LD A, (MEN_CAPSL)
-    CP 0
-    RET NZ
-    LD HL, KEYMAP_CAPSLOCK
-    CALL DO_LOOKUP
-    LD (KEY_PRESS), A
-    RET
-
-
-
-
-
-CAPSLOCK:
-    LD A, (MEN_CAPSL)
-    CP 0
-    JP Z, CAPSLOCK_OFF
-    XOR A
-    LD (MEN_CAPSL), A
-    JP CAPSLOCK_OK
-CAPSLOCK_OFF:
-    LD A, 1
-    LD (MEN_CAPSL), A
-CAPSLOCK_OK:
-    LD DE, $0064 ; 100ms
-    CALL H_Delay
-    RET
-
-
-
-
-; LER TECLADO
-; Aguarda até uma teclad for pressionada e retorna em A
+; ============================================================
+; readKeyboarWaitPressA  (bloqueante)
+;   Aguarda uma tecla NOVA e retorna o caractere em A.
+;   Não espera soltar -> permite digitação rápida (rollover).
+; ============================================================
 readKeyboarWaitPressA:
-    CALL    SCAN_MATRIX
-    JP      NC, readKeyboarWaitPressA       ; Nenhuma tecla, continua
+    CALL    readKeyboarPressA
+    JR      NC, readKeyboarWaitPressA
+    RET
 
-    ; --- Primeira leitura positiva: aguarda debounce ---
+
+; ============================================================
+; readKeyboarPressA  (não bloqueante)
+;   Saída: Carry=1 e A=caractere se uma tecla acabou de ser
+;          pressionada; Carry=0 caso contrário.
+; ============================================================
+readKeyboarPressA:
+    ; --- Tecla guardada pelo CHKKEY? ---
+    LD      A, (KEY_BUF)
+    OR      A
+    JR      Z, KP_POLL
+    PUSH    AF
+    XOR     A
+    LD      (KEY_BUF), A        ; esvazia o buffer
+    POP     AF
+    SCF
+    RET
+
+KP_POLL:
+    ; --- Caminho rápido: nada pressionado agora nem antes ---
+    ; --- Caminho rápido: nada pressionado agora nem antes ---
+    CALL    ANY_KEY
+    JR      NZ, KP_SCAN
+    LD      A, (KEY_HELD)
+    OR      A                   ; Carry=0
+    RET     Z
+
+KP_SCAN:
+    LD      HL, KEY_CUR
+    CALL    SCAN_ALL
+
+    ; --- Mudou algo desde o último estado estável? ---
+    LD      HL, KEY_CUR
+    LD      DE, KEY_PREV
+    CALL    COMPARE8
+    JR      Z, KP_NONE          ; nada mudou, sem debounce
+
+    ; --- Mudou: debounce e confirma ---
     CALL    DEBOUNCE
+    LD      HL, KEY_CHK
+    CALL    SCAN_ALL
+    LD      HL, KEY_CUR
+    LD      DE, KEY_CHK
+    CALL    COMPARE8
+    JR      NZ, KP_NONE         ; ainda instável, tenta depois
 
-    ; --- Confirma que a tecla ainda está pressionada ---
-    XOR A
-    LD (MEN_SHIFT), A ; reset shift
-    CALL    SCAN_MATRIX
-    JP      NC, readKeyboarWaitPressA       ; Foi ruído, descarta
+    ; --- Estado estável novo: procura tecla recém-pressionada ---
+    CALL    FIND_EDGE           ; Carry=1 se achou (KEY_PRESS)
+    PUSH    AF
 
-    CALL GetKeycode
-    
-    CALL checkShiftKey
-    
-    ; --- Aguarda soltar + debounce de release ---
-WAIT_RELEASE:
-    CALL    SCAN_MATRIX
-    JP      C, WAIT_RELEASE     ; Ainda pressionada
-    CALL    DEBOUNCE            ; Debounce do soltar
-    CALL    SCAN_MATRIX
-    JP      C, WAIT_RELEASE     ; Bounce no release, volta a esperar
+    ; KEY_PREV <- KEY_CUR
+    LD      HL, KEY_CUR
+    LD      DE, KEY_PREV
+    LD      BC, 8
+    LDIR
 
-    LD A, (KEY_PRESS)
-    OR A
+    ; KEY_HELD <- OR de todas as colunas (0 = nada pressionado)
+    LD      HL, KEY_CUR
+    LD      B, 8
+    XOR     A
+KP_OR:
+    OR      (HL)
+    INC     HL
+    DJNZ    KP_OR
+    LD      (KEY_HELD), A
+
+    POP     AF                  ; recupera Carry do FIND_EDGE
+    LD      A, (KEY_PRESS)      ; LD não altera flags
     RET
 
-
-
-
-
-
-; ============================================================
-; DEBOUNCE  –  espera ~10 ms (calibrado para 7.3728 MHz)
-;   Usa DE como contador, preserva BC
-;   T-states totais ≈ 69.080  →  ~9.36 ms
-; ============================================================
-DEBOUNCE:
-    PUSH    BC
-    LD      B, DB_OUTER         ; B = contador externo
-DB_OUTER_LOOP:
-    LD      C, DB_INNER         ; C = contador interno
-DB_INNER_LOOP:
-    DEC     C                   ; 4 T
-    JR      NZ, DB_INNER_LOOP   ; 12 T (não salta) / 7 T (salta)
-    DJNZ    DB_OUTER_LOOP       ; 13 T (não salta) / 8 T (salta)
-    POP     BC
-    RET
-
-
-; Pega char in table
-DO_LOOKUP:
-    LD      D, 0
-    ADD     HL, DE
-    LD      A, (HL)
+KP_NONE:
+    OR      A                   ; Carry=0
     RET
 
 
 ; ============================================================
-; SCAN_MATRIX
-;   Varre 8 colunas, uma por vez (bit baixo = ativo)
-;   Saída: B = col (0-7), C = row (0-7), Carry=1 se tecla
+; ANY_KEY
+;   Ativa TODAS as colunas de uma vez (seguro graças aos diodos)
+;   e lê as linhas numa única leitura.
+;   Saída: Z=1 se nenhuma tecla pressionada.
 ; ============================================================
-SCAN_MATRIX:
-    LD      B, 0                ; Coluna atual
-    LD      D, 0xFE             ; Máscara: bit 0 baixo = col 0
-SCAN_COL:
+ANY_KEY:
+    XOR     A
+    OUT     (KEYBOARD), A       ; todas as colunas ativas
+    NOP
+    NOP
+    NOP
+    NOP
+    IN      A, (KEYBOARD)
+    CPL
+    LD      C, A
+    CALL    KBD_IDLE            ; volta ao repouso (LED conforme Capslock)
+    LD      A, C
+    OR      A
+    RET
+
+
+; ============================================================
+; SCAN_ALL
+;   Entrada: HL = buffer de 8 bytes
+;   Saída:   buffer[col] = bits das linhas pressionadas (1 = pressionada)
+; ============================================================
+SCAN_ALL:
+    LD      D, $FE              ; coluna 0 ativa
+    LD      B, 8
+SA_COL:
     LD      A, D
-    OUT     (KEYBOARD), A       ; Ativa coluna B
-    NOP                         ; ~270 ns de estabilização
-    NOP
-    NOP
-    NOP
-    IN      A, (KEYBOARD)       ; Lê linhas
-    CPL                         ; Pull-up: inverte (pressionado = 1)
-    
-    ; LED CAPSLOCK
-    PUSH AF
-    LD A, (MEN_CAPSL)
-    CP 0 ; capslock 0=ON
-    JR NZ, SCAN_COLSHIFT
-    LD A, $F0
     OUT     (KEYBOARD), A
+    NOP                         ; estabilização
     NOP
     NOP
-SCAN_COLSHIFT:
-    XOR A
+    NOP
+    IN      A, (KEYBOARD)
+    CPL                         ; pull-up: pressionado = 1
+    LD      (HL), A
+    INC     HL
+    RLC     D                   ; $FE -> $FD -> $FB ... -> $7F
+    DJNZ    SA_COL
+    JP      KBD_IDLE            ; volta ao repouso (LED conforme Capslock)
+
+
+; ============================================================
+; KBD_IDLE  -  valor de repouso da porta do teclado
+;   Circuito do LED: acende só com b0=b1=b2=0 e b4=b5=1.
+;   Na varredura só uma coluna fica em 0, então o LED nunca
+;   acende por engano. No repouso deixamos:
+;     Capslock ligado    -> $F8  (LED aceso fixo)
+;     Capslock desligado -> $FF  (tudo inativo, LED apagado)
+;   Altera só A.
+; ============================================================
+KBD_IDLE:
+    LD      A, (CAPS_ON)
+    OR      A
+    LD      A, $FF              ; LD não altera flags
+    JR      Z, KI_OUT
+    LD      A, $F8
+KI_OUT:
     OUT     (KEYBOARD), A
-    POP AF
-    ; LED CAPSLOCK FIM
-
-    ; SHIFT
-    PUSH AF
-    LD A, D
-    CP $FE
-    JP NZ, FIM
-    POP AF
-    PUSH AF
-    CP $08
-    JP NZ, FIM
-    LD A, 1
-    LD (MEN_SHIFT), A
-    POP AF
-    LD A, 0
-    PUSH AF
-    
-FIM:
-	POP AF
-    
-    AND     0xFF
-    JR      Z, NEXT_COL         ; Nenhuma linha nesta coluna
-    
-    ; Encontrou linha — identifica bit
-    LD      C, 0
-FIND_ROW:
-    RRA
-    JR      C, ROW_FOUND
-    INC     C
-    JR      FIND_ROW
-
-ROW_FOUND:
-    LD      A, 0xFF
-    OUT     (KEYBOARD), A           ; Desativa colunas
-    SCF                         ; Carry = 1
     RET
 
-NEXT_COL:
+
+; ============================================================
+; COMPARE8
+;   Compara 8 bytes em (HL) e (DE).  Z=1 se iguais.
+; ============================================================
+COMPARE8:
+    LD      B, 8
+C8_LOOP:
+    LD      A, (DE)
+    CP      (HL)
+    RET     NZ
+    INC     HL
+    INC     DE
+    DJNZ    C8_LOOP
+    RET                         ; Z=1
+
+
+; ============================================================
+; FIND_EDGE
+;   Procura a primeira tecla que está em KEY_CUR mas não em
+;   KEY_PREV e que gere um caractere válido.
+;   Saída: Carry=1 e KEY_PRESS preenchido se achou.
+; ============================================================
+FIND_EDGE:
+    LD      HL, KEY_CUR
+    LD      DE, KEY_PREV
+    LD      B, 0                ; B = coluna
+FE_COL:
+    LD      A, (DE)
+    CPL
+    AND     (HL)                ; recém-pressionadas = cur AND NOT prev
+    JR      Z, FE_NEXT
+    LD      C, 0                ; C = linha
+FE_ROW:
+    SRL     A                   ; bit 0 -> Carry, 0 entra no bit 7
+    JR      NC, FE_SKIP
+    PUSH    AF
+    PUSH    HL
+    PUSH    DE
+    PUSH    BC
+    CALL    KEY_TO_ASCII        ; Carry=1 se caractere válido
+    POP     BC
+    POP     DE
+    POP     HL
+    JR      C, FE_FOUND
+    POP     AF
+FE_SKIP:
+    INC     C
+    OR      A
+    JR      NZ, FE_ROW
+FE_NEXT:
+    INC     HL
+    INC     DE
     INC     B
     LD      A, B
     CP      8
-    JR      Z, SCAN_NONE        ; Todas varridas, nada encontrado
-
-    ; Rotaciona máscara para próxima coluna
-    LD      A, D
+    JR      NZ, FE_COL
+    OR      A                   ; Carry=0: nada novo
+    RET
+FE_FOUND:
+    POP     AF                  ; descarta
     SCF
-    RL      A                   ; Desloca bit baixo para esquerda
-    OR      0x01                ; Garante que o bit 0 volta alto (inativo)
-    LD      D, A
-    JR      SCAN_COL
-
-SCAN_NONE:
-    LD      A, 0xFF
-    OUT     (KEYBOARD), A
-    OR      A                   ; Limpa Carry
     RET
 
 
-    
-    
-    
+; ============================================================
+; KEY_TO_ASCII
+;   Entrada: B = coluna, C = linha
+;   Saída:   Carry=1 e KEY_PRESS = caractere, ou Carry=0 se for
+;            modificador (Capslock alterna aqui).
+;   Shift left = col 0 / linha 3   Ctrl left = col 0 / linha 4
+; ============================================================
+KEY_TO_ASCII:
+    LD      A, B
+    ADD     A, A
+    ADD     A, A
+    ADD     A, A
+    ADD     A, C                ; índice = col*8 + linha
+    LD      E, A
+    LD      D, 0
+
+    LD      HL, KEYMAP_NORMAL
+    ADD     HL, DE
+    LD      A, (HL)
+    CP      $FF
+    JR      Z, KTA_CAPS         ; Capslock
+    CP      $F6
+    JR      Z, KTA_NONE         ; Fn
+    CP      $FB
+    JR      NC, KTA_NONE        ; $FB-$FE: Alt, Win, Ctrl, Shift
+
+    ; --- Escolhe a tabela ---
+    LD      HL, KEYMAP_SHIFT
+    LD      A, (KEY_CUR)
+    BIT     3, A                ; Shift esquerdo pressionado?
+    JR      NZ, KTA_LOOK
+    LD      HL, KEYMAP_CAPSLOCK
+    LD      A, (CAPS_ON)
+    OR      A
+    JR      NZ, KTA_LOOK
+    LD      HL, KEYMAP_NORMAL
+KTA_LOOK:
+    ADD     HL, DE
+    LD      A, (HL)
+
+    ; --- Ctrl esquerdo: gera código de controle ($40-$7F) ---
+    LD      HL, KEY_CUR
+    BIT     4, (HL)
+    JR      Z, KTA_OK
+    CP      $40
+    JR      C, KTA_OK
+    CP      $80
+    JR      NC, KTA_OK
+    AND     $1F                 ; Ctrl+C = $03, Ctrl+Z = $1A ...
+KTA_OK:
+    LD      (KEY_PRESS), A
+    SCF
+    RET
+
+KTA_CAPS:
+    LD      A, (CAPS_ON)
+    XOR     1
+    LD      (CAPS_ON), A
+    CALL    KBD_IDLE            ; atualiza o LED na hora
+KTA_NONE:
+    OR      A                   ; Carry=0
+    RET
+
+
+; ============================================================
+; DEBOUNCE  –  ~10 ms @ 7.3728 MHz, preserva BC
+; ============================================================
+DEBOUNCE:
+    PUSH    BC
+    LD      B, DB_OUTER
+DB_OUTER_LOOP:
+    LD      C, DB_INNER
+DB_INNER_LOOP:
+    DEC     C
+    JR      NZ, DB_INNER_LOOP
+    DJNZ    DB_OUTER_LOOP
+    POP     BC
+    RET
